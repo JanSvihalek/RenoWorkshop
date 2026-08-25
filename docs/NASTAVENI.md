@@ -188,12 +188,18 @@ v aplikaci → Poznámkový blok), ne v editoru kódu.
 | `IOS_DIST_CERT_P12_BASE64` | `AppleCerts\distribution.p12.base64.txt` — 4 260 znaků na jednom řádku |
 | `IOS_DIST_CERT_PASSWORD` | `AppleCerts\p12-heslo.txt` — 24 znaků, bez odřádkování |
 | `IOS_PROVISIONING_PROFILE_BASE64` | `AppleCerts\RenoWorkshop.mobileprovision.base64.txt` z kroku 3 |
-| `IOS_PROVISIONING_PROFILE_NAME` | `RenoWorkshop` — přesně jak se profil jmenuje v portálu |
-| `APPLE_TEAM_ID` | `CZRDLTZC6L` |
+| `IOS_PROVISIONING_PROFILE_NAME` | `RenoWorkshop` — už se nepoužívá, workflow si jméno čte z profilu |
+| `APPLE_TEAM_ID` | `CZRDLTZC6L` — už se nepoužívá, team se čte z profilu |
 
 **Kontrola:** na stránce je celkem **osm** secretů — tři z kroku 1 a těchto
 pět. Hodnoty už si žádné nepřečteš, jde je jen přepsat; při pochybnostech
 secret prostě ulož znovu.
+
+> Poslední dva (`IOS_PROVISIONING_PROFILE_NAME`, `APPLE_TEAM_ID`) workflow
+> od 25. 8. 2026 nepotřebuje — jméno profilu, jeho UUID i team si čte přímo
+> z nahraného profilu, takže se nemůžou rozejít. Nechat je tam nevadí, ale
+> když je smažeš, budou v logu vidět skutečné hodnoty místo `***`, což se
+> hodí při hledání chyb.
 
 ---
 
