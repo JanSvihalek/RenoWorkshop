@@ -70,7 +70,11 @@ Podrobnosti a postup napojení reálného API: [docs/ARCHITECTURE.md](docs/ARCHI
 
 Po každém pushi běží [GitHub Actions](.github/workflows/build.yml): analyze +
 testy, release APK/AAB jako artefakt běhu a podepsané IPA nahrané do TestFlightu
-(fastlane, `ios/fastlane/Fastfile`). Seznam secretů a jak je získat:
+(fastlane, `ios/fastlane/Fastfile`).
+
+Podpisové materiály pro iOS generuje `fastlane match` na macOS runneru, takže
+**vývojářský Mac není potřeba** - stačí jednorázově spustit workflow
+[iOS bootstrap](.github/workflows/ios-bootstrap.yml). Seznam secretů a postup:
 [docs/CI.md](docs/CI.md).
 
 ## State management: Riverpod

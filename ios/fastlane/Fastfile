@@ -1,16 +1,21 @@
-# Fastlane pro RenoWorkshop - build IPA a upload na TestFlight.
+# Fastlane pro RenoWorkshop - podpis, build IPA a upload na TestFlight.
 #
-# Spouští se z CI (.github/workflows/build.yml), lokálně na Macu funguje taky:
-#   cd ios && bundle install && bundle exec fastlane beta
+# Podpisové materiály spravuje `fastlane match`: certifikát i provisioning
+# profil vzniknou na macOS runneru a uloží se zašifrované do privátního git
+# repa. Vývojářský Mac tedy není potřeba.
 #
-# Povinné proměnné prostředí:
-#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8   App Store Connect API klíč
-#   CERTIFICATE_PATH, CERTIFICATE_PASSWORD  .p12 s Apple Distribution certifikátem
-#   PROVISIONING_PROFILE_PATH               .mobileprovision (App Store profil)
+# Lanes:
+#   bootstrap  jednorázově - založí App ID + záznam v App Store Connect
+#              a vygeneruje certifikát a profil do match repa
+#   beta       po každém pushi - postaví IPA a nahraje ho do TestFlightu
+#
+# Proměnné prostředí (v CI ze secretů):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8      App Store Connect API klíč
+#   MATCH_GIT_URL                              privátní repo s certifikáty
+#   MATCH_GIT_BASIC_AUTHORIZATION              base64("uzivatel:PAT")
+#   MATCH_PASSWORD                             heslo, kterým match šifruje
 # Volitelné:
-#   BUILD_NUMBER    číslo buildu (v CI = číslo běhu workflow)
-#   IOS_BUNDLE_ID   když se změní bundle ID
-#   IOS_PROFILE_NAME, IOS_TEAM_ID  když se nepodaří přečíst je z profilu
+#   IOS_BUNDLE_ID, IOS_APP_NAME, IOS_SKU, BUILD_NUMBER
 
 require "shellwords"
 
@@ -22,37 +27,55 @@ BUNDLE_ID = ENV["IOS_BUNDLE_ID"] || "dev.svihalek.renoworkshop"
 PROJECT_ROOT = File.expand_path("../..", __dir__)
 
 platform :ios do
+  desc "Jednorázové založení App ID, aplikace v App Store Connect a podpisových materiálů"
+  lane :bootstrap do
+    key = asc_api_key
+
+    # Založí bundle ID v Developer portálu a aplikaci v App Store Connect.
+    # Když už existují, produce to jen oznámí a pokračuje.
+    produce(
+      api_key: key,
+      app_identifier: BUNDLE_ID,
+      app_name: ENV["IOS_APP_NAME"] || "RenoWorkshop",
+      sku: ENV["IOS_SKU"] || BUNDLE_ID.tr(".", "-"),
+      language: "Czech",
+      skip_itc: false,
+      skip_devcenter: false
+    )
+
+    # Vytvoří distribuční certifikát + App Store profil a uloží je
+    # zašifrované do match repa (readonly: false = smí zapisovat).
+    match(
+      api_key: key,
+      type: "appstore",
+      app_identifier: BUNDLE_ID,
+      readonly: false
+    )
+
+    UI.success("Hotovo. Další buildy už certifikát jen stahují z match repa.")
+  end
+
   desc "Postaví podepsané IPA a nahraje ho do TestFlightu"
   lane :beta do
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("ASC_KEY_ID"),
-      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-      key_content: ENV.fetch("ASC_KEY_P8"),
-      in_house: false
-    )
+    key = asc_api_key
 
-    # Dočasná klíčenka na runneru (na vlastním Macu se přeskočí).
+    # Dočasná klíčenka na runneru (na vlastním stroji se přeskočí).
     setup_ci if ENV["CI"]
 
-    import_certificate(
-      certificate_path: ENV.fetch("CERTIFICATE_PATH"),
-      certificate_password: ENV.fetch("CERTIFICATE_PASSWORD"),
-      keychain_name: "fastlane_tmp_keychain",
-      keychain_password: ""
+    match(
+      api_key: key,
+      type: "appstore",
+      app_identifier: BUNDLE_ID,
+      readonly: true
     )
 
-    profile_path = ENV.fetch("PROVISIONING_PROFILE_PATH")
-    install_provisioning_profile(path: profile_path)
-    profile = decode_profile(profile_path)
-
-    profile_name = ENV["IOS_PROFILE_NAME"] || profile["Name"]
-    team_id = ENV["IOS_TEAM_ID"] || Array(profile["TeamIdentifier"]).first
-    UI.user_error!("Nepodařilo se zjistit jméno profilu - nastav IOS_PROFILE_NAME.") if profile_name.to_s.empty?
-    UI.user_error!("Nepodařilo se zjistit Team ID - nastav IOS_TEAM_ID.") if team_id.to_s.empty?
+    profile_name = ENV["sigh_#{BUNDLE_ID}_appstore_profile-name"]
+    team_id = ENV["sigh_#{BUNDLE_ID}_appstore_team-id"] || ENV["IOS_TEAM_ID"]
+    UI.user_error!("match nevrátil jméno profilu - pusť lane `bootstrap`.") if profile_name.to_s.empty?
     UI.message("Podepisuji profilem '#{profile_name}' (team #{team_id}).")
 
-    # Runner má po `flutter create` automatický podpis; na CI ho přepneme
-    # na manuální s konkrétním profilem.
+    # Runner má po `flutter create` automatický podpis; přepneme ho na
+    # manuální s profilem z matche.
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "Runner.xcodeproj",
@@ -81,28 +104,27 @@ platform :ios do
       },
       output_directory: "#{PROJECT_ROOT}/build/ios/ipa",
       output_name: "RenoWorkshop.ipa",
-      clean: false,
-      silent: false
+      clean: false
     )
 
+    # skip_waiting_for_build_processing: CI nečeká ~10 minut na zpracování
+    # buildu Applem. Cenou je, že se nedá nastavit changelog - kdyby byl
+    # potřeba, přepni flag na false a doplň `changelog:`.
     upload_to_testflight(
-      api_key: api_key,
+      api_key: key,
       app_identifier: BUNDLE_ID,
       skip_waiting_for_build_processing: true,
-      distribute_external: false,
-      changelog: ENV["TESTFLIGHT_CHANGELOG"] || "Automatický build z větve #{ENV['GITHUB_REF_NAME'] || 'local'} (##{build_number})."
+      distribute_external: false
     )
   end
 end
 
-# Přečte metadata z .mobileprovision (je to CMS-podepsaný plist).
-def decode_profile(path)
-  require "plist"
-  xml = `security cms -D -i "#{path}" 2>/dev/null`
-  return {} if xml.strip.empty?
-
-  Plist.parse_xml(xml) || {}
-rescue StandardError => e
-  UI.important("Profil se nepodařilo přečíst (#{e.message}), použij IOS_PROFILE_NAME / IOS_TEAM_ID.")
-  {}
+# API klíč místo Apple ID s dvoufázovým ověřením.
+def asc_api_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("ASC_KEY_ID"),
+    issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+    key_content: ENV.fetch("ASC_KEY_P8"),
+    in_house: false
+  )
 end

@@ -48,6 +48,9 @@ android {
                 keyPassword = keystoreProperties.getProperty("keyPassword")
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
+                // Keystore z tools/create-android-keystore.sh je PKCS#12
+                // (vzniká OpenSSL bez JDK); klasický .jks funguje taky.
+                storeType = keystoreProperties.getProperty("storeType") ?: "PKCS12"
             }
         }
     }

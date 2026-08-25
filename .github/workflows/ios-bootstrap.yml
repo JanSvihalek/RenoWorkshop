@@ -1,0 +1,69 @@
+name: iOS bootstrap (jednorázově)
+
+# Spouští se ručně: Actions -> iOS bootstrap -> Run workflow.
+#
+# Na macOS runneru (žádný vlastní Mac není potřeba):
+#   1. založí App ID v Developer portálu a aplikaci v App Store Connect,
+#   2. vygeneruje distribuční certifikát a App Store provisioning profil,
+#   3. uloží je zašifrované do privátního match repa.
+#
+# Pouštět znovu je potřeba jen když certifikát vyprší (po roce) nebo se
+# změní bundle ID.
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: "Název aplikace v App Store Connect"
+        required: false
+        default: "RenoWorkshop"
+
+env:
+  FLUTTER_VERSION: "3.41.8"
+
+jobs:
+  bootstrap:
+    name: Založení podpisových materiálů
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Kontrola secretů
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: |
+          missing=""
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 MATCH_GIT_URL \
+                      MATCH_PASSWORD MATCH_GIT_BASIC_AUTHORIZATION; do
+            eval "value=\${$name}"
+            [ -z "$value" ] && missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Chybí secrety:$missing (viz docs/CI.md)"
+            exit 1
+          fi
+
+      - name: Fastlane bootstrap
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+          IOS_APP_NAME: ${{ inputs.app_name }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+        run: bundle exec fastlane bootstrap

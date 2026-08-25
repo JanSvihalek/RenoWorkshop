@@ -1,0 +1,11 @@
+# Úložiště podpisových materiálů: privátní git repo, obsah šifrovaný
+# heslem MATCH_PASSWORD. Certifikát ani profil se nikde neukládají ručně.
+git_url(ENV.fetch("MATCH_GIT_URL", ""))
+storage_mode("git")
+git_branch(ENV["MATCH_GIT_BRANCH"] || "main")
+
+app_identifier([ENV["IOS_BUNDLE_ID"] || "dev.svihalek.renoworkshop"])
+type("appstore")
+
+# Výchozí je jen čtení; lane `bootstrap` si readonly přepíná sám.
+readonly(true)

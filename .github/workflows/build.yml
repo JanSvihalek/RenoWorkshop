@@ -32,8 +32,9 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "android_signing=true" >> "$GITHUB_OUTPUT"
@@ -89,13 +90,17 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # PKCS12 = keystore z tools/create-android-keystore.sh.
+          # Pro keystore z keytoolu (.jks) nastav variable na JKS.
+          ANDROID_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE || 'PKCS12' }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release-keystore"
           cat > android/key.properties <<PROPS
-          storeFile=$RUNNER_TEMP/upload-keystore.jks
+          storeFile=$RUNNER_TEMP/release-keystore
           storePassword=$ANDROID_KEYSTORE_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
           keyPassword=$ANDROID_KEY_PASSWORD
+          storeType=$ANDROID_KEYSTORE_TYPE
           PROPS
 
       - run: flutter pub get
@@ -155,24 +160,16 @@ jobs:
           bundler-cache: true
           working-directory: ios
 
-      - name: Dekódování certifikátu a profilu
-        env:
-          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          echo "$IOS_DIST_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
-          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
-
       - name: Build IPA a upload do TestFlightu
         working-directory: ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          CERTIFICATE_PATH: ${{ runner.temp }}/dist.p12
-          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
-          PROVISIONING_PROFILE_PATH: ${{ runner.temp }}/profile.mobileprovision
-          IOS_PROFILE_NAME: ${{ vars.IOS_PROFILE_NAME }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
           IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
           BUILD_NUMBER: ${{ github.run_number }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"

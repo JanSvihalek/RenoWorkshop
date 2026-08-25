@@ -1,4 +1,4 @@
-# CI/CD - TestFlight a Android build
+# CI/CD - TestFlight a Android build (bez vlastního Macu)
 
 Workflow [.github/workflows/build.yml](../.github/workflows/build.yml) běží
 **po každém pushi** do libovolné větve:
@@ -7,122 +7,131 @@ Workflow [.github/workflows/build.yml](../.github/workflows/build.yml) běží
 |---|---|---|
 | `config` | zjistí, které podpisové secrety jsou nastavené | ubuntu |
 | `test` | `flutter analyze` + `flutter test` | ubuntu |
-| `android` | release APK + AAB, nahraje je jako artefakt běhu | ubuntu |
-| `ios` | podepsané IPA → upload do TestFlightu (fastlane) | macOS |
+| `android` | release APK + AAB jako artefakt běhu | ubuntu |
+| `ios` | podepsané IPA → upload do TestFlightu | macOS |
 
-Bez nastavených secretů workflow **nespadne** - Android se postaví s debug
+Bez nastavených secretů workflow **nespadne**: Android se postaví s debug
 podpisem a iOS job se přeskočí s varováním.
 
-- **Android APK** se stahuje ze záložky *Actions → konkrétní běh → Artifacts*
-  (`android-<číslo běhu>`), platnost 60 dní. Při pushnutí tagu `v*` se APK i AAB
-  navíc připnou k GitHub Release.
-- **iOS** se po dokončení objeví v App Store Connect → TestFlight
-  (zpracování buildu trvá zpravidla 5-15 minut).
-- Číslo buildu = číslo běhu workflow (`github.run_number`), takže TestFlight
-  nikdy nedostane duplicitní build. Verzi (`1.0.0`) drží `pubspec.yaml`.
+**Mac není potřeba.** Certifikát i provisioning profil vygeneruje
+[fastlane match](https://docs.fastlane.tools/actions/match/) přímo na macOS
+runneru GitHub Actions a uloží je zašifrované do privátního repa. Jediné, co
+se dělá ručně, je vyplnění secretů.
+
+- **Android APK**: Actions → konkrétní běh → Artifacts → `android-<číslo>`
+  (60 dní). Při pushnutí tagu `v*` se APK i AAB připnou k GitHub Release.
+- **iOS**: App Store Connect → TestFlight, zpracování buildu 5-15 minut.
+- Číslo buildu = číslo běhu workflow, takže TestFlight nikdy nedostane
+  duplicitní build. Verzi (`1.0.0`) drží `pubspec.yaml`.
 
 ---
 
-## Co je potřeba nastavit
-
-Vše se zadává v **Settings → Secrets and variables → Actions** v GitHub repu.
-
-### A) Apple - App Store Connect API klíč
+## 1. App Store Connect API klíč
 
 App Store Connect → *Users and Access* → *Integrations* → *App Store Connect API*
-→ vygenerovat klíč s rolí **App Manager**. Klíč `.p8` jde stáhnout jen jednou.
+→ **Generate API Key** s rolí **Admin** (nižší role nesmí vytvářet certifikáty).
+Soubor `.p8` jde stáhnout jen jednou.
 
 | Secret | Hodnota |
 |---|---|
-| `ASC_KEY_ID` | Key ID (10 znaků, např. `AB12CD34EF`) |
-| `ASC_ISSUER_ID` | Issuer ID (UUID, je nad seznamem klíčů) |
-| `ASC_KEY_P8` | **celý obsah** souboru `AuthKey_XXXX.p8` včetně řádků `-----BEGIN PRIVATE KEY-----` |
+| `ASC_KEY_ID` | Key ID (10 znaků) |
+| `ASC_ISSUER_ID` | Issuer ID (UUID nad seznamem klíčů) |
+| `ASC_KEY_P8` | **celý obsah** `AuthKey_XXXX.p8` včetně `-----BEGIN PRIVATE KEY-----` |
 
-### B) Apple - podpisový certifikát a profil
+## 2. Privátní repo pro certifikáty
 
-V Apple Developer portálu (potřebuje Mac na export `.p12`, nebo Xcode na jiném stroji):
+fastlane match potřebuje úložiště. Založ **nový prázdný privátní** repozitář,
+např. `JanSvihalek/RenoWorkshop-certificates` (privátní je podmínka - leží
+v něm zašifrovaný podpisový klíč).
 
-1. **App ID** pro bundle `dev.svihalek.renoworkshop` (Identifiers → +).
-2. **Apple Distribution certifikát** → v Keychain Access ho exportovat
-   i se soukromým klíčem jako `.p12` a nastavit heslo.
-3. **Provisioning profile** typu *App Store* pro to App ID → stáhnout
-   `.mobileprovision`.
-4. **Aplikace v App Store Connect** (My Apps → +) se stejným bundle ID -
-   bez ní upload skončí chybou.
+Přístup pro CI přes personal access token: GitHub → Settings → Developer
+settings → **Fine-grained token**, přístup jen k tomu jednomu repu,
+oprávnění **Contents: Read and write**.
 
-Převod do base64:
+Hodnotu `MATCH_GIT_BASIC_AUTHORIZATION` vyrob z tokenu (Git Bash):
 
 ```bash
-base64 -i dist.p12 | pbcopy               # macOS
-base64 -i profile.mobileprovision | pbcopy
+printf 'JanSvihalek:github_pat_XXXX' | base64 -w0
 ```
 
 | Secret | Hodnota |
 |---|---|
-| `IOS_DIST_CERT_P12_BASE64` | base64 z `.p12` |
-| `IOS_DIST_CERT_PASSWORD` | heslo, kterým je `.p12` chráněný |
-| `IOS_PROVISIONING_PROFILE_BASE64` | base64 z `.mobileprovision` |
+| `MATCH_GIT_URL` | `https://github.com/JanSvihalek/RenoWorkshop-certificates.git` |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | výstup příkazu výše |
+| `MATCH_PASSWORD` | heslo, kterým match šifruje obsah repa (vymysli a ulož si ho) |
 
-Volitelně (*Variables*, ne secrets) - použij, jen když build hlásí, že si
-nedokázal přečíst profil:
+## 3. Jednorázový bootstrap
 
-| Variable | Hodnota |
-|---|---|
-| `IOS_PROFILE_NAME` | přesný název profilu z portálu |
-| `IOS_TEAM_ID` | Team ID (10 znaků) |
+Actions → **iOS bootstrap (jednorázově)** → *Run workflow*. Na macOS runneru se:
 
-> Profil expiruje po roce - pak stačí stáhnout nový a přepsat
-> `IOS_PROVISIONING_PROFILE_BASE64`. Až bude appek v rodině víc, vyplatí se
-> přejít na `fastlane match` (certifikáty v privátním repu, automatická obnova).
+1. založí App ID `dev.svihalek.renoworkshop` v Developer portálu,
+2. založí aplikace v App Store Connect,
+3. vygeneruje distribuční certifikát + App Store profil,
+4. uloží zašifrované do match repa.
 
-### C) Android - podpisový keystore
+Pak už každý push staví IPA a posílá ho na TestFlight sám. Bootstrap se pouští
+znovu jen při expiraci certifikátu (po roce) nebo změně bundle ID.
 
-Bez něj se APK podepíše debug klíčem: nainstalovat jde, ale nejde ho později
-aktualizovat verzí podepsanou ostrým klíčem. Vytvoření (jednou a **zálohovat** -
-ztráta keystoru znamená, že aplikaci nejde aktualizovat):
+Zbývá jediná ruční věc v App Store Connect: v TestFlightu založit skupinu
+interních testerů a přidat do ní kolegy.
+
+## 4. Android keystore (bez JDK)
+
+Na tomhle počítači není `keytool`, ale je OpenSSL - stačí spustit:
 
 ```bash
-keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA \
-  -keysize 2048 -validity 10000 -alias upload
-base64 -i upload-keystore.jks | pbcopy
+bash tools/create-android-keystore.sh "silne-heslo"
 ```
+
+Vznikne `upload-keystore.p12` (**zálohuj mimo počítač** - ztráta znamená, že
+aplikaci už nepůjde aktualizovat) a `upload-keystore.p12.base64` pro secret.
 
 | Secret | Hodnota |
 |---|---|
-| `ANDROID_KEYSTORE_BASE64` | base64 z `.jks` |
-| `ANDROID_KEYSTORE_PASSWORD` | heslo ke keystoru |
-| `ANDROID_KEY_ALIAS` | alias klíče (výše `upload`) |
-| `ANDROID_KEY_PASSWORD` | heslo ke klíči |
+| `ANDROID_KEYSTORE_BASE64` | obsah `upload-keystore.p12.base64` |
+| `ANDROID_KEYSTORE_PASSWORD` | zadané heslo |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | stejné heslo (PKCS#12 používá jedno) |
 
-Lokálně (mimo CI) se stejné hodnoty dají zapsat do `android/key.properties`
-(soubor je v `.gitignore`):
+Bez těchto secretů se APK podepíše debug klíčem: nainstalovat jde, ale nejde
+ho později aktualizovat verzí s ostrým podpisem.
+
+Lokálně (mimo CI) se stejné hodnoty píšou do `android/key.properties`
+(je v `.gitignore`):
 
 ```properties
-storeFile=/absolutní/cesta/upload-keystore.jks
+storeFile=/absolutní/cesta/upload-keystore.p12
 storePassword=…
 keyAlias=upload
 keyPassword=…
+storeType=PKCS12
 ```
+
+## Volitelné proměnné (*Variables*, ne secrets)
+
+| Variable | K čemu |
+|---|---|
+| `IOS_BUNDLE_ID` | jiné bundle ID než `dev.svihalek.renoworkshop` |
+| `IOS_TEAM_ID` | když si match nedokáže odvodit team |
+| `ANDROID_KEYSTORE_TYPE` | `JKS`, pokud přineseš keystore z keytoolu |
 
 ---
-
-## Lokální spuštění fastlane (na Macu)
-
-```bash
-cd ios
-bundle install
-ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_P8="$(cat AuthKey_XXX.p8)" \
-CERTIFICATE_PATH=dist.p12 CERTIFICATE_PASSWORD=… \
-PROVISIONING_PROFILE_PATH=profile.mobileprovision \
-bundle exec fastlane beta
-```
 
 ## Časté chyby
 
 | Hláška | Příčina |
 |---|---|
-| `No profiles for 'dev.svihalek.renoworkshop' were found` | chybí App Store profil pro tohle App ID, nebo je v secretu starý |
-| `Invalid Provisioning Profile … certificate` | `.p12` a profil nepatří k sobě (profil vznikl s jiným certifikátem) |
-| `The bundle version must be higher than the previously uploaded version` | build se pouští ručně přes `workflow_dispatch` po přečíslování; stačí znovu pushnout |
-| `Authentication credentials are missing or invalid` | špatný `ASC_KEY_P8` (chybí BEGIN/END řádky) nebo klíč nemá roli App Manager |
-| Android: `Keystore file not found` | `ANDROID_KEYSTORE_BASE64` je nastavený, ale ostatní tři secrety chybí |
+| `Could not create another Distribution certificate` | u týmu jsou vyčerpané certifikáty - smaž nepoužívaný v Developer portálu a pusť bootstrap znovu |
+| `Authentication credentials are missing or invalid` | špatný `ASC_KEY_P8` (chybí BEGIN/END řádky) nebo klíč nemá roli Admin |
+| `No matching provisioning profiles found` | bootstrap ještě neproběhl, nebo se změnilo bundle ID |
+| `Couldn't find bundle identifier` | App ID neexistuje - pusť lane `bootstrap` |
+| `The provided entity includes an attribute with a value that has already been used` (produce) | aplikace v App Store Connect už existuje; bootstrap pokračuje dál, chyba je neškodná |
+| Android: `Keystore file not found` | `ANDROID_KEYSTORE_BASE64` je nastavený, ale zbylé tři secrety chybí |
+
+## Poznámka k viditelnosti repa
+
+`JanSvihalek/RenoWorkshop` je veřejný. Pro Actions to znamená neomezené
+minuty včetně macOS runnerů. Když se repo přepne na privátní, macOS minuty
+se počítají **desetinásobkem** (2 000 minut ve free tarifu ≈ 200 minut macOS,
+tj. zhruba 15 iOS buildů měsíčně). Match repo s certifikáty musí být privátní
+v obou případech.

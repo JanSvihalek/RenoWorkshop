@@ -61,3 +61,4 @@ ios/fastlane/screenshots
 ios/fastlane/test_output
 ios/Runner.ipa
 ios/Runner.app.dSYM.zip
+*.base64
