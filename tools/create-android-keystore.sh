@@ -12,7 +12,7 @@ set -euo pipefail
 
 PASSWORD="${1:-}"
 if [ -z "$PASSWORD" ]; then
-  echo "Použití: bash tools/create-android-keystore.sh \"silne-heslo\"" >&2
+  echo 'Použití: bash tools/create-android-keystore.sh "silne-heslo"' >&2
   exit 1
 fi
 
@@ -26,16 +26,21 @@ if [ -e "$KEYSTORE" ]; then
   exit 1
 fi
 
+# Git Bash na Windows by z "/CN=..." udělal cestu k adresáři; tohle vyjme
+# jen subjekt certifikátu, cesty k souborům se převádět dál musí.
+export MSYS2_ARG_CONV_EXCL="/CN="
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# Platnost ~27 let, ať keystore nepřestane platit dřív než aplikace.
-openssl req -x509 -newkey rsa:2048 -sha256 -days 10000 -nodes \
-  -keyout "$TMP/key.pem" -out "$TMP/cert.pem" -subj "$SUBJECT" 2>/dev/null
+# Platnost ~27 let, ať certifikát nepřestane platit dřív než aplikace.
+if ! openssl req -x509 -newkey rsa:2048 -sha256 -days 10000 -nodes -keyout "$TMP/key.pem" -out "$TMP/cert.pem" -subj "$SUBJECT" 2>"$TMP/openssl.log"; then
+  echo "CHYBA při generování klíče:" >&2
+  cat "$TMP/openssl.log" >&2
+  exit 1
+fi
 
-openssl pkcs12 -export \
-  -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
-  -name "$ALIAS" -out "$KEYSTORE" -passout "pass:$PASSWORD"
+openssl pkcs12 -export -inkey "$TMP/key.pem" -in "$TMP/cert.pem" -name "$ALIAS" -out "$KEYSTORE" -passout "pass:$PASSWORD"
 
 # GNU base64 chce -w0, BSD (macOS) tenhle přepínač nezná.
 if base64 --help 2>&1 | grep -q -- "-w"; then
@@ -49,7 +54,7 @@ cat <<INFO
 Hotovo. Do GitHubu (Settings -> Secrets and variables -> Actions) vlož:
 
   ANDROID_KEYSTORE_BASE64    = obsah souboru $KEYSTORE.base64
-  ANDROID_KEYSTORE_PASSWORD  = heslo, které jsi zadal/a
+  ANDROID_KEYSTORE_PASSWORD  = heslo, které jsi zadal
   ANDROID_KEY_ALIAS          = $ALIAS
   ANDROID_KEY_PASSWORD       = stejné heslo (PKCS#12 používá jedno)
 
