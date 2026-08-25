@@ -74,8 +74,10 @@ testy, release APK/AAB jako artefakt běhu a podepsané IPA nahrané do TestFlig
 
 Podpisové materiály pro iOS generuje `fastlane match` na macOS runneru, takže
 **vývojářský Mac není potřeba** - stačí jednorázově spustit workflow
-[iOS bootstrap](.github/workflows/ios-bootstrap.yml). Seznam secretů a postup:
-[docs/CI.md](docs/CI.md).
+[iOS bootstrap](.github/workflows/ios-bootstrap.yml).
+
+- [docs/NASTAVENI.md](docs/NASTAVENI.md) - postup krok za krokem (co kam kliknout)
+- [docs/CI.md](docs/CI.md) - referenční přehled secretů, workflow a chybových hlášek
 
 ## State management: Riverpod
 
