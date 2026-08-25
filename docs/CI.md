@@ -108,6 +108,19 @@ keyPassword=…
 storeType=PKCS12
 ```
 
+## Stavět iOS jen z hlavní větve
+
+Teď jde na TestFlight build z **každého** pushe, i z pracovní větve. Když to
+začne být zbytečné (Apple má denní limity na uploady), stačí v `build.yml`
+u jobu `ios` zpřísnit podmínku:
+
+```yaml
+    if: >-
+      needs.config.outputs.ios_release == 'true'
+      && github.event_name != 'pull_request'
+      && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+```
+
 ## Volitelné proměnné (*Variables*, ne secrets)
 
 | Variable | K čemu |
