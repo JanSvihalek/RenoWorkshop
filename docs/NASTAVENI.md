@@ -91,7 +91,17 @@ github.com/JanSvihalek/RenoWorkshop → **Settings** → v levém sloupci
 
 Postup je u každého stejný: *Name* → *Secret* → **Add secret**.
 
-Soubory otevřeš v Poznámkovém bloku (pravým → Otevřít v aplikaci), Ctrl+A, Ctrl+C.
+Soubory otevřeš v Poznámkovém bloku (pravým → Otevřít v aplikaci).
+
+**Jak kopírovat, aby to fungovalo:**
+
+- U `.p8` a u base64 souborů použij **Ctrl+A** a **Ctrl+C** — potřebuješ celý obsah.
+- U `p12-heslo.txt` **ne**. Soubor má na konci odřádkování a to se do secretu
+  dostat nesmí, jinak `security import` na runneru selže. Klikni na začátek
+  řádku, zmáčkni **Shift+End** (označí jen text řádku) a pak Ctrl+C.
+- Ověřeno: `distribution.p12.base64.txt` je 4 260 znaků na jednom řádku bez
+  odřádkování, heslo má 24 znaků. Když ti Poznámkový blok ukáže něco jiného,
+  něco se cestou ztratilo.
 
 | Name | Hodnota |
 |---|---|
