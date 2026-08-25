@@ -1,0 +1,108 @@
+# Fastlane pro RenoWorkshop - build IPA a upload na TestFlight.
+#
+# Spouští se z CI (.github/workflows/build.yml), lokálně na Macu funguje taky:
+#   cd ios && bundle install && bundle exec fastlane beta
+#
+# Povinné proměnné prostředí:
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8   App Store Connect API klíč
+#   CERTIFICATE_PATH, CERTIFICATE_PASSWORD  .p12 s Apple Distribution certifikátem
+#   PROVISIONING_PROFILE_PATH               .mobileprovision (App Store profil)
+# Volitelné:
+#   BUILD_NUMBER    číslo buildu (v CI = číslo běhu workflow)
+#   IOS_BUNDLE_ID   když se změní bundle ID
+#   IOS_PROFILE_NAME, IOS_TEAM_ID  když se nepodaří přečíst je z profilu
+
+require "shellwords"
+
+default_platform(:ios)
+
+BUNDLE_ID = ENV["IOS_BUNDLE_ID"] || "dev.svihalek.renoworkshop"
+
+# Kořen repozitáře - fastlane si mění pracovní adresář, tak radši absolutně.
+PROJECT_ROOT = File.expand_path("../..", __dir__)
+
+platform :ios do
+  desc "Postaví podepsané IPA a nahraje ho do TestFlightu"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_P8"),
+      in_house: false
+    )
+
+    # Dočasná klíčenka na runneru (na vlastním Macu se přeskočí).
+    setup_ci if ENV["CI"]
+
+    import_certificate(
+      certificate_path: ENV.fetch("CERTIFICATE_PATH"),
+      certificate_password: ENV.fetch("CERTIFICATE_PASSWORD"),
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: ""
+    )
+
+    profile_path = ENV.fetch("PROVISIONING_PROFILE_PATH")
+    install_provisioning_profile(path: profile_path)
+    profile = decode_profile(profile_path)
+
+    profile_name = ENV["IOS_PROFILE_NAME"] || profile["Name"]
+    team_id = ENV["IOS_TEAM_ID"] || Array(profile["TeamIdentifier"]).first
+    UI.user_error!("Nepodařilo se zjistit jméno profilu - nastav IOS_PROFILE_NAME.") if profile_name.to_s.empty?
+    UI.user_error!("Nepodařilo se zjistit Team ID - nastav IOS_TEAM_ID.") if team_id.to_s.empty?
+    UI.message("Podepisuji profilem '#{profile_name}' (team #{team_id}).")
+
+    # Runner má po `flutter create` automatický podpis; na CI ho přepneme
+    # na manuální s konkrétním profilem.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: team_id,
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name,
+      bundle_identifier: BUNDLE_ID,
+      targets: ["Runner"]
+    )
+
+    build_number = ENV["BUILD_NUMBER"] || Time.now.strftime("%Y%m%d%H%M")
+
+    # Flutter musí přeložit Dart kód a assety dřív, než se pustí xcodebuild.
+    flutter_build = "flutter pub get && flutter build ios --release --no-codesign --build-number=#{build_number}"
+    sh("cd #{PROJECT_ROOT.shellescape} && #{flutter_build}")
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: { BUNDLE_ID => profile_name },
+        signingStyle: "manual",
+        teamID: team_id
+      },
+      output_directory: "#{PROJECT_ROOT}/build/ios/ipa",
+      output_name: "RenoWorkshop.ipa",
+      clean: false,
+      silent: false
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      changelog: ENV["TESTFLIGHT_CHANGELOG"] || "Automatický build z větve #{ENV['GITHUB_REF_NAME'] || 'local'} (##{build_number})."
+    )
+  end
+end
+
+# Přečte metadata z .mobileprovision (je to CMS-podepsaný plist).
+def decode_profile(path)
+  require "plist"
+  xml = `security cms -D -i "#{path}" 2>/dev/null`
+  return {} if xml.strip.empty?
+
+  Plist.parse_xml(xml) || {}
+rescue StandardError => e
+  UI.important("Profil se nepodařilo přečíst (#{e.message}), použij IOS_PROFILE_NAME / IOS_TEAM_ID.")
+  {}
+end

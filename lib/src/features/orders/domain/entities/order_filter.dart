@@ -1,0 +1,122 @@
+import 'branch.dart';
+import 'order_status.dart';
+import 'service_order.dart';
+
+/// Řazení seznamu zakázek.
+enum OrderSort {
+  dueDate('Termín dokončení'),
+  receivedDate('Datum přijetí'),
+  status('Stav zakázky'),
+  licensePlate('SPZ');
+
+  const OrderSort(this.label);
+
+  final String label;
+}
+
+/// Kritéria pro seznam zakázek. Filtry se skládají (AND).
+///
+/// Zatím se vyhodnocují v paměti nad daty z repository. Až přijde REST API,
+/// pošle se stejný objekt jako query parametry - UI se měnit nemusí.
+class OrderFilter {
+  const OrderFilter({
+    this.branch,
+    this.status,
+    this.mechanicName,
+    this.query = '',
+    this.sort = OrderSort.dueDate,
+    this.includeClosed = true,
+  });
+
+  /// `null` = všechny pobočky.
+  final Branch? branch;
+
+  /// `null` = všechny stavy.
+  final OrderStatus? status;
+
+  /// `null` = všichni mechanici.
+  final String? mechanicName;
+
+  final String query;
+  final OrderSort sort;
+
+  /// `false` skryje vyzvednuté zakázky (zavřené).
+  final bool includeClosed;
+
+  bool get isActive =>
+      branch != null ||
+      status != null ||
+      mechanicName != null ||
+      query.trim().isNotEmpty ||
+      !includeClosed;
+
+  /// Počet aktivních filtrů (pro badge u tlačítka filtru).
+  int get activeCount => [
+    branch != null,
+    status != null,
+    mechanicName != null,
+    query.trim().isNotEmpty,
+    !includeClosed,
+  ].where((active) => active).length;
+
+  OrderFilter copyWith({
+    Branch? branch,
+    OrderStatus? status,
+    String? mechanicName,
+    String? query,
+    OrderSort? sort,
+    bool? includeClosed,
+    bool clearBranch = false,
+    bool clearStatus = false,
+    bool clearMechanic = false,
+  }) {
+    return OrderFilter(
+      branch: clearBranch ? null : (branch ?? this.branch),
+      status: clearStatus ? null : (status ?? this.status),
+      mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
+      query: query ?? this.query,
+      sort: sort ?? this.sort,
+      includeClosed: includeClosed ?? this.includeClosed,
+    );
+  }
+
+  /// Aplikuje filtry i řazení. Čistá funkce - snadno testovatelná.
+  List<ServiceOrder> apply(List<ServiceOrder> orders) {
+    final result = orders.where((order) {
+      if (branch != null && order.branch != branch) return false;
+      if (status != null && order.status != status) return false;
+      if (mechanicName != null && order.mechanicName != mechanicName) {
+        return false;
+      }
+      if (!includeClosed && order.status.isClosed) return false;
+      return order.matchesQuery(query);
+    }).toList();
+
+    result.sort(_comparator);
+    return result;
+  }
+
+  int _comparator(ServiceOrder a, ServiceOrder b) {
+    return switch (sort) {
+      OrderSort.dueDate => a.dueAt.compareTo(b.dueAt),
+      OrderSort.receivedDate => b.receivedAt.compareTo(a.receivedAt),
+      OrderSort.status => a.status.step.compareTo(b.status.step),
+      OrderSort.licensePlate => a.licensePlate.compareTo(b.licensePlate),
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrderFilter &&
+          other.branch == branch &&
+          other.status == status &&
+          other.mechanicName == mechanicName &&
+          other.query == query &&
+          other.sort == sort &&
+          other.includeClosed == includeClosed);
+
+  @override
+  int get hashCode =>
+      Object.hash(branch, status, mechanicName, query, sort, includeClosed);
+}

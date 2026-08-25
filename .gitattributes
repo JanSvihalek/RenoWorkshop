@@ -1,0 +1,19 @@
+# Repozitář drží LF; Windows checkout si přepíše na CRLF sám.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.apk binary
+*.aab binary
+*.ipa binary
+*.jks binary
+*.keystore binary
+*.p12 binary
+*.mobileprovision binary
