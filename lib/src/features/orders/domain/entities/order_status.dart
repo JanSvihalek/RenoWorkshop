@@ -24,8 +24,9 @@ enum OrderStatus {
   int get step => index;
 
   /// Následující stav, nebo `null` u uzavřené zakázky.
-  OrderStatus? get next =>
-      index < OrderStatus.values.length - 1 ? OrderStatus.values[index + 1] : null;
+  OrderStatus? get next => index < OrderStatus.values.length - 1
+      ? OrderStatus.values[index + 1]
+      : null;
 
   /// Zakázka je hotová a předaná - dál se neposouvá.
   bool get isClosed => this == OrderStatus.pickedUp;

@@ -40,7 +40,12 @@ class LoginScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(30, Insets.giant, 30, Insets.huge),
+            padding: const EdgeInsets.fromLTRB(
+              30,
+              Insets.giant,
+              30,
+              Insets.huge,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -267,7 +272,8 @@ class _SigningInIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIOS = context.isIOS;
     final label = switch (method) {
-      SignInMethod.biometric => isIOS ? 'Ověřuji Face ID...' : 'Přiložte prst...',
+      SignInMethod.biometric =>
+        isIOS ? 'Ověřuji Face ID...' : 'Přiložte prst...',
       SignInMethod.microsoftSso => 'Přihlašování...',
     };
     final hint = switch (method) {

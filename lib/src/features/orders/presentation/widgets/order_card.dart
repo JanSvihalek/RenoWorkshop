@@ -24,7 +24,10 @@ class OrderCard extends StatelessWidget {
     return _PressableCard(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: Insets.lg),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: Insets.lg,
+        ),
         decoration: BoxDecoration(
           color: palette.card,
           borderRadius: BorderRadius.circular(Radii.card),

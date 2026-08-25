@@ -120,9 +120,7 @@ Future<String?> showAddNoteDialog(BuildContext context) {
         maxLines: 4,
         minLines: 2,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(
-          hintText: 'Co je na zakázce nového?',
-        ),
+        decoration: const InputDecoration(hintText: 'Co je na zakázce nového?'),
       ),
       actions: [
         TextButton(

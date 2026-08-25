@@ -16,10 +16,7 @@ void main() {
         .toList();
 
     expect(orders.length, greaterThanOrEqualTo(10));
-    expect(
-      orders.map((order) => order.branch).toSet(),
-      Branch.values.toSet(),
-    );
+    expect(orders.map((order) => order.branch).toSet(), Branch.values.toSet());
     expect(
       orders.map((order) => order.status).toSet(),
       OrderStatus.values.toSet(),

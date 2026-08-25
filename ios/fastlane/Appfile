@@ -1,4 +1,0 @@
-app_identifier(ENV["IOS_BUNDLE_ID"] || "dev.svihalek.renoworkshop")
-
-# Apple ID ani heslo tu nejsou schválně - CI se autentizuje App Store Connect
-# API klíčem (ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8), který nepotřebuje 2FA.

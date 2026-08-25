@@ -42,8 +42,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.orders,
         builder: (context, state) => OrdersListScreen(
-          onOpenOrder: (order) =>
-              context.push(AppRoutes.orderDetail(order.id)),
+          onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
         ),
         routes: [
           GoRoute(

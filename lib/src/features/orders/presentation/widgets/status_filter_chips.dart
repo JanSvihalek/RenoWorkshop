@@ -81,7 +81,9 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.primary
-                : (isDark ? Colors.white.withValues(alpha: 0.07) : palette.card),
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.07)
+                      : palette.card),
             borderRadius: BorderRadius.circular(Radii.chip),
             border: Border.all(
               color: isSelected ? AppColors.primary : palette.hairline2,

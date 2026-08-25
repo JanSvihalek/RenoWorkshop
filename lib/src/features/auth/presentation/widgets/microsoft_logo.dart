@@ -11,8 +11,11 @@ class MicrosoftLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget square(Color color) =>
-        SizedBox(width: squareSize, height: squareSize, child: ColoredBox(color: color));
+    Widget square(Color color) => SizedBox(
+      width: squareSize,
+      height: squareSize,
+      child: ColoredBox(color: color),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,

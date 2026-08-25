@@ -29,13 +29,27 @@ ServiceOrder order({
 
 void main() {
   final orders = [
-    order(id: 'A', status: OrderStatus.inRepair, branch: Branch.brno,
-        dueAt: DateTime(2026, 8, 28)),
-    order(id: 'B', status: OrderStatus.pickedUp, branch: Branch.praha,
-        licensePlate: '2BB 2222', dueAt: DateTime(2026, 8, 22)),
-    order(id: 'C', status: OrderStatus.inRepair, branch: Branch.praha,
-        customerName: 'Lucie Marková', mechanicName: 'Petra Válková',
-        dueAt: DateTime(2026, 8, 24)),
+    order(
+      id: 'A',
+      status: OrderStatus.inRepair,
+      branch: Branch.brno,
+      dueAt: DateTime(2026, 8, 28),
+    ),
+    order(
+      id: 'B',
+      status: OrderStatus.pickedUp,
+      branch: Branch.praha,
+      licensePlate: '2BB 2222',
+      dueAt: DateTime(2026, 8, 22),
+    ),
+    order(
+      id: 'C',
+      status: OrderStatus.inRepair,
+      branch: Branch.praha,
+      customerName: 'Lucie Marková',
+      mechanicName: 'Petra Válková',
+      dueAt: DateTime(2026, 8, 24),
+    ),
   ];
 
   group('OrderFilter', () {
@@ -59,10 +73,9 @@ void main() {
         const OrderFilter(query: 'marková').apply(orders).map((o) => o.id),
         ['C'],
       );
-      expect(
-        const OrderFilter(query: '2bb').apply(orders).map((o) => o.id),
-        ['B'],
-      );
+      expect(const OrderFilter(query: '2bb').apply(orders).map((o) => o.id), [
+        'B',
+      ]);
     });
 
     test('filtr mechanika vybere jen jeho zakázky', () {
@@ -86,10 +99,7 @@ void main() {
     test('activeCount počítá jen skutečně aktivní filtry', () {
       expect(const OrderFilter().activeCount, 0);
       expect(const OrderFilter(query: '   ').activeCount, 0);
-      expect(
-        const OrderFilter(branch: Branch.brno, query: 'x').activeCount,
-        2,
-      );
+      expect(const OrderFilter(branch: Branch.brno, query: 'x').activeCount, 2);
     });
 
     test('prázdný výsledek je prázdný seznam, ne chyba', () {
@@ -104,29 +114,41 @@ void main() {
       final now = DateTime(2026, 8, 25, 10);
 
       expect(
-        order(id: 'X', status: OrderStatus.inRepair, branch: Branch.brno,
-                dueAt: DateTime(2026, 8, 24))
-            .isOverdue(now: now),
+        order(
+          id: 'X',
+          status: OrderStatus.inRepair,
+          branch: Branch.brno,
+          dueAt: DateTime(2026, 8, 24),
+        ).isOverdue(now: now),
         isTrue,
       );
       expect(
-        order(id: 'Y', status: OrderStatus.readyForPickup, branch: Branch.brno,
-                dueAt: DateTime(2026, 8, 24))
-            .isOverdue(now: now),
+        order(
+          id: 'Y',
+          status: OrderStatus.readyForPickup,
+          branch: Branch.brno,
+          dueAt: DateTime(2026, 8, 24),
+        ).isOverdue(now: now),
         isFalse,
       );
     });
 
     test('iniciály mechanika, nepřiřazená zakázka má otazník', () {
       expect(
-        order(id: 'X', status: OrderStatus.received, branch: Branch.brno)
-            .mechanicInitials,
+        order(
+          id: 'X',
+          status: OrderStatus.received,
+          branch: Branch.brno,
+        ).mechanicInitials,
         'JD',
       );
       expect(
-        order(id: 'Y', status: OrderStatus.received, branch: Branch.brno,
-                mechanicName: null)
-            .mechanicInitials,
+        order(
+          id: 'Y',
+          status: OrderStatus.received,
+          branch: Branch.brno,
+          mechanicName: null,
+        ).mechanicInitials,
         '?',
       );
     });

@@ -112,7 +112,8 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
     final updated = orders[index].copyWith(
       workItems: orders[index].workItems
           .map(
-            (item) => item.id == workItemId ? item.copyWith(isDone: isDone) : item,
+            (item) =>
+                item.id == workItemId ? item.copyWith(isDone: isDone) : item,
           )
           .toList(),
     );

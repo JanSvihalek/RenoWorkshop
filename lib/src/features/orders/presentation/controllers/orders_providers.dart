@@ -29,9 +29,10 @@ final ordersStreamProvider = StreamProvider<List<ServiceOrder>>(
 );
 
 /// Aktivní filtry seznamu.
-final orderFilterProvider = NotifierProvider<OrderFilterController, OrderFilter>(
-  OrderFilterController.new,
-);
+final orderFilterProvider =
+    NotifierProvider<OrderFilterController, OrderFilter>(
+      OrderFilterController.new,
+    );
 
 /// Zakázky po aplikaci filtrů a řazení.
 final filteredOrdersProvider = Provider<AsyncValue<List<ServiceOrder>>>((ref) {

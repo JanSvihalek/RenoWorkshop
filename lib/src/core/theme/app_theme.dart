@@ -15,17 +15,18 @@ abstract final class AppTheme {
   static ThemeData dark() => _build(Brightness.dark, AppPalette.dark);
 
   static ThemeData _build(Brightness brightness, AppPalette palette) {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: brightness,
-    ).copyWith(
-      primary: brightness == Brightness.light
-          ? AppColors.primary
-          : AppColors.accent,
-      secondary: AppColors.accent,
-      error: AppColors.danger,
-      surface: palette.card,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: brightness == Brightness.light
+              ? AppColors.primary
+              : AppColors.accent,
+          secondary: AppColors.accent,
+          error: AppColors.danger,
+          surface: palette.card,
+        );
 
     return ThemeData(
       useMaterial3: true,

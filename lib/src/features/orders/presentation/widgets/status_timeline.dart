@@ -154,9 +154,7 @@ class _Dot extends StatelessWidget {
             : (isDone ? doneColor : Colors.transparent),
         border: isCurrent
             ? Border.all(color: step.color, width: 3)
-            : (isDone
-                  ? null
-                  : Border.all(color: palette.hairline2, width: 2)),
+            : (isDone ? null : Border.all(color: palette.hairline2, width: 2)),
         boxShadow: isCurrent
             ? [
                 BoxShadow(

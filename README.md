@@ -68,33 +68,16 @@ Podrobnosti a postup napojení reálného API: [docs/ARCHITECTURE.md](docs/ARCHI
 
 ## CI/CD
 
-Po každém pushi běží [GitHub Actions](.github/workflows/build.yml): analyze +
-testy, release APK/AAB jako artefakt běhu a podepsané IPA nahrané do TestFlightu
-(fastlane, `ios/fastlane/Fastfile`).
+Workflow [Sestavení aplikace](.github/workflows/sestaveni.yml) běží po pushi
+do `main` (a na ruční spuštění): analýza, testy, release APK jako artefakt
+a podepsané IPA nahrané do TestFlightu. Kostra i názvy secretů jsou stejné
+jako v RenoCharge.
 
-Podpisové materiály pro iOS generuje `fastlane match` na macOS runneru, takže
-**vývojářský Mac není potřeba** - stačí jednorázově spustit workflow
-[iOS bootstrap](.github/workflows/ios-bootstrap.yml).
+Podpis pro iOS používá distribuční certifikát vyrobený přes OpenSSL na Windows -
+**Mac není potřeba**.
 
 - [docs/NASTAVENI.md](docs/NASTAVENI.md) - postup krok za krokem (co kam kliknout)
 - [docs/CI.md](docs/CI.md) - referenční přehled secretů, workflow a chybových hlášek
-
-## State management: Riverpod
-
-Zvoleno **Riverpod 2.6** (bez code generation), ne Bloc. Důvody:
-
-- **Odstínění datové vrstvy jde přes overrides.** Výměna mocku za REST je jeden
-  `serviceOrderDataSourceProvider.overrideWithValue(...)` - a stejný mechanismus
-  slouží v testech, takže testy jdou psát bez mock frameworku.
-- **Odvozený stav bez boilerplate.** `filteredOrdersProvider` je čistá kompozice
-  streamu zakázek a filtru; v Blocu by to znamenalo další bloc a ruční propojení.
-- **`AsyncValue`** pokrývá loading / data / error v jednom typu, což je přesně
-  tvar, který mají obrazovky nad síťovým zdrojem.
-- Menší množství tříd na jednu obrazovku než u Blocu - pro rodinu appek
-  udržovanou malým týmem to je praktičtější.
-
-Zůstává prostor pro růst: až přibudou složitější workflow (offline fronta,
-optimistic update), stačí přidat `AsyncNotifier` vedle stávajících providerů.
 
 ## Co v této fázi záměrně chybí
 

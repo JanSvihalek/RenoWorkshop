@@ -48,10 +48,7 @@ class OrderDetailScreen extends ConsumerWidget {
       backgroundColor: palette.background,
       body: orderAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _DetailMessage(
-          message: '$error',
-          onBack: onBack,
-        ),
+        error: (error, _) => _DetailMessage(message: '$error', onBack: onBack),
         data: (order) {
           if (order == null) {
             return _DetailMessage(
@@ -151,10 +148,7 @@ class _DetailBody extends ConsumerWidget {
                   children: [
                     const SectionLabel('POSTUP ZAKÁZKY'),
                     const SizedBox(height: Insets.lg),
-                    StatusTimeline(
-                      status: order.status,
-                      bay: order.bayLabel,
-                    ),
+                    StatusTimeline(status: order.status, bay: order.bayLabel),
                   ],
                 ),
               ),

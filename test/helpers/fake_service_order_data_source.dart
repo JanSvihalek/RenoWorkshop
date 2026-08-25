@@ -59,7 +59,10 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
     if (index == -1) return null;
     return _orders[index] = _orders[index].copyWith(
       workItems: _orders[index].workItems
-          .map((item) => item.id == workItemId ? item.copyWith(isDone: isDone) : item)
+          .map(
+            (item) =>
+                item.id == workItemId ? item.copyWith(isDone: isDone) : item,
+          )
           .toList(),
     );
   }
