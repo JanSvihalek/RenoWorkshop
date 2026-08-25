@@ -40,9 +40,10 @@ Soubor `.p8` jde stáhnout jen jednou.
 
 ## 2. Privátní repo pro certifikáty
 
-fastlane match potřebuje úložiště. Založ **nový prázdný privátní** repozitář,
-např. `JanSvihalek/RenoWorkshop-certificates` (privátní je podmínka - leží
-v něm zašifrovaný podpisový klíč).
+fastlane match potřebuje úložiště. Založ **nový privátní** repozitář, např.
+`JanSvihalek/RenoWorkshop-certificates` (privátní je podmínka - leží v něm
+zašifrovaný podpisový klíč). Zaškrtni *Add a README file*, ať repo má větev
+`main` - match si ji pak jen doplní.
 
 Přístup pro CI přes personal access token: GitHub → Settings → Developer
 settings → **Fine-grained token**, přístup jen k tomu jednomu repu,
