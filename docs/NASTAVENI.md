@@ -30,19 +30,28 @@ profil, protože ten je vždycky vázaný na konkrétní bundle ID.
 
 ---
 
-## Krok 1: Vyměň App Store Connect klíč
+## Krok 1: Nový App Store Connect klíč
 
-Obsah `AuthKey_7UCAN7LWSU.p8` se objevil v chatu, takže ho ber jako vyzrazený.
-Je to klíč s rolí Admin k celému účtu.
+Klíč `7UCAN7LWSU` se objevil v chatu, takže se nahrazuje novým. Postup je
+volený tak, aby ostatní projekty nezůstaly ani chvíli bez funkčního uploadu:
+starý klíč se ruší až úplně na konci.
 
 1. <https://appstoreconnect.apple.com> → **Users and Access** → **Integrations**
-   → **App Store Connect API**.
-2. U klíče *GitHub actions* najeď myší na řádek → **Revoke**.
-3. Klikni na **+**, jméno třeba `GitHub actions 2`, přístup **Admin** → **Generate**.
-4. Stáhni `.p8` (jde to jen jednou) a ulož ho do `C:\Users\svihalek\AppleCerts\`.
-5. Poznač si nové **Key ID** ze sloupce v tabulce.
+   → **App Store Connect API**, záložka **Team Keys**.
+2. Modré **+** vedle nadpisu *Active*.
+3. **Name:** `GitHub actions 2`, **Access:** **App Manager** → **Generate**.
 
-Klíč pro CodeMagic nech být, ten se odvoláním prvního klíče nedotkne.
+   Admin schválně ne. Workflow jen nahrává hotové IPA, na což App Manager
+   stačí. Certifikáty se vyrábějí ručně přes OpenSSL, ne přes API.
+4. **Download API Key** - jde to jen jednou. Soubor `AuthKey_XXXXXXXXXX.p8`
+   ulož do `C:\Users\svihalek\AppleCerts\`.
+
+   Otevírej ho v Poznámkovém bloku, ne v editoru kódu - přesně tak se minule
+   obsah nechtěně dostal ven.
+5. Opiš si nové **Key ID** ze sloupce v tabulce.
+
+Starý klíč zatím **nech aktivní**. Zruší se až v kroku 9, kdy už bude nový
+nasazený všude.
 
 ## Krok 2: App ID pro novou aplikaci
 
@@ -157,6 +166,23 @@ App Store Connect → **My Apps** → **RenoWorkshop** → záložka **TestFligh
 → vlevo **Internal Testing** → **+** → skupina `Dílna` → **Testers +**
 a přidej kolegy. Ti si do telefonu nainstalují aplikaci **TestFlight**
 z App Storu, pozvánka jim přijde mailem.
+
+## Krok 9: Dokonči výměnu klíče
+
+Až tady všechno běží, přepiš nový klíč i v ostatních projektech, které
+používaly `7UCAN7LWSU`, a teprve pak ten starý zruš:
+
+1. **torkis** → Settings → Secrets → přepiš `ASC_KEY_ID` a `ASC_KEY_BASE64`.
+   Pozor, tenhle projekt má klíč uložený jako base64
+   (`base64 -w0 AuthKey_….p8`), ne jako čistý text.
+2. **renocharge** → přepiš `APP_STORE_CONNECT_KEY_ID`
+   a `APP_STORE_CONNECT_PRIVATE_KEY` (tam je klíč jako čistý text).
+3. V obou pusť build a ověř, že upload do TestFlightu prošel.
+4. Teprve pak: App Store Connect → Users and Access → Integrations →
+   u klíče *GitHub actions* → **Revoke**.
+
+`ASC_ISSUER_ID` se nemění, ten je pro celý účet stejný. Klíče *CodeMagic*
+se to netýká.
 
 ---
 
