@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../../../core/config/app_config.dart';
 import '../../data/datasources/mock_service_order_data_source.dart';
+import '../../data/datasources/rest_service_order_data_source.dart';
 import '../../data/datasources/service_order_data_source.dart';
 import '../../data/repositories/service_order_repository_impl.dart';
 import '../../domain/entities/branch.dart';
@@ -9,11 +13,20 @@ import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/repositories/service_order_repository.dart';
 
-/// Fáze 1: mock zdroj. Fáze 2: `RestServiceOrderDataSource(ref.watch(apiClientProvider))`.
-/// Nic jiného v appce se přitom nemění.
-final serviceOrderDataSourceProvider = Provider<ServiceOrderDataSource>(
-  (ref) => MockServiceOrderDataSource(),
-);
+/// Zdroj dat: bez `API_BASE_URL` mock JSON, s ním reálné API.
+/// Jediné místo, kde se to rozhoduje - zbytek appky rozdíl nepozná.
+final serviceOrderDataSourceProvider = Provider<ServiceOrderDataSource>((ref) {
+  if (!AppConfig.pouzivaApi) return MockServiceOrderDataSource();
+
+  final dataSource = RestServiceOrderDataSource(
+    baseUrl: Uri.parse(AppConfig.apiBaseUrl),
+    // Token se bere až při volání, ne při sestavení - Firebase ho sám
+    // obnovuje a starý by po hodině přestal platit.
+    tokenProvider: () async => FirebaseAuth.instance.currentUser?.getIdToken(),
+  );
+  ref.onDispose(dataSource.dispose);
+  return dataSource;
+});
 
 final serviceOrderRepositoryProvider = Provider<ServiceOrderRepository>((ref) {
   final repository = ServiceOrderRepositoryImpl(

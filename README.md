@@ -78,6 +78,7 @@ Podpis pro iOS používá distribuční certifikát vyrobený přes OpenSSL na W
 
 - [docs/NASTAVENI.md](docs/NASTAVENI.md) - postup krok za krokem (co kam kliknout)
 - [docs/CI.md](docs/CI.md) - referenční přehled secretů, workflow a chybových hlášek
+- [docs/API.md](docs/API.md) - kontrakt REST API mezi appkou a službou na RENDCAPP
 
 ## Co v této fázi záměrně chybí
 
