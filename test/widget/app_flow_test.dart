@@ -161,4 +161,37 @@ void main() {
 
     expect(find.text('Přihlásit se přes Microsoft'), findsOneWidget);
   });
+
+  testWidgets('stažení prstem znovu načte seznam ze serveru', (tester) async {
+    final zdroj = FakeServiceOrderDataSource([
+      buildOrderDto(id: 'ZK-26-0001', licensePlate: '8AB 4721'),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            PlaceholderAuthRepository(
+              ssoDelay: Duration.zero,
+              biometricDelay: Duration.zero,
+            ),
+          ),
+          serviceOrderDataSourceProvider.overrideWithValue(zdroj),
+        ],
+        child: const RenoWorkshopApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    final pocetPredObnovou = zdroj.pocetNacteni;
+
+    await tester.fling(find.text('8AB 4721'), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+
+    // Dílenský stav je sdílený, takže obnova musí sáhnout na zdroj dat
+    // znovu, ne vrátit, co má appka v paměti.
+    expect(zdroj.pocetNacteni, greaterThan(pocetPredObnovou));
+  });
 }

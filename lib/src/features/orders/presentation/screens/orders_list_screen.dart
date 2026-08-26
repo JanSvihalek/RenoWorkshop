@@ -94,14 +94,28 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                 message: '$error',
                 onRetry: () => ref.invalidate(ordersStreamProvider),
               ),
+              // Stažení prstem funguje i nad prázdným a krátkým seznamem:
+              // dílenský stav je sdílený a člověk chce vidět, co mezitím
+              // udělali ostatní, i když se nemá kam posouvat.
               data: (data) => data.isEmpty
-                  ? SingleChildScrollView(
-                      child: OrdersEmptyState(onResetFilters: _resetFilters),
+                  ? RefreshIndicator.adaptive(
+                      onRefresh: () async =>
+                          ref.invalidate(ordersStreamProvider),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.sizeOf(context).height * 0.6,
+                          child: OrdersEmptyState(
+                            onResetFilters: _resetFilters,
+                          ),
+                        ),
+                      ),
                     )
                   : RefreshIndicator.adaptive(
                       onRefresh: () async =>
                           ref.invalidate(ordersStreamProvider),
                       child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(
                           Insets.xl,
                           Insets.lg,

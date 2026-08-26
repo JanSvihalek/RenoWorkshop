@@ -12,7 +12,14 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
       _orders.indexWhere((order) => order.id == orderId);
 
   @override
-  Future<List<ServiceOrderDto>> fetchOrders() async => List.of(_orders);
+  Future<List<ServiceOrderDto>> fetchOrders() async {
+    pocetNacteni++;
+    return List.of(_orders);
+  }
+
+  /// Kolikrát se seznam načetl - test obnovy podle toho pozná, že se
+  /// sáhlo na zdroj dat a nevrátilo se jen to, co je v paměti.
+  int pocetNacteni = 0;
 
   @override
   Future<ServiceOrderDto?> fetchOrder(String orderId) async {
