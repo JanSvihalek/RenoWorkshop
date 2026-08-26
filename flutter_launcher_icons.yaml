@@ -1,0 +1,36 @@
+# Generování ikon aplikace ze zdrojů v assets/icon/.
+#
+# Spuštění po výměně zdroje:
+#   dart run flutter_launcher_icons
+#
+# Vygenerované soubory (android/app/src/main/res/mipmap-*,
+# ios/Runner/Assets.xcassets/AppIcon.appiconset) patří do gitu - build je
+# nevyrábí sám.
+flutter_launcher_icons:
+  # Plná čtvercová ikona: klíč na modrém podkladu #031E49.
+  image_path: "assets/icon/png/renoworkshop-icon-1024.png"
+
+  android: "ic_launcher"
+  ios: true
+
+  # App Store odmítá ikony s průhledností. Zdroj sice průhledný není,
+  # ale kdyby se vyměnil, alfa se zahodí a podloží firemní modrou.
+  remove_alpha_ios: true
+  background_color_ios: "#031E49"
+
+  # Android kreslí popředí na vlastní pozadí a ořezává do kruhu nebo
+  # squircle podle nastavení telefonu. Popředí má proto kolem sebe rezervu
+  # a leží na jednobarevném pozadí, ne na obrázku.
+  # 432 px je největší velikost, kterou adaptivní ikona potřebuje
+  # (108 dp na xxxhdpi), takže se nic nedopočítává nahoru.
+  adaptive_icon_background: "#031E49"
+  adaptive_icon_foreground: "assets/icon/png/adaptive/renoworkshop-foreground-432.png"
+
+  # Zdrojové popředí má rezervu už v sobě (logo zabírá 45 % plátna), takže
+  # výchozí 16% odsazení generátoru by ikonu zbytečně zdrobnilo.
+  adaptive_icon_foreground_inset: 0
+
+  # Android 13+ umí ikonu obarvit podle tapety - použije tenhle tvar.
+  adaptive_icon_monochrome: "assets/icon/png/adaptive/renoworkshop-foreground-432.png"
+
+  min_sdk_android: 24
