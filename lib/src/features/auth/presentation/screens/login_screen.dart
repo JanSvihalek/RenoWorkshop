@@ -83,13 +83,14 @@ class _Branding extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.card),
             border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
           ),
-          child: const Text(
-            'RW',
-            style: TextStyle(
-              fontFamily: AppFonts.mono,
-              fontSize: 19,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          // Popředí adaptivní ikony: bílé logo na průhledném pozadí,
+          // takže sedne na modrý přechod loginu bez dalšího podkladu.
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Image.asset(
+              'assets/icon/png/adaptive/renoworkshop-foreground-432.png',
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
             ),
           ),
         ),
@@ -138,9 +139,9 @@ class _SignInBlock extends ConsumerWidget {
           if (biometricAvailable) ...[
             _PrimaryButton(
               label: isIOS
-                  ? 'Přihlásit se přes Face ID'
+                  ? 'Přihlásit se otiskem prstu'
                   : 'Odemknout otiskem prstu',
-              icon: isIOS ? Icons.face_rounded : Icons.fingerprint_rounded,
+              icon: Icons.fingerprint_rounded,
               onTap: () => controller.signIn(SignInMethod.biometric),
             ),
             const SizedBox(height: Insets.lg),
@@ -152,7 +153,7 @@ class _SignInBlock extends ConsumerWidget {
           const SizedBox(height: Insets.lg),
           Text(
             biometricAvailable
-                ? '${isIOS ? 'Face ID' : 'Otisk'} odemkne poslední přihlášení. Jinak pokračujte přes Microsoft SSO.'
+                ? 'Otisk odemkne poslední přihlášení. Jinak pokračujte přes Microsoft SSO.'
                 : 'Přihlaste se firemním účtem RENOCAR.',
             textAlign: TextAlign.center,
             style: AppTextStyles.metaSmall.copyWith(
@@ -270,10 +271,8 @@ class _SigningInIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIOS = context.isIOS;
     final label = switch (method) {
-      SignInMethod.biometric =>
-        isIOS ? 'Ověřuji Face ID...' : 'Přiložte prst...',
+      SignInMethod.biometric => 'Přiložte prst...',
       SignInMethod.microsoftSso => 'Přihlašování...',
     };
     final hint = switch (method) {

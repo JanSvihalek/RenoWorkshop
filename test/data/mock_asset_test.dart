@@ -21,13 +21,9 @@ void main() {
         .map((order) => order.branch?.label)
         .whereType<String>()
         .toSet();
-    expect(pobocky, {
-      'Brno',
-      'Čestlice',
-      'Kongresové Centrum',
-      'Česká',
-      'Bubeneč',
-    });
+    // Bubeneč mezi servisními útvary není - žádný kód nemá druhou
+    // číslici 5, takže se v datech objevit nemůže.
+    expect(pobocky, {'Brno', 'Čestlice', 'Kongresové Centrum', 'Česká'});
     // Zakázka bez útvaru tam musí zůstat - testuje NULL z Heliosu.
     expect(orders.any((order) => order.branch == null), isTrue);
     expect(

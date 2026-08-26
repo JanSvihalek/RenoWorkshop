@@ -42,6 +42,7 @@ flutter:
 
   assets:
     - assets/mock/
+    - assets/icon/png/adaptive/renoworkshop-foreground-432.png
 
   fonts:
     - family: IBM Plex Sans

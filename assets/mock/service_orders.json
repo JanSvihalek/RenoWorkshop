@@ -65,7 +65,7 @@
       ],
       "department": {
         "code": "11211",
-        "label": "Servis BMW Brno"
+        "label": "Auta Servis"
       }
     },
     {
@@ -120,7 +120,7 @@
       ],
       "department": {
         "code": "12211",
-        "label": "Servis BMW Čestlice"
+        "label": "Auta Servis"
       }
     },
     {
@@ -175,7 +175,7 @@
       ],
       "department": {
         "code": "13211",
-        "label": "Servis BMW Kongresové Centrum"
+        "label": "Auta Servis"
       }
     },
     {
@@ -218,7 +218,7 @@
       ],
       "department": {
         "code": "11221",
-        "label": "Servis Motorrad Brno"
+        "label": "MOTO Servis"
       }
     },
     {
@@ -261,7 +261,7 @@
       ],
       "department": {
         "code": "11215",
-        "label": "Servis MINI Brno"
+        "label": "Auta Klempírna, lakovna"
       }
     },
     {
@@ -316,7 +316,7 @@
       ],
       "department": {
         "code": "14211",
-        "label": "Servis BMW Česká"
+        "label": "Auta Servis"
       }
     },
     {
@@ -365,7 +365,7 @@
       ],
       "department": {
         "code": "14221",
-        "label": "Servis Motorrad Česká"
+        "label": "MOTO Servis"
       }
     },
     {
@@ -408,7 +408,7 @@
       ],
       "department": {
         "code": "12215",
-        "label": "Servis MINI Čestlice"
+        "label": "Auta Klempírna, lakovna"
       }
     },
     {
@@ -418,8 +418,8 @@
       "customerName": "Filip Řehák",
       "status": "waiting_for_parts",
       "branch": {
-        "code": "5",
-        "label": "Bubeneč"
+        "code": "2",
+        "label": "Čestlice"
       },
       "receivedAt": "2026-08-20T09:10:00",
       "dueAt": "2026-08-24T15:00:00",
@@ -456,8 +456,8 @@
         }
       ],
       "department": {
-        "code": "15211",
-        "label": "Servis BMW Bubeneč"
+        "code": "12214",
+        "label": "Auta Myčka"
       }
     },
     {
@@ -500,7 +500,7 @@
       ],
       "department": {
         "code": "13215",
-        "label": "Servis MINI Kongresové Centrum"
+        "label": "Auta Klempírna, lakovna"
       }
     },
     {
@@ -580,7 +580,7 @@
       ],
       "department": {
         "code": "11211",
-        "label": "Servis BMW Brno"
+        "label": "Auta Servis"
       }
     },
     {
@@ -623,7 +623,7 @@
       ],
       "department": {
         "code": "12211",
-        "label": "Servis BMW Čestlice"
+        "label": "Auta Servis"
       }
     }
   ]
