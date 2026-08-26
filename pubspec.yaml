@@ -25,6 +25,9 @@ dependencies:
   # Lokalizace Material/Cupertino widgetů (cs_CZ).
   flutter_localizations:
     sdk: flutter
+  firebase_core: ^4.14.0
+  firebase_auth: ^6.6.0
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

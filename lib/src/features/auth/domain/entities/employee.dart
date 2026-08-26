@@ -20,7 +20,7 @@ class Employee {
     required this.displayName,
     required this.email,
     required this.role,
-    required this.homeBranch,
+    this.homeBranch,
   });
 
   /// Object ID z Entra ID (dnes mock hodnota).
@@ -30,7 +30,10 @@ class Employee {
   final EmployeeRole role;
 
   /// Kmenová pobočka - předvyplní filtr v seznamu zakázek.
-  final Branch homeBranch;
+  ///
+  /// `null` u účtu z Entra ID, dokud se pobočky nenamapují na skupiny -
+  /// seznam pak ukazuje všechny pobočky.
+  final Branch? homeBranch;
 
   String get initials {
     final parts = displayName

@@ -66,5 +66,21 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<!-- Zpetne volani z prihlaseni pres Microsoft. Schema je
+			     zakodovane Firebase App ID (tecky a dvojtecky nahrazene
+			     pomlckami), viz GoogleService-Info.plist -> GOOGLE_APP_ID. -->
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-384201929992-ios-6f170f3390aec54d0928bd</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID odemkne vaše přihlášení do RenoWorkshopu.</string>
 </dict>
 </plist>

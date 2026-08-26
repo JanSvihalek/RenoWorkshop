@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/placeholder_auth_repository.dart';
+import '../../data/firebase_auth_repository.dart';
 import '../../domain/entities/auth_state.dart';
 import '../../domain/entities/employee.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 /// Jediné místo, kde se vybírá implementace přihlášení.
-/// Fáze 2: `PlaceholderAuthRepository()` -> `FirebaseAuthRepository(...)`.
+/// V testech se přepisuje na `PlaceholderAuthRepository`, aby nebylo
+/// potřeba Firebase.
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => PlaceholderAuthRepository(),
+  (ref) => FirebaseAuthRepository(),
 );
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(
@@ -29,11 +30,12 @@ final biometricAvailableProvider = FutureProvider<bool>(
 /// Řídí přihlašovací flow. Reálné ověření přijde ve fázi 2 výměnou
 /// [authRepositoryProvider] - tenhle controller ani UI se měnit nebudou.
 class AuthController extends Notifier<AuthState> {
+  /// Appka po spuštění vždycky začíná na login obrazovce, i když Firebase
+  /// drží platnou relaci. Uložená relace se projeví jen tím, že se nabídne
+  /// biometrické odemčení - dílenský telefon si často půjčuje víc lidí,
+  /// takže tiché přihlášení bez ověření by bylo špatně.
   @override
-  AuthState build() {
-    final employee = ref.read(authRepositoryProvider).currentEmployee;
-    return employee == null ? const AuthSignedOut() : AuthSignedIn(employee);
-  }
+  AuthState build() => const AuthSignedOut();
 
   Future<void> signIn(SignInMethod method) async {
     if (state is AuthSigningIn) return;

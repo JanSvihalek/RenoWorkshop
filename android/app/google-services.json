@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "384201929992",
+    "project_id": "renoworkshop",
+    "storage_bucket": "renoworkshop.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:384201929992:android:28d785aa70c2689a0928bd",
+        "android_client_info": {
+          "package_name": "dev.svihalek.renoworkshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBI6k48QO_hAKWDQuN12H7OUo3dw4Ir0iQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
