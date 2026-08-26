@@ -373,6 +373,20 @@ jobs:
 
           IPA="$(find "$RUNNER_TEMP/ipa" -name '*.ipa' | head -1)"
 
-          echo "Nahrávám $IPA"
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          # Nahrávací služba Applu občas vrátí 500 nebo 409
+          # STATE_ERROR.UPDATING (na zdroji zrovna pracuje jiný požadavek).
+          # Je to přechodné, takže se to zkusí třikrát, než build spadne.
+          for pokus in 1 2 3; do
+            echo "Nahrávám $IPA (pokus $pokus)"
+            if xcrun altool --upload-app -f "$IPA" -t ios \
+                 --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"; then
+              exit 0
+            fi
+            if [ "$pokus" -lt 3 ]; then
+              echo "::warning::Apple odmítl nahrání, zkouším znovu za 90 s."
+              sleep 90
+            fi
+          done
+
+          echo "::error::Nahrání do TestFlightu se nepodařilo ani napotřetí."
+          exit 1
