@@ -20,6 +20,7 @@ class OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final overdue = order.isOverdue();
+    final bezMechanika = order.mechanicName == null;
 
     return _PressableCard(
       onTap: onTap,
@@ -71,30 +72,51 @@ class OrderCard extends StatelessWidget {
             const SizedBox(height: 9),
             Row(
               children: [
-                _MechanicAvatar(initials: order.mechanicInitials),
-                const SizedBox(width: Insets.sm),
-                Flexible(
-                  child: Text(
-                    order.mechanicLabel,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.meta.copyWith(color: palette.muted),
+                // Levá část se zužuje, termín vpravo má vždycky přednost -
+                // je to jediný údaj, který se na dílně čte na dálku.
+                Expanded(
+                  child: Row(
+                    children: [
+                      // Bez přiřazeného mechanika nemá smysl zabírat místo
+                      // avatarem a slovem "Nepřiřazeno"; užitečnější je útvar.
+                      if (!bezMechanika) ...[
+                        _MechanicAvatar(initials: order.mechanicInitials),
+                        const SizedBox(width: Insets.sm),
+                      ],
+                      Flexible(
+                        child: Text(
+                          bezMechanika
+                              ? order.departmentLabel
+                              : order.mechanicLabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.meta.copyWith(
+                            color: palette.muted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: Insets.sm),
+                      Container(
+                        width: 3,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: palette.muted.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: Insets.sm),
+                      Flexible(
+                        child: Text(
+                          order.branchLabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.meta.copyWith(
+                            color: palette.muted,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: Insets.sm),
-                Container(
-                  width: 3,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: palette.muted.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: Insets.sm),
-                Text(
-                  order.branchLabel,
-                  style: AppTextStyles.meta.copyWith(color: palette.muted),
-                ),
-                const Spacer(),
                 if (overdue) ...[
                   Icon(
                     Icons.warning_amber_rounded,

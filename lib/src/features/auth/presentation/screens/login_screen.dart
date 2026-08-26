@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
@@ -124,7 +123,6 @@ class _SignInBlock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isIOS = context.isIOS;
     final controller = ref.read(authControllerProvider.notifier);
     final errorMessage = state is AuthSignedOut
         ? (state as AuthSignedOut).errorMessage
@@ -138,9 +136,9 @@ class _SignInBlock extends ConsumerWidget {
         else ...[
           if (biometricAvailable) ...[
             _PrimaryButton(
-              label: isIOS
-                  ? 'Přihlásit se otiskem prstu'
-                  : 'Odemknout otiskem prstu',
+              // Jeden text pro obě platformy: zařízení má buď otisk,
+              // nebo obličej, a appce je to jedno.
+              label: 'Přihlásit se biometricky',
               icon: Icons.fingerprint_rounded,
               onTap: () => controller.signIn(SignInMethod.biometric),
             ),
@@ -153,7 +151,7 @@ class _SignInBlock extends ConsumerWidget {
           const SizedBox(height: Insets.lg),
           Text(
             biometricAvailable
-                ? 'Otisk odemkne poslední přihlášení. Jinak pokračujte přes Microsoft SSO.'
+                ? 'Biometrie odemkne poslední přihlášení. Jinak pokračujte přes Microsoft SSO.'
                 : 'Přihlaste se firemním účtem RENOCAR.',
             textAlign: TextAlign.center,
             style: AppTextStyles.metaSmall.copyWith(
@@ -272,7 +270,7 @@ class _SigningInIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = switch (method) {
-      SignInMethod.biometric => 'Přiložte prst...',
+      SignInMethod.biometric => 'Ověřuji...',
       SignInMethod.microsoftSso => 'Přihlašování...',
     };
     final hint = switch (method) {
