@@ -7,7 +7,10 @@
       "model": "BMW X5 xDrive40d",
       "customerName": "Petr Novák",
       "status": "in_repair",
-      "branch": "brno",
+      "branch": {
+        "code": "1",
+        "label": "Brno"
+      },
       "receivedAt": "2026-08-21T07:15:00",
       "dueAt": "2026-08-26T16:00:00",
       "vin": "WBAKS4105L9KL83914",
@@ -15,16 +18,55 @@
       "serviceAdvisorName": "Martina Horáková",
       "bay": "Stání 4",
       "notes": [
-        { "id": "N-0418-1", "text": "Výměna zadních tlumičů, dotažení dle předpisu 120 Nm.", "author": "Jan Dvořák", "createdAt": "2026-08-25T09:40:00" },
-        { "id": "N-0418-2", "text": "Diagnostika: chyba 4A20 - snímač tlaku zadní nápravy.", "author": "Jan Dvořák", "createdAt": "2026-08-24T14:05:00" },
-        { "id": "N-0418-3", "text": "Zákazník souhlasí s rozšířením o výměnu brzdových kotoučů.", "author": "M. Horáková, poradce", "createdAt": "2026-08-23T16:20:00" }
+        {
+          "id": "N-0418-1",
+          "text": "Výměna zadních tlumičů, dotažení dle předpisu 120 Nm.",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-25T09:40:00"
+        },
+        {
+          "id": "N-0418-2",
+          "text": "Diagnostika: chyba 4A20 - snímač tlaku zadní nápravy.",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-24T14:05:00"
+        },
+        {
+          "id": "N-0418-3",
+          "text": "Zákazník souhlasí s rozšířením o výměnu brzdových kotoučů.",
+          "author": "M. Horáková, poradce",
+          "createdAt": "2026-08-23T16:20:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0418-1", "title": "Diagnostika podvozku", "isDone": true, "estimatedHours": 1.0 },
-        { "id": "W-0418-2", "title": "Výměna zadních tlumičů", "isDone": true, "estimatedHours": 2.5 },
-        { "id": "W-0418-3", "title": "Výměna brzdových kotoučů - zadní náprava", "isDone": false, "estimatedHours": 1.5 },
-        { "id": "W-0418-4", "title": "Zkušební jízda a kontrola geometrie", "isDone": false, "estimatedHours": 0.8 }
-      ]
+        {
+          "id": "W-0418-1",
+          "title": "Diagnostika podvozku",
+          "isDone": true,
+          "estimatedHours": 1.0
+        },
+        {
+          "id": "W-0418-2",
+          "title": "Výměna zadních tlumičů",
+          "isDone": true,
+          "estimatedHours": 2.5
+        },
+        {
+          "id": "W-0418-3",
+          "title": "Výměna brzdových kotoučů - zadní náprava",
+          "isDone": false,
+          "estimatedHours": 1.5
+        },
+        {
+          "id": "W-0418-4",
+          "title": "Zkušební jízda a kontrola geometrie",
+          "isDone": false,
+          "estimatedHours": 0.8
+        }
+      ],
+      "department": {
+        "code": "11211",
+        "label": "Servis BMW Brno"
+      }
     },
     {
       "id": "ZK-26-0421",
@@ -32,7 +74,10 @@
       "model": "MINI Cooper S",
       "customerName": "Lucie Marková",
       "status": "waiting_for_parts",
-      "branch": "praha",
+      "branch": {
+        "code": "2",
+        "label": "Čestlice"
+      },
       "receivedAt": "2026-08-22T08:05:00",
       "dueAt": "2026-08-27T15:00:00",
       "vin": "WMWXU5C50K2MN22107",
@@ -40,14 +85,43 @@
       "serviceAdvisorName": "Jiří Kalous",
       "bay": "Stání 2",
       "notes": [
-        { "id": "N-0421-1", "text": "Objednán vodní chladič, dodání 26. 8.", "author": "Tomáš Beneš", "createdAt": "2026-08-25T08:12:00" },
-        { "id": "N-0421-2", "text": "Netěsnost chladicí soustavy potvrzena tlakovou zkouškou.", "author": "Tomáš Beneš", "createdAt": "2026-08-23T11:30:00" }
+        {
+          "id": "N-0421-1",
+          "text": "Objednán vodní chladič, dodání 26. 8.",
+          "author": "Tomáš Beneš",
+          "createdAt": "2026-08-25T08:12:00"
+        },
+        {
+          "id": "N-0421-2",
+          "text": "Netěsnost chladicí soustavy potvrzena tlakovou zkouškou.",
+          "author": "Tomáš Beneš",
+          "createdAt": "2026-08-23T11:30:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0421-1", "title": "Tlaková zkouška chladicí soustavy", "isDone": true, "estimatedHours": 0.7 },
-        { "id": "W-0421-2", "title": "Výměna vodního chladiče", "isDone": false, "estimatedHours": 3.0 },
-        { "id": "W-0421-3", "title": "Odvzdušnění a doplnění chladicí kapaliny", "isDone": false, "estimatedHours": 0.5 }
-      ]
+        {
+          "id": "W-0421-1",
+          "title": "Tlaková zkouška chladicí soustavy",
+          "isDone": true,
+          "estimatedHours": 0.7
+        },
+        {
+          "id": "W-0421-2",
+          "title": "Výměna vodního chladiče",
+          "isDone": false,
+          "estimatedHours": 3.0
+        },
+        {
+          "id": "W-0421-3",
+          "title": "Odvzdušnění a doplnění chladicí kapaliny",
+          "isDone": false,
+          "estimatedHours": 0.5
+        }
+      ],
+      "department": {
+        "code": "12211",
+        "label": "Servis BMW Čestlice"
+      }
     },
     {
       "id": "ZK-26-0409",
@@ -55,7 +129,10 @@
       "model": "BMW i4 eDrive40",
       "customerName": "Jakub Šimek",
       "status": "quality_check",
-      "branch": "praha",
+      "branch": {
+        "code": "3",
+        "label": "Kongresové Centrum"
+      },
       "receivedAt": "2026-08-19T09:50:00",
       "dueAt": "2026-08-24T15:00:00",
       "vin": "WBY73AW030FPQ71620",
@@ -63,14 +140,43 @@
       "serviceAdvisorName": "Jiří Kalous",
       "bay": "Stání 7",
       "notes": [
-        { "id": "N-0409-1", "text": "Aktualizace software HV baterie dokončena.", "author": "Petra Válková", "createdAt": "2026-08-25T11:02:00" },
-        { "id": "N-0409-2", "text": "Kontrola izolačního stavu - v normě.", "author": "Petra Válková", "createdAt": "2026-08-25T11:20:00" }
+        {
+          "id": "N-0409-1",
+          "text": "Aktualizace software HV baterie dokončena.",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-25T11:02:00"
+        },
+        {
+          "id": "N-0409-2",
+          "text": "Kontrola izolačního stavu - v normě.",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-25T11:20:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0409-1", "title": "Aktualizace software HV baterie", "isDone": true, "estimatedHours": 2.0 },
-        { "id": "W-0409-2", "title": "Měření izolačního stavu", "isDone": true, "estimatedHours": 1.0 },
-        { "id": "W-0409-3", "title": "Výstupní kontrola kvality", "isDone": false, "estimatedHours": 0.5 }
-      ]
+        {
+          "id": "W-0409-1",
+          "title": "Aktualizace software HV baterie",
+          "isDone": true,
+          "estimatedHours": 2.0
+        },
+        {
+          "id": "W-0409-2",
+          "title": "Měření izolačního stavu",
+          "isDone": true,
+          "estimatedHours": 1.0
+        },
+        {
+          "id": "W-0409-3",
+          "title": "Výstupní kontrola kvality",
+          "isDone": false,
+          "estimatedHours": 0.5
+        }
+      ],
+      "department": {
+        "code": "13211",
+        "label": "Servis BMW Kongresové Centrum"
+      }
     },
     {
       "id": "ZK-26-0425",
@@ -78,7 +184,10 @@
       "model": "BMW R 1250 GS",
       "customerName": "Ondřej Kratochvíl",
       "status": "diagnostics",
-      "branch": "zlin",
+      "branch": {
+        "code": "1",
+        "label": "Brno"
+      },
       "receivedAt": "2026-08-24T07:40:00",
       "dueAt": "2026-08-28T15:00:00",
       "vin": "WB10J1305LZRS40028",
@@ -86,12 +195,31 @@
       "serviceAdvisorName": "Eva Zemanová",
       "bay": "Moto box",
       "notes": [
-        { "id": "N-0425-1", "text": "Zákazník hlásí kolísání otáček za tepla.", "author": "Servisní příjem", "createdAt": "2026-08-24T07:45:00" }
+        {
+          "id": "N-0425-1",
+          "text": "Zákazník hlásí kolísání otáček za tepla.",
+          "author": "Servisní příjem",
+          "createdAt": "2026-08-24T07:45:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0425-1", "title": "Načtení chybové paměti motoru", "isDone": true, "estimatedHours": 0.5 },
-        { "id": "W-0425-2", "title": "Kontrola vstřikovačů a lambda sondy", "isDone": false, "estimatedHours": 1.5 }
-      ]
+        {
+          "id": "W-0425-1",
+          "title": "Načtení chybové paměti motoru",
+          "isDone": true,
+          "estimatedHours": 0.5
+        },
+        {
+          "id": "W-0425-2",
+          "title": "Kontrola vstřikovačů a lambda sondy",
+          "isDone": false,
+          "estimatedHours": 1.5
+        }
+      ],
+      "department": {
+        "code": "11221",
+        "label": "Servis Motorrad Brno"
+      }
     },
     {
       "id": "ZK-26-0426",
@@ -99,7 +227,10 @@
       "model": "BMW 320d Touring",
       "customerName": "Radek Pospíšil",
       "status": "received",
-      "branch": "brno",
+      "branch": {
+        "code": "1",
+        "label": "Brno"
+      },
       "receivedAt": "2026-08-25T06:55:00",
       "dueAt": "2026-08-29T15:00:00",
       "vin": "WBA8E51070KTU88431",
@@ -107,12 +238,31 @@
       "serviceAdvisorName": "Martina Horáková",
       "bay": "Odstavná plocha",
       "notes": [
-        { "id": "N-0426-1", "text": "Servisní úkon 60 000 km + příprava na STK.", "author": "Servisní příjem", "createdAt": "2026-08-25T06:58:00" }
+        {
+          "id": "N-0426-1",
+          "text": "Servisní úkon 60 000 km + příprava na STK.",
+          "author": "Servisní příjem",
+          "createdAt": "2026-08-25T06:58:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0426-1", "title": "Servisní prohlídka 60 000 km", "isDone": false, "estimatedHours": 2.5 },
-        { "id": "W-0426-2", "title": "Příprava na STK", "isDone": false, "estimatedHours": 1.0 }
-      ]
+        {
+          "id": "W-0426-1",
+          "title": "Servisní prohlídka 60 000 km",
+          "isDone": false,
+          "estimatedHours": 2.5
+        },
+        {
+          "id": "W-0426-2",
+          "title": "Příprava na STK",
+          "isDone": false,
+          "estimatedHours": 1.0
+        }
+      ],
+      "department": {
+        "code": "11215",
+        "label": "Servis MINI Brno"
+      }
     },
     {
       "id": "ZK-26-0402",
@@ -120,7 +270,10 @@
       "model": "BMW X3 xDrive20d",
       "customerName": "Alena Šťastná",
       "status": "ready_for_pickup",
-      "branch": "brno",
+      "branch": {
+        "code": "4",
+        "label": "Česká"
+      },
       "receivedAt": "2026-08-18T10:20:00",
       "dueAt": "2026-08-25T12:00:00",
       "vin": "WBATX7106K5VW10275",
@@ -128,14 +281,43 @@
       "serviceAdvisorName": "Martina Horáková",
       "bay": "Výdej 1",
       "notes": [
-        { "id": "N-0402-1", "text": "Vozidlo umyto, klíče na příjmu.", "author": "Jan Dvořák", "createdAt": "2026-08-25T07:30:00" },
-        { "id": "N-0402-2", "text": "Výměna oleje a filtrů dokončena.", "author": "Jan Dvořák", "createdAt": "2026-08-22T13:10:00" }
+        {
+          "id": "N-0402-1",
+          "text": "Vozidlo umyto, klíče na příjmu.",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-25T07:30:00"
+        },
+        {
+          "id": "N-0402-2",
+          "text": "Výměna oleje a filtrů dokončena.",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-22T13:10:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0402-1", "title": "Výměna motorového oleje a filtrů", "isDone": true, "estimatedHours": 1.2 },
-        { "id": "W-0402-2", "title": "Kontrola brzd a pneumatik", "isDone": true, "estimatedHours": 0.8 },
-        { "id": "W-0402-3", "title": "Mytí a příprava k předání", "isDone": true, "estimatedHours": 0.5 }
-      ]
+        {
+          "id": "W-0402-1",
+          "title": "Výměna motorového oleje a filtrů",
+          "isDone": true,
+          "estimatedHours": 1.2
+        },
+        {
+          "id": "W-0402-2",
+          "title": "Kontrola brzd a pneumatik",
+          "isDone": true,
+          "estimatedHours": 0.8
+        },
+        {
+          "id": "W-0402-3",
+          "title": "Mytí a příprava k předání",
+          "isDone": true,
+          "estimatedHours": 0.5
+        }
+      ],
+      "department": {
+        "code": "14211",
+        "label": "Servis BMW Česká"
+      }
     },
     {
       "id": "ZK-26-0417",
@@ -143,7 +325,10 @@
       "model": "MINI Countryman",
       "customerName": "Veronika Dostálová",
       "status": "in_repair",
-      "branch": "zlin",
+      "branch": {
+        "code": "4",
+        "label": "Česká"
+      },
       "receivedAt": "2026-08-21T13:35:00",
       "dueAt": "2026-08-26T15:00:00",
       "vin": "WMZYS710X03XY55118",
@@ -151,13 +336,37 @@
       "serviceAdvisorName": "Eva Zemanová",
       "bay": "Stání 3",
       "notes": [
-        { "id": "N-0417-1", "text": "Demontáž převodovky, výměna dvouhmotového setrvačníku.", "author": "Petra Válková", "createdAt": "2026-08-25T10:15:00" }
+        {
+          "id": "N-0417-1",
+          "text": "Demontáž převodovky, výměna dvouhmotového setrvačníku.",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-25T10:15:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0417-1", "title": "Demontáž převodovky", "isDone": true, "estimatedHours": 4.0 },
-        { "id": "W-0417-2", "title": "Výměna dvouhmotového setrvačníku a spojky", "isDone": false, "estimatedHours": 3.5 },
-        { "id": "W-0417-3", "title": "Zpětná montáž a zkušební jízda", "isDone": false, "estimatedHours": 4.0 }
-      ]
+        {
+          "id": "W-0417-1",
+          "title": "Demontáž převodovky",
+          "isDone": true,
+          "estimatedHours": 4.0
+        },
+        {
+          "id": "W-0417-2",
+          "title": "Výměna dvouhmotového setrvačníku a spojky",
+          "isDone": false,
+          "estimatedHours": 3.5
+        },
+        {
+          "id": "W-0417-3",
+          "title": "Zpětná montáž a zkušební jízda",
+          "isDone": false,
+          "estimatedHours": 4.0
+        }
+      ],
+      "department": {
+        "code": "14221",
+        "label": "Servis Motorrad Česká"
+      }
     },
     {
       "id": "ZK-26-0398",
@@ -165,7 +374,10 @@
       "model": "BMW 530e",
       "customerName": "Michal Beran",
       "status": "picked_up",
-      "branch": "praha",
+      "branch": {
+        "code": "2",
+        "label": "Čestlice"
+      },
       "receivedAt": "2026-08-15T08:00:00",
       "dueAt": "2026-08-22T12:00:00",
       "vin": "WBAJA91060BZA66093",
@@ -173,12 +385,31 @@
       "serviceAdvisorName": "Jiří Kalous",
       "bay": null,
       "notes": [
-        { "id": "N-0398-1", "text": "Předáno zákazníkovi, protokol podepsán.", "author": "M. Horáková, poradce", "createdAt": "2026-08-22T16:40:00" }
+        {
+          "id": "N-0398-1",
+          "text": "Předáno zákazníkovi, protokol podepsán.",
+          "author": "M. Horáková, poradce",
+          "createdAt": "2026-08-22T16:40:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0398-1", "title": "Výměna vysokonapěťové pojistky", "isDone": true, "estimatedHours": 1.5 },
-        { "id": "W-0398-2", "title": "Kontrola nabíjecího systému", "isDone": true, "estimatedHours": 1.0 }
-      ]
+        {
+          "id": "W-0398-1",
+          "title": "Výměna vysokonapěťové pojistky",
+          "isDone": true,
+          "estimatedHours": 1.5
+        },
+        {
+          "id": "W-0398-2",
+          "title": "Kontrola nabíjecího systému",
+          "isDone": true,
+          "estimatedHours": 1.0
+        }
+      ],
+      "department": {
+        "code": "12215",
+        "label": "Servis MINI Čestlice"
+      }
     },
     {
       "id": "ZK-26-0412",
@@ -186,7 +417,10 @@
       "model": "BMW M340i xDrive",
       "customerName": "Filip Řehák",
       "status": "waiting_for_parts",
-      "branch": "zlin",
+      "branch": {
+        "code": "5",
+        "label": "Bubeneč"
+      },
       "receivedAt": "2026-08-20T09:10:00",
       "dueAt": "2026-08-24T15:00:00",
       "vin": "WBA5R7106M7AB99213",
@@ -194,13 +428,37 @@
       "serviceAdvisorName": "Eva Zemanová",
       "bay": "Stání 6",
       "notes": [
-        { "id": "N-0412-1", "text": "Objednáno přední pravé tlumičové uložení, dodání se zdrželo u dodavatele.", "author": "Marek Sýkora", "createdAt": "2026-08-24T13:05:00" },
-        { "id": "N-0412-2", "text": "Zákazník informován o posunu termínu.", "author": "E. Zemanová, poradce", "createdAt": "2026-08-24T13:40:00" }
+        {
+          "id": "N-0412-1",
+          "text": "Objednáno přední pravé tlumičové uložení, dodání se zdrželo u dodavatele.",
+          "author": "Marek Sýkora",
+          "createdAt": "2026-08-24T13:05:00"
+        },
+        {
+          "id": "N-0412-2",
+          "text": "Zákazník informován o posunu termínu.",
+          "author": "E. Zemanová, poradce",
+          "createdAt": "2026-08-24T13:40:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0412-1", "title": "Diagnostika hluku přední nápravy", "isDone": true, "estimatedHours": 1.0 },
-        { "id": "W-0412-2", "title": "Výměna tlumičového uložení", "isDone": false, "estimatedHours": 2.0 }
-      ]
+        {
+          "id": "W-0412-1",
+          "title": "Diagnostika hluku přední nápravy",
+          "isDone": true,
+          "estimatedHours": 1.0
+        },
+        {
+          "id": "W-0412-2",
+          "title": "Výměna tlumičového uložení",
+          "isDone": false,
+          "estimatedHours": 2.0
+        }
+      ],
+      "department": {
+        "code": "15211",
+        "label": "Servis BMW Bubeneč"
+      }
     },
     {
       "id": "ZK-26-0423",
@@ -208,7 +466,10 @@
       "model": "BMW iX xDrive50",
       "customerName": "Tereza Bláhová",
       "status": "diagnostics",
-      "branch": "praha",
+      "branch": {
+        "code": "3",
+        "label": "Kongresové Centrum"
+      },
       "receivedAt": "2026-08-23T11:25:00",
       "dueAt": "2026-08-27T15:00:00",
       "vin": "WBY11CF010CD44507",
@@ -216,12 +477,31 @@
       "serviceAdvisorName": "Jiří Kalous",
       "bay": "Stání 1",
       "notes": [
-        { "id": "N-0423-1", "text": "Hlášení: nefunkční asistent parkování, chyba na ultrazvukových snímačích.", "author": "Servisní příjem", "createdAt": "2026-08-23T11:30:00" }
+        {
+          "id": "N-0423-1",
+          "text": "Hlášení: nefunkční asistent parkování, chyba na ultrazvukových snímačích.",
+          "author": "Servisní příjem",
+          "createdAt": "2026-08-23T11:30:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0423-1", "title": "Diagnostika asistenčních systémů", "isDone": true, "estimatedHours": 1.2 },
-        { "id": "W-0423-2", "title": "Kontrola kabeláže PDC", "isDone": false, "estimatedHours": 1.5 }
-      ]
+        {
+          "id": "W-0423-1",
+          "title": "Diagnostika asistenčních systémů",
+          "isDone": true,
+          "estimatedHours": 1.2
+        },
+        {
+          "id": "W-0423-2",
+          "title": "Kontrola kabeláže PDC",
+          "isDone": false,
+          "estimatedHours": 1.5
+        }
+      ],
+      "department": {
+        "code": "13215",
+        "label": "Servis MINI Kongresové Centrum"
+      }
     },
     {
       "id": "ZK-26-0427",
@@ -229,7 +509,7 @@
       "model": "MINI Cooper SE",
       "customerName": "David Kolář",
       "status": "received",
-      "branch": "praha",
+      "branch": null,
       "receivedAt": "2026-08-25T07:20:00",
       "dueAt": "2026-08-28T15:00:00",
       "vin": "WMW11DJ0602EF31884",
@@ -237,11 +517,22 @@
       "serviceAdvisorName": "Jiří Kalous",
       "bay": "Odstavná plocha",
       "notes": [
-        { "id": "N-0427-1", "text": "Reklamace dobíjení na AC wallboxu, doloženy fotografie chybové hlášky.", "author": "Servisní příjem", "createdAt": "2026-08-25T07:25:00" }
+        {
+          "id": "N-0427-1",
+          "text": "Reklamace dobíjení na AC wallboxu, doloženy fotografie chybové hlášky.",
+          "author": "Servisní příjem",
+          "createdAt": "2026-08-25T07:25:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0427-1", "title": "Ověření reklamace dobíjení", "isDone": false, "estimatedHours": 1.5 }
-      ]
+        {
+          "id": "W-0427-1",
+          "title": "Ověření reklamace dobíjení",
+          "isDone": false,
+          "estimatedHours": 1.5
+        }
+      ],
+      "department": null
     },
     {
       "id": "ZK-26-0414",
@@ -249,7 +540,10 @@
       "model": "BMW 118i",
       "customerName": "Simona Vávrová",
       "status": "quality_check",
-      "branch": "brno",
+      "branch": {
+        "code": "1",
+        "label": "Brno"
+      },
       "receivedAt": "2026-08-20T14:00:00",
       "dueAt": "2026-08-26T12:00:00",
       "vin": "WBA7K910X0EG52276",
@@ -257,13 +551,37 @@
       "serviceAdvisorName": "Martina Horáková",
       "bay": "Stání 5",
       "notes": [
-        { "id": "N-0414-1", "text": "Výměna rozvodového řetězu dokončena, zkušební jízda 18 km bez závad.", "author": "Jan Dvořák", "createdAt": "2026-08-25T12:15:00" }
+        {
+          "id": "N-0414-1",
+          "text": "Výměna rozvodového řetězu dokončena, zkušební jízda 18 km bez závad.",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-25T12:15:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0414-1", "title": "Výměna rozvodového řetězu", "isDone": true, "estimatedHours": 6.5 },
-        { "id": "W-0414-2", "title": "Zkušební jízda", "isDone": true, "estimatedHours": 0.7 },
-        { "id": "W-0414-3", "title": "Výstupní kontrola kvality", "isDone": false, "estimatedHours": 0.5 }
-      ]
+        {
+          "id": "W-0414-1",
+          "title": "Výměna rozvodového řetězu",
+          "isDone": true,
+          "estimatedHours": 6.5
+        },
+        {
+          "id": "W-0414-2",
+          "title": "Zkušební jízda",
+          "isDone": true,
+          "estimatedHours": 0.7
+        },
+        {
+          "id": "W-0414-3",
+          "title": "Výstupní kontrola kvality",
+          "isDone": false,
+          "estimatedHours": 0.5
+        }
+      ],
+      "department": {
+        "code": "11211",
+        "label": "Servis BMW Brno"
+      }
     },
     {
       "id": "ZK-26-0405",
@@ -271,7 +589,10 @@
       "model": "BMW X1 sDrive18d",
       "customerName": "Pavel Doležal",
       "status": "ready_for_pickup",
-      "branch": "zlin",
+      "branch": {
+        "code": "2",
+        "label": "Čestlice"
+      },
       "receivedAt": "2026-08-19T08:35:00",
       "dueAt": "2026-08-25T12:00:00",
       "vin": "WBA32AC0705HJ71039",
@@ -279,12 +600,31 @@
       "serviceAdvisorName": "Eva Zemanová",
       "bay": "Výdej 2",
       "notes": [
-        { "id": "N-0405-1", "text": "Vozidlo připraveno k předání, faktura vystavena.", "author": "E. Zemanová, poradce", "createdAt": "2026-08-25T09:05:00" }
+        {
+          "id": "N-0405-1",
+          "text": "Vozidlo připraveno k předání, faktura vystavena.",
+          "author": "E. Zemanová, poradce",
+          "createdAt": "2026-08-25T09:05:00"
+        }
       ],
       "workItems": [
-        { "id": "W-0405-1", "title": "Výměna brzdových destiček - přední náprava", "isDone": true, "estimatedHours": 1.5 },
-        { "id": "W-0405-2", "title": "Sezónní kontrola vozidla", "isDone": true, "estimatedHours": 0.8 }
-      ]
+        {
+          "id": "W-0405-1",
+          "title": "Výměna brzdových destiček - přední náprava",
+          "isDone": true,
+          "estimatedHours": 1.5
+        },
+        {
+          "id": "W-0405-2",
+          "title": "Sezónní kontrola vozidla",
+          "isDone": true,
+          "estimatedHours": 0.8
+        }
+      ],
+      "department": {
+        "code": "12211",
+        "label": "Servis BMW Čestlice"
+      }
     }
   ]
 }

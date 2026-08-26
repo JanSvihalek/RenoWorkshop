@@ -8,6 +8,7 @@ ServiceOrder order({
   required String id,
   required OrderStatus status,
   required Branch branch,
+  Department? department,
   String licensePlate = '1AA 1111',
   String customerName = 'Petr Novák',
   String? mechanicName = 'Jan Dvořák',
@@ -20,6 +21,7 @@ ServiceOrder order({
     customerName: customerName,
     status: status,
     branch: branch,
+    department: department,
     receivedAt: DateTime(2026, 8, 20, 8),
     dueAt: dueAt ?? DateTime(2026, 8, 26, 15),
     vin: 'WBATEST0000000001',
@@ -27,25 +29,29 @@ ServiceOrder order({
   );
 }
 
+const brno = Branch(code: '1', label: 'Brno');
+const cestlice = Branch(code: '2', label: 'Čestlice');
+const ceska = Branch(code: '4', label: 'Česká');
+
 void main() {
   final orders = [
     order(
       id: 'A',
       status: OrderStatus.inRepair,
-      branch: Branch.brno,
+      branch: brno,
       dueAt: DateTime(2026, 8, 28),
     ),
     order(
       id: 'B',
       status: OrderStatus.pickedUp,
-      branch: Branch.praha,
+      branch: cestlice,
       licensePlate: '2BB 2222',
       dueAt: DateTime(2026, 8, 22),
     ),
     order(
       id: 'C',
       status: OrderStatus.inRepair,
-      branch: Branch.praha,
+      branch: cestlice,
       customerName: 'Lucie Marková',
       mechanicName: 'Petra Válková',
       dueAt: DateTime(2026, 8, 24),
@@ -60,10 +66,7 @@ void main() {
     });
 
     test('filtry se skládají (pobočka AND stav)', () {
-      const filter = OrderFilter(
-        branch: Branch.praha,
-        status: OrderStatus.inRepair,
-      );
+      const filter = OrderFilter(branchCode: '2', status: OrderStatus.inRepair);
 
       expect(filter.apply(orders).map((o) => o.id), ['C']);
     });
@@ -99,11 +102,11 @@ void main() {
     test('activeCount počítá jen skutečně aktivní filtry', () {
       expect(const OrderFilter().activeCount, 0);
       expect(const OrderFilter(query: '   ').activeCount, 0);
-      expect(const OrderFilter(branch: Branch.brno, query: 'x').activeCount, 2);
+      expect(const OrderFilter(branchCode: '1', query: 'x').activeCount, 2);
     });
 
     test('prázdný výsledek je prázdný seznam, ne chyba', () {
-      const filter = OrderFilter(branch: Branch.zlin);
+      const filter = OrderFilter(branchCode: '4');
 
       expect(filter.apply(orders), isEmpty);
     });
@@ -117,7 +120,7 @@ void main() {
         order(
           id: 'X',
           status: OrderStatus.inRepair,
-          branch: Branch.brno,
+          branch: brno,
           dueAt: DateTime(2026, 8, 24),
         ).isOverdue(now: now),
         isTrue,
@@ -126,7 +129,7 @@ void main() {
         order(
           id: 'Y',
           status: OrderStatus.readyForPickup,
-          branch: Branch.brno,
+          branch: brno,
           dueAt: DateTime(2026, 8, 24),
         ).isOverdue(now: now),
         isFalse,
@@ -138,7 +141,7 @@ void main() {
         order(
           id: 'X',
           status: OrderStatus.received,
-          branch: Branch.brno,
+          branch: brno,
         ).mechanicInitials,
         'JD',
       );
@@ -146,7 +149,7 @@ void main() {
         order(
           id: 'Y',
           status: OrderStatus.received,
-          branch: Branch.brno,
+          branch: brno,
           mechanicName: null,
         ).mechanicInitials,
         '?',

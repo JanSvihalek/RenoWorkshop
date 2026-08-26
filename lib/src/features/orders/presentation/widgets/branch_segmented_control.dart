@@ -5,22 +5,58 @@ import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/branch.dart';
 
 /// Přepínač poboček v app baru. `null` = všechny pobočky.
+///
+/// Pobočky nejsou pevný seznam - skládají se z toho, co je v datech, takže
+/// nová pobočka v Heliosu se objeví sama, bez nové verze appky. Když jich
+/// je moc, řádek se vodorovně posouvá; jemnější dělení na útvary je ve
+/// filtrovacím panelu.
 class BranchSegmentedControl extends StatelessWidget {
   const BranchSegmentedControl({
     super.key,
-    required this.selected,
+    required this.branches,
+    required this.selectedCode,
     required this.onChanged,
   });
 
-  final Branch? selected;
-  final ValueChanged<Branch?> onChanged;
+  /// Pobočky, které se vyskytují v načtených zakázkách.
+  final List<Branch> branches;
+
+  final String? selectedCode;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final options = <(Branch?, String)>[
+    final options = <(String?, String)>[
       (null, 'Vše'),
-      for (final branch in Branch.values) (branch, branch.label),
+      for (final branch in branches) (branch.code, branch.label),
     ];
+
+    // Do čtyř položek se vejde rovnoměrné dělení, víc už se musí posouvat.
+    if (options.length > 4) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              for (final (code, label) in options)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: _Segment(
+                    label: label,
+                    isSelected: selectedCode == code,
+                    onTap: () => onChanged(code),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(3),
@@ -30,12 +66,12 @@ class BranchSegmentedControl extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (final (branch, label) in options)
+          for (final (code, label) in options)
             Expanded(
               child: _Segment(
                 label: label,
-                isSelected: selected == branch,
-                onTap: () => onChanged(branch),
+                isSelected: selectedCode == code,
+                onTap: () => onChanged(code),
               ),
             ),
         ],
@@ -67,7 +103,7 @@ class _Segment extends StatelessWidget {
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.surfaceWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(8),

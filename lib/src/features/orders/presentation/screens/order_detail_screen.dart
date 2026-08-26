@@ -274,7 +274,8 @@ class _DetailHeader extends StatelessWidget {
             runSpacing: Insets.sm,
             children: [
               _HeaderChip(order.customerName),
-              _HeaderChip('Pobočka ${order.branch.label}'),
+              _HeaderChip(order.branchLabel),
+              if (order.department != null) _HeaderChip(order.departmentLabel),
               _HeaderChip('VIN ${order.vin}'),
             ],
           ),

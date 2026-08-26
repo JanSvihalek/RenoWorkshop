@@ -91,7 +91,7 @@ class OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(width: Insets.sm),
                 Text(
-                  order.branch.label,
+                  order.branchLabel,
                   style: AppTextStyles.meta.copyWith(color: palette.muted),
                 ),
                 const Spacer(),

@@ -191,7 +191,8 @@ class _ListHeader extends ConsumerWidget {
           ),
           const SizedBox(height: Insets.lg),
           BranchSegmentedControl(
-            selected: filter.branch,
+            branches: ref.watch(availableBranchesProvider),
+            selectedCode: filter.branchCode,
             onChanged: ref.read(orderFilterProvider.notifier).setBranch,
           ),
         ],

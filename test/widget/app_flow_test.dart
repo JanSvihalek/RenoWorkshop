@@ -42,14 +42,14 @@ void main() {
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
               status: 'in_repair',
-              branch: 'brno',
+              utvar: '11211',
             ),
             buildOrderDto(
               id: 'ZK-26-0002',
               licensePlate: '2SC 9014',
               customerName: 'Lucie Marková',
               status: 'waiting_for_parts',
-              branch: 'praha',
+              utvar: '12211',
             ),
           ]),
         ),
@@ -87,16 +87,28 @@ void main() {
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
 
-    await tester.tap(_branchTab('Praha'));
+    // Pobočky se skládají z dat, ne z pevného výčtu - v přepínači tedy
+    // musí být právě ty dvě, které mají zakázky.
+    expect(_branchTab('Brno'), findsOneWidget);
+    expect(_branchTab('Čestlice'), findsOneWidget);
+
+    await tester.tap(_branchTab('Čestlice'));
     await tester.pumpAndSettle();
 
     expect(find.text('2SC 9014'), findsOneWidget);
     expect(find.text('8AB 4721'), findsNothing);
 
-    await tester.tap(_branchTab('Zlín'));
+    await tester.tap(_branchTab('Brno'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Žádná zakázka nevyhovuje'), findsOneWidget);
+    expect(find.text('8AB 4721'), findsOneWidget);
+    expect(find.text('2SC 9014'), findsNothing);
+
+    await tester.tap(_branchTab('Vše'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('8AB 4721'), findsOneWidget);
+    expect(find.text('2SC 9014'), findsOneWidget);
   });
 
   testWidgets('detail zakázky umí posunout stav a promítne ho do seznamu', (

@@ -1,4 +1,3 @@
-import 'branch.dart';
 import 'order_status.dart';
 import 'service_order.dart';
 
@@ -20,7 +19,8 @@ enum OrderSort {
 /// pošle se stejný objekt jako query parametry - UI se měnit nemusí.
 class OrderFilter {
   const OrderFilter({
-    this.branch,
+    this.branchCode,
+    this.departmentCode,
     this.status,
     this.mechanicName,
     this.query = '',
@@ -28,8 +28,12 @@ class OrderFilter {
     this.includeClosed = true,
   });
 
-  /// `null` = všechny pobočky.
-  final Branch? branch;
+  /// `null` = všechny pobočky. Kód pobočky, ne název - názvy se mohou
+  /// v Heliosu přepsat, kód drží.
+  final String? branchCode;
+
+  /// `null` = všechny útvary.
+  final String? departmentCode;
 
   /// `null` = všechny stavy.
   final OrderStatus? status;
@@ -44,7 +48,8 @@ class OrderFilter {
   final bool includeClosed;
 
   bool get isActive =>
-      branch != null ||
+      branchCode != null ||
+      departmentCode != null ||
       status != null ||
       mechanicName != null ||
       query.trim().isNotEmpty ||
@@ -52,7 +57,8 @@ class OrderFilter {
 
   /// Počet aktivních filtrů (pro badge u tlačítka filtru).
   int get activeCount => [
-    branch != null,
+    branchCode != null,
+    departmentCode != null,
     status != null,
     mechanicName != null,
     query.trim().isNotEmpty,
@@ -60,18 +66,23 @@ class OrderFilter {
   ].where((active) => active).length;
 
   OrderFilter copyWith({
-    Branch? branch,
+    String? branchCode,
+    String? departmentCode,
     OrderStatus? status,
     String? mechanicName,
     String? query,
     OrderSort? sort,
     bool? includeClosed,
     bool clearBranch = false,
+    bool clearDepartment = false,
     bool clearStatus = false,
     bool clearMechanic = false,
   }) {
     return OrderFilter(
-      branch: clearBranch ? null : (branch ?? this.branch),
+      branchCode: clearBranch ? null : (branchCode ?? this.branchCode),
+      departmentCode: clearDepartment
+          ? null
+          : (departmentCode ?? this.departmentCode),
       status: clearStatus ? null : (status ?? this.status),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
       query: query ?? this.query,
@@ -83,7 +94,10 @@ class OrderFilter {
   /// Aplikuje filtry i řazení. Čistá funkce - snadno testovatelná.
   List<ServiceOrder> apply(List<ServiceOrder> orders) {
     final result = orders.where((order) {
-      if (branch != null && order.branch != branch) return false;
+      if (branchCode != null && order.branch?.code != branchCode) return false;
+      if (departmentCode != null && order.department?.code != departmentCode) {
+        return false;
+      }
       if (status != null && order.status != status) return false;
       if (mechanicName != null && order.mechanicName != mechanicName) {
         return false;
@@ -109,7 +123,8 @@ class OrderFilter {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is OrderFilter &&
-          other.branch == branch &&
+          other.branchCode == branchCode &&
+          other.departmentCode == departmentCode &&
           other.status == status &&
           other.mechanicName == mechanicName &&
           other.query == query &&
@@ -117,6 +132,13 @@ class OrderFilter {
           other.includeClosed == includeClosed);
 
   @override
-  int get hashCode =>
-      Object.hash(branch, status, mechanicName, query, sort, includeClosed);
+  int get hashCode => Object.hash(
+    branchCode,
+    departmentCode,
+    status,
+    mechanicName,
+    query,
+    sort,
+    includeClosed,
+  );
 }

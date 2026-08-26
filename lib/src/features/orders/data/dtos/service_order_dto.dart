@@ -16,6 +16,7 @@ class ServiceOrderDto {
     required this.customerName,
     required this.status,
     required this.branch,
+    required this.department,
     required this.receivedAt,
     required this.dueAt,
     required this.vin,
@@ -31,7 +32,12 @@ class ServiceOrderDto {
   final String model;
   final String customerName;
   final String status;
-  final String branch;
+
+  /// `{"code": "2", "label": "Čestlice"}`, nebo `null` u zakázky bez útvaru.
+  final Map<String, dynamic>? branch;
+
+  /// `{"code": "12211", "label": "..."}`, nebo `null`.
+  final Map<String, dynamic>? department;
   final String receivedAt;
   final String dueAt;
   final String vin;
@@ -48,7 +54,8 @@ class ServiceOrderDto {
       model: json['model'] as String,
       customerName: json['customerName'] as String,
       status: json['status'] as String,
-      branch: json['branch'] as String,
+      branch: json['branch'] as Map<String, dynamic>?,
+      department: json['department'] as Map<String, dynamic>?,
       receivedAt: json['receivedAt'] as String,
       dueAt: json['dueAt'] as String,
       vin: json['vin'] as String,
@@ -71,6 +78,7 @@ class ServiceOrderDto {
     'customerName': customerName,
     'status': status,
     'branch': branch,
+    'department': department,
     'receivedAt': receivedAt,
     'dueAt': dueAt,
     'vin': vin,
@@ -87,7 +95,8 @@ class ServiceOrderDto {
     model: model,
     customerName: customerName,
     status: OrderStatus.fromApiValue(status),
-    branch: Branch.fromApiValue(branch),
+    branch: branch == null ? null : Branch.fromJson(branch!),
+    department: department == null ? null : Department.fromJson(department!),
     receivedAt: DateTime.parse(receivedAt),
     dueAt: DateTime.parse(dueAt),
     vin: vin,
@@ -110,6 +119,7 @@ class ServiceOrderDto {
       customerName: customerName,
       status: status ?? this.status,
       branch: branch,
+      department: department,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

@@ -13,7 +13,7 @@ void main() {
     repository = ServiceOrderRepositoryImpl(
       FakeServiceOrderDataSource([
         buildOrderDto(id: 'ZK-1', status: 'in_repair'),
-        buildOrderDto(id: 'ZK-2', status: 'picked_up', branch: 'praha'),
+        buildOrderDto(id: 'ZK-2', status: 'picked_up', utvar: '12211'),
       ]),
     );
   });

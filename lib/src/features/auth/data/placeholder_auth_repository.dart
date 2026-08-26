@@ -19,12 +19,12 @@ class PlaceholderAuthRepository implements AuthRepository {
   final Duration ssoDelay;
   final Duration biometricDelay;
 
-  static const Employee _demoEmployee = Employee(
+  static final Employee _demoEmployee = Employee(
     id: 'placeholder-employee',
     displayName: 'Jan Dvořák',
     email: 'jan.dvorak@renocar.cz',
     role: EmployeeRole.mechanic,
-    homeBranch: Branch.brno,
+    homeBranch: Branch(code: '1', label: 'Brno'),
   );
 
   Employee? _currentEmployee;

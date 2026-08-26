@@ -14,7 +14,8 @@ class ServiceOrder {
     required this.model,
     required this.customerName,
     required this.status,
-    required this.branch,
+    this.branch,
+    this.department,
     required this.receivedAt,
     required this.dueAt,
     required this.vin,
@@ -31,7 +32,12 @@ class ServiceOrder {
   final String model;
   final String customerName;
   final OrderStatus status;
-  final Branch branch;
+
+  /// Pobočka odvozená z útvaru. `null` = útvar chybí nebo se nedal zařadit.
+  final Branch? branch;
+
+  /// Útvar z Heliosu. `null` u zakázky bez vyplněného zpracovatele.
+  final Department? department;
 
   /// Kdy vozidlo přijelo na příjem.
   final DateTime receivedAt;
@@ -79,6 +85,11 @@ class ServiceOrder {
 
   String get bayLabel => bay ?? '-';
 
+  /// Název pobočky pro UI, včetně zakázek, které ji nemají.
+  String get branchLabel => branch?.label ?? 'Bez pobočky';
+
+  String get departmentLabel => department?.label ?? 'Bez útvaru';
+
   /// Fulltext přes SPZ, zákazníka, číslo zakázky a model.
   bool matchesQuery(String query) {
     final needle = query.trim().toLowerCase();
@@ -108,6 +119,7 @@ class ServiceOrder {
       customerName: customerName,
       status: status ?? this.status,
       branch: branch,
+      department: department,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

@@ -75,7 +75,7 @@ ServiceOrderDto buildOrderDto({
   String model = 'BMW 320d',
   String customerName = 'Petr Novák',
   String status = 'in_repair',
-  String branch = 'brno',
+  String utvar = '11211',
   String receivedAt = '2026-08-20T08:00:00',
   String dueAt = '2026-08-26T15:00:00',
   String? mechanicName = 'Jan Dvořák',
@@ -88,7 +88,8 @@ ServiceOrderDto buildOrderDto({
     model: model,
     customerName: customerName,
     status: status,
-    branch: branch,
+    branch: {'code': utvar[1], 'label': _pobocka(utvar)},
+    department: {'code': utvar, 'label': 'Útvar $utvar'},
     receivedAt: receivedAt,
     dueAt: dueAt,
     vin: 'WBATEST0000000001',
@@ -99,3 +100,15 @@ ServiceOrderDto buildOrderDto({
     workItems: workItems,
   );
 }
+
+/// Název pobočky podle druhé číslice útvaru - stejné pravidlo, jaké
+/// v provozu uplatňuje API.
+String _pobocka(String utvar) =>
+    const {
+      '1': 'Brno',
+      '2': 'Čestlice',
+      '3': 'Kongresové Centrum',
+      '4': 'Česká',
+      '5': 'Bubeneč',
+    }[utvar[1]] ??
+    'Neurčeno';

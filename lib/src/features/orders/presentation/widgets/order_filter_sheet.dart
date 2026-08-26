@@ -28,6 +28,7 @@ class OrderFilterSheet extends ConsumerWidget {
     final filter = ref.watch(orderFilterProvider);
     final controller = ref.read(orderFilterProvider.notifier);
     final mechanics = ref.watch(mechanicsProvider);
+    final departments = ref.watch(availableDepartmentsProvider);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -75,6 +76,30 @@ class OrderFilterSheet extends ConsumerWidget {
                   ),
               ],
             ),
+            // Útvar je jemnější dělení než pobočka v app baru; seznam se
+            // zužuje podle právě vybrané pobočky, ať v něm není nepořádek.
+            if (departments.length > 1) ...[
+              const SizedBox(height: Insets.xxl),
+              _SheetLabel('ÚTVAR'),
+              const SizedBox(height: Insets.sm),
+              Wrap(
+                spacing: Insets.sm,
+                runSpacing: Insets.sm,
+                children: [
+                  _SheetChip(
+                    label: 'Všechny',
+                    isSelected: filter.departmentCode == null,
+                    onTap: () => controller.setDepartment(null),
+                  ),
+                  for (final department in departments)
+                    _SheetChip(
+                      label: department.label,
+                      isSelected: filter.departmentCode == department.code,
+                      onTap: () => controller.setDepartment(department.code),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: Insets.xxl),
             _SheetLabel('MECHANIK'),
             const SizedBox(height: Insets.sm),

@@ -41,6 +41,36 @@ final ordersStreamProvider = StreamProvider<List<ServiceOrder>>(
   (ref) => ref.watch(serviceOrderRepositoryProvider).watchOrders(),
 );
 
+/// Pobočky vyskytující se v načtených zakázkách, seřazené podle názvu.
+/// Přepínač v app baru se skládá z nich, ne z pevného výčtu.
+final availableBranchesProvider = Provider<List<Branch>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final unikatni = <String, Branch>{};
+  for (final order in orders) {
+    final branch = order.branch;
+    if (branch != null) unikatni[branch.code] = branch;
+  }
+  final seznam = unikatni.values.toList()
+    ..sort((a, b) => a.label.compareTo(b.label));
+  return seznam;
+});
+
+/// Útvary v rámci právě vybrané pobočky - jemnější filtr ve filtrovacím
+/// panelu. Bez vybrané pobočky vrací útvary všechny.
+final availableDepartmentsProvider = Provider<List<Department>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final branchCode = ref.watch(orderFilterProvider).branchCode;
+  final unikatni = <String, Department>{};
+  for (final order in orders) {
+    if (branchCode != null && order.branch?.code != branchCode) continue;
+    final department = order.department;
+    if (department != null) unikatni[department.code] = department;
+  }
+  final seznam = unikatni.values.toList()
+    ..sort((a, b) => a.label.compareTo(b.label));
+  return seznam;
+});
+
 /// Aktivní filtry seznamu.
 final orderFilterProvider =
     NotifierProvider<OrderFilterController, OrderFilter>(
@@ -81,9 +111,13 @@ class OrderFilterController extends Notifier<OrderFilter> {
   @override
   OrderFilter build() => const OrderFilter();
 
-  void setBranch(Branch? branch) => state = branch == null
-      ? state.copyWith(clearBranch: true)
-      : state.copyWith(branch: branch);
+  void setBranch(String? branchCode) => state = branchCode == null
+      ? state.copyWith(clearBranch: true, clearDepartment: true)
+      : state.copyWith(branchCode: branchCode, clearDepartment: true);
+
+  void setDepartment(String? departmentCode) => state = departmentCode == null
+      ? state.copyWith(clearDepartment: true)
+      : state.copyWith(departmentCode: departmentCode);
 
   void setStatus(OrderStatus? status) => state = status == null
       ? state.copyWith(clearStatus: true)

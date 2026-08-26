@@ -84,7 +84,8 @@ stránkování.
     "model": "BMW X5 xDrive40d",
     "customerName": "Petr Novák",
     "status": "in_repair",
-    "branch": "brno",
+    "branch": { "code": "1", "label": "Brno" },
+    "department": { "code": "11211", "label": "Servis BMW Brno" },
     "receivedAt": "2026-08-21T07:15:00",
     "dueAt": "2026-08-26T16:00:00",
     "vin": "WBAKS4105L9KL83914",
@@ -111,8 +112,9 @@ stránkování.
 ]
 ```
 
-Povinné je všechno kromě `mechanicName`, `serviceAdvisorName` a `bay`, které
-smějí být `null`. `notes` a `workItems` smějí být prázdné pole.
+Povinné je všechno kromě `mechanicName`, `serviceAdvisorName`, `bay`,
+`branch` a `department`, které smějí být `null`. `notes` a `workItems` smějí
+být prázdné pole.
 
 ### GET /orders/{id}
 
@@ -167,7 +169,26 @@ odmítne.
 | `ready_for_pickup` | Připraveno k vyzvednutí |
 | `picked_up` | Vyzvednuto |
 
-**Pobočka** (`branch`): `praha`, `brno`, `zlin`
+**Pobočka a útvar** nejsou pevný číselník - appka je bere z dat, takže nová
+pobočka v Heliosu se objeví sama, bez nové verze aplikace.
+
+V Heliosu je uložený jen **útvar** (`subjekty.reference_subjektu`), pětimístný
+kód typu `12211`. **Pobočku z něj odvozuje API druhou číslicí:**
+
+| Číslice | Pobočka |
+|---|---|
+| 1 | Brno |
+| 2 | Čestlice |
+| 3 | Kongresové Centrum |
+| 4 | Česká |
+| 5 | Bubeneč |
+
+Kód s neznámou druhou číslicí (v datech je například `10005`) dostane
+`branch: null`; appka takovou zakázku ukáže jako „Bez pobočky", nezahazuje ji.
+Stejně tak zakázka bez vyplněného zpracovatele nemá `department`.
+
+Odvození patří na server schválně - kdyby pravidlo přestalo platit nebo
+přibyla pobočka, mění se to na jednom místě.
 
 ## Fotodokumentace (plánováno)
 
