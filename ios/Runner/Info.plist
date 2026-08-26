@@ -82,5 +82,11 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID odemkne vaše přihlášení do RenoWorkshopu.</string>
+	<!-- Appka nepoužívá vlastní šifrování, jen HTTPS a Keychain, které
+	     poskytuje samotný systém - to je z vývozních omezení vyjmuté.
+	     Bez tohohle klíče se App Store Connect ptá u každého buildu
+	     a build zůstane viset na "Missing Compliance". -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
