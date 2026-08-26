@@ -18,13 +18,18 @@ import '../widgets/order_filter_sheet.dart';
 import '../widgets/order_search_field.dart';
 import '../widgets/orders_empty_state.dart';
 import '../widgets/status_filter_chips.dart';
-import '../widgets/workshop_bottom_nav.dart';
+import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// Hlavní obrazovka: všechny zakázky na dílně (ne "moje vozidlo").
 class OrdersListScreen extends ConsumerStatefulWidget {
-  const OrdersListScreen({super.key, required this.onOpenOrder});
+  const OrdersListScreen({
+    super.key,
+    required this.onOpenOrder,
+    required this.onSelectTab,
+  });
 
   final void Function(ServiceOrder order) onOpenOrder;
+  final ValueChanged<WorkshopTab> onSelectTab;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -116,7 +121,10 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const WorkshopBottomNav(),
+      bottomNavigationBar: WorkshopBottomNav(
+        active: WorkshopTab.orders,
+        onSelect: widget.onSelectTab,
+      ),
     );
   }
 }

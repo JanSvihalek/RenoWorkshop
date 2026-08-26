@@ -5,14 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../core/widgets/workshop_bottom_nav.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
 
 /// Cesty appky na jednom místě - ať se v další fázi (deep linky z DMS,
 /// notifikace) nemusí hledat po widgetech.
 abstract final class AppRoutes {
   static const String login = '/login';
   static const String orders = '/orders';
+  static const String settings = '/settings';
 
   static String orderDetail(String orderId) => '$orders/$orderId';
 }
@@ -40,9 +43,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) =>
+            SettingsScreen(onSelectTab: (tab) => _prepni(context, tab)),
+      ),
+      GoRoute(
         path: AppRoutes.orders,
         builder: (context, state) => OrdersListScreen(
           onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
+          onSelectTab: (tab) => _prepni(context, tab),
         ),
         routes: [
           GoRoute(
@@ -59,6 +68,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Přepnutí spodní záložky. Používá `go`, ne `push` - záložky nejsou
+/// zanoření, člověk se mezi nimi přepíná tam a zpět.
+void _prepni(BuildContext context, WorkshopTab tab) {
+  switch (tab) {
+    case WorkshopTab.orders:
+      context.go(AppRoutes.orders);
+    case WorkshopTab.settings:
+      context.go(AppRoutes.settings);
+  }
+}
 
 /// Přemostění Riverpodu a go_routeru - při změně přihlášení přepočítá redirect.
 class _AuthRefreshNotifier extends ChangeNotifier {

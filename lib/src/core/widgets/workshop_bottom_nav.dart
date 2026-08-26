@@ -2,22 +2,38 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/platform/platform_info.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/app_typography.dart';
+import '../platform/platform_info.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
+
+/// Záložky spodní navigace.
+enum WorkshopTab { orders, settings }
 
 /// Spodní navigace dílny.
-///
-/// Fáze 1 má jen "Zakázky"; zbylé taby jsou vidět kvůli cílové struktuře,
-/// ale zatím jen oznámí, že se připravují.
 class WorkshopBottomNav extends StatelessWidget {
-  const WorkshopBottomNav({super.key});
+  const WorkshopBottomNav({
+    super.key,
+    required this.active,
+    required this.onSelect,
+  });
+
+  final WorkshopTab active;
+  final ValueChanged<WorkshopTab> onSelect;
 
   static const List<_NavItem> _items = [
-    _NavItem('Zakázky', Icons.assignment_outlined, Icons.assignment),
-    _NavItem('Moje směna', Icons.schedule_outlined, Icons.schedule),
-    _NavItem('Nastavení', Icons.settings_outlined, Icons.settings),
+    _NavItem(
+      WorkshopTab.orders,
+      'Zakázky',
+      Icons.assignment_outlined,
+      Icons.assignment,
+    ),
+    _NavItem(
+      WorkshopTab.settings,
+      'Nastavení',
+      Icons.settings_outlined,
+      Icons.settings,
+    ),
   ];
 
   @override
@@ -42,14 +58,12 @@ class WorkshopBottomNav extends StatelessWidget {
           ),
           child: Row(
             children: [
-              for (var index = 0; index < _items.length; index++)
+              for (final item in _items)
                 Expanded(
                   child: _NavButton(
-                    item: _items[index],
-                    isActive: index == 0,
-                    onTap: index == 0
-                        ? null
-                        : () => _showComingSoon(context, _items[index].label),
+                    item: item,
+                    isActive: item.tab == active,
+                    onTap: item.tab == active ? null : () => onSelect(item.tab),
                   ),
                 ),
             ],
@@ -58,19 +72,12 @@ class WorkshopBottomNav extends StatelessWidget {
       ),
     );
   }
-
-  void _showComingSoon(BuildContext context, String label) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('$label - připravujeme v další fázi.')),
-      );
-  }
 }
 
 class _NavItem {
-  const _NavItem(this.label, this.icon, this.activeIcon);
+  const _NavItem(this.tab, this.label, this.icon, this.activeIcon);
 
+  final WorkshopTab tab;
   final String label;
   final IconData icon;
   final IconData activeIcon;

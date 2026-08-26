@@ -135,4 +135,30 @@ void main() {
 
     expect(find.text('Kontrola kvality'), findsOneWidget);
   });
+
+  testWidgets('nastavení ukáže přihlášeného a umí odhlásit', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    // "Moje směna" byla ze spodní navigace odebrána.
+    expect(find.text('Moje směna'), findsNothing);
+
+    await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jan Dvořák'), findsOneWidget);
+    expect(find.text('jan.dvorak@renocar.cz'), findsOneWidget);
+
+    await tester.tap(find.text('Odhlásit se'));
+    await tester.pumpAndSettle();
+
+    // Odhlášení se ptá, ať se nestane omylem.
+    expect(find.text('Odhlásit se?'), findsOneWidget);
+    await tester.tap(find.text('Odhlásit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Přihlásit se přes Microsoft'), findsOneWidget);
+  });
 }
