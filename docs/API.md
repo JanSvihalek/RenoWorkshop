@@ -169,6 +169,49 @@ odmítne.
 
 **Pobočka** (`branch`): `praha`, `brno`, `zlin`
 
+## Fotodokumentace (plánováno)
+
+Není postavená, ale kontrakt s ní počítá, aby se do ní později nemuselo
+zasahovat na obou stranách zároveň. Fotky **nepocházejí z Heliosu** - jsou to
+naše data jako stav a poznámky.
+
+**V seznamu nikdy nejsou.** `GET /orders` zůstává štíhlý; detail vrací jen
+metadata s odkazy, binární data se stahují až na vyžádání:
+
+```json
+"photos": [
+  {
+    "id": "F-0418-1",
+    "phase": "intake",
+    "url": "/renoworkshop/api/orders/ZK-26-0418/photos/F-0418-1",
+    "thumbnailUrl": "/renoworkshop/api/orders/ZK-26-0418/photos/F-0418-1?size=thumb",
+    "caption": "Poškozený přední nárazník při příjmu",
+    "author": "Jan Dvořák",
+    "createdAt": "2026-08-21T07:22:00"
+  }
+]
+```
+
+`phase`: `intake` (příjem) · `finding` (nalezená závada) · `done` (hotovo) ·
+`handover` (předání).
+
+**Zamýšlené endpointy**
+
+| Endpoint | Co dělá |
+|---|---|
+| `POST /orders/{id}/photos` | nahrání (multipart), vrací metadata fotky |
+| `GET /orders/{id}/photos/{photoId}` | soubor; `?size=thumb` náhled |
+| `PATCH /orders/{id}/photos/{photoId}` | úprava popisku nebo skrytí |
+
+**Append-only.** Fotodokumentace při příjmu slouží k doložení stavu vozu, tedy
+se nepřepisuje ani nemaže - nejvýš skryje příznakem. Autor a čas se berou
+z tokenu a ze serveru, ne z telefonu.
+
+**Uložení.** Soubory na disku RENDCAPPu, metadata v Postgresu. Appka fotku
+před odesláním zmenší (dlouhá hrana ~1600 px, JPEG 80), jinak by při padesáti
+zakázkách denně přibýval zhruba gigabajt denně. Doba uchování se musí domluvit
+s tím, kdo řeší reklamace.
+
 ## Co ještě není vyřešené
 
 - **Sdílený stav dílny.** Dnes appka data načte a drží; když stav posune jiný
