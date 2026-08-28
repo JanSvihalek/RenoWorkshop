@@ -65,6 +65,11 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // Vlastní pravidla vedle výchozích - viz proguard-rules.pro.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro"),
+            )
         }
     }
 }
