@@ -150,7 +150,18 @@ void main() {
 
     expect(find.text('Jan Dvořák'), findsOneWidget);
     expect(find.text('jan.dvorak@renocar.cz'), findsOneWidget);
+    // Volby vzhledu a výchozího filtru jsou nad odhlášením.
+    expect(find.text('VZHLED'), findsOneWidget);
+    expect(find.text('VÝCHOZÍ FILTR'), findsOneWidget);
 
+    // Tlačítko je až pod kartami. V líném seznamu se mimo obrazovku
+    // vůbec nepostaví, takže se k němu musí odrolovat.
+    await tester.scrollUntilVisible(
+      find.text('Odhlásit se'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Odhlásit se'));
     await tester.pumpAndSettle();
 

@@ -13,6 +13,8 @@ import '../../domain/entities/order_filter.dart';
 import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/repositories/service_order_repository.dart';
+import '../../../settings/domain/entities/nastaveni.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 
 /// Zdroj dat: bez `API_BASE_URL` mock JSON, s ním reálné API.
 /// Jediné místo, kde se to rozhoduje - zbytek appky rozdíl nepozná.
@@ -56,20 +58,31 @@ final availableBranchesProvider = Provider<List<Branch>>((ref) {
   return seznam;
 });
 
+/// Útvary na dané pobočce. `null` jako kód pobočky vrací útvary všechny.
+///
+/// Parametrizované proto, že se ptají dvě různá místa: filtrovací panel na
+/// právě vybranou pobočku a nastavení na tu, která se teprve vybírá jako
+/// výchozí.
+final departmentsForBranchProvider = Provider.family<List<Department>, String?>(
+  (ref, branchCode) {
+    final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+    final unikatni = <String, Department>{};
+    for (final order in orders) {
+      if (branchCode != null && order.branch?.code != branchCode) continue;
+      final department = order.department;
+      if (department != null) unikatni[department.code] = department;
+    }
+    final seznam = unikatni.values.toList()
+      ..sort((a, b) => a.label.compareTo(b.label));
+    return seznam;
+  },
+);
+
 /// Útvary v rámci právě vybrané pobočky - jemnější filtr ve filtrovacím
-/// panelu. Bez vybrané pobočky vrací útvary všechny.
+/// panelu.
 final availableDepartmentsProvider = Provider<List<Department>>((ref) {
-  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
   final branchCode = ref.watch(orderFilterProvider).branchCode;
-  final unikatni = <String, Department>{};
-  for (final order in orders) {
-    if (branchCode != null && order.branch?.code != branchCode) continue;
-    final department = order.department;
-    if (department != null) unikatni[department.code] = department;
-  }
-  final seznam = unikatni.values.toList()
-    ..sort((a, b) => a.label.compareTo(b.label));
-  return seznam;
+  return ref.watch(departmentsForBranchProvider(branchCode));
 });
 
 /// Čtení VINu a SPZ fotoaparátem. Vlastní provider, aby šel v testech
@@ -129,8 +142,16 @@ final mechanicsProvider = Provider<List<String>>((ref) {
 });
 
 class OrderFilterController extends Notifier<OrderFilter> {
+  /// Seznam se otevře rovnou na pobočce, kterou má mechanik v nastavení.
+  /// Většina lidí pracuje pořád na jedné a přepínat ji po každém spuštění
+  /// je otrava; kdo chce vidět všechno, filtr shodí jedním klepnutím.
   @override
-  OrderFilter build() => const OrderFilter();
+  OrderFilter build() => _vychozi(ref.watch(nastaveniProvider));
+
+  static OrderFilter _vychozi(Nastaveni nastaveni) => OrderFilter(
+    branchCode: nastaveni.vychoziPobocka,
+    departmentCode: nastaveni.vychoziUtvar,
+  );
 
   void setBranch(String? branchCode) => state = branchCode == null
       ? state.copyWith(clearBranch: true, clearDepartment: true)
@@ -155,5 +176,7 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setIncludeClosed(bool includeClosed) =>
       state = state.copyWith(includeClosed: includeClosed);
 
-  void reset() => state = const OrderFilter();
+  /// Vrací na výchozí filtr z nastavení, ne na prázdný - jinak by
+  /// „zrušit filtry" znamenalo něco jiného než otevření appky.
+  void reset() => state = _vychozi(ref.read(nastaveniProvider));
 }

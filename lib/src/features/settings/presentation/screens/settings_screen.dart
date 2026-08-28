@@ -10,9 +10,15 @@ import '../../../../core/theme/dimens.dart';
 import '../../../../core/widgets/workshop_bottom_nav.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../orders/presentation/controllers/orders_providers.dart';
+import '../../domain/entities/nastaveni.dart';
+import '../controllers/nastaveni_controller.dart';
 
-/// Nastavení. Zatím ukazuje přihlášeného zaměstnance a umožní odhlášení -
-/// další volby přibudou, až bude co nastavovat.
+/// Nastavení: přihlášený zaměstnanec, vzhled, výchozí filtr seznamu
+/// a odhlášení.
+///
+/// Volby se ukládají do telefonu, ne k účtu - na sdíleném dílenském
+/// přístroji jde o pohodlí toho, kdo ho drží v ruce.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, required this.onSelectTab});
 
@@ -38,6 +44,10 @@ class SettingsScreen extends ConsumerWidget {
               ),
               children: [
                 if (employee != null) _EmployeeCard(employee: employee),
+                const SizedBox(height: Insets.base),
+                const _VzhledCard(),
+                const SizedBox(height: Insets.base),
+                const _VychoziFiltrCard(),
                 const SizedBox(height: Insets.base),
                 const _AboutCard(),
                 const SizedBox(height: Insets.huge),
@@ -167,6 +177,179 @@ class _EmployeeCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Volba světlého a tmavého vzhledu.
+class _VzhledCard extends ConsumerWidget {
+  const _VzhledCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final vybrany = ref.watch(nastaveniProvider).vzhled;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'VZHLED',
+            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          ),
+          const SizedBox(height: Insets.base),
+          // Přepínač přes celou šířku - tři velké terče se trefují líp
+          // než položky v rozbalovacím seznamu.
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<RezimVzhledu>(
+              segments: [
+                for (final rezim in RezimVzhledu.values)
+                  ButtonSegment(value: rezim, label: Text(rezim.label)),
+              ],
+              selected: {vybrany},
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                textStyle: AppTextStyles.cardBody,
+                selectedBackgroundColor: AppColors.accent,
+                selectedForegroundColor: Colors.white,
+              ),
+              onSelectionChanged: (vyber) =>
+                  ref.read(nastaveniProvider.notifier).zmenVzhled(vyber.first),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pobočka a útvar, na které se seznam zakázek otevře.
+class _VychoziFiltrCard extends ConsumerWidget {
+  const _VychoziFiltrCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final nastaveni = ref.watch(nastaveniProvider);
+    final pobocky = ref.watch(availableBranchesProvider);
+    final utvary = ref.watch(
+      departmentsForBranchProvider(nastaveni.vychoziPobocka),
+    );
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'VÝCHOZÍ FILTR',
+                style: AppTextStyles.overline.copyWith(color: palette.muted),
+              ),
+              if (nastaveni.maVychoziFiltr)
+                GestureDetector(
+                  onTap: () =>
+                      ref.read(nastaveniProvider.notifier).zrusVychoziFiltr(),
+                  child: Text(
+                    'Zrušit',
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: Insets.xxs),
+          Text(
+            'Seznam zakázek se otevře rovnou takto vyfiltrovaný.',
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+          ),
+          const SizedBox(height: Insets.base),
+          if (pobocky.isEmpty)
+            Text(
+              'Pobočky se nabídnou, jakmile se načtou zakázky.',
+              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+            )
+          else ...[
+            _Vyber(
+              popisek: 'Pobočka',
+              hodnota: nastaveni.vychoziPobocka,
+              moznosti: {
+                for (final pobocka in pobocky) pobocka.code: pobocka.label,
+              },
+              onZmena: (kod) =>
+                  ref.read(nastaveniProvider.notifier).zmenVychoziPobocku(kod),
+            ),
+            // Útvar dává smysl teprve nad vybranou pobočkou - jinak by
+            // se nabízely útvary z celé firmy.
+            if (nastaveni.vychoziPobocka != null && utvary.isNotEmpty) ...[
+              const SizedBox(height: Insets.sm),
+              _Vyber(
+                popisek: 'Útvar',
+                hodnota: nastaveni.vychoziUtvar,
+                moznosti: {for (final utvar in utvary) utvar.code: utvar.label},
+                onZmena: (kod) =>
+                    ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Řádek s rozbalovacím výběrem. `null` znamená „vše".
+class _Vyber extends StatelessWidget {
+  const _Vyber({
+    required this.popisek,
+    required this.hodnota,
+    required this.moznosti,
+    required this.onZmena,
+  });
+
+  final String popisek;
+  final String? hodnota;
+  final Map<String, String> moznosti;
+  final ValueChanged<String?> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            popisek,
+            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+          ),
+        ),
+        DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            value: moznosti.containsKey(hodnota) ? hodnota : null,
+            isDense: true,
+            borderRadius: BorderRadius.circular(Radii.input),
+            style: AppTextStyles.cardBody.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w600,
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Vše')),
+              for (final polozka in moznosti.entries)
+                DropdownMenuItem(
+                  value: polozka.key,
+                  child: Text(polozka.value),
+                ),
+            ],
+            onChanged: onZmena,
+          ),
+        ),
+      ],
     );
   }
 }

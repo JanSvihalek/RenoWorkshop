@@ -3,10 +3,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'router.dart';
 
-/// Kořen appky. Tmavý režim sleduje systém - na dílně se hodí, app bar
-/// zůstává navy v obou režimech kvůli rychlé orientaci.
+/// Kořen appky. Světlý i tmavý režim si volí uživatel v nastavení,
+/// výchozí je podle systému. App bar zůstává navy v obou režimech kvůli
+/// rychlé orientaci.
 class RenoWorkshopApp extends ConsumerWidget {
   const RenoWorkshopApp({super.key});
 
@@ -18,7 +20,7 @@ class RenoWorkshopApp extends ConsumerWidget {
       routerConfig: ref.watch(routerProvider),
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(nastaveniProvider).vzhled.themeMode,
       locale: const Locale('cs', 'CZ'),
       supportedLocales: const [Locale('cs', 'CZ')],
       localizationsDelegates: const [
