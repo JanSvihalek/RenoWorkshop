@@ -9,6 +9,7 @@ import '../core/widgets/workshop_bottom_nav.dart';
 import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
+import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 
 /// Cesty appky na jednom místě - ať se v další fázi (deep linky z DMS,
@@ -18,6 +19,7 @@ abstract final class AppRoutes {
   static const String orders = '/orders';
   static const String settings = '/settings';
   static const String archiv = '/archiv';
+  static const String skener = '/skener';
 
   static String archivHledani(String dotaz) =>
       '$archiv?q=${Uri.encodeQueryComponent(dotaz)}';
@@ -48,6 +50,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.skener,
+        builder: (context, state) => SkenerScreen(
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+          // Skener nahradí sám sebe výsledkem hledání, ať se uživatel
+          // po návratu nekouká znovu do kamery.
+          onNalezeno: (kod) =>
+              context.pushReplacement(AppRoutes.archivHledani(kod.hodnota)),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.archiv,
         builder: (context, state) => ArchivScreen(
           dotaz: state.uri.queryParameters['q'] ?? '',
@@ -68,6 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           onSelectTab: (tab) => _prepni(context, tab),
           onSearchArchive: (dotaz) =>
               context.push(AppRoutes.archivHledani(dotaz)),
+          onScanCode: () => context.push(AppRoutes.skener),
         ),
         routes: [
           GoRoute(

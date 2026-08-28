@@ -46,6 +46,7 @@ void main() {
             onOpenOrder: (_) {},
             onSelectTab: (_) {},
             onSearchArchive: (_) {},
+            onScanCode: () {},
           ),
           brightness: brightness,
           platform: TargetPlatform.android,

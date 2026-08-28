@@ -10,7 +10,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/czech_plurals.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../domain/entities/kod_vozidla.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/branch_segmented_control.dart';
@@ -28,11 +27,15 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     required this.onOpenOrder,
     required this.onSelectTab,
     required this.onSearchArchive,
+    required this.onScanCode,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
   final ValueChanged<WorkshopTab> onSelectTab;
   final ValueChanged<String> onSearchArchive;
+
+  /// Otevření skeneru VINu a SPZ.
+  final VoidCallback onScanCode;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -64,66 +67,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     setState(() {});
   }
 
-  /// Vyfotí štítek, vytáhne z něj VIN nebo SPZ a nabídne, co našel.
-  ///
-  /// Nabídka je schválně - štítek pod kapotou bývá špinavý a strojové
-  /// čtení se plete. Vybere člověk, hledání pak spustí vybraná hodnota.
-  Future<void> _skenuj() async {
-    final skener = ref.read(skenerProvider);
-
-    List<KodVozidla>? kody;
-    try {
-      kody = await skener.nactiZFotoaparatu();
-    } catch (chyba) {
-      if (!mounted) return;
-      _zprava('Fotoaparát se nepodařilo použít: $chyba');
-      return;
-    }
-
-    if (!mounted || kody == null) return; // null = focení zrušeno
-
-    if (kody.isEmpty) {
-      _zprava('Na snímku se nenašel VIN ani SPZ. Zkuste to z menší dálky.');
-      return;
-    }
-
-    final vybrany = kody.length == 1 ? kody.single : await _vyberKod(kody);
-    if (!mounted || vybrany == null) return;
-
-    _searchController.text = vybrany.hodnota;
-    _onQueryChanged(vybrany.hodnota);
-    widget.onSearchArchive(vybrany.hodnota);
-  }
-
-  Future<KodVozidla?> _vyberKod(List<KodVozidla> kody) {
-    return showModalBottomSheet<KodVozidla>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(Insets.xl),
-              child: Text('Co se má hledat?'),
-            ),
-            for (final kod in kody)
-              ListTile(
-                title: Text(kod.hodnota),
-                subtitle: Text(kod.druh.label),
-                onTap: () => Navigator.of(context).pop(kod),
-              ),
-            const SizedBox(height: Insets.sm),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _zprava(String text) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
-  }
+  /// Otevře skener. Vybraný kód se doplní do hledání a rovnou se
+  /// hledá v archivu - kvůli tomu se VIN fotí.
+  void _skenuj() => widget.onScanCode();
 
   void _resetFilters() {
     _debounce?.cancel();

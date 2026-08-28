@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Načtení VINu a SPZ ze štítku vlastním náhledem fotoaparátu. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <application
         android:label="RenoWorkshop"
         android:name="${applicationName}"
