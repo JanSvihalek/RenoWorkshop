@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,11 +36,27 @@ class SkenerScreen extends ConsumerStatefulWidget {
 }
 
 class _SkenerScreenState extends ConsumerState<SkenerScreen> {
+  /// Výchozí rámeček: široký a nízký, protože VIN i SPZ jsou na jednom
+  /// řádku. Oba rozměry jsou podílem **šířky** obrazovky, aby si rámeček
+  /// držel tvar i na vyšších displejích.
+  static const double _vychoziSirka = 0.86;
+  static const double _vychoziVyska = 0.24;
+
   CameraController? _kamera;
   bool _pripravuje = true;
   bool _pracuje = false;
   bool _svetlo = false;
   String? _chyba;
+
+  double _pomerSirky = _vychoziSirka;
+  double _pomerVysky = _vychoziVyska;
+  double _pomerSirkyNaZacatku = _vychoziSirka;
+  double _pomerVyskyNaZacatku = _vychoziVyska;
+  bool _menilRamecek = false;
+
+  /// Poslední známá velikost náhledu. Podle ní se rámeček přepočítá na
+  /// výřez z fotky, takže musí odpovídat tomu, co člověk vidí.
+  Size _plocha = Size.zero;
 
   @override
   void initState() {
@@ -102,6 +120,55 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     }
   }
 
+  /// Kde přesně rámeček leží. Používá se pro vykreslení i pro oříznutí
+  /// fotky, aby se skenovalo právě to, co je uvnitř.
+  Rect _ramecekV(Size plocha) {
+    if (plocha.isEmpty) return Rect.zero;
+
+    final sirka = plocha.width * _pomerSirky;
+    // Rámeček musí zůstat na obrazovce i po roztažení.
+    final vyska = math.min(plocha.width * _pomerVysky, plocha.height * 0.6);
+
+    return Rect.fromCenter(
+      center: plocha.center(Offset.zero),
+      width: sirka,
+      height: vyska,
+    );
+  }
+
+  void _zacniMenit(ScaleStartDetails _) {
+    _pomerSirkyNaZacatku = _pomerSirky;
+    _pomerVyskyNaZacatku = _pomerVysky;
+  }
+
+  /// Roztahování dvěma prsty. Šířka a výška se mění zvlášť, takže jde
+  /// z širokého proužku na VIN udělat krátký vyšší rámeček na SPZ.
+  void _menVelikost(ScaleUpdateDetails detaily) {
+    // Jeden prst je posouvání, ne změna velikosti - to by rámeček
+    // přeskakoval při každém doteku.
+    if (detaily.pointerCount < 2) return;
+
+    setState(() {
+      _pomerSirky = (_pomerSirkyNaZacatku * detaily.horizontalScale).clamp(
+        0.35,
+        0.98,
+      );
+      _pomerVysky = (_pomerVyskyNaZacatku * detaily.verticalScale).clamp(
+        0.10,
+        0.80,
+      );
+      _menilRamecek = true;
+    });
+  }
+
+  void _vratVelikost() {
+    setState(() {
+      _pomerSirky = _vychoziSirka;
+      _pomerVysky = _vychoziVyska;
+      _menilRamecek = true;
+    });
+  }
+
   Future<void> _vyfot() async {
     final kamera = _kamera;
     if (kamera == null || _pracuje) return;
@@ -109,7 +176,14 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     setState(() => _pracuje = true);
     try {
       final snimek = await kamera.takePicture();
-      final kody = await ref.read(skenerProvider).precti(snimek.path);
+      final plocha = _plocha;
+      final kody = await ref
+          .read(skenerProvider)
+          .precti(
+            snimek.path,
+            ramecek: plocha.isEmpty ? null : _ramecekV(plocha),
+            plochaNahledu: plocha.isEmpty ? null : plocha,
+          );
 
       if (!mounted) return;
       if (kody.isEmpty) {
@@ -173,98 +247,139 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (kamera != null)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: kamera.value.previewSize?.height ?? 1,
-                height: kamera.value.previewSize?.width ?? 1,
-                child: CameraPreview(kamera),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          _plocha = constraints.biggest;
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              if (kamera != null)
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: kamera.value.previewSize?.height ?? 1,
+                    height: kamera.value.previewSize?.width ?? 1,
+                    child: CameraPreview(kamera),
+                  ),
+                ),
+              if (_pripravuje)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              if (_chyba != null) _Chyba(text: _chyba!),
+              if (kamera != null)
+                GestureDetector(
+                  // Celá plocha náhledu, ať se nemusí trefovat do rámečku.
+                  behavior: HitTestBehavior.opaque,
+                  onScaleStart: _zacniMenit,
+                  onScaleUpdate: _menVelikost,
+                  onDoubleTap: _vratVelikost,
+                  child: _Ramecek(
+                    ramecek: _ramecekV(_plocha),
+                    ukazNapovedu: !_menilRamecek,
+                  ),
+                ),
+              // Až za rámečkem, aby tlačítka dostala doteky přednostně.
+              _Ovladani(
+                svetlo: _svetlo,
+                pracuje: _pracuje,
+                muzeFotit: kamera != null && _chyba == null,
+                onSvetlo: _prepniSvetlo,
+                onVyfot: _vyfot,
+                onZpet: widget.onBack,
               ),
-            ),
-          if (_pripravuje)
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
-          if (_chyba != null) _Chyba(text: _chyba!),
-          if (kamera != null) const _Ramecek(),
-          _Ovladani(
-            svetlo: _svetlo,
-            pracuje: _pracuje,
-            muzeFotit: kamera != null && _chyba == null,
-            onSvetlo: _prepniSvetlo,
-            onVyfot: _vyfot,
-            onZpet: widget.onBack,
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-/// Rámeček, kam mířit. Okolí je ztmavené, ať je jasné, co se čte.
+/// Rámeček, kam mířit. Okolí je ztmavené, ať je jasné, co se čte —
+/// a čte se doopravdy jen jeho obsah, snímek se na něj ořízne.
 class _Ramecek extends StatelessWidget {
-  const _Ramecek();
+  const _Ramecek({required this.ramecek, required this.ukazNapovedu});
+
+  final Rect ramecek;
+
+  /// Napoví, jak se velikost mění. Zmizí, jakmile to člověk jednou udělá —
+  /// pak už jen překáží.
+  final bool ukazNapovedu;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Široký a nízký - VIN i SPZ jsou vždycky na jednom řádku.
-        final sirka = constraints.maxWidth * 0.86;
-        final vyska = sirka * 0.28;
+    if (ramecek.isEmpty) return const SizedBox.shrink();
 
-        return Stack(
-          children: [
-            ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Colors.black.withValues(alpha: 0.55),
-                BlendMode.srcOut,
-              ),
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      backgroundBlendMode: BlendMode.dstOut,
-                    ),
-                  ),
-                  Center(
-                    child: Container(
-                      width: sirka,
-                      height: vyska,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(Radii.button),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Center(
-              child: Container(
-                width: sirka,
-                height: vyska,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.accent, width: 2),
-                  borderRadius: BorderRadius.circular(Radii.button),
+    final okraje = EdgeInsets.only(left: ramecek.left, top: ramecek.top);
+    final tvar = BorderRadius.circular(Radii.button);
+
+    return Stack(
+      children: [
+        ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Colors.black.withValues(alpha: 0.55),
+            BlendMode.srcOut,
+          ),
+          child: Stack(
+            children: [
+              Container(
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  backgroundBlendMode: BlendMode.dstOut,
                 ),
               ),
-            ),
-            Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: vyska + Insets.huge),
-                child: Text(
-                  'Namiřte na VIN nebo SPZ',
-                  style: AppTextStyles.cardBody.copyWith(color: Colors.white),
+              Padding(
+                padding: okraje,
+                child: Container(
+                  width: ramecek.width,
+                  height: ramecek.height,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: tvar,
+                  ),
                 ),
               ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: okraje,
+          child: Container(
+            width: ramecek.width,
+            height: ramecek.height,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.accent, width: 2),
+              borderRadius: tvar,
             ),
-          ],
-        );
-      },
+          ),
+        ),
+        Positioned(
+          top: ramecek.bottom + Insets.xl,
+          left: Insets.xl,
+          right: Insets.xl,
+          child: Column(
+            children: [
+              Text(
+                'Namiřte na VIN nebo SPZ',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cardBody.copyWith(color: Colors.white),
+              ),
+              if (ukazNapovedu) ...[
+                const SizedBox(height: Insets.xs),
+                Text(
+                  'Velikost změníte dvěma prsty, dvojklik ji vrátí zpět',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
