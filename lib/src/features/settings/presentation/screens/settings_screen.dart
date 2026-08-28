@@ -291,7 +291,7 @@ class _VychoziFiltrCard extends ConsumerWidget {
               _Vyber(
                 popisek: 'Útvar',
                 hodnota: nastaveni.vychoziUtvar,
-                moznosti: {for (final utvar in utvary) utvar.code: utvar.label},
+                moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
                 onZmena: (kod) =>
                     ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
               ),

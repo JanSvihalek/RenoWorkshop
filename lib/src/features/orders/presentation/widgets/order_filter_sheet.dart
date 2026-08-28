@@ -94,7 +94,8 @@ class OrderFilterSheet extends ConsumerWidget {
                   ),
                   for (final department in departments)
                     _SheetChip(
-                      label: department.label,
+                      // Kód, ne název - viz ServiceOrder.departmentLabel.
+                      label: department.code,
                       isSelected: filter.departmentCode == department.code,
                       onTap: () => controller.setDepartment(department.code),
                     ),

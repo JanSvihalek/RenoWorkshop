@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/branch.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/order_filter.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
@@ -83,5 +84,30 @@ void main() {
     final posunuta = zakazka.copyWith(status: OrderStatus.values.last);
 
     expect(posunuta.typZakazky?.kod, 'K');
+  });
+
+  test('útvar se zobrazuje kódem, ne názvem z Heliosu', () {
+    final zakazka = ServiceOrder(
+      id: 'Z1',
+      licensePlate: '1AB2345',
+      model: 'BMW - 320d',
+      customerName: 'Novák',
+      status: OrderStatus.values.first,
+      department: const Department(
+        code: '11211',
+        label: 'RAS BSL AFS auta Servis',
+      ),
+      receivedAt: DateTime(2026, 8, 1),
+      dueAt: DateTime(2026, 8, 5),
+      vin: 'WBAJN51070G980042',
+    );
+
+    expect(zakazka.departmentLabel, '11211');
+  });
+
+  test('zakázka bez útvaru to řekne slovem', () {
+    final zakazka = _zakazka('Z1', null);
+
+    expect(zakazka.departmentLabel, 'Bez útvaru');
   });
 }

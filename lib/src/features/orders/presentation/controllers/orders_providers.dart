@@ -73,8 +73,10 @@ final departmentsForBranchProvider = Provider.family<List<Department>, String?>(
       final department = order.department;
       if (department != null) unikatni[department.code] = department;
     }
+    // Řadí se podle kódu, protože se podle kódu i zobrazují - útvary
+    // jedné pobočky tak jdou za sebou v číselném pořadí.
     final seznam = unikatni.values.toList()
-      ..sort((a, b) => a.label.compareTo(b.label));
+      ..sort((a, b) => a.code.compareTo(b.code));
     return seznam;
   },
 );

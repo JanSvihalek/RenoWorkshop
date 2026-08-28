@@ -94,7 +94,11 @@ class ServiceOrder {
   /// Název pobočky pro UI, včetně zakázek, které ji nemají.
   String get branchLabel => branch?.label ?? 'Bez pobočky';
 
-  String get departmentLabel => department?.label ?? 'Bez útvaru';
+  /// Útvar se v appce ukazuje **kódem** (`11211`), ne názvem z Heliosu.
+  /// Na dílně se s kódy pracuje běžně, jsou krátké a jednoznačné, kdežto
+  /// názvy typu `RAS BSL AFS auta Servis` se do řádku nevejdou. Název
+  /// z API dál chodí, jen se nezobrazuje.
+  String get departmentLabel => department?.code ?? 'Bez útvaru';
 
   /// Fulltext přes SPZ, zákazníka, číslo zakázky a model.
   bool matchesQuery(String query) {
