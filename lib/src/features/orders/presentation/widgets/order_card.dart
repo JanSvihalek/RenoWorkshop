@@ -216,12 +216,20 @@ class _TypChip extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Insets.sm, vertical: 2),
+      // Názvy řad z Heliosu bývají dlouhé („Klempířsko-lakýrnické práce").
+      // Na kartě se čte hlavně SPZ, model a termín, takže typ ustoupí do
+      // zkráceného tvaru; celý je vidět v detailu zakázky.
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.42,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.badge),
         border: Border.all(color: palette.hairline2),
       ),
       child: Text(
         nazev,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
       ),
     );

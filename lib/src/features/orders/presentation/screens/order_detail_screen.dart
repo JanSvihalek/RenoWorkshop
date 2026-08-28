@@ -296,12 +296,19 @@ class _HeaderChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 5),
+      // Delší štítek (VIN, dlouhý název řady) si vezme celý řádek a zbytek
+      // se zalomí pod něj; přes šířku obrazovky ale nesmí.
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: AppTextStyles.meta.copyWith(
           color: Colors.white.withValues(alpha: 0.82),
         ),

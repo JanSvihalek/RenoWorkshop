@@ -203,6 +203,12 @@ class _SheetChip extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+        // Jména mechaniků i názvy řad zakázek můžou být dlouhá. Wrap sice
+        // přeteklý štítek přesune na další řádek, ale nezúží ho - přes
+        // šířku panelu by se roztáhl.
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : palette.background,
           borderRadius: BorderRadius.circular(Radii.chip),
@@ -212,6 +218,8 @@ class _SheetChip extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTextStyles.chip.copyWith(
             color: isSelected ? Colors.white : palette.muted2,
           ),
