@@ -29,6 +29,7 @@ class OrderFilterSheet extends ConsumerWidget {
     final controller = ref.read(orderFilterProvider.notifier);
     final mechanics = ref.watch(mechanicsProvider);
     final departments = ref.watch(availableDepartmentsProvider);
+    final typy = ref.watch(availableOrderTypesProvider);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -96,6 +97,30 @@ class OrderFilterSheet extends ConsumerWidget {
                       label: department.label,
                       isSelected: filter.departmentCode == department.code,
                       onTap: () => controller.setDepartment(department.code),
+                    ),
+                ],
+              ),
+            ],
+            // Typ zakázky přijde z Heliosu; dokud ho pohled nedotahuje,
+            // sekce se vůbec nezobrazí.
+            if (typy.length > 1) ...[
+              const SizedBox(height: Insets.xxl),
+              _SheetLabel('TYP ZAKÁZKY'),
+              const SizedBox(height: Insets.sm),
+              Wrap(
+                spacing: Insets.sm,
+                runSpacing: Insets.sm,
+                children: [
+                  _SheetChip(
+                    label: 'Všechny',
+                    isSelected: filter.typZakazkyKod == null,
+                    onTap: () => controller.setTypZakazky(null),
+                  ),
+                  for (final typ in typy)
+                    _SheetChip(
+                      label: typ.nazev,
+                      isSelected: filter.typZakazkyKod == typ.kod,
+                      onTap: () => controller.setTypZakazky(typ.kod),
                     ),
                 ],
               ),

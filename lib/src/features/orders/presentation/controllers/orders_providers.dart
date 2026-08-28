@@ -12,6 +12,7 @@ import '../../domain/entities/branch.dart';
 import '../../domain/entities/order_filter.dart';
 import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
+import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
@@ -85,6 +86,20 @@ final availableDepartmentsProvider = Provider<List<Department>>((ref) {
   return ref.watch(departmentsForBranchProvider(branchCode));
 });
 
+/// Typy zakázek vyskytující se v načtených datech. Číselník je v Heliosu
+/// a rozšiřuje se tam, proto se nabídka skládá z dat, ne z pevného výčtu.
+final availableOrderTypesProvider = Provider<List<TypZakazky>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final unikatni = <String, TypZakazky>{};
+  for (final order in orders) {
+    final typ = order.typZakazky;
+    if (typ != null) unikatni[typ.kod] = typ;
+  }
+  final seznam = unikatni.values.toList()
+    ..sort((a, b) => a.nazev.compareTo(b.nazev));
+  return seznam;
+});
+
 /// Čtení VINu a SPZ fotoaparátem. Vlastní provider, aby šel v testech
 /// nahradit bez zapojení kamery.
 final skenerProvider = Provider<SkenerKodu>((ref) {
@@ -156,6 +171,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setBranch(String? branchCode) => state = branchCode == null
       ? state.copyWith(clearBranch: true, clearDepartment: true)
       : state.copyWith(branchCode: branchCode, clearDepartment: true);
+
+  void setTypZakazky(String? kod) => state = kod == null
+      ? state.copyWith(clearTypZakazky: true)
+      : state.copyWith(typZakazkyKod: kod);
 
   void setDepartment(String? departmentCode) => state = departmentCode == null
       ? state.copyWith(clearDepartment: true)

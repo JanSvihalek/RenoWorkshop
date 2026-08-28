@@ -86,6 +86,7 @@ stránkování.
     "status": "in_repair",
     "branch": { "code": "1", "label": "Brno" },
     "department": { "code": "11211", "label": "Servis BMW Brno" },
+    "orderType": { "code": "K", "label": "Klempířská" },
     "receivedAt": "2026-08-21T07:15:00",
     "dueAt": "2026-08-26T16:00:00",
     "vin": "WBAKS4105L9KL83914",
@@ -113,8 +114,13 @@ stránkování.
 ```
 
 Povinné je všechno kromě `mechanicName`, `serviceAdvisorName`, `bay`,
-`branch` a `department`, které smějí být `null`. `notes` a `workItems` smějí
-být prázdné pole.
+`branch`, `department` a `orderType`, které smějí být `null`. `notes`
+a `workItems` smějí být prázdné pole.
+
+`orderType` je typ zakázky - běžná, interní, klempířská. Číselník je
+v Heliosu a rozšiřuje se tam: aplikace kód nezná, jen ho zobrazuje
+a nabízí podle něj filtrování. Když ho pohled nad Heliosem nedotahuje,
+posílá se `null` a appka typ nikde neukáže.
 
 ### GET /orders/{id}
 
@@ -209,7 +215,8 @@ kód typu `12211`. **Pobočku z něj odvozuje API druhou číslicí:**
 
 Kód s neznámou druhou číslicí (v datech je například `10005`) dostane
 `branch: null`; appka takovou zakázku ukáže jako „Bez pobočky", nezahazuje ji.
-Stejně tak zakázka bez vyplněného zpracovatele nemá `department`.
+Stejně tak zakázka bez vyplněného zpracovatele nemá `department`
+a zakázka bez vyplněného typu nemá `orderType`.
 
 Odvození patří na server schválně - kdyby pravidlo přestalo platit nebo
 přibyla pobočka, mění se to na jednom místě.

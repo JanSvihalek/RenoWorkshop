@@ -21,6 +21,7 @@ class OrderFilter {
   const OrderFilter({
     this.branchCode,
     this.departmentCode,
+    this.typZakazkyKod,
     this.status,
     this.mechanicName,
     this.query = '',
@@ -34,6 +35,9 @@ class OrderFilter {
 
   /// `null` = všechny útvary.
   final String? departmentCode;
+
+  /// Kód typu zakázky (běžná, interní, klempířská). `null` = všechny.
+  final String? typZakazkyKod;
 
   /// `null` = všechny stavy.
   final OrderStatus? status;
@@ -50,6 +54,7 @@ class OrderFilter {
   bool get isActive =>
       branchCode != null ||
       departmentCode != null ||
+      typZakazkyKod != null ||
       status != null ||
       mechanicName != null ||
       query.trim().isNotEmpty ||
@@ -59,6 +64,7 @@ class OrderFilter {
   int get activeCount => [
     branchCode != null,
     departmentCode != null,
+    typZakazkyKod != null,
     status != null,
     mechanicName != null,
     query.trim().isNotEmpty,
@@ -68,6 +74,7 @@ class OrderFilter {
   OrderFilter copyWith({
     String? branchCode,
     String? departmentCode,
+    String? typZakazkyKod,
     OrderStatus? status,
     String? mechanicName,
     String? query,
@@ -75,6 +82,7 @@ class OrderFilter {
     bool? includeClosed,
     bool clearBranch = false,
     bool clearDepartment = false,
+    bool clearTypZakazky = false,
     bool clearStatus = false,
     bool clearMechanic = false,
   }) {
@@ -83,6 +91,9 @@ class OrderFilter {
       departmentCode: clearDepartment
           ? null
           : (departmentCode ?? this.departmentCode),
+      typZakazkyKod: clearTypZakazky
+          ? null
+          : (typZakazkyKod ?? this.typZakazkyKod),
       status: clearStatus ? null : (status ?? this.status),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
       query: query ?? this.query,
@@ -96,6 +107,9 @@ class OrderFilter {
     final result = orders.where((order) {
       if (branchCode != null && order.branch?.code != branchCode) return false;
       if (departmentCode != null && order.department?.code != departmentCode) {
+        return false;
+      }
+      if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
         return false;
       }
       if (status != null && order.status != status) return false;

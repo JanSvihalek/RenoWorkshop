@@ -1,6 +1,7 @@
 import 'branch.dart';
 import 'order_note.dart';
 import 'order_status.dart';
+import 'typ_zakazky.dart';
 import 'work_item.dart';
 
 /// Servisní zakázka na dílně - hlavní entita fáze 1.
@@ -16,6 +17,7 @@ class ServiceOrder {
     required this.status,
     this.branch,
     this.department,
+    this.typZakazky,
     required this.receivedAt,
     required this.dueAt,
     required this.vin,
@@ -38,6 +40,10 @@ class ServiceOrder {
 
   /// Útvar z Heliosu. `null` u zakázky bez vyplněného zpracovatele.
   final Department? department;
+
+  /// Typ zakázky - běžná, interní, klempířská. `null`, dokud ho pohled
+  /// nad Heliosem nedotahuje nebo když ho zakázka nemá vyplněný.
+  final TypZakazky? typZakazky;
 
   /// Kdy vozidlo přijelo na příjem.
   final DateTime receivedAt;
@@ -120,6 +126,7 @@ class ServiceOrder {
       status: status ?? this.status,
       branch: branch,
       department: department,
+      typZakazky: typZakazky,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

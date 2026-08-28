@@ -2,6 +2,7 @@ import '../../domain/entities/branch.dart';
 import '../../domain/entities/order_note.dart';
 import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
+import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
 
 /// Přenosový model zakázky.
@@ -17,6 +18,7 @@ class ServiceOrderDto {
     required this.status,
     required this.branch,
     required this.department,
+    this.orderType,
     required this.receivedAt,
     required this.dueAt,
     required this.vin,
@@ -38,6 +40,10 @@ class ServiceOrderDto {
 
   /// `{"code": "12211", "label": "..."}`, nebo `null`.
   final Map<String, dynamic>? department;
+
+  /// `{"code": "K", "label": "Klempířská"}`. Chybí u starších zakázek
+  /// a dokud pohled nad Heliosem typ nedotahuje.
+  final Map<String, dynamic>? orderType;
   final String receivedAt;
   final String dueAt;
   final String vin;
@@ -56,6 +62,7 @@ class ServiceOrderDto {
       status: json['status'] as String,
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
+      orderType: json['orderType'] as Map<String, dynamic>?,
       receivedAt: json['receivedAt'] as String,
       dueAt: json['dueAt'] as String,
       vin: json['vin'] as String,
@@ -79,6 +86,7 @@ class ServiceOrderDto {
     'status': status,
     'branch': branch,
     'department': department,
+    'orderType': orderType,
     'receivedAt': receivedAt,
     'dueAt': dueAt,
     'vin': vin,
@@ -97,6 +105,7 @@ class ServiceOrderDto {
     status: OrderStatus.fromApiValue(status),
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
+    typZakazky: orderType == null ? null : TypZakazky.fromJson(orderType!),
     receivedAt: DateTime.parse(receivedAt),
     dueAt: DateTime.parse(dueAt),
     vin: vin,
@@ -120,6 +129,7 @@ class ServiceOrderDto {
       status: status ?? this.status,
       branch: branch,
       department: department,
+      orderType: orderType,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

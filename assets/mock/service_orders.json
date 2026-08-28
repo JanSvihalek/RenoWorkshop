@@ -15,6 +15,10 @@
         "code": "11211",
         "label": "Auta Servis"
       },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
+      },
       "receivedAt": "2026-08-21T07:15:00",
       "dueAt": "2026-08-26T16:00:00",
       "vin": "WBAJN51070G980042",
@@ -51,6 +55,10 @@
         "code": "12211",
         "label": "Auta Servis"
       },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
+      },
       "receivedAt": "2026-08-22T08:05:00",
       "dueAt": "2026-08-27T15:00:00",
       "vin": "WBACW810509C77182",
@@ -81,6 +89,10 @@
         "code": "13211",
         "label": "Auta Servis"
       },
+      "orderType": {
+        "code": "K",
+        "label": "Klempířská"
+      },
       "receivedAt": "2026-08-19T09:50:00",
       "dueAt": "2026-08-24T15:00:00",
       "vin": "WBAJN51070G973737",
@@ -103,6 +115,10 @@
       "department": {
         "code": "11221",
         "label": "MOTO Servis"
+      },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
       },
       "receivedAt": "2026-08-24T07:40:00",
       "dueAt": "2026-08-28T15:00:00",
@@ -127,6 +143,10 @@
         "code": "11215",
         "label": "Auta Klempírna, lakovna"
       },
+      "orderType": {
+        "code": "I",
+        "label": "Interní"
+      },
       "receivedAt": "2026-08-25T06:55:00",
       "dueAt": "2026-08-29T15:00:00",
       "vin": "WBAKS410200H75747",
@@ -149,6 +169,10 @@
       "department": {
         "code": "14211",
         "label": "Auta Servis"
+      },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
       },
       "receivedAt": "2026-08-18T10:20:00",
       "dueAt": "2026-08-25T12:00:00",
@@ -180,6 +204,10 @@
         "code": "14221",
         "label": "MOTO Servis"
       },
+      "orderType": {
+        "code": "Z",
+        "label": "Záruční"
+      },
       "receivedAt": "2026-08-21T13:35:00",
       "dueAt": "2026-08-26T15:00:00",
       "vin": "WMZYS710X03XY5511",
@@ -203,6 +231,10 @@
         "code": "12215",
         "label": "Auta Klempírna, lakovna"
       },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
+      },
       "receivedAt": "2026-08-15T08:00:00",
       "dueAt": "2026-08-22T12:00:00",
       "vin": "WBAJA91060BZA6609",
@@ -225,6 +257,10 @@
       "department": {
         "code": "12214",
         "label": "Auta Myčka"
+      },
+      "orderType": {
+        "code": "K",
+        "label": "Klempířská"
       },
       "receivedAt": "2026-08-20T09:10:00",
       "dueAt": "2026-08-24T15:00:00",
@@ -256,6 +292,10 @@
         "code": "13215",
         "label": "Auta Klempírna, lakovna"
       },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
+      },
       "receivedAt": "2026-08-23T11:25:00",
       "dueAt": "2026-08-27T15:00:00",
       "vin": "WBY11CF010CD44507",
@@ -278,6 +318,10 @@
       "department": {
         "code": "12211",
         "label": "Auta Servis"
+      },
+      "orderType": {
+        "code": "I",
+        "label": "Interní"
       },
       "receivedAt": "2026-08-25T07:20:00",
       "dueAt": "2026-08-28T15:00:00",
@@ -302,6 +346,10 @@
         "code": "11211",
         "label": "Auta Servis"
       },
+      "orderType": {
+        "code": "B",
+        "label": "Běžná"
+      },
       "receivedAt": "2026-08-20T14:00:00",
       "dueAt": "2026-08-26T12:00:00",
       "vin": "WBA7K910X0EG52276",
@@ -324,6 +372,10 @@
       "department": {
         "code": "12211",
         "label": "Auta Servis"
+      },
+      "orderType": {
+        "code": "Z",
+        "label": "Záruční"
       },
       "receivedAt": "2026-08-19T08:35:00",
       "dueAt": "2026-08-25T12:00:00",

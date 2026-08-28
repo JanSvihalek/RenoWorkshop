@@ -62,6 +62,10 @@ class OrderCard extends StatelessWidget {
                   order.model,
                   style: AppTextStyles.cardModel.copyWith(color: palette.text),
                 ),
+                // Do Wrapu schválně: na úzkém displeji se typ přesune na
+                // další řádek místo aby kartu roztáhl.
+                if (order.typZakazky != null)
+                  _TypChip(nazev: order.typZakazky!.nazev),
               ],
             ),
             const SizedBox(height: 7),
@@ -194,6 +198,31 @@ class _PressableCardState extends State<_PressableCard> {
         duration: const Duration(milliseconds: 120),
         curve: Curves.easeOut,
         child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Typ zakázky - běžná, interní, klempířská. Nenápadný, protože u většiny
+/// zakázek je běžný a pozornost patří stavu a termínu.
+class _TypChip extends StatelessWidget {
+  const _TypChip({required this.nazev});
+
+  final String nazev;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Insets.sm, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Radii.badge),
+        border: Border.all(color: palette.hairline2),
+      ),
+      child: Text(
+        nazev,
+        style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
       ),
     );
   }

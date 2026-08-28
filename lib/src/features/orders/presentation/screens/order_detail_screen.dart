@@ -276,6 +276,8 @@ class _DetailHeader extends StatelessWidget {
               _HeaderChip(order.customerName),
               _HeaderChip(order.branchLabel),
               if (order.department != null) _HeaderChip(order.departmentLabel),
+              if (order.typZakazky != null)
+                _HeaderChip(order.typZakazky!.nazev),
               _HeaderChip('VIN ${order.vin}'),
             ],
           ),
