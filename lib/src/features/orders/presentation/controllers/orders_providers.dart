@@ -6,6 +6,7 @@ import '../../../../core/config/app_config.dart';
 import '../../data/datasources/mock_service_order_data_source.dart';
 import '../../data/datasources/rest_service_order_data_source.dart';
 import '../../data/datasources/service_order_data_source.dart';
+import '../../data/skener_kodu.dart';
 import '../../data/repositories/service_order_repository_impl.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/order_filter.dart';
@@ -69,6 +70,26 @@ final availableDepartmentsProvider = Provider<List<Department>>((ref) {
   final seznam = unikatni.values.toList()
     ..sort((a, b) => a.label.compareTo(b.label));
   return seznam;
+});
+
+/// Čtení VINu a SPZ fotoaparátem. Vlastní provider, aby šel v testech
+/// nahradit bez zapojení kamery.
+final skenerProvider = Provider<SkenerKodu>((ref) {
+  final skener = SkenerKodu();
+  ref.onDispose(skener.dispose);
+  return skener;
+});
+
+/// Výsledek hledání v archivu. `family` podle hledaného textu, takže se
+/// stejný dotaz nepouští dvakrát a při návratu na obrazovku je výsledek
+/// hned k dispozici.
+final archivProvider = FutureProvider.family<List<ServiceOrder>, String>((
+  ref,
+  dotaz,
+) async {
+  final ocisteny = dotaz.trim();
+  if (ocisteny.length < 3) return const [];
+  return ref.watch(serviceOrderRepositoryProvider).searchArchive(ocisteny);
 });
 
 /// Aktivní filtry seznamu.

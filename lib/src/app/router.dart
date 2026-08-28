@@ -6,6 +6,7 @@ import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/widgets/workshop_bottom_nav.dart';
+import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -16,6 +17,10 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String orders = '/orders';
   static const String settings = '/settings';
+  static const String archiv = '/archiv';
+
+  static String archivHledani(String dotaz) =>
+      '$archiv?q=${Uri.encodeQueryComponent(dotaz)}';
 
   static String orderDetail(String orderId) => '$orders/$orderId';
 }
@@ -43,6 +48,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.archiv,
+        builder: (context, state) => ArchivScreen(
+          dotaz: state.uri.queryParameters['q'] ?? '',
+          onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) =>
             SettingsScreen(onSelectTab: (tab) => _prepni(context, tab)),
@@ -52,6 +66,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => OrdersListScreen(
           onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
           onSelectTab: (tab) => _prepni(context, tab),
+          onSearchArchive: (dotaz) =>
+              context.push(AppRoutes.archivHledani(dotaz)),
         ),
         routes: [
           GoRoute(

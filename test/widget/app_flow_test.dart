@@ -194,4 +194,27 @@ void main() {
     // znovu, ne vrátit, co má appka v paměti.
     expect(zdroj.pocetNacteni, greaterThan(pocetPredObnovou));
   });
+
+  testWidgets('prázdný výsledek nabídne hledání v archivu', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    // Něco, co v načtené dílně není - typicky stará zakázka.
+    await tester.enterText(find.byType(TextField), 'WBA99999999999999');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Žádná zakázka nevyhovuje'), findsOneWidget);
+    expect(find.text('Hledat v archivu'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Hledat v archivu'));
+    await tester.tap(find.text('Hledat v archivu'));
+    await tester.pumpAndSettle();
+
+    // Archiv se ptá serveru, ne načteného seznamu.
+    expect(find.text('Archiv'), findsOneWidget);
+    expect(find.text('Nic se nenašlo'), findsOneWidget);
+  });
 }

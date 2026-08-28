@@ -7,9 +7,18 @@ import '../../../../core/theme/dimens.dart';
 
 /// Prázdný výsledek filtru - nabídne rovnou reset.
 class OrdersEmptyState extends StatelessWidget {
-  const OrdersEmptyState({super.key, required this.onResetFilters});
+  const OrdersEmptyState({
+    super.key,
+    required this.onResetFilters,
+    this.onHledatVArchivu,
+  });
 
   final VoidCallback onResetFilters;
+
+  /// Nabídne se, jen když uživatel něco hledá. Na dílně je totiž častější
+  /// případ, že zakázka je stará a v seznamu vůbec není, než že by se
+  /// člověk spletl ve filtru.
+  final VoidCallback? onHledatVArchivu;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +85,20 @@ class OrdersEmptyState extends StatelessWidget {
               child: const Text('Zrušit filtry'),
             ),
           ),
+          if (onHledatVArchivu != null) ...[
+            const SizedBox(height: Insets.base),
+            TextButton.icon(
+              onPressed: onHledatVArchivu,
+              icon: const Icon(Icons.history_rounded, size: 18),
+              label: const Text('Hledat v archivu'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                textStyle: AppTextStyles.cardBody.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -11,6 +11,13 @@ abstract interface class ServiceOrderDataSource {
 
   Future<ServiceOrderDto?> fetchOrder(String orderId);
 
+  /// Hledání napříč archivem, tedy i mezi uzavřenými zakázkami.
+  ///
+  /// `GET /orders/search?q=...` - na rozdíl od [fetchOrders] se neomezuje
+  /// na dílnu a poslední měsíce. Slouží k dohledání staré zakázky podle
+  /// SPZ nebo VINu, typicky kvůli fotodokumentaci.
+  Future<List<ServiceOrderDto>> searchOrders(String query);
+
   /// PATCH /orders/{id} { status }
   Future<ServiceOrderDto?> updateStatus(String orderId, String statusApiValue);
 

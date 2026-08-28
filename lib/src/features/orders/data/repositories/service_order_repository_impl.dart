@@ -58,6 +58,18 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
+  Future<List<ServiceOrder>> searchArchive(String query) async {
+    try {
+      final dtos = await _dataSource.searchOrders(query);
+      return dtos.map((dto) => dto.toDomain()).toList();
+    } on ServiceOrderException {
+      rethrow;
+    } catch (error) {
+      throw ServiceOrderException('Hledání se nezdařilo: $error');
+    }
+  }
+
+  @override
   Future<ServiceOrder> getOrder(String orderId) async {
     for (final order in _cache ?? const <ServiceOrder>[]) {
       if (order.id == orderId) return order;

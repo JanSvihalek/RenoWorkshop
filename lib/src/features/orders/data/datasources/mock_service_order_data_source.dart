@@ -60,6 +60,27 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
   }
 
   @override
+  Future<List<ServiceOrderDto>> searchOrders(String query) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+
+    final hledane = query.trim().toUpperCase().replaceAll(' ', '');
+    if (hledane.isEmpty) return const [];
+
+    // Mock nemá archiv uzavřených zakázek, hledá se tedy v tom, co je.
+    // Proti API je rozdíl jen v rozsahu dat, ne v chování.
+    return orders.where((dto) {
+      final prohledavane = [
+        dto.id,
+        dto.licensePlate,
+        dto.vin,
+        dto.customerName,
+      ].join(' ').toUpperCase().replaceAll(' ', '');
+      return prohledavane.contains(hledane);
+    }).toList();
+  }
+
+  @override
   Future<ServiceOrderDto?> updateStatus(
     String orderId,
     String statusApiValue,

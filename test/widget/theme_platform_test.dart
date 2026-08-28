@@ -42,7 +42,11 @@ void main() {
     testWidgets('seznam se vykreslí (${brightness.name})', (tester) async {
       await tester.pumpWidget(
         harness(
-          OrdersListScreen(onOpenOrder: (_) {}, onSelectTab: (_) {}),
+          OrdersListScreen(
+            onOpenOrder: (_) {},
+            onSelectTab: (_) {},
+            onSearchArchive: (_) {},
+          ),
           brightness: brightness,
           platform: TargetPlatform.android,
         ),

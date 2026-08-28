@@ -121,6 +121,18 @@ být prázdné pole.
 Jedna zakázka ve stejném tvaru. Neexistující vrací `404` — appka to bere jako
 „zakázka zmizela", ne jako chybu.
 
+### GET /orders/search?q=…
+
+Hledání **napříč archivem**, tedy i mezi uzavřenými zakázkami. Prohledává
+číslo zakázky, VIN, SPZ a zákazníka; mezery se ignorují, protože z OCR
+chodí SPZ jednou s mezerou a jednou bez.
+
+Vrací pole zakázek ve stejném tvaru jako `GET /orders`, nejvýš sto.
+Dotaz kratší než tři znaky vrací `400`.
+
+Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
+uživatel načte VIN fotoaparátem.
+
 ### PATCH /orders/{id}
 
 Posun stavu. Vrací celou aktualizovanou zakázku.
@@ -143,6 +155,18 @@ Přidá poznámku, vrací aktualizovanou zakázku.
 
 `author` posílá appka podle přihlášeného účtu. Server ho může přepsat podle
 tokenu — je to důvěryhodnější zdroj.
+
+### GET /orders/search?q=…
+
+Hledání **napříč archivem**, tedy i mezi uzavřenými zakázkami. Prohledává
+číslo zakázky, VIN, SPZ a zákazníka; mezery se ignorují, protože z OCR
+chodí SPZ jednou s mezerou a jednou bez.
+
+Vrací pole zakázek ve stejném tvaru jako `GET /orders`, nejvýš sto.
+Dotaz kratší než tři znaky vrací `400`.
+
+Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
+uživatel načte VIN fotoaparátem.
 
 ### PATCH /orders/{id}/work-items/{workItemId}
 

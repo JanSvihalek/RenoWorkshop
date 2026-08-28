@@ -22,6 +22,25 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
   int pocetNacteni = 0;
 
   @override
+  Future<List<ServiceOrderDto>> searchOrders(String query) async {
+    pocetHledani++;
+    final hledane = query.trim().toUpperCase().replaceAll(' ', '');
+    return _orders.where((dto) {
+      final kde = [
+        dto.id,
+        dto.licensePlate,
+        dto.vin,
+        dto.customerName,
+      ].join(' ').toUpperCase().replaceAll(' ', '');
+      return kde.contains(hledane);
+    }).toList();
+  }
+
+  /// Kolikrát se hledalo v archivu - testy podle toho poznají, že se
+  /// dotaz opravdu poslal na server a nefiltrovalo se jen lokálně.
+  int pocetHledani = 0;
+
+  @override
   Future<ServiceOrderDto?> fetchOrder(String orderId) async {
     final index = _indexOf(orderId);
     return index == -1 ? null : _orders[index];

@@ -10,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/czech_plurals.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../domain/entities/kod_vozidla.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/branch_segmented_control.dart';
@@ -26,10 +27,12 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     super.key,
     required this.onOpenOrder,
     required this.onSelectTab,
+    required this.onSearchArchive,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
   final ValueChanged<WorkshopTab> onSelectTab;
+  final ValueChanged<String> onSearchArchive;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -61,6 +64,67 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     setState(() {});
   }
 
+  /// Vyfotí štítek, vytáhne z něj VIN nebo SPZ a nabídne, co našel.
+  ///
+  /// Nabídka je schválně - štítek pod kapotou bývá špinavý a strojové
+  /// čtení se plete. Vybere člověk, hledání pak spustí vybraná hodnota.
+  Future<void> _skenuj() async {
+    final skener = ref.read(skenerProvider);
+
+    List<KodVozidla>? kody;
+    try {
+      kody = await skener.nactiZFotoaparatu();
+    } catch (chyba) {
+      if (!mounted) return;
+      _zprava('Fotoaparát se nepodařilo použít: $chyba');
+      return;
+    }
+
+    if (!mounted || kody == null) return; // null = focení zrušeno
+
+    if (kody.isEmpty) {
+      _zprava('Na snímku se nenašel VIN ani SPZ. Zkuste to z menší dálky.');
+      return;
+    }
+
+    final vybrany = kody.length == 1 ? kody.single : await _vyberKod(kody);
+    if (!mounted || vybrany == null) return;
+
+    _searchController.text = vybrany.hodnota;
+    _onQueryChanged(vybrany.hodnota);
+    widget.onSearchArchive(vybrany.hodnota);
+  }
+
+  Future<KodVozidla?> _vyberKod(List<KodVozidla> kody) {
+    return showModalBottomSheet<KodVozidla>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(Insets.xl),
+              child: Text('Co se má hledat?'),
+            ),
+            for (final kod in kody)
+              ListTile(
+                title: Text(kod.hodnota),
+                subtitle: Text(kod.druh.label),
+                onTap: () => Navigator.of(context).pop(kod),
+              ),
+            const SizedBox(height: Insets.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _zprava(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
   void _resetFilters() {
     _debounce?.cancel();
     _searchController.clear();
@@ -82,6 +146,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             visibleCount: orders.valueOrNull?.length,
             searchController: _searchController,
             onQueryChanged: _onQueryChanged,
+            onScan: _skenuj,
           ),
           StatusFilterChips(
             selected: filter.status,
@@ -107,6 +172,12 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                           height: MediaQuery.sizeOf(context).height * 0.6,
                           child: OrdersEmptyState(
                             onResetFilters: _resetFilters,
+                            onHledatVArchivu:
+                                _searchController.text.trim().length >= 3
+                                ? () => widget.onSearchArchive(
+                                    _searchController.text.trim(),
+                                  )
+                                : null,
                           ),
                         ),
                       ),
@@ -149,11 +220,13 @@ class _ListHeader extends ConsumerWidget {
     required this.visibleCount,
     required this.searchController,
     required this.onQueryChanged,
+    required this.onScan,
   });
 
   final int? visibleCount;
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
+  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -210,6 +283,7 @@ class _ListHeader extends ConsumerWidget {
           OrderSearchField(
             controller: searchController,
             onChanged: onQueryChanged,
+            onScan: onScan,
           ),
           const SizedBox(height: Insets.lg),
           BranchSegmentedControl(

@@ -33,7 +33,11 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: OrdersListScreen(onOpenOrder: (_) {}, onSelectTab: (_) {}),
+          home: OrdersListScreen(
+            onOpenOrder: (_) {},
+            onSelectTab: (_) {},
+            onSearchArchive: (_) {},
+          ),
         ),
       ),
     );

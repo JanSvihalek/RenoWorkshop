@@ -50,6 +50,20 @@ class RestServiceOrderDataSource implements ServiceOrderDataSource {
   }
 
   @override
+  Future<List<ServiceOrderDto>> searchOrders(String query) async {
+    final data = await _send(
+      'GET',
+      'orders/search?q=${Uri.encodeQueryComponent(query)}',
+    );
+    if (data is! List) {
+      throw const ServiceOrderException('Server vrátil neočekávaná data.');
+    }
+    return data
+        .map((item) => ServiceOrderDto.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<ServiceOrderDto?> updateStatus(
     String orderId,
     String statusApiValue,

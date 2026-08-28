@@ -10,10 +10,14 @@ class OrderSearchField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onChanged,
+    this.onScan,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+
+  /// Načtení VINu nebo SPZ fotoaparátem. Když chybí, ikona se nezobrazí.
+  final VoidCallback? onScan;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +72,22 @@ class OrderSearchField extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
+          // VIN se z rámu opisuje mizerně, tak ať ho jde vyfotit.
+          if (onScan != null) ...[
+            const SizedBox(width: Insets.base),
+            Semantics(
+              button: true,
+              label: 'Načíst VIN nebo SPZ fotoaparátem',
+              child: GestureDetector(
+                onTap: onScan,
+                child: Icon(
+                  Icons.photo_camera_outlined,
+                  size: 20,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

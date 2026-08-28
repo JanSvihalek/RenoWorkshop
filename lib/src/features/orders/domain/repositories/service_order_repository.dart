@@ -19,6 +19,12 @@ abstract interface class ServiceOrderRepository {
   /// Detail jedné zakázky. Vyhodí [ServiceOrderNotFoundException].
   Future<ServiceOrder> getOrder(String orderId);
 
+  /// Hledání v archivu - i mezi zakázkami, které už na dílně nestojí.
+  ///
+  /// Neplní stream ani mezipaměť: je to jednorázový dotaz na server,
+  /// jehož výsledek se zobrazí zvlášť a zase zmizí.
+  Future<List<ServiceOrder>> searchArchive(String query);
+
   /// Nastaví stav zakázky (posun na dílně).
   Future<ServiceOrder> updateStatus(String orderId, OrderStatus status);
 
