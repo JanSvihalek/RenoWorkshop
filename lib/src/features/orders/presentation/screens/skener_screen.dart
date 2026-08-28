@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../domain/entities/kod_vozidla.dart';
 import '../controllers/orders_providers.dart';
+import '../controllers/ramecek_skeneru.dart';
 
 /// Načtení VINu nebo SPZ fotoaparátem.
 ///
@@ -36,27 +35,16 @@ class SkenerScreen extends ConsumerStatefulWidget {
 }
 
 class _SkenerScreenState extends ConsumerState<SkenerScreen> {
-  /// Výchozí rámeček: široký a nízký, protože VIN i SPZ jsou na jednom
-  /// řádku. Oba rozměry jsou podílem **šířky** obrazovky, aby si rámeček
-  /// držel tvar i na vyšších displejích.
-  static const double _vychoziSirka = 0.86;
-  static const double _vychoziVyska = 0.24;
-
   CameraController? _kamera;
   bool _pripravuje = true;
   bool _pracuje = false;
   bool _svetlo = false;
   String? _chyba;
 
-  double _pomerSirky = _vychoziSirka;
-  double _pomerVysky = _vychoziVyska;
-  double _pomerSirkyNaZacatku = _vychoziSirka;
-  double _pomerVyskyNaZacatku = _vychoziVyska;
+  /// Rámeček i plocha, ke které patří. Podle ní se přepočítá na výřez
+  /// z fotky, takže musí odpovídat tomu, co člověk vidí.
+  RamecekSkeneru? _ramecek;
   bool _menilRamecek = false;
-
-  /// Poslední známá velikost náhledu. Podle ní se rámeček přepočítá na
-  /// výřez z fotky, takže musí odpovídat tomu, co člověk vidí.
-  Size _plocha = Size.zero;
 
   @override
   void initState() {
@@ -120,51 +108,52 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     }
   }
 
-  /// Kde přesně rámeček leží. Používá se pro vykreslení i pro oříznutí
-  /// fotky, aby se skenovalo právě to, co je uvnitř.
-  Rect _ramecekV(Size plocha) {
-    if (plocha.isEmpty) return Rect.zero;
-
-    final sirka = plocha.width * _pomerSirky;
-    // Rámeček musí zůstat na obrazovce i po roztažení.
-    final vyska = math.min(plocha.width * _pomerVysky, plocha.height * 0.6);
-
-    return Rect.fromCenter(
-      center: plocha.center(Offset.zero),
-      width: sirka,
-      height: vyska,
-    );
+  /// Rámeček pro danou plochu. Při prvním sestavení se založí výchozí,
+  /// po otočení telefonu se přepočítá, jinak se vrátí ten, který si
+  /// uživatel nastavil.
+  RamecekSkeneru _ramecekPro(Size plocha) {
+    final soucasny = _ramecek;
+    final novy = soucasny == null
+        ? RamecekSkeneru.vychozi(plocha)
+        : soucasny.sPlochou(plocha);
+    _ramecek = novy;
+    return novy;
   }
 
-  void _zacniMenit(ScaleStartDetails _) {
-    _pomerSirkyNaZacatku = _pomerSirky;
-    _pomerVyskyNaZacatku = _pomerVysky;
-  }
-
-  /// Roztahování dvěma prsty. Šířka a výška se mění zvlášť, takže jde
-  /// z širokého proužku na VIN udělat krátký vyšší rámeček na SPZ.
-  void _menVelikost(ScaleUpdateDetails detaily) {
-    // Jeden prst je posouvání, ne změna velikosti - to by rámeček
-    // přeskakoval při každém doteku.
-    if (detaily.pointerCount < 2) return;
+  /// Tažení za jednu stranu. Ostatní zůstanou, kde byly.
+  void _tahniStranu(StranaRamecku strana, Offset posun) {
+    final soucasny = _ramecek;
+    if (soucasny == null) return;
 
     setState(() {
-      _pomerSirky = (_pomerSirkyNaZacatku * detaily.horizontalScale).clamp(
-        0.35,
-        0.98,
-      );
-      _pomerVysky = (_pomerVyskyNaZacatku * detaily.verticalScale).clamp(
-        0.10,
-        0.80,
-      );
+      _ramecek = soucasny.tahni(strana, posun);
       _menilRamecek = true;
     });
   }
 
-  void _vratVelikost() {
+  /// Jeden prst posouvá celý rámeček, dva mění velikost. Obojí přes
+  /// stejné gesto, protože se počet prstů může během tahu změnit.
+  void _menRamecek(ScaleUpdateDetails detaily) {
+    final soucasny = _ramecek;
+    if (soucasny == null) return;
+
     setState(() {
-      _pomerSirky = _vychoziSirka;
-      _pomerVysky = _vychoziVyska;
+      _ramecek = detaily.pointerCount < 2
+          ? soucasny.posunuty(detaily.focalPointDelta)
+          : soucasny.zvetseny(
+              vodorovne: detaily.horizontalScale,
+              svisle: detaily.verticalScale,
+            );
+      _menilRamecek = true;
+    });
+  }
+
+  void _vratRamecek() {
+    final soucasny = _ramecek;
+    if (soucasny == null) return;
+
+    setState(() {
+      _ramecek = RamecekSkeneru.vychozi(soucasny.plocha);
       _menilRamecek = true;
     });
   }
@@ -176,13 +165,13 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     setState(() => _pracuje = true);
     try {
       final snimek = await kamera.takePicture();
-      final plocha = _plocha;
+      final ramecek = _ramecek;
       final kody = await ref
           .read(skenerProvider)
           .precti(
             snimek.path,
-            ramecek: plocha.isEmpty ? null : _ramecekV(plocha),
-            plochaNahledu: plocha.isEmpty ? null : plocha,
+            ramecek: ramecek?.obdelnik,
+            plochaNahledu: ramecek?.plocha,
           );
 
       if (!mounted) return;
@@ -249,7 +238,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
       backgroundColor: Colors.black,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          _plocha = constraints.biggest;
+          final ramecek = _ramecekPro(constraints.biggest);
 
           return Stack(
             fit: StackFit.expand,
@@ -272,12 +261,12 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                 GestureDetector(
                   // Celá plocha náhledu, ať se nemusí trefovat do rámečku.
                   behavior: HitTestBehavior.opaque,
-                  onScaleStart: _zacniMenit,
-                  onScaleUpdate: _menVelikost,
-                  onDoubleTap: _vratVelikost,
+                  onScaleUpdate: _menRamecek,
+                  onDoubleTap: _vratRamecek,
                   child: _Ramecek(
-                    ramecek: _ramecekV(_plocha),
+                    ramecek: ramecek.obdelnik,
                     ukazNapovedu: !_menilRamecek,
+                    onTahni: _tahniStranu,
                   ),
                 ),
               // Až za rámečkem, aby tlačítka dostala doteky přednostně.
@@ -300,13 +289,19 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 /// Rámeček, kam mířit. Okolí je ztmavené, ať je jasné, co se čte —
 /// a čte se doopravdy jen jeho obsah, snímek se na něj ořízne.
 class _Ramecek extends StatelessWidget {
-  const _Ramecek({required this.ramecek, required this.ukazNapovedu});
+  const _Ramecek({
+    required this.ramecek,
+    required this.ukazNapovedu,
+    required this.onTahni,
+  });
 
   final Rect ramecek;
 
   /// Napoví, jak se velikost mění. Zmizí, jakmile to člověk jednou udělá —
   /// pak už jen překáží.
   final bool ukazNapovedu;
+
+  final void Function(StranaRamecku strana, Offset posun) onTahni;
 
   @override
   Widget build(BuildContext context) {
@@ -355,8 +350,30 @@ class _Ramecek extends StatelessWidget {
             ),
           ),
         ),
+        // Úchyty až nad rámečkem, aby doteky bral tah za stranu, ne
+        // gesto pod nimi.
+        _Uchyt(
+          strana: StranaRamecku.vlevo,
+          stred: Offset(ramecek.left, ramecek.center.dy),
+          onTahni: onTahni,
+        ),
+        _Uchyt(
+          strana: StranaRamecku.vpravo,
+          stred: Offset(ramecek.right, ramecek.center.dy),
+          onTahni: onTahni,
+        ),
+        _Uchyt(
+          strana: StranaRamecku.nahore,
+          stred: Offset(ramecek.center.dx, ramecek.top),
+          onTahni: onTahni,
+        ),
+        _Uchyt(
+          strana: StranaRamecku.dole,
+          stred: Offset(ramecek.center.dx, ramecek.bottom),
+          onTahni: onTahni,
+        ),
         Positioned(
-          top: ramecek.bottom + Insets.xl,
+          top: ramecek.bottom + Insets.giant,
           left: Insets.xl,
           right: Insets.xl,
           child: Column(
@@ -369,7 +386,7 @@ class _Ramecek extends StatelessWidget {
               if (ukazNapovedu) ...[
                 const SizedBox(height: Insets.xs),
                 Text(
-                  'Velikost změníte dvěma prsty, dvojklik ji vrátí zpět',
+                  'Táhněte za strany rámečku, dvojklik ho vrátí zpět',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.cardBody.copyWith(
                     color: Colors.white.withValues(alpha: 0.7),
@@ -380,6 +397,60 @@ class _Ramecek extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Úchyt na straně rámečku. Táhne se jedním prstem a hýbe jen svou stranou.
+class _Uchyt extends StatelessWidget {
+  const _Uchyt({
+    required this.strana,
+    required this.stred,
+    required this.onTahni,
+  });
+
+  final StranaRamecku strana;
+
+  /// Střed úchytu na obrazovce — leží přímo na hraně rámečku.
+  final Offset stred;
+
+  final void Function(StranaRamecku strana, Offset posun) onTahni;
+
+  /// Doteková plocha na rukavici; čára samotná je mnohem tenčí.
+  static const double _plocha = Sizes.minTouchTarget;
+
+  @override
+  Widget build(BuildContext context) {
+    final naVysku =
+        strana == StranaRamecku.vlevo || strana == StranaRamecku.vpravo;
+
+    return Positioned(
+      left: stred.dx - _plocha / 2,
+      top: stred.dy - _plocha / 2,
+      width: _plocha,
+      height: _plocha,
+      child: Semantics(
+        label: 'Změnit velikost rámečku',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (detaily) => onTahni(strana, detaily.delta),
+          child: Center(
+            child: Container(
+              width: naVysku ? 5 : 30,
+              height: naVysku ? 30 : 5,
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(Radii.badge),
+                // Aby byl úchyt vidět i na světlém pozadí.
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  width: 0.5,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
