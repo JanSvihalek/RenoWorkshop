@@ -86,7 +86,7 @@ stránkování.
     "status": "in_repair",
     "branch": { "code": "1", "label": "Brno" },
     "department": { "code": "11211", "label": "Servis BMW Brno" },
-    "orderType": { "code": "K", "label": "Klempířská" },
+    "orderType": { "code": "801", "label": "Běžná" },
     "receivedAt": "2026-08-21T07:15:00",
     "dueAt": "2026-08-26T16:00:00",
     "vin": "WBAKS4105L9KL83914",
@@ -117,10 +117,14 @@ Povinné je všechno kromě `mechanicName`, `serviceAdvisorName`, `bay`,
 `branch`, `department` a `orderType`, které smějí být `null`. `notes`
 a `workItems` smějí být prázdné pole.
 
-`orderType` je typ zakázky - běžná, interní, klempířská. Číselník je
-v Heliosu a rozšiřuje se tam: aplikace kód nezná, jen ho zobrazuje
-a nabízí podle něj filtrování. Když ho pohled nad Heliosem nedotahuje,
-posílá se `null` a appka typ nikde neukáže.
+`orderType` je typ zakázky, v Heliosu *řada*: `code` je její číslo
+(`801` běžná, `802` interní, `803` PDI...), `label` název ze serverové
+převodní tabulky. Aplikace význam kódu nezná - zobrazuje `label`,
+filtruje podle `code`. Nová řada se tak objeví sama, bez nové verze
+aplikace. Zakázka bez vyplněné řady má `null`.
+
+Když řada v převodní tabulce chybí, přijde v `label` samo číslo. Je to
+záměr: je vidět, že se má doplnit, a zakázka nezmizí.
 
 ### GET /orders/{id}
 

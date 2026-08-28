@@ -16,7 +16,7 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-21T07:15:00",
@@ -56,7 +56,7 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-22T08:05:00",
@@ -90,8 +90,8 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "K",
-        "label": "Klempířská"
+        "code": "802",
+        "label": "Interní"
       },
       "receivedAt": "2026-08-19T09:50:00",
       "dueAt": "2026-08-24T15:00:00",
@@ -117,7 +117,7 @@
         "label": "MOTO Servis"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-24T07:40:00",
@@ -144,8 +144,8 @@
         "label": "Auta Klempírna, lakovna"
       },
       "orderType": {
-        "code": "I",
-        "label": "Interní"
+        "code": "803",
+        "label": "PDI"
       },
       "receivedAt": "2026-08-25T06:55:00",
       "dueAt": "2026-08-29T15:00:00",
@@ -171,7 +171,7 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-18T10:20:00",
@@ -205,8 +205,8 @@
         "label": "MOTO Servis"
       },
       "orderType": {
-        "code": "Z",
-        "label": "Záruční"
+        "code": "807",
+        "label": "Prodej příslušenství"
       },
       "receivedAt": "2026-08-21T13:35:00",
       "dueAt": "2026-08-26T15:00:00",
@@ -232,7 +232,7 @@
         "label": "Auta Klempírna, lakovna"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-15T08:00:00",
@@ -259,8 +259,8 @@
         "label": "Auta Myčka"
       },
       "orderType": {
-        "code": "K",
-        "label": "Klempířská"
+        "code": "806",
+        "label": "Montáž"
       },
       "receivedAt": "2026-08-20T09:10:00",
       "dueAt": "2026-08-24T15:00:00",
@@ -293,7 +293,7 @@
         "label": "Auta Klempírna, lakovna"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-23T11:25:00",
@@ -320,8 +320,8 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "I",
-        "label": "Interní"
+        "code": "808",
+        "label": "Zaměstnanecká"
       },
       "receivedAt": "2026-08-25T07:20:00",
       "dueAt": "2026-08-28T15:00:00",
@@ -347,7 +347,7 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "B",
+        "code": "801",
         "label": "Běžná"
       },
       "receivedAt": "2026-08-20T14:00:00",
@@ -374,8 +374,8 @@
         "label": "Auta Servis"
       },
       "orderType": {
-        "code": "Z",
-        "label": "Záruční"
+        "code": "802",
+        "label": "Interní"
       },
       "receivedAt": "2026-08-19T08:35:00",
       "dueAt": "2026-08-25T12:00:00",
