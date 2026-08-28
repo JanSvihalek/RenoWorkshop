@@ -43,7 +43,9 @@ class SkenerKodu {
       if (oriznuta != null) cesta = oriznuta;
     }
 
-    final text = await _rozpoznavac.processImage(InputImage.fromFilePath(cesta));
+    final text = await _rozpoznavac.processImage(
+      InputImage.fromFilePath(cesta),
+    );
     return KodyZTextu.najdi(text.text);
   }
 
