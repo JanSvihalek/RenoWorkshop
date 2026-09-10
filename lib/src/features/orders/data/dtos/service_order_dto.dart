@@ -44,8 +44,11 @@ class ServiceOrderDto {
   /// `{"code": "K", "label": "Klempířská"}`. Chybí u starších zakázek
   /// a dokud pohled nad Heliosem typ nedotahuje.
   final Map<String, dynamic>? orderType;
-  final String receivedAt;
-  final String dueAt;
+
+  /// Datum přijetí a předpokládaný termín. Obojí smí chybět: Helios je
+  /// nemá vyplněné u každé zakázky a termín se často doplní až později.
+  final String? receivedAt;
+  final String? dueAt;
   final String vin;
   final String? mechanicName;
   final String? serviceAdvisorName;
@@ -63,8 +66,8 @@ class ServiceOrderDto {
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
       orderType: json['orderType'] as Map<String, dynamic>?,
-      receivedAt: json['receivedAt'] as String,
-      dueAt: json['dueAt'] as String,
+      receivedAt: json['receivedAt'] as String?,
+      dueAt: json['dueAt'] as String?,
       vin: json['vin'] as String,
       mechanicName: json['mechanicName'] as String?,
       serviceAdvisorName: json['serviceAdvisorName'] as String?,
@@ -106,8 +109,10 @@ class ServiceOrderDto {
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
     typZakazky: orderType == null ? null : TypZakazky.fromJson(orderType!),
-    receivedAt: DateTime.parse(receivedAt),
-    dueAt: DateTime.parse(dueAt),
+    // tryParse, ne parse: nesmyslné datum ze serveru nesmí shodit celý
+    // seznam - zakázka se ukáže bez termínu.
+    receivedAt: receivedAt == null ? null : DateTime.tryParse(receivedAt!),
+    dueAt: dueAt == null ? null : DateTime.tryParse(dueAt!),
     vin: vin,
     mechanicName: mechanicName,
     serviceAdvisorName: serviceAdvisorName,

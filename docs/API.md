@@ -145,8 +145,14 @@ stránkování.
 ```
 
 Povinné je všechno kromě `mechanicName`, `serviceAdvisorName`, `bay`,
-`branch`, `department` a `orderType`, které smějí být `null`. `notes`
-a `workItems` smějí být prázdné pole.
+`branch`, `department`, `orderType`, **`receivedAt` a `dueAt`**, které smějí
+být `null`. `notes` a `workItems` smějí být prázdné pole.
+
+Ta dvě data chybí častěji, než se čeká: Helios nemá datum přijetí u každé
+zakázky a termín se u spousty z nich doplní až později. Aplikace pak
+u zakázky ukáže pomlčku, neřadí ji dopředu a nehlásí ji jako opožděnou.
+Není to výjimečný stav, ale běžný — první ostrý build na tom spadl, protože
+tenhle odstavec dřív tvrdil, že jsou povinná.
 
 `orderType` je typ zakázky, v Heliosu *řada*: `code` je její číslo
 (`801` běžná, `802` interní, `803` PDI...), `label` název ze serverové

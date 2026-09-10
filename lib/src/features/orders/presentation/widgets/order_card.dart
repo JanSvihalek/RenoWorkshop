@@ -130,7 +130,11 @@ class OrderCard extends StatelessWidget {
                   const SizedBox(width: 4),
                 ],
                 Text(
-                  AppDateFormat.dayMonth(order.dueAt),
+                  // Bez termínu se ukáže pomlčka - místo vpravo si drží
+                  // šířku, aby karty pod sebou nezačaly poskakovat.
+                  order.dueAt == null
+                      ? '—'
+                      : AppDateFormat.dayMonth(order.dueAt!),
                   style: AppTextStyles.orderNumber.copyWith(
                     fontSize: 12.5,
                     color: overdue ? AppColors.danger : palette.muted,

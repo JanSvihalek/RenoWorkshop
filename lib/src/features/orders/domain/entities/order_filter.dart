@@ -124,10 +124,20 @@ class OrderFilter {
     return result;
   }
 
+  /// Zakázky bez data patří na konec seznamu, ať se řadí podle čehokoli.
+  /// Chybějící termín neznamená „nejdřív" ani „nejpozději", jen se neví -
+  /// a rozdělaná práce se známým termínem má být vidět dřív.
+  static int _porovnejData(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return a.compareTo(b);
+  }
+
   int _comparator(ServiceOrder a, ServiceOrder b) {
     return switch (sort) {
-      OrderSort.dueDate => a.dueAt.compareTo(b.dueAt),
-      OrderSort.receivedDate => b.receivedAt.compareTo(a.receivedAt),
+      OrderSort.dueDate => _porovnejData(a.dueAt, b.dueAt),
+      OrderSort.receivedDate => _porovnejData(b.receivedAt, a.receivedAt),
       OrderSort.status => a.status.step.compareTo(b.status.step),
       OrderSort.licensePlate => a.licensePlate.compareTo(b.licensePlate),
     };

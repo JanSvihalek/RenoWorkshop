@@ -18,8 +18,8 @@ class ServiceOrder {
     this.branch,
     this.department,
     this.typZakazky,
-    required this.receivedAt,
-    required this.dueAt,
+    this.receivedAt,
+    this.dueAt,
     required this.vin,
     this.mechanicName,
     this.serviceAdvisorName,
@@ -46,10 +46,10 @@ class ServiceOrder {
   final TypZakazky? typZakazky;
 
   /// Kdy vozidlo přijelo na příjem.
-  final DateTime receivedAt;
+  final DateTime? receivedAt;
 
   /// Předpokládaný termín dokončení.
-  final DateTime dueAt;
+  final DateTime? dueAt;
   final String vin;
 
   /// Přiřazený mechanik. `null` = zakázka zatím nikomu nepřiřazena.
@@ -67,9 +67,12 @@ class ServiceOrder {
   /// Zakázka je po termínu (a ještě není hotová).
   bool isOverdue({DateTime? now}) {
     if (status.isFinished) return false;
+    // Bez termínu není co hlídat - zakázka není po termínu, jen ho nemá.
+    final termin = dueAt;
+    if (termin == null) return false;
     final reference = now ?? DateTime.now();
     final today = DateTime(reference.year, reference.month, reference.day);
-    final due = DateTime(dueAt.year, dueAt.month, dueAt.day);
+    final due = DateTime(termin.year, termin.month, termin.day);
     return due.isBefore(today);
   }
 

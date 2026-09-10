@@ -13,6 +13,9 @@ ServiceOrder order({
   String customerName = 'Petr Novák',
   String? mechanicName = 'Jan Dvořák',
   DateTime? dueAt,
+
+  /// Helios termín u každé zakázky nemá; taková se musí umět seřadit taky.
+  bool bezTerminu = false,
 }) {
   return ServiceOrder(
     id: id,
@@ -23,7 +26,7 @@ ServiceOrder order({
     branch: branch,
     department: department,
     receivedAt: DateTime(2026, 8, 20, 8),
-    dueAt: dueAt ?? DateTime(2026, 8, 26, 15),
+    dueAt: bezTerminu ? null : (dueAt ?? DateTime(2026, 8, 26, 15)),
     vin: 'WBATEST0000000001',
     mechanicName: mechanicName,
   );
@@ -167,6 +170,39 @@ void main() {
       for (final status in OrderStatus.values) {
         expect(OrderStatus.fromApiValue(status.apiValue), status);
       }
+    });
+  });
+
+  group('řazení se zakázkami bez termínu', () {
+    test('zakázky bez termínu jdou na konec', () {
+      final zakazky = <ServiceOrder>[
+        order(
+          id: 'BEZ-TERMINU',
+          status: OrderStatus.received,
+          branch: brno,
+          bezTerminu: true,
+        ),
+        order(
+          id: 'POZDEJI',
+          status: OrderStatus.received,
+          branch: brno,
+          dueAt: DateTime(2026, 8, 28),
+        ),
+        order(
+          id: 'DRIV',
+          status: OrderStatus.received,
+          branch: brno,
+          dueAt: DateTime(2026, 8, 22),
+        ),
+      ];
+
+      final serazene = const OrderFilter(
+        sort: OrderSort.dueDate,
+      ).apply(zakazky).map((z) => z.id);
+
+      // Chybějící termín neznamená „nejdřív" - rozdělaná práce se známým
+      // termínem má být vidět dřív.
+      expect(serazene, ['DRIV', 'POZDEJI', 'BEZ-TERMINU']);
     });
   });
 }

@@ -122,14 +122,18 @@ class _DetailBody extends ConsumerWidget {
                   Expanded(
                     child: InfoBox(
                       label: 'PŘIJATO',
-                      value: AppDateFormat.dateTime(order.receivedAt),
+                      value: order.receivedAt == null
+                          ? 'Neuvedeno'
+                          : AppDateFormat.dateTime(order.receivedAt!),
                     ),
                   ),
                   const SizedBox(width: Insets.md),
                   Expanded(
                     child: InfoBox(
                       label: 'TERMÍN DOKONČENÍ',
-                      value: AppDateFormat.date(order.dueAt),
+                      value: order.dueAt == null
+                          ? 'Neuvedeno'
+                          : AppDateFormat.date(order.dueAt!),
                       valueColor: overdue ? AppColors.danger : null,
                     ),
                   ),

@@ -151,4 +151,30 @@ void main() {
       expect(zakazky.single.customerName, 'Petr Novák');
     });
   });
+
+  /// Helios nemá datum přijetí ani termín u každé zakázky a API je pak
+  /// posílá jako null. Dřív se přetypovávaly na String a celý seznam
+  /// spadl na "type Null is not a subtype of type String" - v telefonu
+  /// se to projevilo tak, že se nenačetlo vůbec nic.
+  test('zakázka bez data přijetí a bez termínu se načte', () async {
+    final client = MockClient((request) async {
+      final zakazka = _zakazka()
+        ..['receivedAt'] = null
+        ..['dueAt'] = null;
+      return http.Response(
+        jsonEncode([zakazka]),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    final zakazky = await _zdroj(client).fetchOrders();
+
+    expect(zakazky, hasLength(1));
+    final zakazka = zakazky.single.toDomain();
+    expect(zakazka.receivedAt, isNull);
+    expect(zakazka.dueAt, isNull);
+    // Bez termínu není co hlídat - zakázka nesmí svítit jako opožděná.
+    expect(zakazka.isOverdue(), isFalse);
+  });
 }
