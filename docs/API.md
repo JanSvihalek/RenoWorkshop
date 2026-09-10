@@ -32,7 +32,38 @@ Nastavuje se při buildu appky:
 flutter build apk --release --dart-define=API_BASE_URL=https://…/renoworkshop/api/
 ```
 
-Bez té proměnné appka běží na mock datech — tak se staví dnes a tak běží testy.
+Bez té proměnné appka běží na mock datech — tak běží testy i `flutter run`
+při vývoji.
+
+### Dnešní adresa: zatím bez šifrování
+
+Buildy z CI míří na
+
+```
+http://renoworkshop.renocar.cz:8093/api/
+```
+
+Nastavuje se na jednom místě, v `ADRESA_API` v hlavičce
+[sestaveni.yml](../.github/workflows/sestaveni.yml).
+
+**Je to dočasné.** Server čeká na certifikát a bez něj mobilní aplikace na
+HTTPS nedosáhne. Jméno žije jen ve vnitřním DNS, takže provoz nikdy neopustí
+firemní síť a mimo ni se telefon nemá kam připojit. Cenou je, že přihlašovací
+token jde po síti čitelně — na zaměstnanecké wi-fi, která je oddělená od
+zákaznické, je to pro tuhle fázi únosné.
+
+Aby to vůbec fungovalo, jsou v aplikaci **dvě výjimky pro nešifrovaný provoz**,
+obě svázané výhradně s tímhle jménem:
+
+| Platforma | Soubor |
+|---|---|
+| Android | `android/app/src/main/res/xml/network_security_config.xml` |
+| iOS | `ios/Runner/Info.plist`, klíč `NSAppTransportSecurity` |
+
+**Až bude certifikát**, zruší se to třemi kroky: v `ADRESA_API` přepsat na
+`https://renoworkshop.renocar.cz:8444/api/`, smazat oba soubory s výjimkou
+(u iOS jen ten klíč) a odebrat `android:networkSecurityConfig` z manifestu.
+Postup vydání certifikátu je v `RenoWorkshopApi/docs/CERTIFIKAT.md`.
 
 ## Autorizace
 

@@ -13,6 +13,13 @@ env:
   FLUTTER_VERSION: 3.41.8
   BUNDLE_ID: dev.svihalek.renoworkshop
 
+  # Adresa API, na kterou se appka připojuje. Zatím nešifrovaně: server
+  # čeká na certifikát, jméno žije jen ve vnitřním DNS a provoz z telefonu
+  # nikdy neopustí firemní síť. Až certifikát bude, přepsat na
+  # https://renoworkshop.renocar.cz:8444/api/ a zrušit výjimky pro
+  # nešifrovaný provoz v AndroidManifest.xml a Info.plist.
+  ADRESA_API: http://renoworkshop.renocar.cz:8093/api/
+
   # Číslo buildu = pořadí běhu + tenhle posun. GitHub počítá `run_number`
   # zvlášť pro každý soubor s workflow, takže po přejmenování souboru
   # začne od jedničky a App Store Connect nové buildy odmítne jako už
@@ -113,7 +120,8 @@ jobs:
       - name: Sestavení APK
         run: |
           flutter build apk --release \
-            --build-number=${{ needs.kontrola.outputs.cislo_buildu }}
+            --build-number=${{ needs.kontrola.outputs.cislo_buildu }} \
+            --dart-define=API_BASE_URL=${{ env.ADRESA_API }}
 
       - name: Velikost a podpis
         run: |
@@ -294,7 +302,8 @@ jobs:
       - name: Přeložení Flutteru
         run: |
           flutter build ios --release --no-codesign \
-            --build-number=${{ needs.kontrola.outputs.cislo_buildu }}
+            --build-number=${{ needs.kontrola.outputs.cislo_buildu }} \
+            --dart-define=API_BASE_URL=${{ env.ADRESA_API }}
 
       # Podpis se nesmí předávat přes příkazovou řádku xcodebuildu - ta má
       # nejvyšší prioritu a platí pro všechny cíle ve workspace, tedy i pro

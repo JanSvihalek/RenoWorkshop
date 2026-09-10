@@ -90,5 +90,30 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotoaparát slouží k načtení VIN nebo SPZ ze štítku vozidla, abyste je nemuseli opisovat.</string>
+	<!-- Nešifrované spojení na server API, dokud nemá certifikát.
+
+	     iOS nešifrovaný provoz zakazuje. Výjimka platí VÝHRADNĚ pro jméno
+	     API; všechno ostatní (přihlášení k Microsoftu, Firebase) zůstává
+	     pod původním zákazem, takže se tím neotevírá appka jako celek.
+
+	     Adresa žije jen ve vnitřním DNS, takže mimo firemní síť ji telefon
+	     nepřeloží a připojit se nemá kam.
+
+	     DOČASNÉ. Zruší se, jakmile bude vydaný certifikát pro
+	     renoworkshop.renocar.cz - pak stačí smazat tenhle klíč, protějšek
+	     v android/app/src/main/res/xml/network_security_config.xml a v adrese
+	     API přepsat http na https. Postup vydání certifikátu je
+	     v RenoWorkshopApi/docs/CERTIFIKAT.md. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>renoworkshop.renocar.cz</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

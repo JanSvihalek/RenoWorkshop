@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nešifrované spojení na server API, dokud nemá certifikát.
+
+  Android od verze 9 nešifrovaný provoz zakazuje. Výjimka platí VÝHRADNĚ
+  pro jméno API - všechno ostatní (přihlášení k Microsoftu, Firebase)
+  zůstává pod původním zákazem, takže se tím neotevírá appka jako celek.
+
+  Adresa žije jen ve vnitřním DNS, takže mimo firemní síť ji telefon
+  nepřeloží a připojit se nemá kam.
+
+  DOČASNÉ. Zruší se, jakmile bude vydaný certifikát pro
+  renoworkshop.renocar.cz - pak stačí smazat tenhle soubor, odkaz na něj
+  v AndroidManifest.xml, protějšek v ios/Runner/Info.plist a v adrese API
+  přepsat http na https. Postup vydání je v RenoWorkshopApi/docs/CERTIFIKAT.md.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">renoworkshop.renocar.cz</domain>
+    </domain-config>
+</network-security-config>
