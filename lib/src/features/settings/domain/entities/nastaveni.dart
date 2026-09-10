@@ -31,40 +31,25 @@ enum RezimVzhledu {
 /// se vzhled mění pod rukama podle toho, kdo se zrovna přihlásil.
 @immutable
 class Nastaveni {
-  const Nastaveni({
-    this.vzhled = RezimVzhledu.podleSystemu,
-    this.vychoziPobocka,
-    this.vychoziUtvar,
-  });
+  const Nastaveni({this.vzhled = RezimVzhledu.podleSystemu, this.vychoziUtvar});
 
   final RezimVzhledu vzhled;
 
-  /// Kód pobočky, na kterou se seznam otevře. `null` = všechny.
+  /// Kód útvaru, na který se seznam otevře. `null` = všechny.
   ///
   /// Kód, ne název - názvy útvarů se v Heliosu přepisují, kód drží.
-  final String? vychoziPobocka;
-
-  /// Kód útvaru v rámci pobočky. `null` = všechny.
   final String? vychoziUtvar;
 
-  bool get maVychoziFiltr => vychoziPobocka != null || vychoziUtvar != null;
+  bool get maVychoziFiltr => vychoziUtvar != null;
 
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
-    String? vychoziPobocka,
     String? vychoziUtvar,
-    bool zrusPobocku = false,
     bool zrusUtvar = false,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
-      // Zrušení pobočky ruší i útvar - útvar bez pobočky nedává smysl.
-      vychoziPobocka: zrusPobocku
-          ? null
-          : (vychoziPobocka ?? this.vychoziPobocka),
-      vychoziUtvar: zrusPobocku || zrusUtvar
-          ? null
-          : (vychoziUtvar ?? this.vychoziUtvar),
+      vychoziUtvar: zrusUtvar ? null : (vychoziUtvar ?? this.vychoziUtvar),
     );
   }
 
@@ -73,9 +58,8 @@ class Nastaveni {
       identical(this, other) ||
       (other is Nastaveni &&
           other.vzhled == vzhled &&
-          other.vychoziPobocka == vychoziPobocka &&
           other.vychoziUtvar == vychoziUtvar);
 
   @override
-  int get hashCode => Object.hash(vzhled, vychoziPobocka, vychoziUtvar);
+  int get hashCode => Object.hash(vzhled, vychoziUtvar);
 }

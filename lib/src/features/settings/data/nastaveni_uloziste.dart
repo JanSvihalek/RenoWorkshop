@@ -23,14 +23,12 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   final SharedPreferences _prefs;
 
   static const _klicVzhled = 'nastaveni.vzhled';
-  static const _klicPobocka = 'nastaveni.vychoziPobocka';
   static const _klicUtvar = 'nastaveni.vychoziUtvar';
 
   @override
   Nastaveni nacti() {
     return Nastaveni(
       vzhled: RezimVzhledu.zNazvu(_prefs.getString(_klicVzhled)),
-      vychoziPobocka: _prazdneJakoNull(_prefs.getString(_klicPobocka)),
       vychoziUtvar: _prazdneJakoNull(_prefs.getString(_klicUtvar)),
     );
   }
@@ -38,7 +36,6 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   @override
   Future<void> uloz(Nastaveni nastaveni) async {
     await _prefs.setString(_klicVzhled, nastaveni.vzhled.name);
-    await _ulozNeboSmaz(_klicPobocka, nastaveni.vychoziPobocka);
     await _ulozNeboSmaz(_klicUtvar, nastaveni.vychoziUtvar);
   }
 

@@ -25,7 +25,7 @@ class OrderFilter {
     this.status,
     this.mechanicName,
     this.query = '',
-    this.sort = OrderSort.dueDate,
+    this.sort = OrderSort.receivedDate,
     this.includeClosed = true,
   });
 

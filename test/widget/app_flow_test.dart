@@ -6,15 +6,19 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/orders/presentation/widgets/branch_segmented_control.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/department_picker.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Přepínač poboček v hlavičce - jméno pobočky je i v kartách zakázek.
-Finder _branchTab(String label) => find.descendant(
-  of: find.byType(BranchSegmentedControl),
-  matching: find.text(label),
-);
+/// Vybere útvar z rozbalovacího seznamu v hlavičce.
+Future<void> _vyberUtvar(WidgetTester tester, String polozka) async {
+  await tester.tap(find.byType(DepartmentPicker));
+  await tester.pumpAndSettle();
+  // Vybraná položka se vykresluje i v zavřeném seznamu, proto `.last` -
+  // ta v rozbalené nabídce.
+  await tester.tap(find.text(polozka).last);
+  await tester.pumpAndSettle();
+}
 
 /// Zpětné tlačítko detailu - ikona se liší podle platformy.
 Finder _backButton() => find.byWidgetPredicate(
@@ -81,32 +85,21 @@ void main() {
     expect(find.text('2SC 9014'), findsOneWidget);
   });
 
-  testWidgets('filtr pobočky zúží seznam', (tester) async {
+  testWidgets('filtr útvaru zúží seznam', (tester) async {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
 
-    // Pobočky se skládají z dat, ne z pevného výčtu - v přepínači tedy
-    // musí být právě ty dvě, které mají zakázky.
-    expect(_branchTab('Brno'), findsOneWidget);
-    expect(_branchTab('Čestlice'), findsOneWidget);
-
-    await tester.tap(_branchTab('Čestlice'));
-    await tester.pumpAndSettle();
-
+    await _vyberUtvar(tester, '12211 · Útvar 12211');
     expect(find.text('2SC 9014'), findsOneWidget);
     expect(find.text('8AB 4721'), findsNothing);
 
-    await tester.tap(_branchTab('Brno'));
-    await tester.pumpAndSettle();
-
+    await _vyberUtvar(tester, '11211 · Útvar 11211');
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsNothing);
 
-    await tester.tap(_branchTab('Vše'));
-    await tester.pumpAndSettle();
-
+    await _vyberUtvar(tester, 'Všechny útvary');
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsOneWidget);
   });

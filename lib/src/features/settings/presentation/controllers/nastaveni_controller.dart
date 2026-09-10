@@ -21,21 +21,13 @@ class NastaveniController extends Notifier<Nastaveni> {
 
   void zmenVzhled(RezimVzhledu vzhled) => _uloz(state.copyWith(vzhled: vzhled));
 
-  /// Změna pobočky ruší útvar - útvary jsou pod pobočkou a ten starý by
-  /// na nové pobočce neexistoval.
-  void zmenVychoziPobocku(String? kodPobocky) => _uloz(
-    kodPobocky == null
-        ? state.copyWith(zrusPobocku: true)
-        : state.copyWith(vychoziPobocka: kodPobocky, zrusUtvar: true),
-  );
-
   void zmenVychoziUtvar(String? kodUtvaru) => _uloz(
     kodUtvaru == null
         ? state.copyWith(zrusUtvar: true)
         : state.copyWith(vychoziUtvar: kodUtvaru),
   );
 
-  void zrusVychoziFiltr() => _uloz(state.copyWith(zrusPobocku: true));
+  void zrusVychoziFiltr() => _uloz(state.copyWith(zrusUtvar: true));
 
   /// Zápis do úložiště se nečeká: nastavení je drobnost a čekání na disk
   /// by se projevilo jako zpoždění přepínače pod prstem.

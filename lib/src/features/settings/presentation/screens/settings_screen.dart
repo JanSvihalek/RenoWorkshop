@@ -225,7 +225,7 @@ class _VzhledCard extends ConsumerWidget {
   }
 }
 
-/// Pobočka a útvar, na které se seznam zakázek otevře.
+/// Útvar, na který se seznam zakázek otevře.
 class _VychoziFiltrCard extends ConsumerWidget {
   const _VychoziFiltrCard();
 
@@ -233,10 +233,7 @@ class _VychoziFiltrCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final nastaveni = ref.watch(nastaveniProvider);
-    final pobocky = ref.watch(availableBranchesProvider);
-    final utvary = ref.watch(
-      departmentsForBranchProvider(nastaveni.vychoziPobocka),
-    );
+    final utvary = ref.watch(availableDepartmentsProvider);
 
     return _Card(
       child: Column(
@@ -269,34 +266,19 @@ class _VychoziFiltrCard extends ConsumerWidget {
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
           ),
           const SizedBox(height: Insets.base),
-          if (pobocky.isEmpty)
+          if (utvary.isEmpty)
             Text(
-              'Pobočky se nabídnou, jakmile se načtou zakázky.',
+              'Útvary se nabídnou, jakmile se načtou zakázky.',
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             )
-          else ...[
+          else
             _Vyber(
-              popisek: 'Pobočka',
-              hodnota: nastaveni.vychoziPobocka,
-              moznosti: {
-                for (final pobocka in pobocky) pobocka.code: pobocka.label,
-              },
+              popisek: 'Útvar',
+              hodnota: nastaveni.vychoziUtvar,
+              moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
               onZmena: (kod) =>
-                  ref.read(nastaveniProvider.notifier).zmenVychoziPobocku(kod),
+                  ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
             ),
-            // Útvar dává smysl teprve nad vybranou pobočkou - jinak by
-            // se nabízely útvary z celé firmy.
-            if (nastaveni.vychoziPobocka != null && utvary.isNotEmpty) ...[
-              const SizedBox(height: Insets.sm),
-              _Vyber(
-                popisek: 'Útvar',
-                hodnota: nastaveni.vychoziUtvar,
-                moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
-                onZmena: (kod) =>
-                    ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
-              ),
-            ],
-          ],
         ],
       ),
     );

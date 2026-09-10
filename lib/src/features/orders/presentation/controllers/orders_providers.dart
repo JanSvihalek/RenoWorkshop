@@ -45,20 +45,6 @@ final ordersStreamProvider = StreamProvider<List<ServiceOrder>>(
   (ref) => ref.watch(serviceOrderRepositoryProvider).watchOrders(),
 );
 
-/// Pobočky vyskytující se v načtených zakázkách, seřazené podle názvu.
-/// Přepínač v app baru se skládá z nich, ne z pevného výčtu.
-final availableBranchesProvider = Provider<List<Branch>>((ref) {
-  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
-  final unikatni = <String, Branch>{};
-  for (final order in orders) {
-    final branch = order.branch;
-    if (branch != null) unikatni[branch.code] = branch;
-  }
-  final seznam = unikatni.values.toList()
-    ..sort((a, b) => a.label.compareTo(b.label));
-  return seznam;
-});
-
 /// Útvary na dané pobočce. `null` jako kód pobočky vrací útvary všechny.
 ///
 /// Parametrizované proto, že se ptají dvě různá místa: filtrovací panel na
@@ -165,10 +151,8 @@ class OrderFilterController extends Notifier<OrderFilter> {
   @override
   OrderFilter build() => _vychozi(ref.watch(nastaveniProvider));
 
-  static OrderFilter _vychozi(Nastaveni nastaveni) => OrderFilter(
-    branchCode: nastaveni.vychoziPobocka,
-    departmentCode: nastaveni.vychoziUtvar,
-  );
+  static OrderFilter _vychozi(Nastaveni nastaveni) =>
+      OrderFilter(departmentCode: nastaveni.vychoziUtvar);
 
   void setBranch(String? branchCode) => state = branchCode == null
       ? state.copyWith(clearBranch: true, clearDepartment: true)

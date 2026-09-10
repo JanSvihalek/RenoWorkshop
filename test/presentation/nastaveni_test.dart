@@ -15,18 +15,13 @@ void main() {
       final uloziste = SharedPreferencesNastaveni(prefs);
 
       await uloziste.uloz(
-        const Nastaveni(
-          vzhled: RezimVzhledu.svetly,
-          vychoziPobocka: '12',
-          vychoziUtvar: '12100',
-        ),
+        const Nastaveni(vzhled: RezimVzhledu.svetly, vychoziUtvar: '12100'),
       );
 
       // Nová instance nad týmiž daty = jako po restartu aplikace.
       final poRestartu = SharedPreferencesNastaveni(prefs).nacti();
 
       expect(poRestartu.vzhled, RezimVzhledu.svetly);
-      expect(poRestartu.vychoziPobocka, '12');
       expect(poRestartu.vychoziUtvar, '12100');
     });
 
@@ -48,16 +43,16 @@ void main() {
       expect(uloziste.nacti().vzhled, RezimVzhledu.podleSystemu);
     });
 
-    test('zrušená pobočka se z úložiště smaže', () async {
+    test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final uloziste = SharedPreferencesNastaveni(prefs);
 
-      await uloziste.uloz(const Nastaveni(vychoziPobocka: '12'));
+      await uloziste.uloz(const Nastaveni(vychoziUtvar: '12100'));
       await uloziste.uloz(const Nastaveni());
 
-      expect(prefs.getString('nastaveni.vychoziPobocka'), isNull);
-      expect(uloziste.nacti().vychoziPobocka, isNull);
+      expect(prefs.getString('nastaveni.vychoziUtvar'), isNull);
+      expect(uloziste.nacti().vychoziUtvar, isNull);
     });
   });
 
@@ -88,24 +83,19 @@ void main() {
       expect(container.read(nastaveniProvider).vzhled, RezimVzhledu.svetly);
     });
 
-    test('změna pobočky zahodí útvar z té předchozí', () {
+    test('změna útvaru přepíše ten předchozí', () {
       final container = kontejner(
-        PametoveNastaveni(
-          const Nastaveni(vychoziPobocka: '12', vychoziUtvar: '12100'),
-        ),
+        PametoveNastaveni(const Nastaveni(vychoziUtvar: '12100')),
       );
 
-      container.read(nastaveniProvider.notifier).zmenVychoziPobocku('13');
+      container.read(nastaveniProvider.notifier).zmenVychoziUtvar('11211');
 
-      expect(container.read(nastaveniProvider).vychoziPobocka, '13');
-      expect(container.read(nastaveniProvider).vychoziUtvar, isNull);
+      expect(container.read(nastaveniProvider).vychoziUtvar, '11211');
     });
 
-    test('zrušení výchozího filtru smaže pobočku i útvar', () {
+    test('zrušení výchozího filtru smaže útvar', () {
       final container = kontejner(
-        PametoveNastaveni(
-          const Nastaveni(vychoziPobocka: '12', vychoziUtvar: '12100'),
-        ),
+        PametoveNastaveni(const Nastaveni(vychoziUtvar: '12100')),
       );
 
       container.read(nastaveniProvider.notifier).zrusVychoziFiltr();

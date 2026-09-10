@@ -13,6 +13,7 @@ ServiceOrder order({
   String customerName = 'Petr Novák',
   String? mechanicName = 'Jan Dvořák',
   DateTime? dueAt,
+  DateTime? receivedAt,
 
   /// Helios termín u každé zakázky nemá; taková se musí umět seřadit taky.
   bool bezTerminu = false,
@@ -25,7 +26,7 @@ ServiceOrder order({
     status: status,
     branch: branch,
     department: department,
-    receivedAt: DateTime(2026, 8, 20, 8),
+    receivedAt: receivedAt ?? DateTime(2026, 8, 20, 8),
     dueAt: bezTerminu ? null : (dueAt ?? DateTime(2026, 8, 26, 15)),
     vin: 'WBATEST0000000001',
     mechanicName: mechanicName,
@@ -63,7 +64,7 @@ void main() {
 
   group('OrderFilter', () {
     test('bez filtrů vrátí vše seřazené podle termínu', () {
-      final result = const OrderFilter().apply(orders);
+      final result = const OrderFilter(sort: OrderSort.dueDate).apply(orders);
 
       expect(result.map((o) => o.id), ['B', 'C', 'A']);
     });
@@ -91,7 +92,7 @@ void main() {
     });
 
     test('includeClosed=false skryje vyzvednuté zakázky', () {
-      const filter = OrderFilter(includeClosed: false);
+      const filter = OrderFilter(includeClosed: false, sort: OrderSort.dueDate);
 
       expect(filter.apply(orders).map((o) => o.id), ['C', 'A']);
     });
@@ -204,5 +205,34 @@ void main() {
       // termínem má být vidět dřív.
       expect(serazene, ['DRIV', 'POZDEJI', 'BEZ-TERMINU']);
     });
+  });
+
+  test('výchozí řazení dává nejnovější zakázky nahoru', () {
+    // Na klempírně se pracuje na tom, co přijelo naposled; zakázka stará
+    // měsíce se nemá tlačit před dnešní příjem.
+    final zakazky = <ServiceOrder>[
+      order(
+        id: 'STARA',
+        status: OrderStatus.inRepair,
+        branch: brno,
+        receivedAt: DateTime(2026, 5, 4),
+      ),
+      order(
+        id: 'NEJNOVEJSI',
+        status: OrderStatus.inRepair,
+        branch: brno,
+        receivedAt: DateTime(2026, 8, 30),
+      ),
+      order(
+        id: 'PROSTREDNI',
+        status: OrderStatus.inRepair,
+        branch: brno,
+        receivedAt: DateTime(2026, 7, 15),
+      ),
+    ];
+
+    final serazene = const OrderFilter().apply(zakazky).map((z) => z.id);
+
+    expect(serazene, ['NEJNOVEJSI', 'PROSTREDNI', 'STARA']);
   });
 }

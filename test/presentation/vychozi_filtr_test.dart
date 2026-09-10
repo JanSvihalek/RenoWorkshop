@@ -24,36 +24,35 @@ void main() {
   test('bez nastavení se seznam otevře nefiltrovaný', () {
     final filter = kontejner(const Nastaveni()).read(orderFilterProvider);
 
-    expect(filter.branchCode, isNull);
+    expect(filter.departmentCode, isNull);
     expect(filter.isActive, isFalse);
   });
 
-  test('výchozí pobočka a útvar se propíšou do filtru', () {
+  test('výchozí útvar se propíše do filtru', () {
     final filter = kontejner(
-      const Nastaveni(vychoziPobocka: '12', vychoziUtvar: '12100'),
+      const Nastaveni(vychoziUtvar: '12100'),
     ).read(orderFilterProvider);
 
-    expect(filter.branchCode, '12');
     expect(filter.departmentCode, '12100');
   });
 
   test('změna nastavení překreslí i právě otevřený seznam', () {
     final container = kontejner(const Nastaveni());
 
-    expect(container.read(orderFilterProvider).branchCode, isNull);
-    container.read(nastaveniProvider.notifier).zmenVychoziPobocku('13');
+    expect(container.read(orderFilterProvider).departmentCode, isNull);
+    container.read(nastaveniProvider.notifier).zmenVychoziUtvar('13215');
 
-    expect(container.read(orderFilterProvider).branchCode, '13');
+    expect(container.read(orderFilterProvider).departmentCode, '13215');
   });
 
   test('zrušení filtrů vrací na výchozí, ne na prázdný', () {
-    final container = kontejner(const Nastaveni(vychoziPobocka: '12'));
+    final container = kontejner(const Nastaveni(vychoziUtvar: '12100'));
     final controller = container.read(orderFilterProvider.notifier);
 
-    controller.setBranch('13');
-    expect(container.read(orderFilterProvider).branchCode, '13');
+    controller.setDepartment('13215');
+    expect(container.read(orderFilterProvider).departmentCode, '13215');
 
     controller.reset();
-    expect(container.read(orderFilterProvider).branchCode, '12');
+    expect(container.read(orderFilterProvider).departmentCode, '12100');
   });
 }

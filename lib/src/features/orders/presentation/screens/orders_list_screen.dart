@@ -12,7 +12,7 @@ import '../../../../core/utils/czech_plurals.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
-import '../widgets/branch_segmented_control.dart';
+import '../widgets/department_picker.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_filter_sheet.dart';
 import '../widgets/order_search_field.dart';
@@ -232,10 +232,10 @@ class _ListHeader extends ConsumerWidget {
             onScan: onScan,
           ),
           const SizedBox(height: Insets.lg),
-          BranchSegmentedControl(
-            branches: ref.watch(availableBranchesProvider),
-            selectedCode: filter.branchCode,
-            onChanged: ref.read(orderFilterProvider.notifier).setBranch,
+          DepartmentPicker(
+            departments: ref.watch(availableDepartmentsProvider),
+            selectedCode: filter.departmentCode,
+            onChanged: ref.read(orderFilterProvider.notifier).setDepartment,
           ),
         ],
       ),
