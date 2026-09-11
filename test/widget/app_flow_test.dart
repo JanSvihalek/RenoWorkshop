@@ -118,14 +118,23 @@ void main() {
 
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
 
-    // Stav se přidává z nabídky, neposouvá se o krok.
+    // Stav se přidává formulářem: vyber v seznamu, volitelně poznámka,
+    // potvrď. Neposouvá se o krok.
     await tester.tap(find.text('Přidat stav'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lakovna'));
+
+    await tester.tap(find.text('Vyberte stav'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lakovna').last);
     await tester.pumpAndSettle();
 
-    // Nový stav je v historii i v hlavičce detailu.
+    await tester.enterText(find.byType(TextField).last, 'stání 4');
+    await tester.tap(find.widgetWithText(FilledButton, 'Přidat'));
+    await tester.pumpAndSettle();
+
+    // Nový stav je v historii i v hlavičce detailu, poznámka u něj.
     expect(find.text('Lakovna'), findsWidgets);
+    expect(find.text('stání 4'), findsOneWidget);
 
     // Omylem přidaný stav jde smazat.
     await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);

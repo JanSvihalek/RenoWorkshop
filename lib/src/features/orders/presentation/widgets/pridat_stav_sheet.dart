@@ -5,10 +5,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../controllers/orders_providers.dart';
 
-/// Co uživatel vybral: buď stav z číselníku, nebo vlastní text,
-/// a k tomu nepovinná poznámka.
+/// Co uživatel vyplnil: stav z číselníku nebo vlastní text, a k tomu
+/// nepovinná poznámka.
 class VybranyStav {
   const VybranyStav({this.kod, this.nazev, this.poznamka});
 
@@ -19,12 +20,11 @@ class VybranyStav {
   final String? poznamka;
 }
 
-/// Výběr dílenského stavu.
+/// Formulář pro přidání dílenského stavu.
 ///
-/// Nabídka je číselník ze serveru; pod ní je „Jiný" pro stav, na který se
-/// nepamatovalo. Ruční zápis tu je schválně: na klempírně se objeví situace,
-/// kterou nikdo dopředu nevymyslel, a čekat kvůli ní na úpravu číselníku by
-/// znamenalo, že se stav nezapíše vůbec.
+/// Jedno okno: nahoře výběr stavu, pod ním poznámka, dole potvrzení.
+/// Dřív se stav ukládal hned po klepnutí v seznamu a poznámka se musela
+/// napsat dopředu — tedy dřív, než člověk věděl, k čemu ji píše.
 Future<VybranyStav?> vyberStav(BuildContext context) {
   return showModalBottomSheet<VybranyStav>(
     context: context,
@@ -32,6 +32,9 @@ Future<VybranyStav?> vyberStav(BuildContext context) {
     builder: (context) => const _PridatStavSheet(),
   );
 }
+
+/// Hodnota v seznamu, která znamená „stav mimo číselník".
+const _jiny = '__jiny__';
 
 class _PridatStavSheet extends ConsumerStatefulWidget {
   const _PridatStavSheet();
@@ -43,7 +46,9 @@ class _PridatStavSheet extends ConsumerStatefulWidget {
 class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   final _vlastni = TextEditingController();
   final _poznamka = TextEditingController();
-  bool _pisiVlastni = false;
+
+  /// Kód vybraného stavu, `_jiny` u vlastního, `null` dokud nic nevybral.
+  String? _vybrany;
 
   @override
   void dispose() {
@@ -52,17 +57,23 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
     super.dispose();
   }
 
-  String? get _zadanaPoznamka {
-    final text = _poznamka.text.trim();
-    return text.isEmpty ? null : text;
-  }
+  bool get _jeVlastni => _vybrany == _jiny;
 
-  void _potvrdVlastni() {
-    final text = _vlastni.text.trim();
-    if (text.isEmpty) return;
-    Navigator.of(
-      context,
-    ).pop(VybranyStav(nazev: text, poznamka: _zadanaPoznamka));
+  /// Přidat jde, teprve když je co uložit.
+  bool get _lzePridat =>
+      _vybrany != null && (!_jeVlastni || _vlastni.text.trim().isNotEmpty);
+
+  void _potvrd() {
+    if (!_lzePridat) return;
+    final poznamka = _poznamka.text.trim();
+
+    Navigator.of(context).pop(
+      VybranyStav(
+        kod: _jeVlastni ? null : _vybrany,
+        nazev: _jeVlastni ? _vlastni.text.trim() : null,
+        poznamka: poznamka.isEmpty ? null : poznamka,
+      ),
+    );
   }
 
   @override
@@ -72,22 +83,22 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
 
     return SafeArea(
       child: Padding(
-        // Klávesnice nesmí překrýt pole pro vlastní stav.
+        // Klávesnice nesmí překrýt pole, do kterého se zrovna píše.
         padding: EdgeInsets.only(
           bottom: MediaQuery.viewInsetsOf(context).bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Insets.xxl,
-                Insets.xl,
-                Insets.xxl,
-                Insets.sm,
-              ),
-              child: Row(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            Insets.xxl,
+            Insets.xl,
+            Insets.xxl,
+            Insets.xxl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
                   Expanded(
                     child: Text(
@@ -97,8 +108,6 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                       ),
                     ),
                   ),
-                  // Bez téhle cesty ven se z omylem otevřené nabídky dalo
-                  // odejít jen tím, že člověk nějaký stav opravdu zadal.
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
@@ -107,197 +116,201 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: Insets.sm),
 
-            if (!_pisiVlastni)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Insets.xxl,
-                  0,
-                  Insets.xxl,
-                  Insets.base,
+              const _Popisek('STAV'),
+              const SizedBox(height: Insets.xs),
+              nabidka.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: Insets.xl),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-                // Poznámka se píše před výběrem stavu, ne po něm: výběr
-                // stav rovnou uloží a zavře nabídku, takže pole potom
-                // nemá kam patřit. Kdo poznámku nechce, pole přeskočí.
-                child: TextField(
-                  controller: _poznamka,
-                  maxLength: 500,
+                // Výpadek nabídky nesmí zabránit zápisu stavu - zbývá
+                // vlastní text, což je pořád lepší než nic.
+                error: (_, _) => _NabidkaChybi(
+                  text: 'Nabídku stavů se nepodařilo načíst.',
+                  jeVlastni: _jeVlastni,
+                  onVlastni: () => setState(() => _vybrany = _jiny),
+                ),
+                data: (stavy) => stavy.isEmpty
+                    ? _NabidkaChybi(
+                        text: 'Číselník stavů je zatím prázdný.',
+                        jeVlastni: _jeVlastni,
+                        onVlastni: () => setState(() => _vybrany = _jiny),
+                      )
+                    : _VyberStavu(
+                        stavy: stavy,
+                        vybrany: _vybrany,
+                        onZmena: (kod) => setState(() => _vybrany = kod),
+                      ),
+              ),
+
+              if (_jeVlastni) ...[
+                const SizedBox(height: Insets.base),
+                const _Popisek('VLASTNÍ STAV'),
+                const SizedBox(height: Insets.xs),
+                TextField(
+                  controller: _vlastni,
+                  autofocus: true,
+                  maxLength: 100,
                   textCapitalization: TextCapitalization.sentences,
                   style: AppTextStyles.cardBody.copyWith(color: palette.text),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    counterText: '',
-                    hintText: 'Poznámka (nepovinná) – např. stání 4',
-                    hintStyle: AppTextStyles.cardBody.copyWith(
-                      color: palette.muted,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Radii.input),
-                    ),
+                  decoration: _vzhledPole(
+                    context,
+                    'Např. Čeká na díl z Německa',
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
+              ],
+
+              const SizedBox(height: Insets.base),
+              const _Popisek('POZNÁMKA (NEPOVINNÁ)'),
+              const SizedBox(height: Insets.xs),
+              TextField(
+                controller: _poznamka,
+                maxLength: 500,
+                maxLines: 2,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                style: AppTextStyles.cardBody.copyWith(color: palette.text),
+                decoration: _vzhledPole(context, 'Např. stání 4'),
               ),
 
-            if (_pisiVlastni)
-              _VlastniStav(
-                controller: _vlastni,
-                onPotvrdit: _potvrdVlastni,
-                onZpet: () => setState(() => _pisiVlastni = false),
-              )
-            else
-              Flexible(
-                child: nabidka.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(Insets.giant),
-                    child: Center(child: CircularProgressIndicator()),
+              const SizedBox(height: Insets.xl),
+              SizedBox(
+                width: double.infinity,
+                height: Sizes.ctaHeight,
+                child: FilledButton(
+                  onPressed: _lzePridat ? _potvrd : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: palette.plate,
                   ),
-                  // Výpadek nabídky nesmí zabránit zápisu stavu - zbývá
-                  // vlastní text, což je pořád lepší než nic.
-                  error: (_, _) => _Sdeleni(
-                    text:
-                        'Nabídku stavů se nepodařilo načíst. '
-                        'Stav můžete zapsat ručně.',
-                    onVlastni: () => setState(() => _pisiVlastni = true),
-                  ),
-                  data: (stavy) => stavy.isEmpty
-                      ? _Sdeleni(
-                          text: 'Číselník stavů je zatím prázdný.',
-                          onVlastni: () => setState(() => _pisiVlastni = true),
-                        )
-                      : ListView(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.only(bottom: Insets.sm),
-                          children: [
-                            for (final stav in stavy)
-                              ListTile(
-                                title: Text(
-                                  stav.nazev,
-                                  style: AppTextStyles.cardBody.copyWith(
-                                    color: palette.text,
-                                  ),
-                                ),
-                                onTap: () => Navigator.of(context).pop(
-                                  VybranyStav(
-                                    kod: stav.kod,
-                                    poznamka: _zadanaPoznamka,
-                                  ),
-                                ),
-                              ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: const Icon(Icons.edit_note_rounded),
-                              title: Text(
-                                'Jiný…',
-                                style: AppTextStyles.cardBody.copyWith(
-                                  color: AppColors.accent,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              onTap: () => setState(() => _pisiVlastni = true),
-                            ),
-                          ],
-                        ),
+                  child: Text('Přidat', style: AppTextStyles.buttonLabel),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _vzhledPole(BuildContext context, String napoveda) {
+    final palette = context.palette;
+    return InputDecoration(
+      isDense: true,
+      counterText: '',
+      hintText: napoveda,
+      hintStyle: AppTextStyles.cardBody.copyWith(color: palette.muted),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Radii.input),
+      ),
+    );
+  }
+}
+
+class _VyberStavu extends StatelessWidget {
+  const _VyberStavu({
+    required this.stavy,
+    required this.vybrany,
+    required this.onZmena,
+  });
+
+  final List<NabidkaStavu> stavy;
+  final String? vybrany;
+  final ValueChanged<String?> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Insets.base),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Radii.input),
+        border: Border.all(color: palette.hairline2),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: vybrany,
+          isExpanded: true,
+          hint: Text(
+            'Vyberte stav',
+            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+          ),
+          borderRadius: BorderRadius.circular(Radii.input),
+          dropdownColor: palette.card,
+          style: AppTextStyles.cardBody.copyWith(color: palette.text),
+          items: [
+            for (final stav in stavy)
+              DropdownMenuItem(value: stav.kod, child: Text(stav.nazev)),
+            // Na dílně se objeví situace, kterou nikdo dopředu nevymyslel;
+            // čekat kvůli ní na úpravu číselníku by znamenalo, že se stav
+            // nezapíše vůbec.
+            DropdownMenuItem(
+              value: _jiny,
+              child: Text(
+                'Jiný…',
+                style: AppTextStyles.cardBody.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
+          onChanged: onZmena,
         ),
       ),
     );
   }
 }
 
-class _VlastniStav extends StatelessWidget {
-  const _VlastniStav({
-    required this.controller,
-    required this.onPotvrdit,
-    required this.onZpet,
+class _NabidkaChybi extends StatelessWidget {
+  const _NabidkaChybi({
+    required this.text,
+    required this.jeVlastni,
+    required this.onVlastni,
   });
 
-  final TextEditingController controller;
-  final VoidCallback onPotvrdit;
-  final VoidCallback onZpet;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Insets.xxl,
-        Insets.sm,
-        Insets.xxl,
-        Insets.xxl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 100,
-            textCapitalization: TextCapitalization.sentences,
-            style: AppTextStyles.cardBody.copyWith(color: palette.text),
-            decoration: InputDecoration(
-              hintText: 'Např. Čeká na díl z Německa',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Radii.input),
-              ),
-            ),
-            onSubmitted: (_) => onPotvrdit(),
-          ),
-          Row(
-            children: [
-              TextButton(onPressed: onZpet, child: const Text('Zpět')),
-              const Spacer(),
-              FilledButton(
-                onPressed: onPotvrdit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: const Text('Přidat'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Sdeleni extends StatelessWidget {
-  const _Sdeleni({required this.text, required this.onVlastni});
-
   final String text;
+  final bool jeVlastni;
   final VoidCallback onVlastni;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Insets.xxl,
-        Insets.sm,
-        Insets.xxl,
-        Insets.xxl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            text,
-            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-          ),
-          const SizedBox(height: Insets.base),
-          FilledButton.icon(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          text,
+          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+        ),
+        if (!jeVlastni) ...[
+          const SizedBox(height: Insets.sm),
+          OutlinedButton.icon(
             onPressed: onVlastni,
             icon: const Icon(Icons.edit_note_rounded, size: 20),
             label: const Text('Zapsat vlastní stav'),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
           ),
         ],
-      ),
+      ],
+    );
+  }
+}
+
+class _Popisek extends StatelessWidget {
+  const _Popisek(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: AppTextStyles.overline.copyWith(color: context.palette.muted),
     );
   }
 }
