@@ -93,6 +93,12 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             searchController: _searchController,
             onQueryChanged: _onQueryChanged,
             onScan: _skenuj,
+            // Archiv se nabízí, jakmile je co hledat - ne až když seznam
+            // nic nenajde. Zakázka může být rozdělaná i v archivu (starší
+            // oprava téhož vozu) a tudy se k ní člověk dostane rovnou.
+            onHledatVArchivu: filter.query.trim().length >= 3
+                ? () => widget.onSearchArchive(filter.query.trim())
+                : null,
           ),
           StatusFilterChips(
             stavy: ref.watch(pouziteStavyProvider),
@@ -168,12 +174,16 @@ class _ListHeader extends ConsumerWidget {
     required this.searchController,
     required this.onQueryChanged,
     required this.onScan,
+    required this.onHledatVArchivu,
   });
 
   final int? visibleCount;
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onScan;
+
+  /// `null`, dokud není zadaný dost dlouhý dotaz.
+  final VoidCallback? onHledatVArchivu;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -232,6 +242,37 @@ class _ListHeader extends ConsumerWidget {
             onChanged: onQueryChanged,
             onScan: onScan,
           ),
+          if (onHledatVArchivu != null) ...[
+            const SizedBox(height: Insets.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: onHledatVArchivu,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.history_rounded,
+                        size: 16,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: Insets.xs),
+                      Text(
+                        'Hledat i v archivu',
+                        style: AppTextStyles.cardBody.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: Insets.lg),
           DepartmentPicker(
             departments: ref.watch(availableDepartmentsProvider),

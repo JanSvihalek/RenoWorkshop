@@ -249,4 +249,22 @@ void main() {
     expect(find.text('Zpracováváno'), findsOneWidget);
     expect(find.text('Klempířské práce'), findsWidgets);
   });
+
+  testWidgets('archiv je dostupný hned, jak je co hledat', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    // Bez dotazu se archiv nenabízí - nebylo by co v něm hledat.
+    expect(find.text('Hledat i v archivu'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).first, '8AB');
+    await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+    // Nabídne se i když seznam něco našel: tentýž vůz mohl být na dílně
+    // už dřív a ta starší zakázka je jen v archivu.
+    expect(find.text('Hledat i v archivu'), findsOneWidget);
+    expect(find.text('8AB 4721'), findsOneWidget);
+  });
 }

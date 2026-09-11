@@ -6,6 +6,7 @@ import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/widgets/workshop_bottom_nav.dart';
+import '../features/orders/presentation/controllers/orders_providers.dart';
 import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
@@ -51,13 +52,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.skener,
-        builder: (context, state) => SkenerScreen(
-          onBack: () =>
-              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
-          // Skener nahradí sám sebe výsledkem hledání, ať se uživatel
-          // po návratu nekouká znovu do kamery.
-          onNalezeno: (kod) =>
-              context.pushReplacement(AppRoutes.archivHledani(kod.hodnota)),
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) => SkenerScreen(
+            onBack: () =>
+                context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+            // Naskenovaný kód se vloží do hledání v seznamu, ne rovnou do
+            // archivu: hledaný vůz obvykle stojí na dílně, takže je mezi
+            // rozdělanými zakázkami. Když tam není, seznam sám nabídne
+            // hledání v archivu.
+            //
+            // `go`, ne `pushReplacement`: skener se otevírá ze seznamu,
+            // takže by jinak v zásobníku zůstaly dva seznamy pod sebou.
+            onNalezeno: (kod) {
+              ref.read(orderFilterProvider.notifier).setQuery(kod.hodnota);
+              context.go(AppRoutes.orders);
+            },
+          ),
         ),
       ),
       GoRoute(
