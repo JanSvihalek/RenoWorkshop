@@ -58,6 +58,7 @@
           "createdAt": "2026-08-02T7:00:00"
         }
       ],
+      "heliosStatus": "Zpracováváno",
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -137,6 +138,7 @@
           "createdAt": "2026-08-08T7:00:00"
         }
       ],
+      "heliosStatus": "Nenaskladněno",
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -246,6 +248,7 @@
           "createdAt": "2026-08-01T7:00:00"
         }
       ],
+      "heliosStatus": "K fakturaci",
       "branch": {
         "code": "3",
         "label": "Kongresové Centrum"
@@ -288,6 +291,7 @@
           "createdAt": "2026-08-20T7:00:00"
         }
       ],
+      "heliosStatus": "Přijmuto",
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -330,6 +334,7 @@
           "createdAt": "2026-08-23T7:00:00"
         }
       ],
+      "heliosStatus": "Ke schválení",
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -438,6 +443,7 @@
           "createdAt": "2026-08-01T7:00:00"
         }
       ],
+      "heliosStatus": "Zpracováváno",
       "branch": {
         "code": "4",
         "label": "Česká"
@@ -523,6 +529,7 @@
           "createdAt": "2026-08-02T7:00:00"
         }
       ],
+      "heliosStatus": "Nenaskladněno",
       "branch": {
         "code": "4",
         "label": "Česká"
@@ -637,6 +644,7 @@
           "createdAt": "2026-08-01T7:00:00"
         }
       ],
+      "heliosStatus": "K fakturaci",
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -703,6 +711,7 @@
           "createdAt": "2026-08-08T7:00:00"
         }
       ],
+      "heliosStatus": "Přijmuto",
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -752,6 +761,7 @@
           "createdAt": "2026-08-20T7:00:00"
         }
       ],
+      "heliosStatus": "Ke schválení",
       "branch": {
         "code": "3",
         "label": "Kongresové Centrum"
@@ -788,6 +798,7 @@
           "createdAt": "2026-08-23T7:00:00"
         }
       ],
+      "heliosStatus": "Zpracováváno",
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -890,6 +901,7 @@
           "createdAt": "2026-08-01T7:00:00"
         }
       ],
+      "heliosStatus": "Nenaskladněno",
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -998,6 +1010,7 @@
           "createdAt": "2026-08-01T7:00:00"
         }
       ],
+      "heliosStatus": "K fakturaci",
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -1027,6 +1040,7 @@
       "status": null,
       "statusCode": null,
       "statusHistory": [],
+      "heliosStatus": "Přijmuto",
       "branch": null,
       "department": null,
       "receivedAt": "2026-08-25T11:40:00",

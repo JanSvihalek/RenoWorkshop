@@ -125,9 +125,11 @@ class _DetailBody extends ConsumerWidget {
                   Expanded(
                     child: InfoBox(
                       label: 'PŘIJATO',
+                      // Bez času: s ním se datum v úzkém sloupci lámalo
+                      // do dvou řádků a hodina příjmu nikoho nezajímá.
                       value: order.receivedAt == null
                           ? 'Neuvedeno'
-                          : AppDateFormat.dateTime(order.receivedAt!),
+                          : AppDateFormat.date(order.receivedAt!),
                     ),
                   ),
                   const SizedBox(width: Insets.md),
@@ -278,17 +280,52 @@ class _DetailHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: Insets.lg),
+          const SizedBox(height: Insets.base),
+          // VIN má vlastní řádek a je výraznější než ostatní údaje: podle
+          // něj se vůz dohledává a často se přepisuje do jiných systémů.
+          Row(
+            children: [
+              Text(
+                'VIN',
+                style: AppTextStyles.metaSmall.copyWith(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              Expanded(
+                child: SelectableText(
+                  order.vin,
+                  maxLines: 1,
+                  style: AppTextStyles.monoLabel.copyWith(
+                    fontSize: 15,
+                    color: Colors.white,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.xs),
+          Text(
+            order.customerName,
+            style: AppTextStyles.cardBody.copyWith(
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+          const SizedBox(height: Insets.base),
           Wrap(
             spacing: Insets.sm,
             runSpacing: Insets.sm,
             children: [
-              _HeaderChip(order.customerName),
+              // Stav z Heliosu zeleně - Helios je zelený, takže je na první
+              // pohled poznat, který stav je z ERP a který z dílny.
+              if (order.heliosStatus != null)
+                _HeaderChip(order.heliosStatus!, barva: AppColors.heliosGreen),
               _HeaderChip(order.branchLabel),
               if (order.department != null) _HeaderChip(order.departmentLabel),
               if (order.typZakazky != null)
                 _HeaderChip(order.typZakazky!.nazev),
-              _HeaderChip('VIN ${order.vin}'),
             ],
           ),
         ],
@@ -298,9 +335,12 @@ class _DetailHeader extends StatelessWidget {
 }
 
 class _HeaderChip extends StatelessWidget {
-  const _HeaderChip(this.label);
+  const _HeaderChip(this.label, {this.barva});
 
   final String label;
+
+  /// Výplň. Bez ní je chip průsvitný jako ostatní údaje v hlavičce.
+  final Color? barva;
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +352,7 @@ class _HeaderChip extends StatelessWidget {
         maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.11),
+        color: barva ?? Colors.white.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Text(
@@ -320,7 +360,8 @@ class _HeaderChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: AppTextStyles.meta.copyWith(
-          color: Colors.white.withValues(alpha: 0.82),
+          color: Colors.white.withValues(alpha: barva == null ? 0.82 : 1),
+          fontWeight: barva == null ? FontWeight.w400 : FontWeight.w600,
         ),
       ),
     );

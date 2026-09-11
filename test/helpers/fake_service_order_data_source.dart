@@ -128,6 +128,7 @@ ServiceOrderDto buildOrderDto({
   String customerName = 'Petr Novák',
   String status = 'Klempířské práce',
   String? statusCode = 'klempirna',
+  String? heliosStatus = 'Zpracováváno',
   String utvar = '11211',
   String receivedAt = '2026-08-20T08:00:00',
   String dueAt = '2026-08-26T15:00:00',
@@ -142,6 +143,7 @@ ServiceOrderDto buildOrderDto({
     customerName: customerName,
     status: status,
     statusCode: statusCode,
+    heliosStatus: heliosStatus,
     statusHistory: [
       {
         'code': statusCode,

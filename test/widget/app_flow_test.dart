@@ -46,14 +46,16 @@ void main() {
             buildOrderDto(
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
-              status: 'in_repair',
+              status: 'Klempířské práce',
+              statusCode: 'klempirna',
               utvar: '11211',
             ),
             buildOrderDto(
               id: 'ZK-26-0002',
               licensePlate: '2SC 9014',
               customerName: 'Lucie Marková',
-              status: 'waiting_for_parts',
+              status: 'Čeká na díly',
+              statusCode: 'ceka_dily',
               utvar: '12211',
             ),
           ]),
@@ -232,5 +234,19 @@ void main() {
     // Archiv se ptá serveru, ne načteného seznamu.
     expect(find.text('Archiv'), findsOneWidget);
     expect(find.text('Nic se nenašlo'), findsOneWidget);
+  });
+
+  testWidgets('detail ukáže stav z Heliosu vedle dílenského', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('8AB 4721'));
+    await tester.pumpAndSettle();
+
+    // Dva nezávislé pohledy na tutéž zakázku: ERP a dílna.
+    expect(find.text('Zpracováváno'), findsOneWidget);
+    expect(find.text('Klempířské práce'), findsWidgets);
   });
 }

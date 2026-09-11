@@ -16,6 +16,7 @@ class ServiceOrder {
     required this.customerName,
     this.stav,
     this.historieStavu = const [],
+    this.heliosStatus,
     this.branch,
     this.department,
     this.typZakazky,
@@ -42,6 +43,10 @@ class ServiceOrder {
   /// Historie dílenských stavů, nejnovější první. U opravy, která běží
   /// měsíce, je to hlavní přehled o tom, co se dělo.
   final List<DilenskyStav> historieStavu;
+
+  /// Stav z Heliosu. Vede ho ERP a aplikace ho nemění - je to druhý,
+  /// nezávislý pohled na tutéž zakázku.
+  final String? heliosStatus;
 
   /// Pobočka odvozená z útvaru. `null` = útvar chybí nebo se nedal zařadit.
   final Branch? branch;
@@ -144,6 +149,7 @@ class ServiceOrder {
       customerName: customerName,
       stav: stav ?? this.stav,
       historieStavu: historieStavu ?? this.historieStavu,
+      heliosStatus: heliosStatus,
       branch: branch,
       department: department,
       typZakazky: typZakazky,

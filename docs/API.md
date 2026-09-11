@@ -68,7 +68,10 @@ Postup vydání certifikátu je v `RenoWorkshopApi/docs/CERTIFIKAT.md`.
 ## Dílenský stav
 
 Zakázka má dva nezávislé stavy. **Stav z Heliosu** (`heliosStatus`) je jen
-ke čtení. **Dílenský stav** si vede RenoWorkshop sám a je podrobnější.
+ke čtení — posílá se už přeložený číselníkem, tedy `Zpracováváno`, ne číslo.
+Aplikace ho zobrazuje zeleně, protože Helios je zelený a je pak na první
+pohled poznat, který údaj je z ERP. **Dílenský stav** si vede RenoWorkshop
+sám a je podrobnější.
 
 Dílenský stav se **přidává, neposouvá**: oprava po bouračce běží týdny
 a stavy se vracejí i přeskakují, takže žádné pravidlo o krocích neplatí.
@@ -178,6 +181,7 @@ stránkování.
     "receivedAt": "2026-08-21T07:15:00",
     "dueAt": "2026-08-26T16:00:00",
     "vin": "WBAKS4105L9KL83914",
+    "heliosStatus": "Zpracováváno",
     "mechanicName": "Jan Dvořák",
     "serviceAdvisorName": "Martina Horáková",
     "bay": "Stání 4",

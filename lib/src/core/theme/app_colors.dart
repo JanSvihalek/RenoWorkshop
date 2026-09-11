@@ -31,6 +31,10 @@ abstract final class AppColors {
   static const Color qualityBlue = Color(0xFF0B3E7A);
   static const Color readyGreen = Color(0xFF1E7A5A);
   static const Color pickedUpGrey = Color(0xFF8FA3AC);
+
+  /// Stav z Heliosu. Zelená schválně - Helios má zelenou, takže je na
+  /// první pohled poznat, který údaj je z ERP a který z dílny.
+  static const Color heliosGreen = Color(0xFF2E7D32);
   static const Color mutedLight = Color(0xFF6B818A);
   static const Color muted2Light = Color(0xFF3D545C);
   static const Color plateLight = Color(0xFFE4EBEE);

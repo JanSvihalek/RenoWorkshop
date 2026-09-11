@@ -18,6 +18,7 @@ class ServiceOrderDto {
     this.status,
     this.statusCode,
     this.statusHistory = const [],
+    this.heliosStatus,
     required this.branch,
     required this.department,
     this.orderType,
@@ -44,6 +45,10 @@ class ServiceOrderDto {
 
   /// Historie stavů, nejnovější první.
   final List<Map<String, dynamic>> statusHistory;
+
+  /// Stav z Heliosu, už přeložený číselníkem („Zpracováváno"). Vede ho
+  /// ERP, aplikace ho jen zobrazuje.
+  final String? heliosStatus;
 
   /// `{"code": "2", "label": "Čestlice"}`, nebo `null` u zakázky bez útvaru.
   final Map<String, dynamic>? branch;
@@ -76,6 +81,7 @@ class ServiceOrderDto {
       statusCode: json['statusCode'] as String?,
       statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
           .cast<Map<String, dynamic>>(),
+      heliosStatus: json['heliosStatus'] as String?,
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
       orderType: json['orderType'] as Map<String, dynamic>?,
@@ -102,6 +108,7 @@ class ServiceOrderDto {
     'status': status,
     'statusCode': statusCode,
     'statusHistory': statusHistory,
+    'heliosStatus': heliosStatus,
     'branch': branch,
     'department': department,
     'orderType': orderType,
@@ -128,6 +135,7 @@ class ServiceOrderDto {
               ? null
               : DilenskyStav(nazev: status!, kod: statusCode)),
     historieStavu: statusHistory.map(DilenskyStav.fromJson).toList(),
+    heliosStatus: heliosStatus,
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
     typZakazky: orderType == null ? null : TypZakazky.fromJson(orderType!),
@@ -147,6 +155,7 @@ class ServiceOrderDto {
     String? status,
     String? statusCode,
     List<Map<String, dynamic>>? statusHistory,
+    String? heliosStatus,
     List<OrderNoteDto>? notes,
     List<WorkItemDto>? workItems,
   }) {
@@ -158,6 +167,7 @@ class ServiceOrderDto {
       status: status ?? this.status,
       statusCode: statusCode ?? this.statusCode,
       statusHistory: statusHistory ?? this.statusHistory,
+      heliosStatus: heliosStatus ?? this.heliosStatus,
       branch: branch,
       department: department,
       orderType: orderType,
