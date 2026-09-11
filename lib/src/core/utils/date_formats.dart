@@ -14,6 +14,15 @@ abstract final class AppDateFormat {
   static String dayMonth(DateTime value) =>
       DateFormat('d. M.', _locale).format(value);
 
+  /// "26. 8." u letošního data, "26. 8. 2025" u staršího.
+  ///
+  /// V seznamu jsou i opravy staré půl roku a přes přelom roku by holé
+  /// "26. 8." mátlo - vypadalo by to jako letošní zakázka.
+  static String dayMonthSmart(DateTime value, {DateTime? now}) {
+    final reference = now ?? DateTime.now();
+    return value.year == reference.year ? dayMonth(value) : date(value);
+  }
+
   /// "26. 8. 2026" - termín dokončení v detailu.
   static String date(DateTime value) =>
       DateFormat('d. M. yyyy', _locale).format(value);

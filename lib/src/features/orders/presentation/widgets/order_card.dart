@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
@@ -19,7 +18,6 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final overdue = order.isOverdue();
     final bezMechanika = order.mechanicName == null;
 
     return _PressableCard(
@@ -121,24 +119,30 @@ class OrderCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: Insets.sm),
-                if (overdue) ...[
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 14,
-                    color: AppColors.danger,
-                  ),
-                  const SizedBox(width: 4),
-                ],
-                Text(
-                  // Bez termínu se ukáže pomlčka - místo vpravo si drží
-                  // šířku, aby karty pod sebou nezačaly poskakovat.
-                  order.dueAt == null
-                      ? '—'
-                      : AppDateFormat.dayMonth(order.dueAt!),
-                  style: AppTextStyles.orderNumber.copyWith(
-                    fontSize: 12.5,
-                    color: overdue ? AppColors.danger : palette.muted,
-                  ),
+                // Datum přijetí, ne termín dokončení: podle něj se seznam
+                // řadí a u oprav po bouračce bývá termín nevyplněný.
+                // Popisek je u něj proto, aby se nepletlo s termínem.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'PŘIJATO',
+                      style: AppTextStyles.overline.copyWith(
+                        fontSize: 8.5,
+                        color: palette.muted,
+                      ),
+                    ),
+                    Text(
+                      order.receivedAt == null
+                          ? '—'
+                          : AppDateFormat.dayMonthSmart(order.receivedAt!),
+                      style: AppTextStyles.orderNumber.copyWith(
+                        fontSize: 12.5,
+                        color: palette.muted2,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

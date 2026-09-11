@@ -104,4 +104,40 @@ void main() {
       reason: 'zkrácený štítek se musí vejít na jeden řádek',
     );
   });
+
+  testWidgets('karta ukazuje datum přijetí, ne termín', (tester) async {
+    tester.view.physicalSize = const Size(750, 1334);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    final zakazka = ServiceOrder(
+      id: 'Z1212608412',
+      licensePlate: '2BK9485',
+      model: 'BMW - 320d',
+      customerName: 'RENOCAR, a.s.',
+      stav: const DilenskyStav(kod: 'klempirna', nazev: 'Klempířské práce'),
+      receivedAt: DateTime(2026, 3, 4),
+      dueAt: DateTime(2026, 8, 26),
+      vin: 'WBAJN51070G980042',
+      mechanicName: 'Jan Dvořák',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: OrderCard(order: zakazka, onTap: () {}),
+          ),
+        ),
+      ),
+    );
+
+    // Popisek u data, ať se nepletou dvě různá.
+    expect(find.text('PŘIJATO'), findsOneWidget);
+    expect(find.text('4. 3.'), findsOneWidget);
+    // Termín dokončení na kartě není - mátl.
+    expect(find.text('26. 8.'), findsNothing);
+  });
 }
