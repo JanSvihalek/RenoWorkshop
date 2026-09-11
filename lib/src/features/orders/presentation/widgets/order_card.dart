@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/service_order.dart';
+import 'order_status_visuals.dart';
 import 'plate_chip.dart';
 import 'status_badge.dart';
 
@@ -46,7 +48,6 @@ class OrderCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                StatusBadge(stav: order.stav),
               ],
             ),
             const SizedBox(height: 7),
@@ -70,6 +71,20 @@ class OrderCard extends StatelessWidget {
             Text(
               order.customerName,
               style: AppTextStyles.cardBody.copyWith(color: palette.muted2),
+            ),
+            const SizedBox(height: 9),
+            // Dva nezávislé pohledy na tutéž zakázku, každý popsaný, ať se
+            // nepletou: co o ní ví ERP a co dílna.
+            _StavRadek(
+              popisek: 'HELIOS',
+              stav: order.heliosStatus,
+              barva: AppColors.heliosGreen,
+            ),
+            const SizedBox(height: 4),
+            _StavRadek(
+              popisek: 'DÍLNA',
+              stav: order.stav?.nazev,
+              barva: order.stav?.color,
             ),
             const SizedBox(height: 9),
             Row(
@@ -240,6 +255,60 @@ class _TypChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
       ),
+    );
+  }
+}
+
+/// Jeden popsaný stav na kartě: štítek vlevo, hodnota vpravo.
+///
+/// Popisek je u každého schválně - bez něj by dva stavy pod sebou vypadaly
+/// jako jeden údaj a nikdo by nepoznal, který je z Heliosu.
+class _StavRadek extends StatelessWidget {
+  const _StavRadek({
+    required this.popisek,
+    required this.stav,
+    required this.barva,
+  });
+
+  final String popisek;
+  final String? stav;
+  final Color? barva;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 46,
+          child: Text(
+            popisek,
+            style: AppTextStyles.overline.copyWith(
+              fontSize: 8.5,
+              color: palette.muted,
+            ),
+          ),
+        ),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: barva ?? AppColors.pickedUpGrey,
+              borderRadius: BorderRadius.circular(Radii.badge),
+            ),
+            child: Text(
+              stav ?? 'Neuvedeno',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.badge.copyWith(
+                fontSize: 11,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

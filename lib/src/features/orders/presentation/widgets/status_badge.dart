@@ -9,12 +9,24 @@ import 'order_status_visuals.dart';
 /// Badge dílenského stavu - plná výplň, bílý text.
 /// Plná výplň je záměr: musí být čitelná na dálku a v rukavicích.
 class StatusBadge extends StatelessWidget {
-  const StatusBadge({super.key, required this.stav, this.fontSize = 11.5});
+  const StatusBadge({
+    super.key,
+    required this.stav,
+    this.fontSize = 11.5,
+    this.barva,
+    this.prazdnyText = 'Bez stavu',
+  });
 
   /// `null` u zakázky, které stav ještě nikdo nedal.
   final DilenskyStav? stav;
 
   final double fontSize;
+
+  /// Vynutí barvu výplně. Bez ní se odvodí z kódu stavu.
+  final Color? barva;
+
+  /// Co se ukáže, když stav chybí.
+  final String prazdnyText;
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +40,11 @@ class StatusBadge extends StatelessWidget {
         maxWidth: MediaQuery.sizeOf(context).width * 0.45,
       ),
       decoration: BoxDecoration(
-        color: aktualni?.color ?? AppColors.pickedUpGrey,
+        color: barva ?? aktualni?.color ?? AppColors.pickedUpGrey,
         borderRadius: BorderRadius.circular(Radii.badge),
       ),
       child: Text(
-        aktualni?.nazev ?? 'Bez stavu',
+        aktualni?.nazev ?? prazdnyText,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: AppTextStyles.badge.copyWith(

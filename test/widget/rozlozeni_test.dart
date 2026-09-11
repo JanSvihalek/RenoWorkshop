@@ -116,6 +116,7 @@ void main() {
       model: 'BMW - 320d',
       customerName: 'RENOCAR, a.s.',
       stav: const DilenskyStav(kod: 'klempirna', nazev: 'Klempířské práce'),
+      heliosStatus: 'Zpracováváno',
       receivedAt: DateTime(2026, 3, 4),
       dueAt: DateTime(2026, 8, 26),
       vin: 'WBAJN51070G980042',
@@ -136,6 +137,10 @@ void main() {
 
     // Popisek u data, ať se nepletou dvě různá.
     expect(find.text('PŘIJATO'), findsOneWidget);
+    // Oba stavy popsané, ať je poznat, který je z ERP a který z dílny.
+    expect(find.text('HELIOS'), findsOneWidget);
+    expect(find.text('DÍLNA'), findsOneWidget);
+    expect(find.text('Klempířské práce'), findsOneWidget);
     expect(find.text('4. 3.'), findsOneWidget);
     // Termín dokončení na kartě není - mátl.
     expect(find.text('26. 8.'), findsNothing);
