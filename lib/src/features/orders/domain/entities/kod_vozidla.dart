@@ -91,13 +91,35 @@ abstract final class KodyZTextu {
     return nalezene;
   }
 
+  /// SPZ se hledá i přes mezery.
+  ///
+  /// Na tabulce je značka rozdělená („2BK 9485") a u starších i dvakrát
+  /// („AA 155 HR"), takže rozpoznávání vrátí dvě nebo tři slova. Samotné
+  /// „2BK" ani „9485" jako značka nevypadá - hledat jen v jednotlivých
+  /// slovech znamená nenajít vůbec nic.
   static Set<String> _najdiSpz(List<String> slova, Set<String> viny) {
     final nalezene = <String>{};
 
+    void zkus(String kandidat) {
+      if (!_vypadaJakoSpz(kandidat)) return;
+      // Kus VINu není značka, i když tak vypadá.
+      if (viny.any((vin) => vin.contains(kandidat))) return;
+      nalezene.add(kandidat);
+    }
+
+    // Spojená slova mají přednost: značka nasnímaná z tabulky je vždycky
+    // rozdělená, kdežto samostatné slovo bývá spíš něco jiného.
+    for (var i = 0; i < slova.length; i++) {
+      var spojene = slova[i];
+      for (var delka = 1; delka < 3 && i + delka < slova.length; delka++) {
+        spojene += slova[i + delka];
+        if (spojene.length > 8) break;
+        zkus(spojene);
+      }
+    }
+
     for (final slovo in slova) {
-      if (!_vypadaJakoSpz(slovo)) continue;
-      if (viny.any((vin) => vin.contains(slovo))) continue;
-      nalezene.add(slovo);
+      zkus(slovo);
     }
 
     return nalezene;

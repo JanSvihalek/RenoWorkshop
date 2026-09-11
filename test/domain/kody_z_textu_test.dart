@@ -81,4 +81,33 @@ ZUL. GES. GEW. 2100 KG
     expect(kody.first.druh, DruhKodu.vin);
     expect(kody.map((k) => k.druh), contains(DruhKodu.spz));
   });
+
+  group('SPZ přes mezery', () {
+    test('značka z tabulky se najde i s mezerou', () {
+      // Přesně tak, jak ji přečte fotoaparát z tabulky vozu.
+      final kody = KodyZTextu.najdi('2BK 9485');
+
+      expect(kody, isNotEmpty);
+      expect(kody.first.druh, DruhKodu.spz);
+      expect(kody.first.hodnota, '2BK9485');
+    });
+
+    test('starší značka se dvěma mezerami', () {
+      final kody = KodyZTextu.najdi('AA 155 HR');
+
+      expect(kody.map((k) => k.hodnota), contains('AA155HR'));
+    });
+
+    test('značka bez mezery se najde dál', () {
+      final kody = KodyZTextu.najdi('8AE3055');
+
+      expect(kody.map((k) => k.hodnota), contains('8AE3055'));
+    });
+
+    test('modrý pruh s CZ značku nerozbije', () {
+      final kody = KodyZTextu.najdi('CZ 1BN 320');
+
+      expect(kody.map((k) => k.hodnota), contains('1BN320'));
+    });
+  });
 }
