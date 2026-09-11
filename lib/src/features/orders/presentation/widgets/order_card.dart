@@ -8,7 +8,6 @@ import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/service_order.dart';
 import 'order_status_visuals.dart';
 import 'plate_chip.dart';
-import 'status_badge.dart';
 
 /// Karta zakázky v seznamu. Jeden tap = detail.
 class OrderCard extends StatelessWidget {
@@ -61,12 +60,15 @@ class OrderCard extends StatelessWidget {
                   order.model,
                   style: AppTextStyles.cardModel.copyWith(color: palette.text),
                 ),
-                // Do Wrapu schválně: na úzkém displeji se typ přesune na
-                // další řádek místo aby kartu roztáhl.
-                if (order.typZakazky != null)
-                  _TypChip(nazev: order.typZakazky!.nazev),
               ],
             ),
+            // Typ zakázky má vlastní řádek. Ve Wrapu vedle modelu skákal
+            // podle délky názvu - u krátkého se vešel vedle, u dlouhého
+            // spadl pod něj - a karty pak nevypadaly stejně.
+            if (order.typZakazky != null) ...[
+              const SizedBox(height: 6),
+              _TypChip(nazev: order.typZakazky!.nazev),
+            ],
             const SizedBox(height: 7),
             Text(
               order.customerName,
