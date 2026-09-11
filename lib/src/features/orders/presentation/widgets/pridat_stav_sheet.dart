@@ -7,12 +7,16 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../controllers/orders_providers.dart';
 
-/// Co uživatel vybral: buď stav z číselníku, nebo vlastní text.
+/// Co uživatel vybral: buď stav z číselníku, nebo vlastní text,
+/// a k tomu nepovinná poznámka.
 class VybranyStav {
-  const VybranyStav({this.kod, this.nazev});
+  const VybranyStav({this.kod, this.nazev, this.poznamka});
 
   final String? kod;
   final String? nazev;
+
+  /// Kde vůz stojí, na kterém zvedáku, na co se čeká.
+  final String? poznamka;
 }
 
 /// Výběr dílenského stavu.
@@ -38,18 +42,27 @@ class _PridatStavSheet extends ConsumerStatefulWidget {
 
 class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   final _vlastni = TextEditingController();
+  final _poznamka = TextEditingController();
   bool _pisiVlastni = false;
 
   @override
   void dispose() {
     _vlastni.dispose();
+    _poznamka.dispose();
     super.dispose();
+  }
+
+  String? get _zadanaPoznamka {
+    final text = _poznamka.text.trim();
+    return text.isEmpty ? null : text;
   }
 
   void _potvrdVlastni() {
     final text = _vlastni.text.trim();
     if (text.isEmpty) return;
-    Navigator.of(context).pop(VybranyStav(nazev: text));
+    Navigator.of(
+      context,
+    ).pop(VybranyStav(nazev: text, poznamka: _zadanaPoznamka));
   }
 
   @override
@@ -96,6 +109,36 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
               ),
             ),
 
+            if (!_pisiVlastni)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Insets.xxl,
+                  0,
+                  Insets.xxl,
+                  Insets.base,
+                ),
+                // Poznámka se píše před výběrem stavu, ne po něm: výběr
+                // stav rovnou uloží a zavře nabídku, takže pole potom
+                // nemá kam patřit. Kdo poznámku nechce, pole přeskočí.
+                child: TextField(
+                  controller: _poznamka,
+                  maxLength: 500,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTextStyles.cardBody.copyWith(color: palette.text),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    counterText: '',
+                    hintText: 'Poznámka (nepovinná) – např. stání 4',
+                    hintStyle: AppTextStyles.cardBody.copyWith(
+                      color: palette.muted,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Radii.input),
+                    ),
+                  ),
+                ),
+              ),
+
             if (_pisiVlastni)
               _VlastniStav(
                 controller: _vlastni,
@@ -134,9 +177,12 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                                     color: palette.text,
                                   ),
                                 ),
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pop(VybranyStav(kod: stav.kod)),
+                                onTap: () => Navigator.of(context).pop(
+                                  VybranyStav(
+                                    kod: stav.kod,
+                                    poznamka: _zadanaPoznamka,
+                                  ),
+                                ),
                               ),
                             const Divider(height: 1),
                             ListTile(

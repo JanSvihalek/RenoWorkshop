@@ -80,7 +80,7 @@ a stavy se vracejí i přeskakují, takže žádné pravidlo o krocích neplatí
 |---|---|
 | `status` | text aktuálního stavu, `null` u zakázky bez stavu |
 | `statusCode` | kód z číselníku, `null` u ručně zapsaného |
-| `statusHistory` | celá historie, **nejnovější první** |
+| `statusHistory` | celá historie, **nejnovější první**; každý záznam má `id`, `code`, `label`, `note`, `author`, `createdAt` |
 
 Aktuální stav je první záznam historie. Zakázka, které stav nikdo nedal,
 má `status: null` — z Heliosu se neodvozuje.
@@ -103,9 +103,17 @@ Přidá stav do historie. Buď `code` z číselníku, nebo `label` s vlastním
 textem:
 
 ```json
-{ "code": "lakovna" }
+{ "code": "lakovna", "note": "stání 4" }
 { "label": "Čeká na díl z Německa" }
 ```
+
+`note` je nepovinná poznámka ke kroku — kde vůz stojí, na kterém je
+zvedáku, na co se čeká.
+
+### DELETE /orders/{id}/stavy/{zaznamId}
+
+Smaže jeden záznam z historie. Oprava omylem přidaného stavu: je to
+pracovní přehled dílny, ne auditní doklad. Vrací aktualizovanou zakázku.
 
 Vrací celou aktualizovanou zakázku. Název se ukládá i u číselníkového
 stavu — přejmenování v číselníku nesmí zpětně přepsat historii.

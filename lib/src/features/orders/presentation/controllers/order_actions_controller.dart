@@ -25,12 +25,22 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   ///
   /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Vrací `true`
   /// při úspěchu; chyba se propíše do stavu controlleru.
-  Future<bool> pridejStav(String orderId, {String? kod, String? nazev}) async {
+  Future<bool> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  }) async {
     if (kod == null && (nazev == null || nazev.trim().isEmpty)) return false;
 
     state = const AsyncLoading();
     try {
-      await _repository.pridejStav(orderId, kod: kod, nazev: nazev?.trim());
+      await _repository.pridejStav(
+        orderId,
+        kod: kod,
+        nazev: nazev?.trim(),
+        poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
+      );
       state = const AsyncData(null);
       return true;
     } on ServiceOrderException catch (error, stackTrace) {
@@ -74,6 +84,19 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
       state = const AsyncData(null);
     } on ServiceOrderException catch (error, stackTrace) {
       state = AsyncError(error.message, stackTrace);
+    }
+  }
+
+  /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
+  Future<bool> smazStav(String orderId, String zaznamId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.smazStav(orderId, zaznamId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
     }
   }
 }

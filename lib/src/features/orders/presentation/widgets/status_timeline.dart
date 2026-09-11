@@ -15,12 +15,20 @@ import 'order_status_visuals.dart';
 ///
 /// Nejnovější je nahoře.
 class StatusTimeline extends StatelessWidget {
-  const StatusTimeline({super.key, required this.historie, required this.bay});
+  const StatusTimeline({
+    super.key,
+    required this.historie,
+    required this.bay,
+    this.onSmazat,
+  });
 
   final List<DilenskyStav> historie;
 
   /// Stání / box, kde vozidlo právě stojí (meta u posledního kroku).
   final String bay;
+
+  /// Smaže záznam. `null` schová mazání úplně.
+  final void Function(DilenskyStav stav)? onSmazat;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +50,7 @@ class StatusTimeline extends StatelessWidget {
             jeAktualni: index == 0,
             jePosledniVSeznamu: index == historie.length - 1,
             bay: bay,
+            onSmazat: onSmazat,
           ),
       ],
     );
@@ -54,12 +63,14 @@ class _TimelineRow extends StatelessWidget {
     required this.jeAktualni,
     required this.jePosledniVSeznamu,
     required this.bay,
+    required this.onSmazat,
   });
 
   final DilenskyStav stav;
   final bool jeAktualni;
   final bool jePosledniVSeznamu;
   final String bay;
+  final void Function(DilenskyStav stav)? onSmazat;
 
   @override
   Widget build(BuildContext context) {
@@ -103,15 +114,46 @@ class _TimelineRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    stav.nazev,
-                    style: AppTextStyles.cardBody.copyWith(
-                      color: palette.text,
-                      fontWeight: jeAktualni
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          stav.nazev,
+                          style: AppTextStyles.cardBody.copyWith(
+                            color: palette.text,
+                            fontWeight: jeAktualni
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      // Mazání jen u záznamů, které prošly serverem -
+                      // bez id není co smazat.
+                      if (onSmazat != null && stav.id != null)
+                        GestureDetector(
+                          onTap: () => onSmazat!(stav),
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: Insets.sm),
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: palette.muted,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
+                  // Co k tomu kroku patří - kde vůz stojí, na co se čeká.
+                  if (stav.poznamka != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      stav.poznamka!,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.muted2,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 2),
                   Text(
                     _popisek(),

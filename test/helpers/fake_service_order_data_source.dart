@@ -52,14 +52,17 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
     String orderId, {
     String? kod,
     String? nazev,
+    String? poznamka,
   }) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
 
     final popis = nazev ?? nabidka.firstWhere((s) => s.kod == kod).nazev;
     final zaznam = {
+      'id': 'stav-${_orders[index].statusHistory.length + 1}',
       'code': kod,
       'label': popis,
+      'note': poznamka,
       'author': 'Jan Dvořák',
       'createdAt': '2026-08-28T10:00:00',
     };
@@ -78,6 +81,23 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
     NabidkaStavu(kod: 'lakovna', nazev: 'Lakovna'),
     NabidkaStavu(kod: 'pripraveno', nazev: 'Připraveno k vyzvednutí'),
   ];
+
+  @override
+  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+
+    final zbyle = _orders[index].statusHistory
+        .where((zaznam) => zaznam['id'] != zaznamId)
+        .toList();
+
+    return _orders[index] = _orders[index].copyWith(
+      status: zbyle.isEmpty ? null : zbyle.first['label'] as String?,
+      statusCode: zbyle.isEmpty ? null : zbyle.first['code'] as String?,
+      statusHistory: zbyle,
+      vymazatStav: zbyle.isEmpty,
+    );
+  }
 
   @override
   Future<List<NabidkaStavu>> nabidkaStavu() async => nabidka;
@@ -146,6 +166,7 @@ ServiceOrderDto buildOrderDto({
     heliosStatus: heliosStatus,
     statusHistory: [
       {
+        'id': 'stav-1',
         'code': statusCode,
         'label': status,
         'author': 'Jan Dvořák',

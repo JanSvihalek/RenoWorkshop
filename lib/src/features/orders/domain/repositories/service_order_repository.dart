@@ -29,7 +29,15 @@ abstract interface class ServiceOrderRepository {
   ///
   /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Stav se
   /// přidává, neposouvá - na klempírně se sled prací vrací i přeskakuje.
-  Future<ServiceOrder> pridejStav(String orderId, {String? kod, String? nazev});
+  Future<ServiceOrder> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  });
+
+  /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
+  Future<ServiceOrder> smazStav(String orderId, String zaznamId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

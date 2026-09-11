@@ -85,11 +85,22 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     String orderId, {
     String? kod,
     String? nazev,
+    String? poznamka,
   }) {
     return _mutate(
       orderId,
-      () => _dataSource.pridejStav(orderId, kod: kod, nazev: nazev),
+      () => _dataSource.pridejStav(
+        orderId,
+        kod: kod,
+        nazev: nazev,
+        poznamka: poznamka,
+      ),
     );
+  }
+
+  @override
+  Future<ServiceOrder> smazStav(String orderId, String zaznamId) {
+    return _mutate(orderId, () => _dataSource.smazStav(orderId, zaznamId));
   }
 
   @override

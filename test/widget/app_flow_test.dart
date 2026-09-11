@@ -127,6 +127,13 @@ void main() {
     // Nový stav je v historii i v hlavičce detailu.
     expect(find.text('Lakovna'), findsWidgets);
 
+    // Omylem přidaný stav jde smazat.
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Smazat stav?'), findsOneWidget);
+    await tester.tap(find.text('Zrušit'));
+    await tester.pumpAndSettle();
+
     await tester.tap(_backButton());
     await tester.pumpAndSettle();
 

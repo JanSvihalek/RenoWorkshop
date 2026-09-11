@@ -86,6 +86,7 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
     String orderId, {
     String? kod,
     String? nazev,
+    String? poznamka,
   }) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
@@ -103,8 +104,10 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
 
     // Nejnovější záznam patří na začátek - stejně jako je vrací server.
     final zaznam = {
+      'id': 'stav-${DateTime.now().microsecondsSinceEpoch}',
       'code': kod,
       'label': popis,
+      'note': poznamka,
       'author': 'Jan Dvořák',
       'createdAt': DateTime.now().toIso8601String(),
     };
@@ -136,6 +139,27 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
     NabidkaStavu(kod: 'pripraveno', nazev: 'Připraveno k vyzvednutí'),
     NabidkaStavu(kod: 'vyzvednuto', nazev: 'Vyzvednuto'),
   ];
+
+  @override
+  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+
+    final zbyle = orders[index].statusHistory
+        .where((zaznam) => zaznam['id'] != zaznamId)
+        .toList();
+
+    final updated = orders[index].copyWith(
+      status: zbyle.isEmpty ? null : zbyle.first['label'] as String?,
+      statusCode: zbyle.isEmpty ? null : zbyle.first['code'] as String?,
+      statusHistory: zbyle,
+      vymazatStav: zbyle.isEmpty,
+    );
+    orders[index] = updated;
+    return updated;
+  }
 
   @override
   Future<List<NabidkaStavu>> nabidkaStavu() async {

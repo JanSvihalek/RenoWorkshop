@@ -7,7 +7,18 @@
 ///
 /// Poslední záznam je ten platný.
 class DilenskyStav {
-  const DilenskyStav({required this.nazev, this.kod, this.autor, this.zadano});
+  const DilenskyStav({
+    required this.nazev,
+    this.id,
+    this.kod,
+    this.poznamka,
+    this.autor,
+    this.zadano,
+  });
+
+  /// Identifikátor záznamu na serveru. Podle něj se maže omylem přidaný
+  /// stav; `null` u stavu, který ještě neprošel serverem.
+  final String? id;
 
   /// Kód z číselníku, nebo `null` u ručně zapsaného stavu („Jiný").
   final String? kod;
@@ -15,6 +26,10 @@ class DilenskyStav {
   /// Text stavu tak, jak se má zobrazit. U číselníkového stavu je to jeho
   /// název **v době zápisu** — přejmenování v číselníku nemění historii.
   final String nazev;
+
+  /// Co k tomu stavu patří - kde vůz stojí, na kterém zvedáku, na co se
+  /// čeká. Drží se u konkrétního kroku, ne u zakázky jako celku.
+  final String? poznamka;
 
   /// Kdo stav zapsal. `null` u záznamů převedených ze starých dat.
   final String? autor;
@@ -27,7 +42,9 @@ class DilenskyStav {
   factory DilenskyStav.fromJson(Map<String, dynamic> json) {
     final zadano = json['createdAt'] as String?;
     return DilenskyStav(
+      id: json['id'] as String?,
       kod: json['code'] as String?,
+      poznamka: json['note'] as String?,
       nazev: json['label'] as String,
       autor: json['author'] as String?,
       zadano: zadano == null ? null : DateTime.tryParse(zadano),
@@ -35,8 +52,10 @@ class DilenskyStav {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'code': kod,
     'label': nazev,
+    'note': poznamka,
     'author': autor,
     'createdAt': zadano?.toIso8601String(),
   };

@@ -158,14 +158,18 @@ class ServiceOrderDto {
     String? heliosStatus,
     List<OrderNoteDto>? notes,
     List<WorkItemDto>? workItems,
+
+    /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
+    /// by `??` nechalo ten původní.
+    bool vymazatStav = false,
   }) {
     return ServiceOrderDto(
       id: id,
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
-      status: status ?? this.status,
-      statusCode: statusCode ?? this.statusCode,
+      status: vymazatStav ? null : (status ?? this.status),
+      statusCode: vymazatStav ? null : (statusCode ?? this.statusCode),
       statusHistory: statusHistory ?? this.statusHistory,
       heliosStatus: heliosStatus ?? this.heliosStatus,
       branch: branch,

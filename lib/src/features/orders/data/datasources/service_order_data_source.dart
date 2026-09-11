@@ -25,7 +25,11 @@ abstract interface class ServiceOrderDataSource {
     String orderId, {
     String? kod,
     String? nazev,
+    String? poznamka,
   });
+
+  /// Smaže záznam z historie stavů.
+  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

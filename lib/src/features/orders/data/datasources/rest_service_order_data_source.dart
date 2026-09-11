@@ -69,11 +69,22 @@ class RestServiceOrderDataSource implements ServiceOrderDataSource {
     String orderId, {
     String? kod,
     String? nazev,
+    String? poznamka,
   }) async {
     final data = await _send(
       'POST',
       'orders/${Uri.encodeComponent(orderId)}/stavy',
-      body: {'code': ?kod, 'label': ?nazev},
+      body: {'code': ?kod, 'label': ?nazev, 'note': ?poznamka},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
+    final data = await _send(
+      'DELETE',
+      'orders/${Uri.encodeComponent(orderId)}'
+          '/stavy/${Uri.encodeComponent(zaznamId)}',
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

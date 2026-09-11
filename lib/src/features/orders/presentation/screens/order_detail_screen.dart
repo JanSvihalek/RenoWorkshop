@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/work_item.dart';
 import '../controllers/order_actions_controller.dart';
@@ -75,12 +76,49 @@ class _DetailBody extends ConsumerWidget {
 
     final hotovo = await ref
         .read(orderActionsProvider.notifier)
-        .pridejStav(order.id, kod: vybrany.kod, nazev: vybrany.nazev);
+        .pridejStav(
+          order.id,
+          kod: vybrany.kod,
+          nazev: vybrany.nazev,
+          poznamka: vybrany.poznamka,
+        );
 
     if (hotovo && context.mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
+    }
+  }
+
+  /// Smaže záznam z historie stavů. Ptá se, protože záznam zmizí nadobro
+  /// a u cizího zápisu nemusí být zřejmé, že šlo o omyl.
+  Future<void> _smazStav(
+    BuildContext context,
+    WidgetRef ref,
+    DilenskyStav stav,
+  ) async {
+    final potvrzeno = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: const Text('Smazat stav?'),
+        content: Text('Ze zakázky zmizí záznam „${stav.nazev}".'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Zrušit'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Smazat'),
+          ),
+        ],
+      ),
+    );
+
+    if ((potvrzeno ?? false) && stav.id != null) {
+      await ref
+          .read(orderActionsProvider.notifier)
+          .smazStav(order.id, stav.id!);
     }
   }
 
@@ -159,6 +197,7 @@ class _DetailBody extends ConsumerWidget {
                     StatusTimeline(
                       historie: order.historieStavu,
                       bay: order.bayLabel,
+                      onSmazat: (stav) => _smazStav(context, ref, stav),
                     ),
                   ],
                 ),
