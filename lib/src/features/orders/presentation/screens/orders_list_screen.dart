@@ -95,7 +95,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             onScan: _skenuj,
           ),
           StatusFilterChips(
-            selected: filter.status,
+            stavy: ref.watch(pouziteStavyProvider),
+            selected: filter.statusCode,
             onChanged: ref.read(orderFilterProvider.notifier).setStatus,
           ),
           Expanded(

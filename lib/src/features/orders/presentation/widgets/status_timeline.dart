@@ -1,33 +1,46 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
-import '../../domain/entities/order_status.dart';
+import '../../../../core/utils/date_formats.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import 'order_status_visuals.dart';
 
-/// Svislá časová osa postupu zakázky - všech 7 stavů, aktuální zvýrazněný.
+/// Svislá časová osa dílenských stavů — co se na zakázce dělo.
+///
+/// Není to sled předem daných kroků, ale **historie toho, co kdo zapsal**.
+/// U opravy po bouračce, která běží měsíce, je hlavní informace právě to,
+/// kdy se co stalo a jak dlouho se na co čekalo.
+///
+/// Nejnovější je nahoře.
 class StatusTimeline extends StatelessWidget {
-  const StatusTimeline({super.key, required this.status, required this.bay});
+  const StatusTimeline({super.key, required this.historie, required this.bay});
 
-  final OrderStatus status;
+  final List<DilenskyStav> historie;
 
-  /// Stání / box, kde vozidlo právě stojí (meta u aktuálního kroku).
+  /// Stání / box, kde vozidlo právě stojí (meta u posledního kroku).
   final String bay;
 
   @override
   Widget build(BuildContext context) {
-    final steps = OrderStatus.values;
+    final palette = context.palette;
+
+    if (historie.isEmpty) {
+      return Text(
+        'Zakázka zatím nemá žádný dílenský stav. Přidejte první tlačítkem výš.',
+        style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+      );
+    }
 
     return Column(
       children: [
-        for (var index = 0; index < steps.length; index++)
+        for (var index = 0; index < historie.length; index++)
           _TimelineRow(
-            step: steps[index],
-            isDone: index < status.step,
-            isCurrent: index == status.step,
-            isLast: index == steps.length - 1,
+            stav: historie[index],
+            // Platný je poslední zapsaný, tedy ten nahoře.
+            jeAktualni: index == 0,
+            jePosledniVSeznamu: index == historie.length - 1,
             bay: bay,
           ),
       ],
@@ -37,83 +50,73 @@ class StatusTimeline extends StatelessWidget {
 
 class _TimelineRow extends StatelessWidget {
   const _TimelineRow({
-    required this.step,
-    required this.isDone,
-    required this.isCurrent,
-    required this.isLast,
+    required this.stav,
+    required this.jeAktualni,
+    required this.jePosledniVSeznamu,
     required this.bay,
   });
 
-  final OrderStatus step;
-  final bool isDone;
-  final bool isCurrent;
-  final bool isLast;
+  final DilenskyStav stav;
+  final bool jeAktualni;
+  final bool jePosledniVSeznamu;
   final String bay;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final isDark = context.isDarkMode;
-    final doneColor = isDark
-        ? Colors.white.withValues(alpha: 0.28)
-        : AppColors.neutralLight;
-
-    final meta = isCurrent
-        ? 'Aktuální stav · $bay'
-        : (isDone ? 'Dokončeno' : 'Nezahájeno');
+    final barva = jeAktualni ? stav.color : palette.muted;
 
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: Sizes.timelineDot,
-            child: Column(
-              children: [
-                _Dot(
-                  step: step,
-                  isDone: isDone,
-                  isCurrent: isCurrent,
-                  doneColor: doneColor,
+          Column(
+            children: [
+              Container(
+                width: Sizes.timelineDot,
+                height: Sizes.timelineDot,
+                decoration: BoxDecoration(
+                  color: jeAktualni ? barva : Colors.transparent,
+                  border: Border.all(color: barva, width: 2),
+                  shape: BoxShape.circle,
                 ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      constraints: const BoxConstraints(minHeight: Insets.lg),
-                      color: isDone ? doneColor : palette.hairline,
-                    ),
+                child: jeAktualni
+                    ? const Icon(Icons.check, size: 12, color: Colors.white)
+                    : null,
+              ),
+              if (!jePosledniVSeznamu)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: palette.hairline2,
+                    margin: const EdgeInsets.symmetric(vertical: 2),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: Insets.base),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: Insets.xl),
+              padding: EdgeInsets.only(
+                bottom: jePosledniVSeznamu ? 0 : Insets.lg,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    step.label,
-                    style: TextStyle(
-                      fontFamily: AppFonts.sans,
-                      fontSize: isCurrent ? 15.5 : 14.5,
-                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: -0.15,
-                      color: isCurrent
-                          ? palette.text
-                          : (isDone ? palette.muted2 : palette.muted),
+                    stav.nazev,
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: palette.text,
+                      fontWeight: jeAktualni
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    meta,
-                    style: TextStyle(
-                      fontFamily: AppFonts.sans,
-                      fontSize: 12,
-                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                      color: isCurrent ? step.color : palette.muted,
+                    _popisek(),
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
                     ),
                   ),
                 ],
@@ -124,49 +127,14 @@ class _TimelineRow extends StatelessWidget {
       ),
     );
   }
-}
 
-class _Dot extends StatelessWidget {
-  const _Dot({
-    required this.step,
-    required this.isDone,
-    required this.isCurrent,
-    required this.doneColor,
-  });
-
-  final OrderStatus step;
-  final bool isDone;
-  final bool isCurrent;
-  final Color doneColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      width: Sizes.timelineDot,
-      height: Sizes.timelineDot,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isCurrent
-            ? step.color
-            : (isDone ? doneColor : Colors.transparent),
-        border: isCurrent
-            ? Border.all(color: step.color, width: 3)
-            : (isDone ? null : Border.all(color: palette.hairline2, width: 2)),
-        boxShadow: isCurrent
-            ? [
-                BoxShadow(
-                  color: step.color.withValues(alpha: 0.18),
-                  spreadRadius: 4,
-                ),
-              ]
-            : null,
-      ),
-      child: isDone
-          ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
-          : null,
-    );
+  /// Kdy a kdo — u aktuálního stavu i stání, pokud je vyplněné.
+  String _popisek() {
+    final casti = <String>[
+      if (stav.zadano != null) AppDateFormat.dateTime(stav.zadano!),
+      if (stav.autor != null) stav.autor!,
+      if (jeAktualni && bay.isNotEmpty) bay,
+    ];
+    return casti.isEmpty ? '—' : casti.join(' · ');
   }
 }

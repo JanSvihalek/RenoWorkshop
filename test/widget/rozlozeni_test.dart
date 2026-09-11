@@ -5,7 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/mock_service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/typ_zakazky.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
@@ -63,7 +63,7 @@ void main() {
       licensePlate: '2BK9485',
       model: 'BMW - 320d xDrive Touring',
       customerName: 'RENOCAR, a.s.',
-      status: OrderStatus.values.first,
+      stav: const DilenskyStav(kod: 'prijato', nazev: 'Přijato'),
       // Řady se v Heliosu jmenují popisně, ne zkratkou.
       typZakazky: const TypZakazky(
         kod: 'KL',

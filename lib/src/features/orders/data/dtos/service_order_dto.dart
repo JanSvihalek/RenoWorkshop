@@ -1,6 +1,6 @@
 import '../../domain/entities/branch.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/order_note.dart';
-import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
@@ -15,7 +15,9 @@ class ServiceOrderDto {
     required this.licensePlate,
     required this.model,
     required this.customerName,
-    required this.status,
+    this.status,
+    this.statusCode,
+    this.statusHistory = const [],
     required this.branch,
     required this.department,
     this.orderType,
@@ -33,7 +35,15 @@ class ServiceOrderDto {
   final String licensePlate;
   final String model;
   final String customerName;
-  final String status;
+
+  /// Text aktuálního dílenského stavu, `null` u zakázky bez stavu.
+  final String? status;
+
+  /// Kód stavu z číselníku; `null` u ručně zapsaného i u chybějícího.
+  final String? statusCode;
+
+  /// Historie stavů, nejnovější první.
+  final List<Map<String, dynamic>> statusHistory;
 
   /// `{"code": "2", "label": "Čestlice"}`, nebo `null` u zakázky bez útvaru.
   final Map<String, dynamic>? branch;
@@ -62,7 +72,10 @@ class ServiceOrderDto {
       licensePlate: json['licensePlate'] as String,
       model: json['model'] as String,
       customerName: json['customerName'] as String,
-      status: json['status'] as String,
+      status: json['status'] as String?,
+      statusCode: json['statusCode'] as String?,
+      statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
+          .cast<Map<String, dynamic>>(),
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
       orderType: json['orderType'] as Map<String, dynamic>?,
@@ -87,6 +100,8 @@ class ServiceOrderDto {
     'model': model,
     'customerName': customerName,
     'status': status,
+    'statusCode': statusCode,
+    'statusHistory': statusHistory,
     'branch': branch,
     'department': department,
     'orderType': orderType,
@@ -105,7 +120,14 @@ class ServiceOrderDto {
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,
-    status: OrderStatus.fromApiValue(status),
+    // Aktuální stav je první záznam historie; `status` je jen jeho text,
+    // takže z historie se vezme i kdo a kdy ho zapsal.
+    stav: statusHistory.isNotEmpty
+        ? DilenskyStav.fromJson(statusHistory.first)
+        : (status == null
+              ? null
+              : DilenskyStav(nazev: status!, kod: statusCode)),
+    historieStavu: statusHistory.map(DilenskyStav.fromJson).toList(),
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
     typZakazky: orderType == null ? null : TypZakazky.fromJson(orderType!),
@@ -123,6 +145,8 @@ class ServiceOrderDto {
 
   ServiceOrderDto copyWith({
     String? status,
+    String? statusCode,
+    List<Map<String, dynamic>>? statusHistory,
     List<OrderNoteDto>? notes,
     List<WorkItemDto>? workItems,
   }) {
@@ -132,6 +156,8 @@ class ServiceOrderDto {
       model: model,
       customerName: customerName,
       status: status ?? this.status,
+      statusCode: statusCode ?? this.statusCode,
+      statusHistory: statusHistory ?? this.statusHistory,
       branch: branch,
       department: department,
       orderType: orderType,

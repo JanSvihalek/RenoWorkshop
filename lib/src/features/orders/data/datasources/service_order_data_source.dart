@@ -1,3 +1,4 @@
+import '../../domain/entities/dilensky_stav.dart';
 import '../dtos/service_order_dto.dart';
 
 /// Zdroj dat o zakázkách - jediné místo, které se v další fázi vymění
@@ -19,7 +20,15 @@ abstract interface class ServiceOrderDataSource {
   Future<List<ServiceOrderDto>> searchOrders(String query);
 
   /// PATCH /orders/{id} { status }
-  Future<ServiceOrderDto?> updateStatus(String orderId, String statusApiValue);
+  /// Přidá dílenský stav. Buď `kod` z číselníku, nebo vlastní `nazev`.
+  Future<ServiceOrderDto?> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+  });
+
+  /// Nabídka stavů z číselníku na serveru.
+  Future<List<NabidkaStavu>> nabidkaStavu();
 
   /// POST /orders/{id}/notes
   Future<ServiceOrderDto?> addNote({

@@ -1,4 +1,4 @@
-import '../entities/order_status.dart';
+import '../entities/dilensky_stav.dart';
 import '../entities/service_order.dart';
 
 /// Kontrakt datové vrstvy pro servisní zakázky.
@@ -25,8 +25,14 @@ abstract interface class ServiceOrderRepository {
   /// jehož výsledek se zobrazí zvlášť a zase zmizí.
   Future<List<ServiceOrder>> searchArchive(String query);
 
-  /// Nastaví stav zakázky (posun na dílně).
-  Future<ServiceOrder> updateStatus(String orderId, OrderStatus status);
+  /// Přidá dílenský stav do historie zakázky.
+  ///
+  /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Stav se
+  /// přidává, neposouvá - na klempírně se sled prací vrací i přeskakuje.
+  Future<ServiceOrder> pridejStav(String orderId, {String? kod, String? nazev});
+
+  /// Nabídka stavů z číselníku na serveru.
+  Future<List<NabidkaStavu>> nabidkaStavu();
 
   /// Přidá poznámku mechanika / poradce.
   Future<ServiceOrder> addNote({

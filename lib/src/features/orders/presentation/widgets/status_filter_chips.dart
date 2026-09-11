@@ -4,25 +4,33 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
-import '../../domain/entities/order_status.dart';
+import '../../domain/entities/dilensky_stav.dart';
 
 /// Vodorovná řada filtrů stavů pod app barem. `null` = všechny stavy.
+///
+/// Nabízí jen stavy, které jsou v načtených zakázkách - číselník jich může
+/// mít dvacet, ale filtrovat podle stavu, který na dílně nikdo nemá, nemá
+/// smysl. Řada se vodorovně posouvá.
 class StatusFilterChips extends StatelessWidget {
   const StatusFilterChips({
     super.key,
+    required this.stavy,
     required this.selected,
     required this.onChanged,
   });
 
-  final OrderStatus? selected;
-  final ValueChanged<OrderStatus?> onChanged;
+  final List<DilenskyStav> stavy;
+
+  /// Kód vybraného stavu.
+  final String? selected;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final options = <(OrderStatus?, String)>[
+    final options = <(String?, String)>[
       (null, 'Všechny stavy'),
-      for (final status in OrderStatus.values) (status, status.shortLabel),
+      for (final stav in stavy) (stav.kod, stav.nazev),
     ];
 
     return Container(
@@ -38,14 +46,13 @@ class StatusFilterChips extends StatelessWidget {
         ),
         child: Row(
           children: [
-            for (final (status, label) in options) ...[
+            for (final (kod, label) in options) ...[
               _FilterChip(
                 label: label,
-                isSelected: selected == status,
-                onTap: () => onChanged(status),
+                isSelected: selected == kod,
+                onTap: () => onChanged(kod),
               ),
-              if (status != OrderStatus.values.last)
-                const SizedBox(width: Insets.sm),
+              if (kod != options.last.$1) const SizedBox(width: Insets.sm),
             ],
           ],
         ),

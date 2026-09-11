@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/branch.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/order_filter.dart';
-import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
 
 ServiceOrder order({
   required String id,
-  required OrderStatus status,
+  required String stavKod,
+  required String stavNazev,
   required Branch branch,
   Department? department,
   String licensePlate = '1AA 1111',
@@ -23,7 +24,7 @@ ServiceOrder order({
     licensePlate: licensePlate,
     model: 'BMW 320d',
     customerName: customerName,
-    status: status,
+    stav: DilenskyStav(kod: stavKod, nazev: stavNazev),
     branch: branch,
     department: department,
     receivedAt: receivedAt ?? DateTime(2026, 8, 20, 8),
@@ -41,20 +42,23 @@ void main() {
   final orders = [
     order(
       id: 'A',
-      status: OrderStatus.inRepair,
+      stavKod: 'klempirna',
+      stavNazev: 'Klempířské práce',
       branch: brno,
       dueAt: DateTime(2026, 8, 28),
     ),
     order(
       id: 'B',
-      status: OrderStatus.pickedUp,
+      stavKod: 'vyzvednuto',
+      stavNazev: 'Vyzvednuto',
       branch: cestlice,
       licensePlate: '2BB 2222',
       dueAt: DateTime(2026, 8, 22),
     ),
     order(
       id: 'C',
-      status: OrderStatus.inRepair,
+      stavKod: 'klempirna',
+      stavNazev: 'Klempířské práce',
       branch: cestlice,
       customerName: 'Lucie Marková',
       mechanicName: 'Petra Válková',
@@ -70,7 +74,7 @@ void main() {
     });
 
     test('filtry se skládají (pobočka AND stav)', () {
-      const filter = OrderFilter(branchCode: '2', status: OrderStatus.inRepair);
+      const filter = OrderFilter(branchCode: '2', statusCode: 'klempirna');
 
       expect(filter.apply(orders).map((o) => o.id), ['C']);
     });
@@ -89,12 +93,6 @@ void main() {
       const filter = OrderFilter(mechanicName: 'Petra Válková');
 
       expect(filter.apply(orders).map((o) => o.id), ['C']);
-    });
-
-    test('includeClosed=false skryje vyzvednuté zakázky', () {
-      const filter = OrderFilter(includeClosed: false, sort: OrderSort.dueDate);
-
-      expect(filter.apply(orders).map((o) => o.id), ['C', 'A']);
     });
 
     test('řazení podle stavu respektuje pořadí kroků na dílně', () {
@@ -117,13 +115,27 @@ void main() {
   });
 
   group('ServiceOrder', () {
-    test('isOverdue platí jen pro nedokončené zakázky', () {
+    test('isOverdue se řídí termínem, ne stavem', () {
       final now = DateTime(2026, 8, 25, 10);
 
       expect(
         order(
           id: 'X',
-          status: OrderStatus.inRepair,
+          stavKod: 'klempirna',
+          stavNazev: 'Klempířské práce',
+          branch: brno,
+          dueAt: DateTime(2026, 8, 24),
+        ).isOverdue(now: now),
+        isTrue,
+      );
+      // Dřív se hotová zakázka za opožděnou nepovažovala. Stav je nově
+      // volný text z číselníku, takže z něj „hotovo" nejde poznat -
+      // a vyřízená zakázka ze seznamu stejně zmizí, až ji uzavře Helios.
+      expect(
+        order(
+          id: 'Y',
+          stavKod: 'pripraveno',
+          stavNazev: 'Připraveno k vyzvednutí',
           branch: brno,
           dueAt: DateTime(2026, 8, 24),
         ).isOverdue(now: now),
@@ -131,10 +143,11 @@ void main() {
       );
       expect(
         order(
-          id: 'Y',
-          status: OrderStatus.readyForPickup,
+          id: 'Z',
+          stavKod: 'pripraveno',
+          stavNazev: 'Připraveno k vyzvednutí',
           branch: brno,
-          dueAt: DateTime(2026, 8, 24),
+          bezTerminu: true,
         ).isOverdue(now: now),
         isFalse,
       );
@@ -144,7 +157,8 @@ void main() {
       expect(
         order(
           id: 'X',
-          status: OrderStatus.received,
+          stavKod: 'prijato',
+          stavNazev: 'Přijato',
           branch: brno,
         ).mechanicInitials,
         'JD',
@@ -152,7 +166,8 @@ void main() {
       expect(
         order(
           id: 'Y',
-          status: OrderStatus.received,
+          stavKod: 'prijato',
+          stavNazev: 'Přijato',
           branch: brno,
           mechanicName: null,
         ).mechanicInitials,
@@ -161,37 +176,27 @@ void main() {
     });
   });
 
-  group('OrderStatus', () {
-    test('next posouvá o jeden krok a na konci vrací null', () {
-      expect(OrderStatus.received.next, OrderStatus.diagnostics);
-      expect(OrderStatus.pickedUp.next, isNull);
-    });
-
-    test('apiValue je stabilní klíč pro serializaci', () {
-      for (final status in OrderStatus.values) {
-        expect(OrderStatus.fromApiValue(status.apiValue), status);
-      }
-    });
-  });
-
   group('řazení se zakázkami bez termínu', () {
     test('zakázky bez termínu jdou na konec', () {
       final zakazky = <ServiceOrder>[
         order(
           id: 'BEZ-TERMINU',
-          status: OrderStatus.received,
+          stavKod: 'prijato',
+          stavNazev: 'Přijato',
           branch: brno,
           bezTerminu: true,
         ),
         order(
           id: 'POZDEJI',
-          status: OrderStatus.received,
+          stavKod: 'prijato',
+          stavNazev: 'Přijato',
           branch: brno,
           dueAt: DateTime(2026, 8, 28),
         ),
         order(
           id: 'DRIV',
-          status: OrderStatus.received,
+          stavKod: 'prijato',
+          stavNazev: 'Přijato',
           branch: brno,
           dueAt: DateTime(2026, 8, 22),
         ),
@@ -213,19 +218,22 @@ void main() {
     final zakazky = <ServiceOrder>[
       order(
         id: 'STARA',
-        status: OrderStatus.inRepair,
+        stavKod: 'klempirna',
+        stavNazev: 'Klempířské práce',
         branch: brno,
         receivedAt: DateTime(2026, 5, 4),
       ),
       order(
         id: 'NEJNOVEJSI',
-        status: OrderStatus.inRepair,
+        stavKod: 'klempirna',
+        stavNazev: 'Klempířské práce',
         branch: brno,
         receivedAt: DateTime(2026, 8, 30),
       ),
       order(
         id: 'PROSTREDNI',
-        status: OrderStatus.inRepair,
+        stavKod: 'klempirna',
+        stavNazev: 'Klempířské práce',
         branch: brno,
         receivedAt: DateTime(2026, 7, 15),
       ),

@@ -1,5 +1,6 @@
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
 class FakeServiceOrderDataSource implements ServiceOrderDataSource {
@@ -47,14 +48,39 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
   }
 
   @override
-  Future<ServiceOrderDto?> updateStatus(
-    String orderId,
-    String statusApiValue,
-  ) async {
+  Future<ServiceOrderDto?> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+  }) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
-    return _orders[index] = _orders[index].copyWith(status: statusApiValue);
+
+    final popis = nazev ?? nabidka.firstWhere((s) => s.kod == kod).nazev;
+    final zaznam = {
+      'code': kod,
+      'label': popis,
+      'author': 'Jan Dvořák',
+      'createdAt': '2026-08-28T10:00:00',
+    };
+
+    return _orders[index] = _orders[index].copyWith(
+      status: popis,
+      statusCode: kod,
+      statusHistory: [zaznam, ..._orders[index].statusHistory],
+    );
   }
+
+  /// Nabídka stavů, kterou fake vrací. Stačí pár položek - testy neověřují
+  /// číselník, ale to, co se stane po výběru.
+  static const nabidka = [
+    NabidkaStavu(kod: 'klempirna', nazev: 'Klempířské práce'),
+    NabidkaStavu(kod: 'lakovna', nazev: 'Lakovna'),
+    NabidkaStavu(kod: 'pripraveno', nazev: 'Připraveno k vyzvednutí'),
+  ];
+
+  @override
+  Future<List<NabidkaStavu>> nabidkaStavu() async => nabidka;
 
   @override
   Future<ServiceOrderDto?> addNote({
@@ -100,7 +126,8 @@ ServiceOrderDto buildOrderDto({
   String licensePlate = '1AA 1111',
   String model = 'BMW 320d',
   String customerName = 'Petr Novák',
-  String status = 'in_repair',
+  String status = 'Klempířské práce',
+  String? statusCode = 'klempirna',
   String utvar = '11211',
   String receivedAt = '2026-08-20T08:00:00',
   String dueAt = '2026-08-26T15:00:00',
@@ -114,6 +141,15 @@ ServiceOrderDto buildOrderDto({
     model: model,
     customerName: customerName,
     status: status,
+    statusCode: statusCode,
+    statusHistory: [
+      {
+        'code': statusCode,
+        'label': status,
+        'author': 'Jan Dvořák',
+        'createdAt': '2026-08-20T09:00:00',
+      },
+    ],
     branch: {'code': utvar[1], 'label': _pobocka(utvar)},
     department: {'code': utvar, 'label': 'Útvar $utvar'},
     receivedAt: receivedAt,

@@ -1,4 +1,3 @@
-import 'order_status.dart';
 import 'service_order.dart';
 
 /// Řazení seznamu zakázek.
@@ -22,11 +21,10 @@ class OrderFilter {
     this.branchCode,
     this.departmentCode,
     this.typZakazkyKod,
-    this.status,
+    this.statusCode,
     this.mechanicName,
     this.query = '',
     this.sort = OrderSort.receivedDate,
-    this.includeClosed = true,
   });
 
   /// `null` = všechny pobočky. Kód pobočky, ne název - názvy se mohou
@@ -39,8 +37,8 @@ class OrderFilter {
   /// Kód typu zakázky (běžná, interní, klempířská). `null` = všechny.
   final String? typZakazkyKod;
 
-  /// `null` = všechny stavy.
-  final OrderStatus? status;
+  /// Kód dílenského stavu z číselníku. `null` = všechny stavy.
+  final String? statusCode;
 
   /// `null` = všichni mechanici.
   final String? mechanicName;
@@ -48,38 +46,32 @@ class OrderFilter {
   final String query;
   final OrderSort sort;
 
-  /// `false` skryje vyzvednuté zakázky (zavřené).
-  final bool includeClosed;
-
   bool get isActive =>
       branchCode != null ||
       departmentCode != null ||
       typZakazkyKod != null ||
-      status != null ||
+      statusCode != null ||
       mechanicName != null ||
-      query.trim().isNotEmpty ||
-      !includeClosed;
+      query.trim().isNotEmpty;
 
   /// Počet aktivních filtrů (pro badge u tlačítka filtru).
   int get activeCount => [
     branchCode != null,
     departmentCode != null,
     typZakazkyKod != null,
-    status != null,
+    statusCode != null,
     mechanicName != null,
     query.trim().isNotEmpty,
-    !includeClosed,
   ].where((active) => active).length;
 
   OrderFilter copyWith({
     String? branchCode,
     String? departmentCode,
     String? typZakazkyKod,
-    OrderStatus? status,
+    String? statusCode,
     String? mechanicName,
     String? query,
     OrderSort? sort,
-    bool? includeClosed,
     bool clearBranch = false,
     bool clearDepartment = false,
     bool clearTypZakazky = false,
@@ -94,11 +86,10 @@ class OrderFilter {
       typZakazkyKod: clearTypZakazky
           ? null
           : (typZakazkyKod ?? this.typZakazkyKod),
-      status: clearStatus ? null : (status ?? this.status),
+      statusCode: clearStatus ? null : (statusCode ?? this.statusCode),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
       query: query ?? this.query,
       sort: sort ?? this.sort,
-      includeClosed: includeClosed ?? this.includeClosed,
     );
   }
 
@@ -112,11 +103,10 @@ class OrderFilter {
       if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
         return false;
       }
-      if (status != null && order.status != status) return false;
+      if (statusCode != null && order.stav?.kod != statusCode) return false;
       if (mechanicName != null && order.mechanicName != mechanicName) {
         return false;
       }
-      if (!includeClosed && order.status.isClosed) return false;
       return order.matchesQuery(query);
     }).toList();
 
@@ -138,7 +128,9 @@ class OrderFilter {
     return switch (sort) {
       OrderSort.dueDate => _porovnejData(a.dueAt, b.dueAt),
       OrderSort.receivedDate => _porovnejData(b.receivedAt, a.receivedAt),
-      OrderSort.status => a.status.step.compareTo(b.status.step),
+      // Podle stavu se řadí abecedně: pořadí z číselníku appka nezná
+      // a odhadovat sled prací z názvu by bylo horší než nic.
+      OrderSort.status => (a.stav?.nazev ?? '').compareTo(b.stav?.nazev ?? ''),
       OrderSort.licensePlate => a.licensePlate.compareTo(b.licensePlate),
     };
   }
@@ -149,20 +141,18 @@ class OrderFilter {
       (other is OrderFilter &&
           other.branchCode == branchCode &&
           other.departmentCode == departmentCode &&
-          other.status == status &&
+          other.statusCode == statusCode &&
           other.mechanicName == mechanicName &&
           other.query == query &&
-          other.sort == sort &&
-          other.includeClosed == includeClosed);
+          other.sort == sort);
 
   @override
   int get hashCode => Object.hash(
     branchCode,
     departmentCode,
-    status,
+    statusCode,
     mechanicName,
     query,
     sort,
-    includeClosed,
   );
 }

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../domain/repositories/service_order_repository.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -64,16 +65,26 @@ class RestServiceOrderDataSource implements ServiceOrderDataSource {
   }
 
   @override
-  Future<ServiceOrderDto?> updateStatus(
-    String orderId,
-    String statusApiValue,
-  ) async {
+  Future<ServiceOrderDto?> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+  }) async {
     final data = await _send(
-      'PATCH',
-      'orders/${Uri.encodeComponent(orderId)}',
-      body: {'status': statusApiValue},
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}/stavy',
+      body: {'code': ?kod, 'label': ?nazev},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<List<NabidkaStavu>> nabidkaStavu() async {
+    final data = await _send('GET', 'stavy');
+    if (data is! List) return const [];
+    return data
+        .map((item) => NabidkaStavu.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   @override

@@ -65,6 +65,48 @@ obě svázané výhradně s tímhle jménem:
 (u iOS jen ten klíč) a odebrat `android:networkSecurityConfig` z manifestu.
 Postup vydání certifikátu je v `RenoWorkshopApi/docs/CERTIFIKAT.md`.
 
+## Dílenský stav
+
+Zakázka má dva nezávislé stavy. **Stav z Heliosu** (`heliosStatus`) je jen
+ke čtení. **Dílenský stav** si vede RenoWorkshop sám a je podrobnější.
+
+Dílenský stav se **přidává, neposouvá**: oprava po bouračce běží týdny
+a stavy se vracejí i přeskakují, takže žádné pravidlo o krocích neplatí.
+
+| Pole | Co je |
+|---|---|
+| `status` | text aktuálního stavu, `null` u zakázky bez stavu |
+| `statusCode` | kód z číselníku, `null` u ručně zapsaného |
+| `statusHistory` | celá historie, **nejnovější první** |
+
+Aktuální stav je první záznam historie. Zakázka, které stav nikdo nedal,
+má `status: null` — z Heliosu se neodvozuje.
+
+### GET /stavy
+
+Číselník pro nabídku v aplikaci. Spravuje se v databázi, takže nový stav
+se v telefonech objeví sám.
+
+```json
+[
+  { "code": "prijato", "label": "Přijato" },
+  { "code": "rozpocet", "label": "Rozpočet" }
+]
+```
+
+### POST /orders/{id}/stavy
+
+Přidá stav do historie. Buď `code` z číselníku, nebo `label` s vlastním
+textem:
+
+```json
+{ "code": "lakovna" }
+{ "label": "Čeká na díl z Německa" }
+```
+
+Vrací celou aktualizovanou zakázku. Název se ukládá i u číselníkového
+stavu — přejmenování v číselníku nesmí zpětně přepsat historii.
+
 ## Autorizace
 
 Každý požadavek nese Firebase ID token:
@@ -114,7 +156,22 @@ stránkování.
     "licensePlate": "8AB 4721",
     "model": "BMW X5 xDrive40d",
     "customerName": "Petr Novák",
-    "status": "in_repair",
+    "status": "Klempířské práce",
+    "statusCode": "klempirna",
+    "statusHistory": [
+      {
+        "code": "klempirna",
+        "label": "Klempířské práce",
+        "author": "Jan Dvořák",
+        "createdAt": "2026-08-24T08:10:00"
+      },
+      {
+        "code": "ceka_dily",
+        "label": "Čeká na díly",
+        "author": "Petra Válková",
+        "createdAt": "2026-08-21T13:05:00"
+      }
+    ],
     "branch": { "code": "1", "label": "Brno" },
     "department": { "code": "11211", "label": "Servis BMW Brno" },
     "orderType": { "code": "801", "label": "Běžná" },

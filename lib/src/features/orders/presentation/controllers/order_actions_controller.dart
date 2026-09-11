@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../domain/entities/order_status.dart';
-import '../../domain/entities/service_order.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import 'orders_providers.dart';
 
@@ -23,20 +21,21 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   ServiceOrderRepository get _repository =>
       ref.read(serviceOrderRepositoryProvider);
 
-  /// Posun zakázky o jeden krok ve stavovém poli.
-  /// Vrací nový stav, nebo `null` když je zakázka uzavřená / akce selhala.
-  Future<OrderStatus?> advanceStatus(ServiceOrder order) async {
-    final next = order.status.next;
-    if (next == null) return null;
+  /// Přidá dílenský stav do historie zakázky.
+  ///
+  /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Vrací `true`
+  /// při úspěchu; chyba se propíše do stavu controlleru.
+  Future<bool> pridejStav(String orderId, {String? kod, String? nazev}) async {
+    if (kod == null && (nazev == null || nazev.trim().isEmpty)) return false;
 
     state = const AsyncLoading();
     try {
-      await _repository.updateStatus(order.id, next);
+      await _repository.pridejStav(orderId, kod: kod, nazev: nazev?.trim());
       state = const AsyncData(null);
-      return next;
+      return true;
     } on ServiceOrderException catch (error, stackTrace) {
       state = AsyncError(error.message, stackTrace);
-      return null;
+      return false;
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/department_picker.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -104,7 +105,7 @@ void main() {
     expect(find.text('2SC 9014'), findsOneWidget);
   });
 
-  testWidgets('detail zakázky umí posunout stav a promítne ho do seznamu', (
+  testWidgets('detail zakázky umí přidat stav a promítne ho do seznamu', (
     tester,
   ) async {
     await tester.pumpWidget(buildApp());
@@ -116,17 +117,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
-    expect(find.text('Posunout na: Kontrola kvality'), findsOneWidget);
 
-    await tester.tap(find.text('Posunout na: Kontrola kvality'));
+    // Stav se přidává z nabídky, neposouvá se o krok.
+    await tester.tap(find.text('Přidat stav'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lakovna'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Posunout na: Připraveno k vyzvednutí'), findsOneWidget);
+    // Nový stav je v historii i v hlavičce detailu.
+    expect(find.text('Lakovna'), findsWidgets);
 
     await tester.tap(_backButton());
     await tester.pumpAndSettle();
 
-    expect(find.text('Kontrola kvality'), findsOneWidget);
+    // Na kartě konkrétně - „Lakovna" se objeví i ve filtrovacích chipech,
+    // protože ten stav je nově mezi použitými.
+    expect(
+      find.descendant(
+        of: find.byType(OrderCard),
+        matching: find.text('Lakovna'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('nastavení ukáže přihlášeného a umí odhlásit', (tester) async {

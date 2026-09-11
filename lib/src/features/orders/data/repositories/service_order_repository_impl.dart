@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../../domain/entities/order_status.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../datasources/service_order_data_source.dart';
@@ -81,12 +81,19 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
-  Future<ServiceOrder> updateStatus(String orderId, OrderStatus status) {
+  Future<ServiceOrder> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+  }) {
     return _mutate(
       orderId,
-      () => _dataSource.updateStatus(orderId, status.apiValue),
+      () => _dataSource.pridejStav(orderId, kod: kod, nazev: nazev),
     );
   }
+
+  @override
+  Future<List<NabidkaStavu>> nabidkaStavu() => _dataSource.nabidkaStavu();
 
   @override
   Future<ServiceOrder> addNote({

@@ -1,6 +1,6 @@
 import 'branch.dart';
+import 'dilensky_stav.dart';
 import 'order_note.dart';
-import 'order_status.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
 
@@ -14,7 +14,8 @@ class ServiceOrder {
     required this.licensePlate,
     required this.model,
     required this.customerName,
-    required this.status,
+    this.stav,
+    this.historieStavu = const [],
     this.branch,
     this.department,
     this.typZakazky,
@@ -33,7 +34,14 @@ class ServiceOrder {
   final String licensePlate;
   final String model;
   final String customerName;
-  final OrderStatus status;
+
+  /// Aktuální dílenský stav = poslední záznam v historii. `null` u zakázky,
+  /// které stav ještě nikdo nedal - z Heliosu se neodvozuje.
+  final DilenskyStav? stav;
+
+  /// Historie dílenských stavů, nejnovější první. U opravy, která běží
+  /// měsíce, je to hlavní přehled o tom, co se dělo.
+  final List<DilenskyStav> historieStavu;
 
   /// Pobočka odvozená z útvaru. `null` = útvar chybí nebo se nedal zařadit.
   final Branch? branch;
@@ -64,9 +72,12 @@ class ServiceOrder {
   final List<OrderNote> notes;
   final List<WorkItem> workItems;
 
-  /// Zakázka je po termínu (a ještě není hotová).
+  /// Zakázka je po termínu.
+  ///
+  /// Neváže se na dílenský stav: ten je nově volný text z číselníku, takže
+  /// z něj nejde poznat, že je hotovo. Hotová zakázka ze seznamu stejně
+  /// zmizí sama, jakmile ji Helios uzavře.
   bool isOverdue({DateTime? now}) {
-    if (status.isFinished) return false;
     // Bez termínu není co hlídat - zakázka není po termínu, jen ho nemá.
     final termin = dueAt;
     if (termin == null) return false;
@@ -119,7 +130,8 @@ class ServiceOrder {
   }
 
   ServiceOrder copyWith({
-    OrderStatus? status,
+    DilenskyStav? stav,
+    List<DilenskyStav>? historieStavu,
     String? mechanicName,
     String? bay,
     List<OrderNote>? notes,
@@ -130,7 +142,8 @@ class ServiceOrder {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
-      status: status ?? this.status,
+      stav: stav ?? this.stav,
+      historieStavu: historieStavu ?? this.historieStavu,
       branch: branch,
       department: department,
       typZakazky: typZakazky,
@@ -150,10 +163,10 @@ class ServiceOrder {
       identical(this, other) ||
       (other is ServiceOrder &&
           other.id == id &&
-          other.status == status &&
+          other.stav == stav &&
           other.notes.length == notes.length &&
           other.workItems == workItems);
 
   @override
-  int get hashCode => Object.hash(id, status, notes.length, workItems.length);
+  int get hashCode => Object.hash(id, stav, notes.length, workItems.length);
 }

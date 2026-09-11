@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/branch.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/order_filter.dart';
-import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/typ_zakazky.dart';
 
@@ -10,7 +10,7 @@ ServiceOrder _zakazka(String id, TypZakazky? typ) => ServiceOrder(
   licensePlate: '1AB2345',
   model: 'BMW - 320d',
   customerName: 'Novák',
-  status: OrderStatus.values.first,
+  stav: const DilenskyStav(kod: 'prijato', nazev: 'Přijato'),
   typZakazky: typ,
   receivedAt: DateTime(2026, 8, 1),
   dueAt: DateTime(2026, 8, 5),
@@ -81,7 +81,9 @@ void main() {
       const TypZakazky(kod: 'K', nazev: 'Klempířská'),
     );
 
-    final posunuta = zakazka.copyWith(status: OrderStatus.values.last);
+    final posunuta = zakazka.copyWith(
+      stav: const DilenskyStav(kod: 'lakovna', nazev: 'Lakovna'),
+    );
 
     expect(posunuta.typZakazky?.kod, 'K');
   });
@@ -92,7 +94,7 @@ void main() {
       licensePlate: '1AB2345',
       model: 'BMW - 320d',
       customerName: 'Novák',
-      status: OrderStatus.values.first,
+      stav: const DilenskyStav(kod: 'prijato', nazev: 'Přijato'),
       department: const Department(
         code: '11211',
         label: 'RAS BSL AFS auta Servis',

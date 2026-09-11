@@ -61,7 +61,7 @@ void main() {
       expect(zachyceno.headers['Authorization'], 'Bearer testovaci-token');
     });
 
-    test('posun stavu pošle PATCH s novým stavem', () async {
+    test('přidání stavu pošle POST na /stavy', () async {
       late String telo;
       late String metoda;
       final client = MockClient((request) async {
@@ -74,10 +74,10 @@ void main() {
         );
       });
 
-      await _zdroj(client).updateStatus('ZK-26-0418', 'quality_check');
+      await _zdroj(client).pridejStav('ZK-26-0418', kod: 'lakovna');
 
-      expect(metoda, 'PATCH');
-      expect(jsonDecode(telo), {'status': 'quality_check'});
+      expect(metoda, 'POST');
+      expect(jsonDecode(telo), {'code': 'lakovna'});
     });
 
     test('neznámá zakázka vrací null, ne výjimku', () async {
@@ -113,7 +113,7 @@ void main() {
       );
 
       expect(
-        () => _zdroj(client).updateStatus('ZK-26-0398', 'picked_up'),
+        () => _zdroj(client).pridejStav('ZK-26-0398', kod: 'vyzvednuto'),
         throwsA(
           isA<ServiceOrderException>().having(
             (chyba) => chyba.message,

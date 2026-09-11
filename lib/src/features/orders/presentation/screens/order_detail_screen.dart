@@ -15,6 +15,7 @@ import '../widgets/detail_cards.dart';
 import '../widgets/mechanic_card.dart';
 import '../widgets/notes_card.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/status_timeline.dart';
 import '../widgets/work_items_card.dart';
 
@@ -69,16 +70,18 @@ class _DetailBody extends ConsumerWidget {
   final ServiceOrder order;
   final VoidCallback onBack;
 
-  Future<void> _advance(BuildContext context, WidgetRef ref) async {
-    final next = await ref
+  Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
+    final vybrany = await vyberStav(context);
+    if (vybrany == null || !context.mounted) return;
+
+    final hotovo = await ref
         .read(orderActionsProvider.notifier)
-        .advanceStatus(order);
-    if (next != null && context.mounted) {
+        .pridejStav(order.id, kod: vybrany.kod, nazev: vybrany.nazev);
+
+    if (hotovo && context.mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text('${order.id} · nový stav: ${next.label}')),
-        );
+        ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
     }
   }
 
@@ -152,7 +155,10 @@ class _DetailBody extends ConsumerWidget {
                   children: [
                     const SectionLabel('POSTUP ZAKÁZKY'),
                     const SizedBox(height: Insets.lg),
-                    StatusTimeline(status: order.status, bay: order.bayLabel),
+                    StatusTimeline(
+                      historie: order.historieStavu,
+                      bay: order.bayLabel,
+                    ),
                   ],
                 ),
               ),
@@ -184,7 +190,7 @@ class _DetailBody extends ConsumerWidget {
         _AdvanceStatusBar(
           order: order,
           isBusy: isBusy,
-          onAdvance: () => _advance(context, ref),
+          onAdvance: () => _pridejStav(context, ref),
         ),
       ],
     );
@@ -248,7 +254,7 @@ class _DetailHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: Insets.base),
-              StatusBadge(status: order.status, fontSize: 12),
+              StatusBadge(stav: order.stav, fontSize: 12),
             ],
           ),
           const SizedBox(height: Insets.lg),
@@ -337,8 +343,9 @@ class _AdvanceStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final isIOS = context.isIOS;
-    final next = order.status.next;
-    final enabled = next != null && !isBusy;
+    // Stav jde přidat vždycky - i k zakázce, která už nějaký má, a i po
+    // vyzvednutí: reklamace a dodělávky jsou na klempírně běžné.
+    final enabled = !isBusy;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -362,20 +369,18 @@ class _AdvanceStatusBar extends StatelessWidget {
             height: Sizes.ctaHeight,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: next != null ? AppColors.primary : palette.plate,
+              color: AppColors.primary,
               // Android: pill CTA, iOS: jemně zaoblený obdélník.
               borderRadius: BorderRadius.circular(
                 isIOS ? Radii.ctaIos : Radii.ctaAndroid,
               ),
-              boxShadow: next != null
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x47031E49),
-                        blurRadius: 18,
-                        offset: Offset(0, 6),
-                      ),
-                    ]
-                  : null,
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x47031E49),
+                  blurRadius: 18,
+                  offset: Offset(0, 6),
+                ),
+              ],
             ),
             child: isBusy
                 ? const SizedBox(
@@ -387,11 +392,9 @@ class _AdvanceStatusBar extends StatelessWidget {
                     ),
                   )
                 : Text(
-                    next != null
-                        ? 'Posunout na: ${next.label}'
-                        : 'Zakázka uzavřena',
+                    'Přidat stav',
                     style: AppTextStyles.buttonLabel.copyWith(
-                      color: next != null ? Colors.white : palette.muted,
+                      color: Colors.white,
                     ),
                   ),
           ),

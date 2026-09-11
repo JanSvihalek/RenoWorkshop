@@ -9,8 +9,8 @@ import '../../data/datasources/service_order_data_source.dart';
 import '../../data/skener_kodu.dart';
 import '../../data/repositories/service_order_repository_impl.dart';
 import '../../domain/entities/branch.dart';
+import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/order_filter.dart';
-import '../../domain/entities/order_status.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/repositories/service_order_repository.dart';
@@ -82,6 +82,30 @@ final availableOrderTypesProvider = Provider<List<TypZakazky>>((ref) {
   for (final order in orders) {
     final typ = order.typZakazky;
     if (typ != null) unikatni[typ.kod] = typ;
+  }
+  final seznam = unikatni.values.toList()
+    ..sort((a, b) => a.nazev.compareTo(b.nazev));
+  return seznam;
+});
+
+/// Nabídka dílenských stavů ze serveru.
+///
+/// Číselník žije v databázi, takže nový stav se v aplikaci objeví sám -
+/// bez nové verze v telefonech. Když se nabídku nepodaří načíst, appka
+/// dál funguje: stav se dá zapsat ručně.
+final nabidkaStavuProvider = FutureProvider<List<NabidkaStavu>>((ref) {
+  return ref.watch(serviceOrderRepositoryProvider).nabidkaStavu();
+});
+
+/// Stavy, které se vyskytují v načtených zakázkách - podle nich se
+/// filtruje. Skládají se z dat, ne z číselníku: filtrovat podle stavu,
+/// který na dílně nikdo nemá, nemá smysl.
+final pouziteStavyProvider = Provider<List<DilenskyStav>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final unikatni = <String, DilenskyStav>{};
+  for (final order in orders) {
+    final stav = order.stav;
+    if (stav?.kod != null) unikatni[stav!.kod!] = stav;
   }
   final seznam = unikatni.values.toList()
     ..sort((a, b) => a.nazev.compareTo(b.nazev));
@@ -166,9 +190,9 @@ class OrderFilterController extends Notifier<OrderFilter> {
       ? state.copyWith(clearDepartment: true)
       : state.copyWith(departmentCode: departmentCode);
 
-  void setStatus(OrderStatus? status) => state = status == null
+  void setStatus(String? statusCode) => state = statusCode == null
       ? state.copyWith(clearStatus: true)
-      : state.copyWith(status: status);
+      : state.copyWith(statusCode: statusCode);
 
   void setMechanic(String? mechanicName) => state = mechanicName == null
       ? state.copyWith(clearMechanic: true)
@@ -177,9 +201,6 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setQuery(String query) => state = state.copyWith(query: query);
 
   void setSort(OrderSort sort) => state = state.copyWith(sort: sort);
-
-  void setIncludeClosed(bool includeClosed) =>
-      state = state.copyWith(includeClosed: includeClosed);
 
   /// Vrací na výchozí filtr z nastavení, ne na prázdný - jinak by
   /// „zrušit filtry" znamenalo něco jiného než otevření appky.

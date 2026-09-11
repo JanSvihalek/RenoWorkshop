@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/data/repositories/service_order_repository_impl.dart';
-import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 
@@ -12,8 +11,13 @@ void main() {
   setUp(() {
     repository = ServiceOrderRepositoryImpl(
       FakeServiceOrderDataSource([
-        buildOrderDto(id: 'ZK-1', status: 'in_repair'),
-        buildOrderDto(id: 'ZK-2', status: 'picked_up', utvar: '12211'),
+        buildOrderDto(id: 'ZK-1'),
+        buildOrderDto(
+          id: 'ZK-2',
+          status: 'Vyzvednuto',
+          statusCode: 'vyzvednuto',
+          utvar: '12211',
+        ),
       ]),
     );
   });
@@ -24,20 +28,20 @@ void main() {
     final orders = await repository.getOrders();
 
     expect(orders, hasLength(2));
-    expect(orders.first.status, OrderStatus.inRepair);
+    expect(orders.first.stav?.nazev, 'Klempířské práce');
     expect(orders.first.receivedAt, DateTime(2026, 8, 20, 8));
   });
 
-  test('watchOrders emituje nový seznam po posunu stavu', () async {
+  test('watchOrders emituje nový seznam po přidání stavu', () async {
     final emissions = <List<ServiceOrder>>[];
     final subscription = repository.watchOrders().listen(emissions.add);
     await Future<void>.delayed(Duration.zero);
 
-    await repository.updateStatus('ZK-1', OrderStatus.qualityCheck);
+    await repository.pridejStav('ZK-1', kod: 'lakovna');
     await Future<void>.delayed(Duration.zero);
 
     expect(emissions, hasLength(2));
-    expect(emissions.last.first.status, OrderStatus.qualityCheck);
+    expect(emissions.last.first.stav?.nazev, 'Lakovna');
     await subscription.cancel();
   });
 
@@ -54,7 +58,7 @@ void main() {
 
   test('neznámé ID vyhodí ServiceOrderNotFoundException', () async {
     expect(
-      () => repository.updateStatus('ZK-999', OrderStatus.inRepair),
+      () => repository.pridejStav('ZK-999', kod: 'lakovna'),
       throwsA(isA<ServiceOrderNotFoundException>()),
     );
   });

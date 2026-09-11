@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/mock_service_order_data_source.dart';
-import 'package:renoworkshop/src/features/orders/domain/entities/order_status.dart';
 
 /// Hlídá, že mock data v assetu jdou načíst a pokrývají všechny pobočky
 /// i stavy - bez toho by se UI nedalo pořádně proklikat.
@@ -26,10 +25,11 @@ void main() {
     expect(pobocky, {'Brno', 'Čestlice', 'Kongresové Centrum', 'Česká'});
     // Zakázka bez útvaru tam musí zůstat - testuje NULL z Heliosu.
     expect(orders.any((order) => order.branch == null), isTrue);
-    expect(
-      orders.map((order) => order.status).toSet(),
-      OrderStatus.values.toSet(),
-    );
+    // Stavy nejsou pevný výčet, ale číselník ze serveru. V ukázkových
+    // datech má být pestrá směs včetně zakázky, které stav nikdo nedal.
+    final stavy = orders.map((order) => order.stav?.nazev).toSet();
+    expect(stavy.length, greaterThanOrEqualTo(4));
+    expect(stavy, contains(null));
     expect(orders.map((order) => order.id).toSet(), hasLength(orders.length));
   });
 
@@ -66,10 +66,13 @@ void main() {
   test('mutace se drží v paměti mezi voláními', () async {
     final dataSource = MockServiceOrderDataSource(latency: Duration.zero);
     final first = (await dataSource.fetchOrders()).first;
+    final puvodniHistorie = first.statusHistory.length;
 
-    await dataSource.updateStatus(first.id, OrderStatus.pickedUp.apiValue);
+    await dataSource.pridejStav(first.id, kod: 'vyzvednuto');
     final reloaded = await dataSource.fetchOrder(first.id);
 
-    expect(reloaded!.status, OrderStatus.pickedUp.apiValue);
+    expect(reloaded!.status, 'Vyzvednuto');
+    // Stav se přidává, nepřepisuje - historie musí povyrůst.
+    expect(reloaded.statusHistory, hasLength(puvodniHistorie + 1));
   });
 }

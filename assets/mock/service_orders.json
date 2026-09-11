@@ -6,7 +6,58 @@
       "licensePlate": "2BK9485",
       "model": "BMW - 320d xDrive Touring",
       "customerName": "Partner 4 Profit, s.r.o.",
-      "status": "in_repair",
+      "status": "Klempířské práce",
+      "statusCode": "klempirna",
+      "statusHistory": [
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-17T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-14T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-11T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-08T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-05T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-02T7:00:00"
+        }
+      ],
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -46,7 +97,46 @@
       "licensePlate": "8AE3055",
       "model": "BMW - X7 xDrive30d",
       "customerName": "Štěpánek Vít",
-      "status": "waiting_for_parts",
+      "status": "Čeká na díly",
+      "statusCode": "ceka_dily",
+      "statusHistory": [
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-23T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-20T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-17T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-14T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-11T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-08T7:00:00"
+        }
+      ],
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -80,7 +170,82 @@
       "licensePlate": "7AZ6277",
       "model": "BMW - 530d xDrive Touring",
       "customerName": "ESTING s.r.o.",
-      "status": "quality_check",
+      "status": "Kontrola",
+      "statusCode": "kontrola",
+      "statusHistory": [
+        {
+          "code": "kontrola",
+          "label": "Kontrola",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T9:17:00"
+        },
+        {
+          "code": "montaz",
+          "label": "Montáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T8:10:00"
+        },
+        {
+          "code": "lakovna",
+          "label": "Lakovna",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-17T7:03:00"
+        },
+        {
+          "code": "priprava_lak",
+          "label": "Příprava na lak",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-14T15:56:00"
+        },
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-11T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-08T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-05T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-02T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T7:00:00"
+        }
+      ],
       "branch": {
         "code": "3",
         "label": "Kongresové Centrum"
@@ -107,7 +272,22 @@
       "licensePlate": "1BN320",
       "model": "R 1250 GS Adventure",
       "customerName": "EUROPEAN GROUP, spol. s r.o.",
-      "status": "diagnostics",
+      "status": "Prohlídka a nafocení",
+      "statusCode": "prohlidka",
+      "statusHistory": [
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T7:00:00"
+        }
+      ],
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -134,7 +314,22 @@
       "licensePlate": "2BI5655",
       "model": "BMW - X4 xDrive30i",
       "customerName": "BB Joy s.r.o.",
-      "status": "received",
+      "status": "Čeká na díl z Německa",
+      "statusCode": null,
+      "statusHistory": [
+        {
+          "code": null,
+          "label": "Čeká na díl z Německa",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-27T10:20:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T7:00:00"
+        }
+      ],
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -161,7 +356,88 @@
       "licensePlate": "AA155HR",
       "model": "BMW - 520d Touring",
       "customerName": "Novotný Petr",
-      "status": "ready_for_pickup",
+      "status": "Připraveno k vyzvednutí",
+      "statusCode": "pripraveno",
+      "statusHistory": [
+        {
+          "code": "pripraveno",
+          "label": "Připraveno k vyzvednutí",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-23T10:24:00"
+        },
+        {
+          "code": "kontrola",
+          "label": "Kontrola",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-20T9:17:00"
+        },
+        {
+          "code": "montaz",
+          "label": "Montáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-17T8:10:00"
+        },
+        {
+          "code": "lakovna",
+          "label": "Lakovna",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-14T7:03:00"
+        },
+        {
+          "code": "priprava_lak",
+          "label": "Příprava na lak",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-11T15:56:00"
+        },
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-08T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-05T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-02T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T7:00:00"
+        }
+      ],
       "branch": {
         "code": "4",
         "label": "Česká"
@@ -195,7 +471,58 @@
       "licensePlate": "6J01265",
       "model": "MINI - Countryman Cooper S",
       "customerName": "Dostálová Veronika",
-      "status": "in_repair",
+      "status": "Klempířské práce",
+      "statusCode": "klempirna",
+      "statusHistory": [
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-17T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-14T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-11T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-08T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-05T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-02T7:00:00"
+        }
+      ],
       "branch": {
         "code": "4",
         "label": "Česká"
@@ -222,7 +549,94 @@
       "licensePlate": "2BP2321",
       "model": "BMW - 530e",
       "customerName": "Beran Michal",
-      "status": "picked_up",
+      "status": "Vyzvednuto",
+      "statusCode": "vyzvednuto",
+      "statusHistory": [
+        {
+          "code": "vyzvednuto",
+          "label": "Vyzvednuto",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-23T11:31:00"
+        },
+        {
+          "code": "pripraveno",
+          "label": "Připraveno k vyzvednutí",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-20T10:24:00"
+        },
+        {
+          "code": "kontrola",
+          "label": "Kontrola",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-17T9:17:00"
+        },
+        {
+          "code": "montaz",
+          "label": "Montáž",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-14T8:10:00"
+        },
+        {
+          "code": "lakovna",
+          "label": "Lakovna",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-11T7:03:00"
+        },
+        {
+          "code": "priprava_lak",
+          "label": "Příprava na lak",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-08T15:56:00"
+        },
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-05T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-02T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T7:00:00"
+        }
+      ],
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -249,7 +663,46 @@
       "licensePlate": "1BI7757",
       "model": "BMW - M340i xDrive",
       "customerName": "Řehák Filip",
-      "status": "waiting_for_parts",
+      "status": "Čeká na díly",
+      "statusCode": "ceka_dily",
+      "statusHistory": [
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-17T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-14T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-11T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-08T7:00:00"
+        }
+      ],
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -283,7 +736,22 @@
       "licensePlate": "5BM1174",
       "model": "BMW - iX xDrive50",
       "customerName": "Bláhová Tereza",
-      "status": "diagnostics",
+      "status": "Prohlídka a nafocení",
+      "statusCode": "prohlidka",
+      "statusHistory": [
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T7:00:00"
+        }
+      ],
       "branch": {
         "code": "3",
         "label": "Kongresové Centrum"
@@ -310,7 +778,16 @@
       "licensePlate": "",
       "model": "Ostatní",
       "customerName": "Kolář David",
-      "status": "received",
+      "status": "Přijato",
+      "statusCode": "prijato",
+      "statusHistory": [
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T7:00:00"
+        }
+      ],
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -337,7 +814,82 @@
       "licensePlate": "9CD7712",
       "model": "BMW - 118i",
       "customerName": "Vávrová Simona",
-      "status": "quality_check",
+      "status": "Kontrola",
+      "statusCode": "kontrola",
+      "statusHistory": [
+        {
+          "code": "kontrola",
+          "label": "Kontrola",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-23T9:17:00"
+        },
+        {
+          "code": "montaz",
+          "label": "Montáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-20T8:10:00"
+        },
+        {
+          "code": "lakovna",
+          "label": "Lakovna",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-17T7:03:00"
+        },
+        {
+          "code": "priprava_lak",
+          "label": "Příprava na lak",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-14T15:56:00"
+        },
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-11T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-08T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-05T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-02T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T7:00:00"
+        }
+      ],
       "branch": {
         "code": "1",
         "label": "Brno"
@@ -364,7 +916,88 @@
       "licensePlate": "7EL3388",
       "model": "BMW - X1 sDrive18d",
       "customerName": "Doležal Pavel",
-      "status": "ready_for_pickup",
+      "status": "Připraveno k vyzvednutí",
+      "statusCode": "pripraveno",
+      "statusHistory": [
+        {
+          "code": "pripraveno",
+          "label": "Připraveno k vyzvednutí",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-23T10:24:00"
+        },
+        {
+          "code": "kontrola",
+          "label": "Kontrola",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-20T9:17:00"
+        },
+        {
+          "code": "montaz",
+          "label": "Montáž",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-17T8:10:00"
+        },
+        {
+          "code": "lakovna",
+          "label": "Lakovna",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-14T7:03:00"
+        },
+        {
+          "code": "priprava_lak",
+          "label": "Příprava na lak",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-11T15:56:00"
+        },
+        {
+          "code": "klempirna",
+          "label": "Klempířské práce",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-08T14:49:00"
+        },
+        {
+          "code": "demontaz",
+          "label": "Demontáž",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-05T13:42:00"
+        },
+        {
+          "code": "ceka_dily",
+          "label": "Čeká na díly",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-02T12:35:00"
+        },
+        {
+          "code": "objednano",
+          "label": "Díly objednány",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T11:28:00"
+        },
+        {
+          "code": "ceka_pojistovna",
+          "label": "Čeká na pojišťovnu",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T10:21:00"
+        },
+        {
+          "code": "rozpocet",
+          "label": "Rozpočet",
+          "author": "Martin Kříž",
+          "createdAt": "2026-08-01T9:14:00"
+        },
+        {
+          "code": "prohlidka",
+          "label": "Prohlídka a nafocení",
+          "author": "Petra Válková",
+          "createdAt": "2026-08-01T8:07:00"
+        },
+        {
+          "code": "prijato",
+          "label": "Přijato",
+          "author": "Jan Dvořák",
+          "createdAt": "2026-08-01T7:00:00"
+        }
+      ],
       "branch": {
         "code": "2",
         "label": "Čestlice"
@@ -391,7 +1024,9 @@
       "licensePlate": "3AB1290",
       "model": "MINI - Cooper SE",
       "customerName": "Kratochvíl Ondřej",
-      "status": "received",
+      "status": null,
+      "statusCode": null,
+      "statusHistory": [],
       "branch": null,
       "department": null,
       "receivedAt": "2026-08-25T11:40:00",

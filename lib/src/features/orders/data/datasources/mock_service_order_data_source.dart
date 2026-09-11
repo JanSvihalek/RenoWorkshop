@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
+import '../../domain/entities/dilensky_stav.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -81,18 +82,65 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
   }
 
   @override
-  Future<ServiceOrderDto?> updateStatus(
-    String orderId,
-    String statusApiValue,
-  ) async {
+  Future<ServiceOrderDto?> pridejStav(
+    String orderId, {
+    String? kod,
+    String? nazev,
+  }) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
     final index = _indexOf(orders, orderId);
     if (index == -1) return null;
 
-    final updated = orders[index].copyWith(status: statusApiValue);
+    final popis =
+        nazev ??
+        _nabidka
+            .firstWhere(
+              (stav) => stav.kod == kod,
+              orElse: () => NabidkaStavu(kod: kod ?? '', nazev: kod ?? ''),
+            )
+            .nazev;
+
+    // Nejnovější záznam patří na začátek - stejně jako je vrací server.
+    final zaznam = {
+      'code': kod,
+      'label': popis,
+      'author': 'Jan Dvořák',
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+
+    final updated = orders[index].copyWith(
+      status: popis,
+      statusCode: kod,
+      statusHistory: [zaznam, ...orders[index].statusHistory],
+    );
     orders[index] = updated;
     return updated;
+  }
+
+  /// Nabídka odpovídá výchozímu číselníku na serveru, ať ukázková data
+  /// vypadají jako ostrá.
+  static const _nabidka = [
+    NabidkaStavu(kod: 'prijato', nazev: 'Přijato'),
+    NabidkaStavu(kod: 'prohlidka', nazev: 'Prohlídka a nafocení'),
+    NabidkaStavu(kod: 'rozpocet', nazev: 'Rozpočet'),
+    NabidkaStavu(kod: 'ceka_pojistovna', nazev: 'Čeká na pojišťovnu'),
+    NabidkaStavu(kod: 'objednano', nazev: 'Díly objednány'),
+    NabidkaStavu(kod: 'ceka_dily', nazev: 'Čeká na díly'),
+    NabidkaStavu(kod: 'demontaz', nazev: 'Demontáž'),
+    NabidkaStavu(kod: 'klempirna', nazev: 'Klempířské práce'),
+    NabidkaStavu(kod: 'priprava_lak', nazev: 'Příprava na lak'),
+    NabidkaStavu(kod: 'lakovna', nazev: 'Lakovna'),
+    NabidkaStavu(kod: 'montaz', nazev: 'Montáž'),
+    NabidkaStavu(kod: 'kontrola', nazev: 'Kontrola'),
+    NabidkaStavu(kod: 'pripraveno', nazev: 'Připraveno k vyzvednutí'),
+    NabidkaStavu(kod: 'vyzvednuto', nazev: 'Vyzvednuto'),
+  ];
+
+  @override
+  Future<List<NabidkaStavu>> nabidkaStavu() async {
+    await _simulateLatency();
+    return _nabidka;
   }
 
   @override

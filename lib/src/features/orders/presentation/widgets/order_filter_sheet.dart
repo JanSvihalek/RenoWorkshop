@@ -120,24 +120,6 @@ class OrderFilterSheet extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: Insets.md),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: !filter.includeClosed,
-              onChanged: (hideClosed) =>
-                  controller.setIncludeClosed(!hideClosed),
-              title: Text(
-                'Skrýt vyzvednuté zakázky',
-                style: AppTextStyles.cardBody.copyWith(
-                  fontSize: 14.5,
-                  color: palette.text,
-                ),
-              ),
-              subtitle: Text(
-                'Zobrazí jen vozidla, která jsou ještě na dílně.',
-                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-              ),
-            ),
           ],
         ),
       ),
