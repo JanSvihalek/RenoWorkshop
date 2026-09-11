@@ -82,8 +82,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Zakázky na dílně'), findsOneWidget);
-    expect(find.text('2 zakázky'), findsNothing);
-    expect(find.textContaining('2 zakázky'), findsOneWidget);
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsOneWidget);
   });

@@ -101,24 +101,33 @@ class OrderFilterSheet extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: Insets.xxl),
+            // Rozbalovací seznam, ne chipy: zodpovědných osob jsou desítky
+            // a jako řada štítků z panelu udělaly nečitelnou zeď.
             _SheetLabel('ZODPOVÍDÁ'),
             const SizedBox(height: Insets.sm),
-            Wrap(
-              spacing: Insets.sm,
-              runSpacing: Insets.sm,
-              children: [
-                _SheetChip(
-                  label: 'Všichni',
-                  isSelected: filter.mechanicName == null,
-                  onTap: () => controller.setMechanic(null),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+              decoration: BoxDecoration(
+                color: palette.background,
+                borderRadius: BorderRadius.circular(Radii.chip),
+                border: Border.all(color: palette.hairline2),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: mechanics.contains(filter.mechanicName)
+                      ? filter.mechanicName
+                      : null,
+                  isExpanded: true,
+                  borderRadius: BorderRadius.circular(Radii.input),
+                  style: AppTextStyles.chip.copyWith(color: palette.text),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Všichni')),
+                    for (final mechanic in mechanics)
+                      DropdownMenuItem(value: mechanic, child: Text(mechanic)),
+                  ],
+                  onChanged: controller.setMechanic,
                 ),
-                for (final mechanic in mechanics)
-                  _SheetChip(
-                    label: mechanic,
-                    isSelected: filter.mechanicName == mechanic,
-                    onTap: () => controller.setMechanic(mechanic),
-                  ),
-              ],
+              ),
             ),
           ],
         ),

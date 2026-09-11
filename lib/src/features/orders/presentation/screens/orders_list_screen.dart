@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
-import '../../../../core/utils/czech_plurals.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
@@ -89,7 +88,6 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       body: Column(
         children: [
           _ListHeader(
-            visibleCount: orders.valueOrNull?.length,
             searchController: _searchController,
             onQueryChanged: _onQueryChanged,
             onScan: _skenuj,
@@ -167,17 +165,15 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   }
 }
 
-/// Navy hlavička seznamu - titul, hledání, přepínač poboček.
+/// Navy hlavička seznamu - titul, hledání, výběr útvaru.
 class _ListHeader extends ConsumerWidget {
   const _ListHeader({
-    required this.visibleCount,
     required this.searchController,
     required this.onQueryChanged,
     required this.onScan,
     required this.onHledatVArchivu,
   });
 
-  final int? visibleCount;
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onScan;
@@ -206,25 +202,11 @@ class _ListHeader extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Zakázky na dílně',
-                      style: AppTextStyles.appBarTitle(
-                        isIOS: isIOS,
-                      ).copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      visibleCount == null
-                          ? 'Načítám zakázky...'
-                          : '${orderCountLabel(visibleCount!)} · směna 6:30-15:00',
-                      style: AppTextStyles.appBarMeta.copyWith(
-                        color: Colors.white.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'Zakázky na dílně',
+                  style: AppTextStyles.appBarTitle(
+                    isIOS: isIOS,
+                  ).copyWith(color: Colors.white),
                 ),
               ),
               _HeaderIconButton(

@@ -12,7 +12,6 @@ import '../../domain/entities/work_item.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/detail_cards.dart';
-import '../widgets/mechanic_card.dart';
 import '../widgets/notes_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/pridat_stav_sheet.dart';
@@ -163,17 +162,6 @@ class _DetailBody extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: Insets.base),
-              MechanicCard(
-                order: order,
-                onContact: () => ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('Kontakt na mechanika - připravujeme.'),
-                    ),
-                  ),
               ),
               const SizedBox(height: Insets.base),
               WorkItemsCard(
@@ -331,10 +319,12 @@ class _DetailHeader extends StatelessWidget {
               // pohled poznat, který stav je z ERP a který z dílny.
               if (order.heliosStatus != null)
                 _HeaderChip(order.heliosStatus!, barva: AppColors.heliosGreen),
-              _HeaderChip(order.branchLabel),
-              if (order.department != null) _HeaderChip(order.departmentLabel),
+              // Typ hned za stavem: říká o zakázce víc než pobočka, a mezi
+              // šedými štítky by se jako poslední ztratil.
               if (order.typZakazky != null)
-                _HeaderChip(order.typZakazky!.nazev),
+                _HeaderChip(order.typZakazky!.nazev, zvyrazneny: true),
+              if (order.department != null) _HeaderChip(order.departmentLabel),
+              _HeaderChip(order.branchLabel),
             ],
           ),
         ],
@@ -344,12 +334,15 @@ class _DetailHeader extends StatelessWidget {
 }
 
 class _HeaderChip extends StatelessWidget {
-  const _HeaderChip(this.label, {this.barva});
+  const _HeaderChip(this.label, {this.barva, this.zvyrazneny = false});
 
   final String label;
 
   /// Výplň. Bez ní je chip průsvitný jako ostatní údaje v hlavičce.
   final Color? barva;
+
+  /// Obtažený rámečkem - odliší údaj, který má být vidět dřív než ostatní.
+  final bool zvyrazneny;
 
   @override
   Widget build(BuildContext context) {
@@ -363,6 +356,9 @@ class _HeaderChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: barva ?? Colors.white.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(7),
+        border: zvyrazneny
+            ? Border.all(color: Colors.white.withValues(alpha: 0.45))
+            : null,
       ),
       child: Text(
         label,

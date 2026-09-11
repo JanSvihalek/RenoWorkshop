@@ -74,9 +74,25 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                 Insets.xxl,
                 Insets.sm,
               ),
-              child: Text(
-                'Přidat stav',
-                style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Přidat stav',
+                      style: AppTextStyles.sectionTitle.copyWith(
+                        color: palette.text,
+                      ),
+                    ),
+                  ),
+                  // Bez téhle cesty ven se z omylem otevřené nabídky dalo
+                  // odejít jen tím, že člověk nějaký stav opravdu zadal.
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'Zavřít',
+                    color: palette.muted,
+                  ),
+                ],
               ),
             ),
 
