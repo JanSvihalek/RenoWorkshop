@@ -11,12 +11,10 @@ import '../../../../core/theme/dimens.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
-import '../widgets/department_picker.dart';
 import '../widgets/order_card.dart';
-import '../widgets/order_filter_sheet.dart';
 import '../widgets/order_search_field.dart';
 import '../widgets/orders_empty_state.dart';
-import '../widgets/status_filter_chips.dart';
+import '../widgets/filtr_lista.dart';
 import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// Hlavní obrazovka: všechny zakázky na dílně (ne "moje vozidlo").
@@ -80,8 +78,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final filter = ref.watch(orderFilterProvider);
     final orders = ref.watch(filteredOrdersProvider);
+    final filter = ref.watch(orderFilterProvider);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -98,11 +96,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                 ? () => widget.onSearchArchive(filter.query.trim())
                 : null,
           ),
-          StatusFilterChips(
-            stavy: ref.watch(pouziteStavyProvider),
-            selected: filter.statusCode,
-            onChanged: ref.read(orderFilterProvider.notifier).setStatus,
-          ),
+          const FiltrLista(),
           Expanded(
             child: orders.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -184,7 +178,6 @@ class _ListHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isIOS = context.isIOS;
-    final filter = ref.watch(orderFilterProvider);
     final employee = ref.watch(currentEmployeeProvider);
 
     return Container(
@@ -209,12 +202,6 @@ class _ListHeader extends ConsumerWidget {
                   ).copyWith(color: Colors.white),
                 ),
               ),
-              _HeaderIconButton(
-                icon: Icons.tune_rounded,
-                badgeCount: filter.activeCount,
-                onTap: () => OrderFilterSheet.show(context),
-              ),
-              const SizedBox(width: Insets.md),
               _EmployeeAvatar(initials: employee?.initials ?? 'RW'),
             ],
           ),
@@ -255,76 +242,7 @@ class _ListHeader extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: Insets.lg),
-          DepartmentPicker(
-            departments: ref.watch(availableDepartmentsProvider),
-            selectedCode: filter.departmentCode,
-            onChanged: ref.read(orderFilterProvider.notifier).setDepartment,
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.onTap,
-    this.badgeCount = 0,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final int badgeCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Řazení a filtry',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(Radii.chip),
-              ),
-              child: Icon(icon, size: 19, color: Colors.white),
-            ),
-            if (badgeCount > 0)
-              Positioned(
-                right: -3,
-                top: -3,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: Text(
-                    '$badgeCount',
-                    style: const TextStyle(
-                      fontFamily: AppFonts.mono,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }

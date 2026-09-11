@@ -6,14 +6,14 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/orders/presentation/widgets/department_picker.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Vybere útvar z rozbalovacího seznamu v hlavičce.
+/// Vybere útvar z lišty filtrů nad seznamem.
 Future<void> _vyberUtvar(WidgetTester tester, String polozka) async {
-  await tester.tap(find.byType(DepartmentPicker));
+  // Útvar je první rozbalovací seznam v liště.
+  await tester.tap(find.byType(DropdownButton<String?>).first);
   await tester.pumpAndSettle();
   // Vybraná položka se vykresluje i v zavřeném seznamu, proto `.last` -
   // ta v rozbalené nabídce.
@@ -92,15 +92,15 @@ void main() {
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
 
-    await _vyberUtvar(tester, '12211 · Útvar 12211');
+    await _vyberUtvar(tester, '12211');
     expect(find.text('2SC 9014'), findsOneWidget);
     expect(find.text('8AB 4721'), findsNothing);
 
-    await _vyberUtvar(tester, '11211 · Útvar 11211');
+    await _vyberUtvar(tester, '11211');
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsNothing);
 
-    await _vyberUtvar(tester, 'Všechny útvary');
+    await _vyberUtvar(tester, 'Vše');
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsOneWidget);
   });
@@ -264,5 +264,20 @@ void main() {
     // už dřív a ta starší zakázka je jen v archivu.
     expect(find.text('Hledat i v archivu'), findsOneWidget);
     expect(find.text('8AB 4721'), findsOneWidget);
+  });
+
+  testWidgets('filtry jsou vedle sebe nad seznamem', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    // Útvar, stav, typ, zodpovídá a řazení - všechno v jedné liště,
+    // ne schované pod tlačítkem.
+    expect(find.text('Útvar'), findsOneWidget);
+    expect(find.text('Stav'), findsOneWidget);
+    expect(find.text('Typ'), findsOneWidget);
+    expect(find.text('Zodpovídá'), findsOneWidget);
+    expect(find.textContaining('Řadit'), findsOneWidget);
   });
 }
