@@ -183,6 +183,7 @@ stránkování.
     "vin": "WBAKS4105L9KL83914",
     "heliosStatus": "Zpracováváno",
     "mechanicName": "Jan Dvořák",
+    "mechanicCode": "1042",
     "serviceAdvisorName": "Martina Horáková",
     "bay": "Stání 4",
     "notes": [
@@ -214,6 +215,11 @@ zakázky a termín se u spousty z nich doplní až později. Aplikace pak
 u zakázky ukáže pomlčku, neřadí ji dopředu a nehlásí ji jako opožděnou.
 Není to výjimečný stav, ale běžný — první ostrý build na tom spadl, protože
 tenhle odstavec dřív tvrdil, že jsou povinná.
+
+`mechanicName` je **zodpovědná osoba z Heliosu** (`hlv.zodpovida`), ne
+mechanik, který na voze zrovna dělá. Aplikace ji nikdy nemění — je to údaj
+z ERP. `mechanicCode` je její kód, podle kterého se dá filtrovat i po
+přejmenování.
 
 `orderType` je typ zakázky, v Heliosu *řada*: `code` je její číslo
 (`801` běžná, `802` interní, `803` PDI...), `label` název ze serverové

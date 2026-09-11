@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/mock_service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/branch.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/service_order.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/typ_zakazky.dart';
@@ -73,6 +74,7 @@ void main() {
       dueAt: DateTime(2026, 8, 26),
       vin: 'WBAJN51070G980042',
       mechanicName: 'Jan Dvořák',
+      department: const Department(code: '11211', label: 'Servis BMW Brno'),
     );
 
     await tester.pumpWidget(
@@ -121,6 +123,7 @@ void main() {
       dueAt: DateTime(2026, 8, 26),
       vin: 'WBAJN51070G980042',
       mechanicName: 'Jan Dvořák',
+      department: const Department(code: '11211', label: 'Servis BMW Brno'),
     );
 
     await tester.pumpWidget(
@@ -141,6 +144,9 @@ void main() {
     expect(find.text('HELIOS'), findsOneWidget);
     expect(find.text('DÍLNA'), findsOneWidget);
     expect(find.text('Klempířské práce'), findsOneWidget);
+    // Jméno i útvar zároveň - podle útvaru se filtruje, tak musí být vidět.
+    expect(find.text('Jan Dvořák'), findsOneWidget);
+    expect(find.text('11211'), findsOneWidget);
     expect(find.text('4. 3.'), findsOneWidget);
     // Termín dokončení na kartě není - mátl.
     expect(find.text('26. 8.'), findsNothing);

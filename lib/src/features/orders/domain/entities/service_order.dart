@@ -65,7 +65,8 @@ class ServiceOrder {
   final DateTime? dueAt;
   final String vin;
 
-  /// Přiřazený mechanik. `null` = zakázka zatím nikomu nepřiřazena.
+  /// Kdo za zakázku zodpovídá. Vede to Helios, aplikace to nemění.
+  /// `null` = v Heliosu není vyplněno.
   final String? mechanicName;
 
   /// Servisní poradce, který zakázku vede.
@@ -94,6 +95,10 @@ class ServiceOrder {
 
   /// Jméno mechanika pro UI, včetně stavu bez přiřazení.
   String get mechanicLabel => mechanicName ?? 'Nepřiřazeno';
+
+  /// Popisek role u jména - v Heliosu je to „zodpovídá", ne mechanik,
+  /// který na voze zrovna dělá.
+  static const String rolePopisek = 'Zodpovídá';
 
   /// Iniciály do avataru; "?" u nepřiřazené zakázky.
   String get mechanicInitials {

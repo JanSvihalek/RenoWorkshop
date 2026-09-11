@@ -101,7 +101,7 @@ class OrderFilterSheet extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: Insets.xxl),
-            _SheetLabel('MECHANIK'),
+            _SheetLabel('ZODPOVÍDÁ'),
             const SizedBox(height: Insets.sm),
             Wrap(
               spacing: Insets.sm,

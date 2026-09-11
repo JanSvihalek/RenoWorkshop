@@ -313,6 +313,15 @@ class _DetailHeader extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.85),
             ),
           ),
+          if (order.mechanicName != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              '${ServiceOrder.rolePopisek}: ${order.mechanicName}',
+              style: AppTextStyles.meta.copyWith(
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
           const SizedBox(height: Insets.base),
           Wrap(
             spacing: Insets.sm,

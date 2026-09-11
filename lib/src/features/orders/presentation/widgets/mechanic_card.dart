@@ -53,7 +53,7 @@ class MechanicCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Přiřazený mechanik · ${order.bayLabel}',
+                  '${ServiceOrder.rolePopisek} · ${order.bayLabel}',
                   style: AppTextStyles.meta.copyWith(color: palette.muted),
                 ),
                 if (advisor != null) ...[

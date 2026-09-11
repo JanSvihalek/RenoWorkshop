@@ -96,36 +96,36 @@ class OrderCard extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      // Bez přiřazeného mechanika nemá smysl zabírat místo
-                      // avatarem a slovem "Nepřiřazeno"; užitečnější je útvar.
+                      // Bez zodpovědné osoby nemá smysl zabírat místo
+                      // avatarem a slovem "Nepřiřazeno".
                       if (!bezMechanika) ...[
                         _MechanicAvatar(initials: order.mechanicInitials),
                         const SizedBox(width: Insets.sm),
-                      ],
-                      Flexible(
-                        child: Text(
-                          bezMechanika
-                              ? order.departmentLabel
-                              : order.mechanicLabel,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.meta.copyWith(
-                            color: palette.muted,
+                        Flexible(
+                          child: Text(
+                            order.mechanicLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.meta.copyWith(
+                              color: palette.muted,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: Insets.sm),
-                      Container(
-                        width: 3,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: palette.muted.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
+                        const SizedBox(width: Insets.sm),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: palette.muted.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: Insets.sm),
+                        const SizedBox(width: Insets.sm),
+                      ],
+                      // Útvar je vidět vždycky - filtruje se podle něj,
+                      // takže musí být poznat, do kterého zakázka patří.
                       Flexible(
                         child: Text(
-                          order.branchLabel,
+                          order.departmentLabel,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.meta.copyWith(
                             color: palette.muted,
