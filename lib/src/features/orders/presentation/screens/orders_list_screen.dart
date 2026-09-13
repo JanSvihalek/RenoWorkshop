@@ -15,7 +15,6 @@ import '../widgets/order_card.dart';
 import '../widgets/order_search_field.dart';
 import '../widgets/orders_empty_state.dart';
 import '../widgets/filtr_lista.dart';
-import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// Hlavní obrazovka: všechny zakázky na dílně (ne "moje vozidlo").
 class OrdersListScreen extends ConsumerStatefulWidget {
@@ -24,7 +23,6 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     required this.onOpenOrder,
     this.vRozdelenem = false,
     this.vybranaId,
-    required this.onSelectTab,
     required this.onSearchArchive,
     required this.onScanCode,
   });
@@ -38,7 +36,6 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   /// Číslo právě otevřené zakázky - v rozděleném zobrazení musí být na
   /// první pohled poznat, ke které kartě patří detail vedle.
   final String? vybranaId;
-  final ValueChanged<WorkshopTab> onSelectTab;
   final ValueChanged<String> onSearchArchive;
 
   /// Otevření skeneru VINu a SPZ.
@@ -162,12 +159,6 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: widget.vRozdelenem
-          ? null
-          : WorkshopBottomNav(
-              active: WorkshopTab.orders,
-              onSelect: widget.onSelectTab,
-            ),
     );
   }
 }

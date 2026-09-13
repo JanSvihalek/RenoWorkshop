@@ -20,7 +20,7 @@ abstract final class Rozlozeni {
   static const double sirkaSeznamu = 380;
 
   /// Šířka svislého navigačního pruhu.
-  static const double sirkaNavigace = 80;
+  static const double sirkaNavigace = 92;
 }
 
 extension RozlozeniContext on BuildContext {

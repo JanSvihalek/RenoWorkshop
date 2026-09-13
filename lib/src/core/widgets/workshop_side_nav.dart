@@ -125,8 +125,11 @@ class _Polozka extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: Insets.base),
-          padding: const EdgeInsets.symmetric(vertical: Insets.base),
+          margin: const EdgeInsets.symmetric(horizontal: Insets.sm),
+          padding: const EdgeInsets.symmetric(
+            vertical: Insets.base,
+            horizontal: Insets.xs,
+          ),
           decoration: BoxDecoration(
             color: jeAktivni
                 ? Colors.white.withValues(alpha: 0.14)
@@ -143,13 +146,20 @@ class _Polozka extends StatelessWidget {
                     : Colors.white.withValues(alpha: 0.6),
               ),
               const SizedBox(height: 4),
-              Text(
-                popisek,
-                style: AppTextStyles.metaSmall.copyWith(
-                  fontSize: 9.5,
-                  color: jeAktivni
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.6),
+              // Delší popisek („Nastavení") se radši zmenší, než aby se
+              // dotýkal okrajů dlaždice nebo se zalomil.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  popisek,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: AppTextStyles.metaSmall.copyWith(
+                    fontSize: 10.5,
+                    color: jeAktivni
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
             ],

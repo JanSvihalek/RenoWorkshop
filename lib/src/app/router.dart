@@ -6,8 +6,7 @@ import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/rozlozeni.dart';
-import '../core/widgets/tablet_shell.dart';
-import '../core/widgets/workshop_bottom_nav.dart';
+import '../core/widgets/workshop_scaffold.dart';
 import '../features/orders/presentation/controllers/orders_providers.dart';
 import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
@@ -82,67 +81,57 @@ final routerProvider = Provider<GoRouter>((ref) {
               context.canPop() ? context.pop() : context.go(AppRoutes.orders),
         ),
       ),
-      GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) {
-          final nastaveni = SettingsScreen(
-            onSelectTab: (tab) => _prepni(context, tab),
-            vRozdelenem: context.jeTablet,
-          );
-          return context.jeTablet
-              ? TabletShell(
-                  active: WorkshopTab.settings,
-                  onSelect: (tab) => _prepni(context, tab),
-                  child: nastaveni,
-                )
-              : nastaveni;
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.orders,
-        // Na tabletu je seznam levým sloupcem vedle detailu, na telefonu
-        // zůstává detail samostatnou obrazovkou nad seznamem.
-        builder: (context, state) => context.jeTablet
-            ? RozdeleneZakazkyScreen(
-                onSelectTab: (tab) => _prepni(context, tab),
-                onSearchArchive: (dotaz) =>
-                    context.push(AppRoutes.archivHledani(dotaz)),
-                onScanCode: () => context.push(AppRoutes.skener),
-              )
-            : OrdersListScreen(
-                onOpenOrder: (order) =>
-                    context.push(AppRoutes.orderDetail(order.id)),
-                onSelectTab: (tab) => _prepni(context, tab),
-                onSearchArchive: (dotaz) =>
-                    context.push(AppRoutes.archivHledani(dotaz)),
-                onScanCode: () => context.push(AppRoutes.skener),
+      // Záložky jsou ve společném rámu: přepnutí mění jen obsah, lišta
+      // zůstává stát a každá záložka si drží svůj stav.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            WorkshopScaffold(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.orders,
+                // Na tabletu je seznam levým sloupcem vedle detailu, na
+                // telefonu zůstává detail samostatnou obrazovkou nad ním.
+                builder: (context, state) => context.jeTablet
+                    ? RozdeleneZakazkyScreen(
+                        onSearchArchive: (dotaz) =>
+                            context.push(AppRoutes.archivHledani(dotaz)),
+                        onScanCode: () => context.push(AppRoutes.skener),
+                      )
+                    : OrdersListScreen(
+                        onOpenOrder: (order) =>
+                            context.push(AppRoutes.orderDetail(order.id)),
+                        onSearchArchive: (dotaz) =>
+                            context.push(AppRoutes.archivHledani(dotaz)),
+                        onScanCode: () => context.push(AppRoutes.skener),
+                      ),
               ),
-        routes: [
-          GoRoute(
-            path: ':orderId',
-            builder: (context, state) => OrderDetailScreen(
-              orderId: state.pathParameters['orderId']!,
-              onBack: () => context.canPop()
-                  ? context.pop()
-                  : context.go(AppRoutes.orders),
-            ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
           ),
         ],
+      ),
+      // Detail je mimo rám schválně: na telefonu překryje i lištu záložek,
+      // protože zakázka není záložka, ale zanoření.
+      GoRoute(
+        path: '${AppRoutes.orders}/:orderId',
+        builder: (context, state) => OrderDetailScreen(
+          orderId: state.pathParameters['orderId']!,
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+        ),
       ),
     ],
   );
 });
-
-/// Přepnutí spodní záložky. Používá `go`, ne `push` - záložky nejsou
-/// zanoření, člověk se mezi nimi přepíná tam a zpět.
-void _prepni(BuildContext context, WorkshopTab tab) {
-  switch (tab) {
-    case WorkshopTab.orders:
-      context.go(AppRoutes.orders);
-    case WorkshopTab.settings:
-      context.go(AppRoutes.settings);
-  }
-}
 
 /// Přemostění Riverpodu a go_routeru - při změně přihlášení přepočítá redirect.
 class _AuthRefreshNotifier extends ChangeNotifier {

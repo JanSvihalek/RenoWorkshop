@@ -6,6 +6,7 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
@@ -295,5 +296,32 @@ void main() {
     expect(find.text('Typ'), findsOneWidget);
     expect(find.text('Zodpovídá'), findsOneWidget);
     expect(find.textContaining('Řadit'), findsOneWidget);
+  });
+
+  testWidgets('lišta záložek se při přepnutí nepřekresluje', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    // Lišta je nad obrazovkami, ne v nich: při přepnutí záložky se nesmí
+    // postavit znovu, jinak by přeblikla spolu s obsahem.
+    final pred = tester.element(find.byType(WorkshopBottomNav));
+
+    await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+    expect(find.text('VZHLED'), findsOneWidget);
+
+    final po = tester.element(find.byType(WorkshopBottomNav));
+    expect(identical(pred, po), isTrue);
+
+    await tester.tap(find.text('Zakázky'));
+    await tester.pumpAndSettle();
+
+    expect(
+      identical(tester.element(find.byType(WorkshopBottomNav)), pred),
+      isTrue,
+    );
+    expect(find.text('8AB 4721'), findsOneWidget);
   });
 }

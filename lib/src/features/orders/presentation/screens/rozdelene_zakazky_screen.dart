@@ -5,8 +5,6 @@ import '../../../../core/layout/rozlozeni.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
-import '../../../../core/widgets/tablet_shell.dart';
-import '../../../../core/widgets/workshop_bottom_nav.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
 import 'order_detail_screen.dart';
@@ -20,12 +18,10 @@ import 'orders_list_screen.dart';
 class RozdeleneZakazkyScreen extends ConsumerWidget {
   const RozdeleneZakazkyScreen({
     super.key,
-    required this.onSelectTab,
     required this.onSearchArchive,
     required this.onScanCode,
   });
 
-  final ValueChanged<WorkshopTab> onSelectTab;
   final ValueChanged<String> onSearchArchive;
   final VoidCallback onScanCode;
 
@@ -36,40 +32,34 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: TabletShell(
-        active: WorkshopTab.orders,
-        onSelect: onSelectTab,
-        child: Row(
-          children: [
-            SizedBox(
-              width: Rozlozeni.sirkaSeznamu,
-              child: OrdersListScreen(
-                vRozdelenem: true,
-                vybranaId: vybrana,
-                onOpenOrder: (ServiceOrder order) =>
-                    ref.read(vybranaZakazkaProvider.notifier).state = order.id,
-                onSelectTab: onSelectTab,
-                onSearchArchive: onSearchArchive,
-                onScanCode: onScanCode,
-              ),
+      body: Row(
+        children: [
+          SizedBox(
+            width: Rozlozeni.sirkaSeznamu,
+            child: OrdersListScreen(
+              vRozdelenem: true,
+              vybranaId: vybrana,
+              onOpenOrder: (ServiceOrder order) =>
+                  ref.read(vybranaZakazkaProvider.notifier).state = order.id,
+              onSearchArchive: onSearchArchive,
+              onScanCode: onScanCode,
             ),
-            Container(width: 1, color: palette.hairline),
-            Expanded(
-              child: vybrana == null
-                  ? const _PrazdnyDetail()
-                  : OrderDetailScreen(
-                      // Bez klíče by se při přepnutí zakázky recykloval
-                      // stav předchozího detailu (rozbalené karty, posun).
-                      key: ValueKey(vybrana),
-                      orderId: vybrana,
-                      onBack: () =>
-                          ref.read(vybranaZakazkaProvider.notifier).state =
-                              null,
-                      zobrazitZpet: false,
-                    ),
-            ),
-          ],
-        ),
+          ),
+          Container(width: 1, color: palette.hairline),
+          Expanded(
+            child: vybrana == null
+                ? const _PrazdnyDetail()
+                : OrderDetailScreen(
+                    // Bez klíče by se při přepnutí zakázky recykloval
+                    // stav předchozího detailu (rozbalené karty, posun).
+                    key: ValueKey(vybrana),
+                    orderId: vybrana,
+                    onBack: () =>
+                        ref.read(vybranaZakazkaProvider.notifier).state = null,
+                    zobrazitZpet: false,
+                  ),
+          ),
+        ],
       ),
     );
   }

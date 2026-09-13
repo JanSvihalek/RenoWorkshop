@@ -40,7 +40,6 @@ void main() {
           theme: AppTheme.light(),
           home: OrdersListScreen(
             onOpenOrder: (_) {},
-            onSelectTab: (_) {},
             onSearchArchive: (_) {},
             onScanCode: () {},
           ),

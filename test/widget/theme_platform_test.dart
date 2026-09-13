@@ -44,7 +44,6 @@ void main() {
         harness(
           OrdersListScreen(
             onOpenOrder: (_) {},
-            onSelectTab: (_) {},
             onSearchArchive: (_) {},
             onScanCode: () {},
           ),

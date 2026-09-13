@@ -7,7 +7,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
-import '../../../../core/widgets/workshop_bottom_nav.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
@@ -20,17 +19,7 @@ import '../controllers/nastaveni_controller.dart';
 /// Volby se ukládají do telefonu, ne k účtu - na sdíleném dílenském
 /// přístroji jde o pohodlí toho, kdo ho drží v ruce.
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({
-    super.key,
-    required this.onSelectTab,
-    this.vRozdelenem = false,
-  });
-
-  final ValueChanged<WorkshopTab> onSelectTab;
-
-  /// Na tabletu je navigace svislým pruhem vlevo, spodní lišta by byla
-  /// podruhé.
-  final bool vRozdelenem;
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -65,12 +54,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: vRozdelenem
-          ? null
-          : WorkshopBottomNav(
-              active: WorkshopTab.settings,
-              onSelect: onSelectTab,
-            ),
     );
   }
 
