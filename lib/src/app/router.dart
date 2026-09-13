@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../core/layout/rozlozeni.dart';
+import '../core/widgets/tablet_shell.dart';
 import '../core/widgets/workshop_bottom_nav.dart';
 import '../features/orders/presentation/controllers/orders_providers.dart';
 import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
+import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 
@@ -81,18 +84,39 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) =>
-            SettingsScreen(onSelectTab: (tab) => _prepni(context, tab)),
+        builder: (context, state) {
+          final nastaveni = SettingsScreen(
+            onSelectTab: (tab) => _prepni(context, tab),
+            vRozdelenem: context.jeTablet,
+          );
+          return context.jeTablet
+              ? TabletShell(
+                  active: WorkshopTab.settings,
+                  onSelect: (tab) => _prepni(context, tab),
+                  child: nastaveni,
+                )
+              : nastaveni;
+        },
       ),
       GoRoute(
         path: AppRoutes.orders,
-        builder: (context, state) => OrdersListScreen(
-          onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
-          onSelectTab: (tab) => _prepni(context, tab),
-          onSearchArchive: (dotaz) =>
-              context.push(AppRoutes.archivHledani(dotaz)),
-          onScanCode: () => context.push(AppRoutes.skener),
-        ),
+        // Na tabletu je seznam levým sloupcem vedle detailu, na telefonu
+        // zůstává detail samostatnou obrazovkou nad seznamem.
+        builder: (context, state) => context.jeTablet
+            ? RozdeleneZakazkyScreen(
+                onSelectTab: (tab) => _prepni(context, tab),
+                onSearchArchive: (dotaz) =>
+                    context.push(AppRoutes.archivHledani(dotaz)),
+                onScanCode: () => context.push(AppRoutes.skener),
+              )
+            : OrdersListScreen(
+                onOpenOrder: (order) =>
+                    context.push(AppRoutes.orderDetail(order.id)),
+                onSelectTab: (tab) => _prepni(context, tab),
+                onSearchArchive: (dotaz) =>
+                    context.push(AppRoutes.archivHledani(dotaz)),
+                onScanCode: () => context.push(AppRoutes.skener),
+              ),
         routes: [
           GoRoute(
             path: ':orderId',

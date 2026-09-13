@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/layout/rozlozeni.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
@@ -23,40 +24,102 @@ class LoginScreen extends ConsumerWidget {
     final biometricAvailable =
         ref.watch(biometricAvailableProvider).valueOrNull ?? false;
 
+    final prihlaseni = _SignInBlock(
+      state: state,
+      isSigningIn: isSigningIn,
+      biometricAvailable: biometricAvailable,
+      naSvetlem: context.jeTablet,
+    );
+
+    // Na tabletu vedle sebe: vlevo, kdo jsme, vpravo, jak se přihlásit.
+    // Na výšku telefonu by se dva sloupce nevešly, tam zůstává pod sebou.
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment(-0.03, -1),
-            end: Alignment(0.03, 1),
-            colors: [
-              AppColors.loginGradientTop,
-              AppColors.primary,
-              AppColors.loginGradientBottom,
-            ],
-            stops: [0, 0.58, 1],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              30,
-              Insets.giant,
-              30,
-              Insets.huge,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: AppColors.surfaceWhite,
+      body: context.jeTablet
+          ? Row(
               children: [
-                const _Branding(),
-                _SignInBlock(
-                  state: state,
-                  isSigningIn: isSigningIn,
-                  biometricAvailable: biometricAvailable,
+                const Expanded(flex: 5, child: _ZnackovyPanel()),
+                Expanded(
+                  flex: 4,
+                  child: SafeArea(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Insets.giant,
+                          vertical: Insets.xxl,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 360),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Přihlášení',
+                                style: AppTextStyles.sectionTitle.copyWith(
+                                  fontSize: 20,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                              const SizedBox(height: Insets.xxs),
+                              Text(
+                                'Firemním účtem RENOCAR. '
+                                'Účty spravuje IT oddělení.',
+                                style: AppTextStyles.metaSmall.copyWith(
+                                  fontSize: 12.5,
+                                  color: AppColors.mutedLight,
+                                ),
+                              ),
+                              const SizedBox(height: Insets.xxl),
+                              prihlaseni,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
-            ),
+            )
+          : _ZnackovyPanel(prihlaseni: prihlaseni),
+    );
+  }
+}
+
+/// Modrý panel se značkou. Na telefonu vyplní obrazovku i s přihlášením,
+/// na tabletu je to levá polovina.
+class _ZnackovyPanel extends StatelessWidget {
+  const _ZnackovyPanel({this.prihlaseni});
+
+  final Widget? prihlaseni;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment(-0.03, -1),
+          end: Alignment(0.03, 1),
+          colors: [
+            AppColors.loginGradientTop,
+            AppColors.primary,
+            AppColors.loginGradientBottom,
+          ],
+          stops: [0, 0.58, 1],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(30, Insets.giant, 30, Insets.huge),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const _Branding(),
+              // Na tabletu zůstane v panelu jen stav sítě dole; přihlášení
+              // je v bílé polovině vedle.
+              prihlaseni ?? const _NetworkStatusRow(),
+            ],
           ),
         ),
       ),
@@ -115,11 +178,16 @@ class _SignInBlock extends ConsumerWidget {
     required this.state,
     required this.isSigningIn,
     required this.biometricAvailable,
+    this.naSvetlem = false,
   });
 
   final AuthState state;
   final bool isSigningIn;
   final bool biometricAvailable;
+
+  /// Na tabletu leží blok na bílém panelu, ne na modrém přechodu -
+  /// barvy tlačítek i textů se proto obracejí.
+  final bool naSvetlem;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -140,12 +208,14 @@ class _SignInBlock extends ConsumerWidget {
               // nebo obličej, a appce je to jedno.
               label: 'Přihlásit se biometricky',
               icon: Icons.fingerprint_rounded,
+              naSvetlem: naSvetlem,
               onTap: () => controller.signIn(SignInMethod.biometric),
             ),
             const SizedBox(height: Insets.lg),
           ],
           _SecondaryButton(
             label: 'Přihlásit se přes Microsoft',
+            naSvetlem: naSvetlem,
             onTap: () => controller.signIn(SignInMethod.microsoftSso),
           ),
           const SizedBox(height: Insets.lg),
@@ -157,7 +227,9 @@ class _SignInBlock extends ConsumerWidget {
             style: AppTextStyles.metaSmall.copyWith(
               fontSize: 12.5,
               height: 1.5,
-              color: Colors.white.withValues(alpha: 0.42),
+              color: naSvetlem
+                  ? AppColors.mutedLight
+                  : Colors.white.withValues(alpha: 0.42),
             ),
           ),
         ],
@@ -169,8 +241,11 @@ class _SignInBlock extends ConsumerWidget {
             style: AppTextStyles.metaSmall.copyWith(color: AppColors.danger),
           ),
         ],
-        const SizedBox(height: Insets.xxl),
-        const _NetworkStatusRow(),
+        // Na tabletu je stav sítě dole v modrém panelu, tady by byl podruhé.
+        if (!naSvetlem) ...[
+          const SizedBox(height: Insets.xxl),
+          const _NetworkStatusRow(),
+        ],
       ],
     );
   }
@@ -181,11 +256,13 @@ class _PrimaryButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.naSvetlem = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final bool naSvetlem;
 
   @override
   Widget build(BuildContext context) {
@@ -196,25 +273,37 @@ class _PrimaryButton extends StatelessWidget {
         height: Sizes.primaryButtonHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: naSvetlem ? AppColors.primary : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(Radii.button),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x38000000),
+              color: naSvetlem
+                  ? const Color(0x22031E49)
+                  : const Color(0x38000000),
               blurRadius: 22,
-              offset: Offset(0, 8),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: AppColors.primary),
+            Icon(
+              icon,
+              size: 22,
+              color: naSvetlem ? Colors.white : AppColors.primary,
+            ),
             const SizedBox(width: 11),
-            Text(
-              label,
-              style: AppTextStyles.buttonLabel.copyWith(
-                color: AppColors.primary,
+            // Flexible: v užším sloupci na tabletu se popisek radši
+            // zkrátí, než aby přetekl z tlačítka.
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.buttonLabel.copyWith(
+                  color: naSvetlem ? Colors.white : AppColors.primary,
+                ),
               ),
             ),
           ],
@@ -225,10 +314,15 @@ class _PrimaryButton extends StatelessWidget {
 }
 
 class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({required this.label, required this.onTap});
+  const _SecondaryButton({
+    required this.label,
+    required this.onTap,
+    this.naSvetlem = false,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final bool naSvetlem;
 
   @override
   Widget build(BuildContext context) {
@@ -239,20 +333,30 @@ class _SecondaryButton extends StatelessWidget {
         height: Sizes.secondaryButtonHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: naSvetlem
+              ? AppColors.surfaceWhite
+              : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(Radii.button),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: naSvetlem
+                ? AppColors.neutralLight
+                : Colors.white.withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const MicrosoftLogo(),
             const SizedBox(width: 11),
-            Text(
-              label,
-              style: AppTextStyles.buttonLabel.copyWith(
-                fontSize: 14.5,
-                color: Colors.white,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.buttonLabel.copyWith(
+                  fontSize: 14.5,
+                  color: naSvetlem ? AppColors.ink : Colors.white,
+                ),
               ),
             ),
           ],

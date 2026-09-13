@@ -11,10 +11,18 @@ import 'plate_chip.dart';
 
 /// Karta zakázky v seznamu. Jeden tap = detail.
 class OrderCard extends StatelessWidget {
-  const OrderCard({super.key, required this.order, required this.onTap});
+  const OrderCard({
+    super.key,
+    required this.order,
+    required this.onTap,
+    this.jeVybrana = false,
+  });
 
   final ServiceOrder order;
   final VoidCallback onTap;
+
+  /// V rozděleném zobrazení na tabletu: tahle zakázka je otevřená vedle.
+  final bool jeVybrana;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +39,10 @@ class OrderCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: palette.card,
           borderRadius: BorderRadius.circular(Radii.card),
-          border: Border.all(color: palette.hairline),
+          border: Border.all(
+            color: jeVybrana ? AppColors.accent : palette.hairline,
+            width: jeVybrana ? 2 : 1,
+          ),
           boxShadow: palette.cardShadow,
         ),
         child: Column(

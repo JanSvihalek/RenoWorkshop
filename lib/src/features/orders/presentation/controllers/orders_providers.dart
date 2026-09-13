@@ -206,3 +206,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   /// „zrušit filtry" znamenalo něco jiného než otevření appky.
   void reset() => state = _vychozi(ref.read(nastaveniProvider));
 }
+
+/// Zakázka otevřená v pravém sloupci rozděleného zobrazení na tabletu.
+///
+/// Na telefonu se detail otevírá jako samostatná obrazovka a provider
+/// nikdo nečte. Na tabletu se seznam kliknutím nepřekresluje celý -
+/// drží si posun i rozepsané hledání, mění se jen sloupec vedle.
+final vybranaZakazkaProvider = StateProvider<String?>((ref) => null);

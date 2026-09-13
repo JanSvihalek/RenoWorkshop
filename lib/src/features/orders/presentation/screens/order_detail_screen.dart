@@ -25,10 +25,15 @@ class OrderDetailScreen extends ConsumerWidget {
     super.key,
     required this.orderId,
     required this.onBack,
+    this.zobrazitZpet = true,
   });
 
   final String orderId;
   final VoidCallback onBack;
+
+  /// V rozděleném zobrazení na tabletu není kam se vracet - detail je
+  /// vedle seznamu, ne nad ním.
+  final bool zobrazitZpet;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,7 +62,11 @@ class OrderDetailScreen extends ConsumerWidget {
               onBack: onBack,
             );
           }
-          return _DetailBody(order: order, onBack: onBack);
+          return _DetailBody(
+            order: order,
+            onBack: onBack,
+            zobrazitZpet: zobrazitZpet,
+          );
         },
       ),
     );
@@ -65,10 +74,15 @@ class OrderDetailScreen extends ConsumerWidget {
 }
 
 class _DetailBody extends ConsumerWidget {
-  const _DetailBody({required this.order, required this.onBack});
+  const _DetailBody({
+    required this.order,
+    required this.onBack,
+    required this.zobrazitZpet,
+  });
 
   final ServiceOrder order;
   final VoidCallback onBack;
+  final bool zobrazitZpet;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
     final vybrany = await vyberStav(context);
@@ -147,7 +161,7 @@ class _DetailBody extends ConsumerWidget {
 
     return Column(
       children: [
-        _DetailHeader(order: order, onBack: onBack),
+        _DetailHeader(order: order, onBack: onBack, zobrazitZpet: zobrazitZpet),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -228,10 +242,15 @@ class _DetailBody extends ConsumerWidget {
 
 /// Navy hlavička detailu - identifikace vozidla a zakázky.
 class _DetailHeader extends StatelessWidget {
-  const _DetailHeader({required this.order, required this.onBack});
+  const _DetailHeader({
+    required this.order,
+    required this.onBack,
+    required this.zobrazitZpet,
+  });
 
   final ServiceOrder order;
   final VoidCallback onBack;
+  final bool zobrazitZpet;
 
   @override
   Widget build(BuildContext context) {
@@ -250,30 +269,34 @@ class _DetailHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Semantics(
-                button: true,
-                label: 'Zpět na seznam zakázek',
-                child: GestureDetector(
-                  onTap: onBack,
-                  behavior: HitTestBehavior.opaque,
-                  child: SizedBox(
-                    width: 38,
-                    height: 38,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Icon(
-                        // iOS chevron, Android arrow.
-                        isIOS
-                            ? Icons.arrow_back_ios_new_rounded
-                            : Icons.arrow_back_rounded,
-                        size: isIOS ? 20 : 22,
-                        color: Colors.white,
+              // V rozděleném zobrazení není kam se vracet - detail je
+              // vedle seznamu, ne nad ním.
+              if (zobrazitZpet) ...[
+                Semantics(
+                  button: true,
+                  label: 'Zpět na seznam zakázek',
+                  child: GestureDetector(
+                    onTap: onBack,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 38,
+                      height: 38,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Icon(
+                          // iOS chevron, Android arrow.
+                          isIOS
+                              ? Icons.arrow_back_ios_new_rounded
+                              : Icons.arrow_back_rounded,
+                          size: isIOS ? 20 : 22,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: Insets.xxs),
+                const SizedBox(width: Insets.xxs),
+              ],
               Text(
                 order.id,
                 style: AppTextStyles.orderNumber.copyWith(

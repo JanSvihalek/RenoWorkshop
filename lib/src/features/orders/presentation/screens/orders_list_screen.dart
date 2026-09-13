@@ -22,12 +22,22 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   const OrdersListScreen({
     super.key,
     required this.onOpenOrder,
+    this.vRozdelenem = false,
+    this.vybranaId,
     required this.onSelectTab,
     required this.onSearchArchive,
     required this.onScanCode,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
+
+  /// Na tabletu je seznam levý sloupec vedle detailu: nemá vlastní spodní
+  /// navigaci (ta je jako svislý pruh vlevo) a označuje vybranou zakázku.
+  final bool vRozdelenem;
+
+  /// Číslo právě otevřené zakázky - v rozděleném zobrazení musí být na
+  /// první pohled poznat, ke které kartě patří detail vedle.
+  final String? vybranaId;
   final ValueChanged<WorkshopTab> onSelectTab;
   final ValueChanged<String> onSearchArchive;
 
@@ -144,6 +154,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                         itemBuilder: (_, index) => OrderCard(
                           order: data[index],
                           onTap: () => widget.onOpenOrder(data[index]),
+                          jeVybrana: widget.vybranaId == data[index].id,
                         ),
                       ),
                     ),
@@ -151,10 +162,12 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: WorkshopBottomNav(
-        active: WorkshopTab.orders,
-        onSelect: widget.onSelectTab,
-      ),
+      bottomNavigationBar: widget.vRozdelenem
+          ? null
+          : WorkshopBottomNav(
+              active: WorkshopTab.orders,
+              onSelect: widget.onSelectTab,
+            ),
     );
   }
 }
