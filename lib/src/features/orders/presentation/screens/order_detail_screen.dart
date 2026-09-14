@@ -195,6 +195,10 @@ class _DetailBody extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: Insets.base),
+              if (order.pojistovna case final pojistovna?) ...[
+                InfoBox(label: 'POJIŠŤOVNA', value: pojistovna),
+                const SizedBox(height: Insets.base),
+              ],
               PredmetOpravyCard(
                 predmet: order.predmetOpravy,
                 onUpravit: () => _upravPredmet(context, ref),

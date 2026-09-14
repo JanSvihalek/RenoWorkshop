@@ -16,6 +16,7 @@ class ServiceOrder {
     required this.model,
     required this.customerName,
     this.predmetOpravy,
+    this.pojistovna,
     this.stav,
     this.historieStavu = const [],
     this.heliosStatus,
@@ -42,6 +43,10 @@ class ServiceOrder {
   /// Co se na voze opravuje. Zapisuje dílna ručně (dřív do Excelu),
   /// Helios to nezná. `null` = zatím nezadáno.
   final String? predmetOpravy;
+
+  /// Název pojišťovny u pojistné události (z Heliosu). `null` = zakázka
+  /// pojistnou událostí není.
+  final String? pojistovna;
 
   /// Aktuální dílenský stav = poslední záznam v historii. `null` u zakázky,
   /// které stav ještě nikdo nedal - z Heliosu se neodvozuje.
@@ -134,7 +139,8 @@ class ServiceOrder {
   /// z API dál chodí, jen se nezobrazuje.
   String get departmentLabel => department?.code ?? 'Bez útvaru';
 
-  /// Fulltext přes SPZ, zákazníka, číslo zakázky, model a předmět opravy.
+  /// Fulltext přes SPZ, zákazníka, číslo zakázky, model, předmět opravy
+  /// a pojišťovnu.
   bool matchesQuery(String query) {
     final needle = query.trim().toLowerCase();
     if (needle.isEmpty) return true;
@@ -146,6 +152,7 @@ class ServiceOrder {
       mechanicName ?? '',
       vin,
       predmetOpravy ?? '',
+      pojistovna ?? '',
     ].join(' ').toLowerCase();
     return haystack.contains(needle);
   }
@@ -165,6 +172,7 @@ class ServiceOrder {
       model: model,
       customerName: customerName,
       predmetOpravy: predmetOpravy ?? this.predmetOpravy,
+      pojistovna: pojistovna,
       stav: stav ?? this.stav,
       historieStavu: historieStavu ?? this.historieStavu,
       heliosStatus: heliosStatus,

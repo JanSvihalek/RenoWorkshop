@@ -140,6 +140,25 @@ void main() {
       expect(zakazka.zavady.last.kod, isNull);
     });
 
+    test('pojišťovna se načte, bez názvu aspoň s číslem', () async {
+      Future<String?> nazev(Object? insurer) async {
+        final client = MockClient(
+          (request) async => http.Response(
+            jsonEncode({..._zakazka(), 'insurer': insurer}),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          ),
+        );
+        final dto = await _zdroj(client).fetchOrder('ZK-26-0418');
+        return dto!.toDomain().pojistovna;
+      }
+
+      expect(await nazev({'id': 60001, 'name': 'Kooperativa'}), 'Kooperativa');
+      // Organizace se ještě nedotáhla - pojistná událost to pořád je.
+      expect(await nazev({'id': 60001, 'name': ''}), 'Pojišťovna č. 60001');
+      expect(await nazev(null), isNull);
+    });
+
     test('neznámá zakázka vrací null, ne výjimku', () async {
       final client = MockClient((request) async => http.Response('', 404));
 

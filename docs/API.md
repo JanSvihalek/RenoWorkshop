@@ -168,6 +168,7 @@ stránkování.
     "model": "BMW X5 xDrive40d",
     "customerName": "Petr Novák",
     "repairSubject": "Zadní nárazník, víko kufru",
+    "insurer": { "id": 60001, "name": "Kooperativa" },
     "status": "Klempířské práce",
     "statusCode": "klempirna",
     "statusHistory": [
@@ -272,6 +273,13 @@ lakovat do barvy" },
 `text` může mít víc řádků. U rozdělané zakázky se změna v Heliosu projeví
 do pěti minut, u ukončené po nočním běhu. Starší verze API pole neposílá -
 aplikace ho pak bere jako prázdné.
+
+### Pojišťovna u zakázky
+
+`insurer` je pojišťovna pojistné události z Heliosu (`pojistovna1` na
+hlavičce zakázky), `null` u zakázky, která pojistnou událostí není.
+`name` může být prázdný, když se organizace ještě nedotáhla - aplikace
+pak ukáže číslo.
 
 ### PUT /orders/{id}/repair-subject
 

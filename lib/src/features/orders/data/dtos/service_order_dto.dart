@@ -17,6 +17,7 @@ class ServiceOrderDto {
     required this.model,
     required this.customerName,
     this.repairSubject,
+    this.insurer,
     this.status,
     this.statusCode,
     this.statusHistory = const [],
@@ -42,6 +43,10 @@ class ServiceOrderDto {
 
   /// Předmět opravy, zapsaný ručně na dílně. `null` = nezadáno.
   final String? repairSubject;
+
+  /// `{"id": 60001, "name": "Kooperativa"}` - pojišťovna z Heliosu,
+  /// nebo `null`, když zakázka pojistnou událostí není.
+  final Map<String, dynamic>? insurer;
 
   /// Text aktuálního dílenského stavu, `null` u zakázky bez stavu.
   final String? status;
@@ -87,6 +92,7 @@ class ServiceOrderDto {
       model: json['model'] as String,
       customerName: json['customerName'] as String,
       repairSubject: json['repairSubject'] as String?,
+      insurer: json['insurer'] as Map<String, dynamic>?,
       status: json['status'] as String?,
       statusCode: json['statusCode'] as String?,
       statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
@@ -119,6 +125,7 @@ class ServiceOrderDto {
     'model': model,
     'customerName': customerName,
     'repairSubject': repairSubject,
+    'insurer': insurer,
     'status': status,
     'statusCode': statusCode,
     'statusHistory': statusHistory,
@@ -143,6 +150,7 @@ class ServiceOrderDto {
     model: model,
     customerName: customerName,
     predmetOpravy: repairSubject,
+    pojistovna: _nazevPojistovny(insurer),
     // Aktuální stav je první záznam historie; `status` je jen jeho text,
     // takže z historie se vezme i kdo a kdy ho zapsal.
     stav: statusHistory.isNotEmpty
@@ -189,6 +197,7 @@ class ServiceOrderDto {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
+      insurer: insurer,
       repairSubject: vymazatPredmet
           ? null
           : (repairSubject ?? this.repairSubject),
@@ -210,6 +219,14 @@ class ServiceOrderDto {
       defects: defects,
     );
   }
+}
+
+/// Název pojišťovny pro UI. Když ho server nezná (organizace se ještě
+/// nedotáhla), ukáže se aspoň číslo - pojistná událost to pořád je.
+String? _nazevPojistovny(Map<String, dynamic>? insurer) {
+  if (insurer == null) return null;
+  final nazev = (insurer['name'] as String?)?.trim() ?? '';
+  return nazev.isNotEmpty ? nazev : 'Pojišťovna č. ${insurer['id']}';
 }
 
 class OrderNoteDto {
