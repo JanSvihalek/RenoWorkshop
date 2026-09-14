@@ -4,10 +4,16 @@ import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.d
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
 class FakeServiceOrderDataSource implements ServiceOrderDataSource {
-  FakeServiceOrderDataSource(List<ServiceOrderDto> orders)
-    : _orders = [...orders];
+  /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
+  /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
+  FakeServiceOrderDataSource(
+    List<ServiceOrderDto> orders, {
+    List<ServiceOrderDto> archiv = const [],
+  }) : _orders = [...orders, ...archiv],
+       _archivIds = {for (final dto in archiv) dto.id};
 
   final List<ServiceOrderDto> _orders;
+  final Set<String> _archivIds;
 
   int _indexOf(String orderId) =>
       _orders.indexWhere((order) => order.id == orderId);
@@ -15,7 +21,7 @@ class FakeServiceOrderDataSource implements ServiceOrderDataSource {
   @override
   Future<List<ServiceOrderDto>> fetchOrders() async {
     pocetNacteni++;
-    return List.of(_orders);
+    return _orders.where((dto) => !_archivIds.contains(dto.id)).toList();
   }
 
   /// Kolikrát se seznam načetl - test obnovy podle toho pozná, že se

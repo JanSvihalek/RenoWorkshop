@@ -150,13 +150,38 @@ final orderByIdProvider = Provider.family<AsyncValue<ServiceOrder?>, String>((
   ref,
   orderId,
 ) {
-  return ref.watch(ordersStreamProvider).whenData((orders) {
-    for (final order in orders) {
-      if (order.id == orderId) return order;
-    }
-    return null;
-  });
+  return ref
+      .watch(ordersStreamProvider)
+      .when(
+        data: (orders) {
+          for (final order in orders) {
+            if (order.id == orderId) return AsyncData(order);
+          }
+          // Na dílně není - ukončená zakázka z archivu nebo z karty vozidla.
+          // Dřív tu detail skončil hláškou "nebyla nalezena", přestože
+          // server zakázku má.
+          return ref.watch(zakazkaMimoDilnuProvider(orderId));
+        },
+        loading: () => const AsyncLoading(),
+        error: AsyncError.new,
+      );
 });
+
+/// Zakázka, která není v seznamu dílny, načtená přímo ze serveru.
+///
+/// Po úpravě (přidání stavu, poznámka) ji [OrderActionsController]
+/// zneplatní, ať se načte znovu - seznam dílny ji neobsahuje, takže by
+/// se změna jinak do detailu nepropsala.
+final zakazkaMimoDilnuProvider = FutureProvider.autoDispose
+    .family<ServiceOrder?, String>((ref, orderId) async {
+      try {
+        return await ref
+            .watch(serviceOrderRepositoryProvider)
+            .getOrder(orderId);
+      } on ServiceOrderNotFoundException {
+        return null;
+      }
+    });
 
 /// Mechanici, kterým je aktuálně přiřazená aspoň jedna zakázka (filtr).
 final mechanicsProvider = Provider<List<String>>((ref) {

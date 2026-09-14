@@ -21,6 +21,12 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   ServiceOrderRepository get _repository =>
       ref.read(serviceOrderRepositoryProvider);
 
+  /// Zakázka mimo dílnu se do detailu nepropíše přes seznam - načte se
+  /// znovu ze serveru. U zakázky na dílně to nic nestojí, nikdo ji tak
+  /// nesleduje.
+  void _obnovMimoDilnu(String orderId) =>
+      ref.invalidate(zakazkaMimoDilnuProvider(orderId));
+
   /// Přidá dílenský stav do historie zakázky.
   ///
   /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Vrací `true`
@@ -41,6 +47,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         nazev: nazev?.trim(),
         poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
       );
+      _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;
     } on ServiceOrderException catch (error, stackTrace) {
@@ -61,6 +68,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         text: trimmed,
         author: author,
       );
+      _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;
     } on ServiceOrderException catch (error, stackTrace) {
@@ -81,6 +89,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         workItemId: workItemId,
         isDone: isDone,
       );
+      _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
     } on ServiceOrderException catch (error, stackTrace) {
       state = AsyncError(error.message, stackTrace);
@@ -92,6 +101,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _repository.smazStav(orderId, zaznamId);
+      _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;
     } on ServiceOrderException catch (error, stackTrace) {
