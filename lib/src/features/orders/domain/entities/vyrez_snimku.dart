@@ -8,6 +8,26 @@ import 'dart:ui';
 /// přepočtu by se sejmula úplně jiná část fotky, než jakou má člověk
 /// v rámečku.
 abstract final class VyrezSnimku {
+  /// Rozměr, do kterého se vloží náhled kamery, než ho `BoxFit.cover`
+  /// roztáhne přes obrazovku.
+  ///
+  /// Kamera hlásí rozměr náhledu podle snímače, tedy na šířku. Na výšku
+  /// se proto strany prohodí, na šířku ne - `CameraPreview` si obraz
+  /// otáčí podle zařízení sám a do rámečku obráceného tvaru by se obraz
+  /// vmáčkl, roztáhl a pak zvětšil. Tak vznikal přehnaný zoom na tabletu.
+  ///
+  /// Řídí se tvarem [plocha], ne tím, co hlásí kamera: na některých
+  /// zařízeních hlásí rozměr už otočený.
+  static Size velikostNahledu({
+    required Size nahledKamery,
+    required Size plocha,
+  }) {
+    final dlouha = math.max(nahledKamery.width, nahledKamery.height);
+    final kratka = math.min(nahledKamery.width, nahledKamery.height);
+    final naVysku = plocha.height >= plocha.width;
+    return naVysku ? Size(kratka, dlouha) : Size(dlouha, kratka);
+  }
+
   /// Vrátí obdélník ve **pixelech snímku**, který odpovídá [ramecek]
   /// nakreslenému přes náhled o velikosti [plocha].
   ///

@@ -54,4 +54,42 @@ void main() {
       expect(vyrez, const Rect.fromLTWH(0, 0, 1000, 500));
     });
   });
+
+  group('velikost náhledu kamery', () {
+    // Kamera hlásí rozměr snímače, na šířku.
+    const nahled = Size(1280, 720);
+
+    test('telefon na výšku: strany se prohodí', () {
+      expect(
+        VyrezSnimku.velikostNahledu(
+          nahledKamery: nahled,
+          plocha: const Size(400, 800),
+        ),
+        const Size(720, 1280),
+      );
+    });
+
+    test(
+      'tablet na šířku: zůstane na šířku, jinak by obraz přehnaně zoomoval',
+      () {
+        expect(
+          VyrezSnimku.velikostNahledu(
+            nahledKamery: nahled,
+            plocha: const Size(1280, 800),
+          ),
+          const Size(1280, 720),
+        );
+      },
+    );
+
+    test('kamera hlásící rozměr už otočený vede ke stejnému výsledku', () {
+      expect(
+        VyrezSnimku.velikostNahledu(
+          nahledKamery: const Size(720, 1280),
+          plocha: const Size(1280, 800),
+        ),
+        const Size(1280, 720),
+      );
+    });
+  });
 }

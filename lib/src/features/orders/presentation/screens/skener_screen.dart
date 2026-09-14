@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../domain/entities/kod_vozidla.dart';
 import '../controllers/orders_providers.dart';
+import '../../domain/entities/vyrez_snimku.dart';
 import '../controllers/ramecek_skeneru.dart';
 
 /// Načtení VINu nebo SPZ fotoaparátem.
@@ -246,9 +247,12 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
               if (kamera != null)
                 FittedBox(
                   fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: kamera.value.previewSize?.height ?? 1,
-                    height: kamera.value.previewSize?.width ?? 1,
+                  child: SizedBox.fromSize(
+                    size: VyrezSnimku.velikostNahledu(
+                      nahledKamery:
+                          kamera.value.previewSize ?? const Size(16, 9),
+                      plocha: constraints.biggest,
+                    ),
                     child: CameraPreview(kamera),
                   ),
                 ),
