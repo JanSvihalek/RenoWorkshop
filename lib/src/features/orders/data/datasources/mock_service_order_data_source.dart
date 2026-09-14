@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
+import '../../../vozidla/data/vozidla_data_source.dart';
+import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
@@ -10,7 +12,8 @@ import 'service_order_data_source.dart';
 ///
 /// Simuluje latenci sítě, aby UI muselo počítat s loading stavem stejně
 /// jako u reálného API.
-class MockServiceOrderDataSource implements ServiceOrderDataSource {
+class MockServiceOrderDataSource
+    implements ServiceOrderDataSource, VozidlaDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -212,5 +215,59 @@ class MockServiceOrderDataSource implements ServiceOrderDataSource {
     );
     orders[index] = updated;
     return updated;
+  }
+
+  /// Mock nemá zrcadlo vozidel - vozidla skládá ze zakázek podle SPZ.
+  /// Pořadí je stálé (podle SPZ), ať má vůz mezi voláními stejné `id`.
+  Future<List<List<ServiceOrderDto>>> _vozidlaZeZakazek() async {
+    final orders = await _ensureLoaded();
+    final podleSpz = <String, List<ServiceOrderDto>>{};
+    for (final dto in orders) {
+      podleSpz.putIfAbsent(dto.licensePlate, () => []).add(dto);
+    }
+    final spz = podleSpz.keys.toList()..sort();
+    return [for (final s in spz) podleSpz[s]!];
+  }
+
+  @override
+  Future<List<NalezeneVozidlo>> hledejVozidla(String dotaz) async {
+    final vozidla = await _vozidlaZeZakazek();
+    await _simulateLatency();
+
+    String kod(String s) => s.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+    final hledane = kod(dotaz);
+    if (hledane.length < 3) return const [];
+
+    return [
+      for (var i = 0; i < vozidla.length; i++)
+        if (kod(vozidla[i].first.licensePlate).contains(hledane) ||
+            kod(vozidla[i].first.vin).contains(hledane))
+          NalezeneVozidlo(
+            id: i + 1,
+            spz: vozidla[i].first.licensePlate,
+            vin: vozidla[i].first.vin,
+            model: vozidla[i].first.model,
+            majitel: vozidla[i].first.customerName,
+            pocetZakazek: vozidla[i].length,
+          ),
+    ];
+  }
+
+  @override
+  Future<KartaVozidla?> kartaVozidla(int id) async {
+    final vozidla = await _vozidlaZeZakazek();
+    await _simulateLatency();
+    if (id < 1 || id > vozidla.length) return null;
+
+    final zakazky = vozidla[id - 1];
+    final prvni = zakazky.first;
+    return KartaVozidla(
+      id: id,
+      spz: prvni.licensePlate,
+      vin: prvni.vin,
+      model: prvni.model,
+      majitel: MajitelVozidla(nazev: prvni.customerName),
+      zakazky: [for (final dto in zakazky) dto.toDomain()],
+    );
   }
 }

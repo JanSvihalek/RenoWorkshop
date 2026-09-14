@@ -11,6 +11,7 @@ class OrderSearchField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     this.onScan,
+    this.hintText = 'SPZ, zákazník, číslo zakázky',
   });
 
   final TextEditingController controller;
@@ -18,6 +19,9 @@ class OrderSearchField extends StatelessWidget {
 
   /// Načtení VINu nebo SPZ fotoaparátem. Když chybí, ikona se nezobrazí.
   final VoidCallback? onScan;
+
+  /// Co pole hledá - seznam zakázek hledá širší, vozidla jen SPZ a VIN.
+  final String hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +55,7 @@ class OrderSearchField extends StatelessWidget {
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
-                hintText: 'SPZ, zákazník, číslo zakázky',
+                hintText: hintText,
                 hintStyle: TextStyle(
                   fontFamily: AppFonts.sans,
                   fontSize: 14.5,

@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../../vozidla/data/vozidla_data_source.dart';
+import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -16,7 +18,8 @@ import 'service_order_data_source.dart';
 ///
 /// Autorizace: Firebase ID token v hlavičce `Authorization`. Token dodává
 /// [tokenProvider], aby datová vrstva nezávisela na Firebase a šla testovat.
-class RestServiceOrderDataSource implements ServiceOrderDataSource {
+class RestServiceOrderDataSource
+    implements ServiceOrderDataSource, VozidlaDataSource {
   RestServiceOrderDataSource({
     required Uri baseUrl,
     required Future<String?> Function() tokenProvider,
@@ -127,6 +130,26 @@ class RestServiceOrderDataSource implements ServiceOrderDataSource {
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }
 
+  @override
+  Future<List<NalezeneVozidlo>> hledejVozidla(String dotaz) async {
+    final data = await _send(
+      'GET',
+      'vehicles/search?q=${Uri.encodeQueryComponent(dotaz)}',
+    );
+    if (data is! List) {
+      throw const ServiceOrderException('Server vrátil neočekávaná data.');
+    }
+    return data
+        .map((item) => VozidlaJson.nalezene(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<KartaVozidla?> kartaVozidla(int id) async {
+    final data = await _send('GET', 'vehicles/$id');
+    return data == null ? null : VozidlaJson.karta(_asMap(data));
+  }
+
   /// Jedno místo pro sestavení požadavku, autorizaci a překlad chyb.
   Future<Object?> _send(
     String method,
@@ -166,8 +189,10 @@ class RestServiceOrderDataSource implements ServiceOrderDataSource {
     final kod = odpoved.statusCode;
 
     if (kod == 404) {
-      // Volající rozliší chybějící zakázku podle null.
-      if (path.startsWith('orders/')) return null;
+      // Volající rozliší chybějící zakázku nebo vozidlo podle null.
+      if (path.startsWith('orders/') || path.startsWith('vehicles/')) {
+        return null;
+      }
       throw const ServiceOrderException('Požadovaný zdroj nebyl nalezen.');
     }
     if (kod == 401 || kod == 403) {

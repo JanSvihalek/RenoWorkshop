@@ -1,19 +1,55 @@
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
+import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
+import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
-class FakeServiceOrderDataSource implements ServiceOrderDataSource {
+class FakeServiceOrderDataSource
+    implements ServiceOrderDataSource, VozidlaDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
     List<ServiceOrderDto> orders, {
     List<ServiceOrderDto> archiv = const [],
+    List<KartaVozidla> vozidla = const [],
   }) : _orders = [...orders, ...archiv],
-       _archivIds = {for (final dto in archiv) dto.id};
+       _archivIds = {for (final dto in archiv) dto.id},
+       _vozidla = vozidla;
 
   final List<ServiceOrderDto> _orders;
   final Set<String> _archivIds;
+  final List<KartaVozidla> _vozidla;
+
+  /// Poslední dotaz na vozidla - test pozná, co šlo na server.
+  String? posledniHledaniVozidla;
+
+  @override
+  Future<List<NalezeneVozidlo>> hledejVozidla(String dotaz) async {
+    posledniHledaniVozidla = dotaz;
+    String kod(String s) => s.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+    final hledane = kod(dotaz);
+    return [
+      for (final v in _vozidla)
+        if (kod(v.spz).contains(hledane) || kod(v.vin).contains(hledane))
+          NalezeneVozidlo(
+            id: v.id,
+            spz: v.spz,
+            vin: v.vin,
+            model: v.model,
+            majitel: v.majitel?.nazev,
+            pocetZakazek: v.zakazky.length,
+          ),
+    ];
+  }
+
+  @override
+  Future<KartaVozidla?> kartaVozidla(int id) async {
+    for (final v in _vozidla) {
+      if (v.id == id) return v;
+    }
+    return null;
+  }
 
   int _indexOf(String orderId) =>
       _orders.indexWhere((order) => order.id == orderId);

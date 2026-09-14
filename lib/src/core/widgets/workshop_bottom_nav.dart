@@ -8,7 +8,9 @@ import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 
 /// Záložky spodní navigace.
-enum WorkshopTab { orders, settings }
+///
+/// Pořadí je zároveň pořadí větví v routeru (`StatefulShellRoute`).
+enum WorkshopTab { orders, vyhledavani, settings }
 
 /// Spodní navigace dílny.
 class WorkshopBottomNav extends StatelessWidget {
@@ -27,6 +29,12 @@ class WorkshopBottomNav extends StatelessWidget {
       'Zakázky',
       Icons.assignment_outlined,
       Icons.assignment,
+    ),
+    _NavItem(
+      WorkshopTab.vyhledavani,
+      'Vozidla',
+      Icons.directions_car_outlined,
+      Icons.directions_car,
     ),
     _NavItem(
       WorkshopTab.settings,

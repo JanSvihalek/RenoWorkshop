@@ -14,6 +14,10 @@ import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/vozidla/presentation/controllers/vozidla_providers.dart';
+import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
+import '../features/vozidla/presentation/screens/rozdelene_vyhledavani_screen.dart';
+import '../features/vozidla/presentation/screens/vyhledavani_screen.dart';
 
 /// Cesty appky na jednom místě - ať se v další fázi (deep linky z DMS,
 /// notifikace) nemusí hledat po widgetech.
@@ -23,6 +27,13 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String archiv = '/archiv';
   static const String skener = '/skener';
+  static const String vyhledavani = '/vyhledavani';
+  static const String vozidla = '/vozidla';
+
+  /// Skener, jehož výsledek jde do vyhledání vozidla, ne do seznamu zakázek.
+  static const String skenerVozidla = '$skener?cil=vozidla';
+
+  static String kartaVozidla(int id) => '$vozidla/$id';
 
   static String archivHledani(String dotaz) =>
       '$archiv?q=${Uri.encodeQueryComponent(dotaz)}';
@@ -66,6 +77,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             // `go`, ne `pushReplacement`: skener se otevírá ze seznamu,
             // takže by jinak v zásobníku zůstaly dva seznamy pod sebou.
             onNalezeno: (kod) {
+              // Ze záložky vozidel: SPZ jde do vyhledání vozidla a jediný
+              // nalezený vůz se rovnou otevře.
+              if (state.uri.queryParameters['cil'] == 'vozidla') {
+                ref.read(dotazVozidlaProvider.notifier).state = kod.hodnota;
+                ref.read(otevritJedineVozidloProvider.notifier).state = true;
+                context.go(AppRoutes.vyhledavani);
+                return;
+              }
               ref.read(orderFilterProvider.notifier).setQuery(kod.hodnota);
               context.go(AppRoutes.orders);
             },
@@ -109,6 +128,25 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Pořadí větví musí sedět s WorkshopTab: zakázky, vozidla, nastavení.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.vyhledavani,
+                builder: (context, state) => context.jeTablet
+                    ? RozdeleneVyhledavaniScreen(
+                        onScan: () => context.push(AppRoutes.skenerVozidla),
+                        onOpenOrder: (order) =>
+                            context.push(AppRoutes.orderDetail(order.id)),
+                      )
+                    : VyhledavaniScreen(
+                        onScan: () => context.push(AppRoutes.skenerVozidla),
+                        onOpenVozidlo: (vozidlo) =>
+                            context.push(AppRoutes.kartaVozidla(vozidlo.id)),
+                      ),
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -119,8 +157,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // Detail je mimo rám schválně: na telefonu překryje i lištu záložek,
-      // protože zakázka není záložka, ale zanoření.
+      // Karta vozidla i detail zakázky jsou mimo rám schválně: na telefonu
+      // překryjí i lištu záložek, protože nejsou záložka, ale zanoření.
+      GoRoute(
+        path: '${AppRoutes.vozidla}/:vozidloId',
+        builder: (context, state) => KartaVozidlaScreen(
+          vozidloId: int.tryParse(state.pathParameters['vozidloId']!) ?? -1,
+          onBack: () => context.canPop()
+              ? context.pop()
+              : context.go(AppRoutes.vyhledavani),
+          onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
+        ),
+      ),
       GoRoute(
         path: '${AppRoutes.orders}/:orderId',
         builder: (context, state) => OrderDetailScreen(

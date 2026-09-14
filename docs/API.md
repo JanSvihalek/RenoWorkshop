@@ -255,6 +255,70 @@ Dotaz kratší než tři znaky vrací `400`.
 Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
 uživatel načte VIN fotoaparátem.
 
+### GET /vehicles/search?q=…
+
+Hledání vozidla podle **SPZ nebo VIN** pro záložku Vozidla. Hledá v zrcadle
+vozidel z Heliosu, tedy ve všech vozech, ne jen v těch na dílně. Mezery
+a pomlčky se ignorují (`2BK 9485` z fotoaparátu = `2BK9485` z Heliosu),
+stačí část značky. Přesná shoda jde první, nejvýš 20 vozidel. Dotaz kratší
+než tři znaky vrací `400`.
+
+```json
+[
+  {
+    "id": 51234,
+    "licensePlate": "2BK 9485",
+    "vin": "WBA8E9C50GK123456",
+    "model": "BMW 320d Touring",
+    "ownerName": "Stavby Novák s.r.o.",
+    "orderCount": 3
+  }
+]
+```
+
+Jedna SPZ může vrátit víc vozidel - značky se po přeregistraci přidělují
+znovu. Aplikace po naskenování otevře kartu rovnou jen u jediného výsledku.
+
+### GET /vehicles/{id}
+
+Karta vozidla. `id` je `cislo_subjektu` z Heliosu, neexistující vrací `404`.
+
+```json
+{
+  "id": 51234,
+  "licensePlate": "2BK 9485",
+  "vin": "WBA8E9C50GK123456",
+  "model": "BMW 320d Touring",
+  "series": "F31",
+  "fuel": "Nafta",
+  "engine": "B47D20",
+  "mileage": 123456,
+  "soldAt": "2019-05-14",
+  "owner": {
+    "id": 60001,
+    "name": "Stavby Novák s.r.o.",
+    "customerNumber": "Z-10042",
+    "ico": "12345678",
+    "dic": "CZ12345678",
+    "street": "Masarykova 123/4",
+    "city": "Brno",
+    "zip": "60200",
+    "phone": "+420 777 123 456",
+    "email": "info@stavbynovak.cz"
+  },
+  "contact": { "id": 7, "name": "Petr Řidič", "phone": "+420 603 000 111", "email": null },
+  "orders": [ ]
+}
+```
+
+- `owner` je **dnešní** majitel vozu. Každá zakázka v `orders` si nese svého
+  tehdejšího zákazníka (`customerName`) - po prodeji vozu se rozejdou.
+- `orders` jsou **všechny** zakázky vozu, rozdělané i ukončené, od nejnovější,
+  ve stejném tvaru jako `GET /orders`. Rozliší je `isActive`.
+- `owner` i `contact` mohou být `null`. Domácí adresa kontaktní osoby se
+  neposílá, i když ji server má.
+- `soldAt` je datum prodeje u RENOCARu, ne rok výroby - ten Helios nevede.
+
 ### PATCH /orders/{id}
 
 Posun stavu. Vrací celou aktualizovanou zakázku.

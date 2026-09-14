@@ -37,6 +37,12 @@ class WorkshopSideNav extends StatelessWidget {
       Icons.assignment,
     ),
     (
+      WorkshopTab.vyhledavani,
+      'Vozidla',
+      Icons.directions_car_outlined,
+      Icons.directions_car,
+    ),
+    (
       WorkshopTab.settings,
       'Nastavení',
       Icons.settings_outlined,
