@@ -29,11 +29,13 @@ void main() {
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
               heliosStatus: 'Zpracováváno',
+              folder: const {'code': '10026', 'label': 'BMW BSL'},
             ),
             buildOrderDto(
               id: 'ZK-26-0002',
               licensePlate: '2SC 9014',
               heliosStatus: 'K fakturaci',
+              folder: const {'code': '16877', 'label': 'MOT BSL'},
             ),
           ]),
         ),
@@ -60,10 +62,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('filtr pořadače zúží seznam', (tester) async {
+    await prihlas(tester);
+
+    await klepni(tester, vListe(find.text('Pořadač')));
+    await tester.tap(find.text('MOT BSL').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2SC 9014'), findsOneWidget);
+    expect(find.text('8AB 4721'), findsNothing);
+  });
+
   testWidgets('filtr stavu z Heliosu zúží seznam', (tester) async {
     await prihlas(tester);
 
-    await klepni(tester, vListe(find.byType(DropdownButton<String?>)).at(1));
+    await klepni(tester, vListe(find.byType(DropdownButton<String?>)).at(2));
     await tester.tap(find.text('K fakturaci').last);
     await tester.pumpAndSettle();
 

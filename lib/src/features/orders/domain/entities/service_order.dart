@@ -1,6 +1,7 @@
 import 'branch.dart';
 import 'dilensky_stav.dart';
 import 'order_note.dart';
+import 'poradac.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
 import 'zavada.dart';
@@ -24,6 +25,7 @@ class ServiceOrder {
     this.branch,
     this.department,
     this.typZakazky,
+    this.poradac,
     this.receivedAt,
     this.dueAt,
     required this.vin,
@@ -84,6 +86,9 @@ class ServiceOrder {
   /// Typ zakázky - běžná, interní, klempířská. `null`, dokud ho pohled
   /// nad Heliosem nedotahuje nebo když ho zakázka nemá vyplněný.
   final TypZakazky? typZakazky;
+
+  /// Pořadač v Heliosu (značka a pobočka zpracování). `null` = neznámý.
+  final Poradac? poradac;
 
   /// Kdy vozidlo přijelo na příjem.
   final DateTime? receivedAt;
@@ -196,6 +201,7 @@ class ServiceOrder {
       branch: branch,
       department: department,
       typZakazky: typZakazky,
+      poradac: poradac,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

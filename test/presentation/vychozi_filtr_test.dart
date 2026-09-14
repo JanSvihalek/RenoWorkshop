@@ -65,9 +65,21 @@ void main() {
     expect(filter.mechanicName, 'Eva Malá');
   });
 
+  test('výchozí pořadač se propíše do filtru', () {
+    final filter = kontejner(
+      const Nastaveni(vychoziPoradac: '10026'),
+    ).read(orderFilterProvider);
+
+    expect(filter.poradacKod, '10026');
+  });
+
   test('zrušení výchozího filtru v nastavení shodí útvar i osobu', () {
     final container = kontejner(
-      const Nastaveni(vychoziUtvar: '12100', vychoziZodpovida: 'Eva Malá'),
+      const Nastaveni(
+        vychoziUtvar: '12100',
+        vychoziPoradac: '10026',
+        vychoziZodpovida: 'Eva Malá',
+      ),
     );
 
     container.read(nastaveniProvider.notifier).zrusVychoziFiltr();
@@ -75,6 +87,7 @@ void main() {
     final nastaveni = container.read(nastaveniProvider);
     expect(nastaveni.vychoziUtvar, isNull);
     expect(nastaveni.vychoziZodpovida, isNull);
+    expect(nastaveni.vychoziPoradac, isNull);
     expect(nastaveni.maVychoziFiltr, isFalse);
   });
 

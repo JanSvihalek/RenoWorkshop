@@ -27,14 +27,21 @@ class NastaveniController extends Notifier<Nastaveni> {
         : state.copyWith(vychoziUtvar: kodUtvaru),
   );
 
+  void zmenVychoziPoradac(String? kod) => _uloz(
+    kod == null
+        ? state.copyWith(zrusPoradac: true)
+        : state.copyWith(vychoziPoradac: kod),
+  );
+
   void zmenVychoziZodpovida(String? jmeno) => _uloz(
     jmeno == null
         ? state.copyWith(zrusZodpovida: true)
         : state.copyWith(vychoziZodpovida: jmeno),
   );
 
-  void zrusVychoziFiltr() =>
-      _uloz(state.copyWith(zrusUtvar: true, zrusZodpovida: true));
+  void zrusVychoziFiltr() => _uloz(
+    state.copyWith(zrusUtvar: true, zrusPoradac: true, zrusZodpovida: true),
+  );
 
   /// Zápis do úložiště se nečeká: nastavení je drobnost a čekání na disk
   /// by se projevilo jako zpoždění přepínače pod prstem.

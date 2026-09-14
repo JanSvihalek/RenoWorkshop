@@ -1,6 +1,7 @@
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/order_note.dart';
+import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
@@ -26,6 +27,7 @@ class ServiceOrderDto {
     required this.branch,
     required this.department,
     this.orderType,
+    this.folder,
     required this.receivedAt,
     required this.dueAt,
     required this.vin,
@@ -75,6 +77,10 @@ class ServiceOrderDto {
   /// a dokud pohled nad Heliosem typ nedotahuje.
   final Map<String, dynamic>? orderType;
 
+  /// `{"code": "10026", "label": "BMW BSL"}` - pořadač zakázky,
+  /// nebo `null`. Chybí u starší verze API.
+  final Map<String, dynamic>? folder;
+
   /// Datum přijetí a předpokládaný termín. Obojí smí chybět: Helios je
   /// nemá vyplněné u každé zakázky a termín se často doplní až později.
   final String? receivedAt;
@@ -106,6 +112,7 @@ class ServiceOrderDto {
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
       orderType: json['orderType'] as Map<String, dynamic>?,
+      folder: json['folder'] as Map<String, dynamic>?,
       receivedAt: json['receivedAt'] as String?,
       dueAt: json['dueAt'] as String?,
       vin: json['vin'] as String,
@@ -139,6 +146,7 @@ class ServiceOrderDto {
     'branch': branch,
     'department': department,
     'orderType': orderType,
+    'folder': folder,
     'receivedAt': receivedAt,
     'dueAt': dueAt,
     'vin': vin,
@@ -172,6 +180,7 @@ class ServiceOrderDto {
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
     typZakazky: orderType == null ? null : TypZakazky.fromJson(orderType!),
+    poradac: folder == null ? null : Poradac.fromJson(folder!),
     // tryParse, ne parse: nesmyslné datum ze serveru nesmí shodit celý
     // seznam - zakázka se ukáže bez termínu.
     receivedAt: receivedAt == null ? null : DateTime.tryParse(receivedAt!),
@@ -218,6 +227,7 @@ class ServiceOrderDto {
       branch: branch,
       department: department,
       orderType: orderType,
+      folder: folder,
       receivedAt: receivedAt,
       dueAt: dueAt,
       vin: vin,

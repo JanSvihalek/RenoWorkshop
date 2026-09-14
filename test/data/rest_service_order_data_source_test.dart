@@ -185,6 +185,24 @@ void main() {
       expect(await nazev(null), isNull);
     });
 
+    test('pořadač se načte s krátkým názvem, bez něj s číslem', () async {
+      Future<String?> nazev(Object? folder) async {
+        final client = MockClient(
+          (request) async => http.Response(
+            jsonEncode({..._zakazka(), 'folder': folder}),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          ),
+        );
+        final dto = await _zdroj(client).fetchOrder('ZK-26-0418');
+        return dto!.toDomain().poradac?.nazev;
+      }
+
+      expect(await nazev({'code': '10026', 'label': 'BMW BSL'}), 'BMW BSL');
+      expect(await nazev({'code': '10026', 'label': ''}), '10026');
+      expect(await nazev(null), isNull);
+    });
+
     test('neznámá zakázka vrací null, ne výjimku', () async {
       final client = MockClient((request) async => http.Response('', 404));
 

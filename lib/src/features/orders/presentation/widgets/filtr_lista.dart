@@ -27,6 +27,7 @@ class FiltrLista extends ConsumerWidget {
     final controller = ref.read(orderFilterProvider.notifier);
 
     final utvary = ref.watch(availableDepartmentsProvider);
+    final poradace = ref.watch(pouzitePoradaceProvider);
     final stavy = ref.watch(pouziteStavyProvider);
     final stavyHelios = ref.watch(pouziteStavyHeliosProvider);
     final typy = ref.watch(availableOrderTypesProvider);
@@ -50,6 +51,13 @@ class FiltrLista extends ConsumerWidget {
               hodnota: filter.departmentCode,
               moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
               onZmena: controller.setDepartment,
+            ),
+            const SizedBox(width: Insets.sm),
+            _Filtr<String>(
+              popisek: 'Pořadač',
+              hodnota: filter.poradacKod,
+              moznosti: {for (final p in poradace) p.kod: p.nazev},
+              onZmena: controller.setPoradac,
             ),
             const SizedBox(width: Insets.sm),
             // Dva nezávislé stavy jako na kartě: co o zakázce ví ERP

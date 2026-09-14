@@ -119,6 +119,13 @@ void main() {
       );
     });
 
+    test('filtr pořadače je aktivní a jde zrušit', () {
+      const filter = OrderFilter(poradacKod: '10026');
+      expect(filter.isActive, isTrue);
+      expect(filter == const OrderFilter(), isFalse);
+      expect(filter.copyWith(clearPoradac: true).poradacKod, isNull);
+    });
+
     test('activeCount počítá jen skutečně aktivní filtry', () {
       expect(const OrderFilter().activeCount, 0);
       expect(const OrderFilter(query: '   ').activeCount, 0);

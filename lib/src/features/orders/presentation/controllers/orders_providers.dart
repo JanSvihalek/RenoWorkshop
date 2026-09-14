@@ -11,6 +11,7 @@ import '../../data/repositories/service_order_repository_impl.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/order_filter.dart';
+import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/repositories/service_order_repository.dart';
@@ -126,6 +127,17 @@ final pouziteStavyHeliosProvider = Provider<List<String>>((ref) {
     ..sort();
 });
 
+/// Pořadače, které mají načtené zakázky - pro filtr. Řazené podle názvu,
+/// ať jdou značky pohromadě.
+final pouzitePoradaceProvider = Provider<List<Poradac>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final unikatni = <String, Poradac>{};
+  for (final poradac in orders.map((order) => order.poradac).nonNulls) {
+    unikatni[poradac.kod] = poradac;
+  }
+  return unikatni.values.toList()..sort((a, b) => a.nazev.compareTo(b.nazev));
+});
+
 /// Čtení VINu a SPZ fotoaparátem. Vlastní provider, aby šel v testech
 /// nahradit bez zapojení kamery.
 final skenerProvider = Provider<SkenerKodu>((ref) {
@@ -216,6 +228,7 @@ class OrderFilterController extends Notifier<OrderFilter> {
 
   static OrderFilter _vychozi(Nastaveni nastaveni) => OrderFilter(
     departmentCode: nastaveni.vychoziUtvar,
+    poradacKod: nastaveni.vychoziPoradac,
     mechanicName: nastaveni.vychoziZodpovida,
   );
 
@@ -226,6 +239,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setTypZakazky(String? kod) => state = kod == null
       ? state.copyWith(clearTypZakazky: true)
       : state.copyWith(typZakazkyKod: kod);
+
+  void setPoradac(String? kod) => state = kod == null
+      ? state.copyWith(clearPoradac: true)
+      : state.copyWith(poradacKod: kod);
 
   void setDepartment(String? departmentCode) => state = departmentCode == null
       ? state.copyWith(clearDepartment: true)

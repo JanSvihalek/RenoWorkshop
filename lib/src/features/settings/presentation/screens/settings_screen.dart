@@ -228,6 +228,7 @@ class _VychoziFiltrCard extends ConsumerWidget {
     final nastaveni = ref.watch(nastaveniProvider);
     final utvary = ref.watch(availableDepartmentsProvider);
     final zodpovedni = ref.watch(mechanicsProvider);
+    final poradace = ref.watch(pouzitePoradaceProvider);
 
     return _Card(
       child: Column(
@@ -260,7 +261,7 @@ class _VychoziFiltrCard extends ConsumerWidget {
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
           ),
           const SizedBox(height: Insets.base),
-          if (utvary.isEmpty && zodpovedni.isEmpty)
+          if (utvary.isEmpty && poradace.isEmpty && zodpovedni.isEmpty)
             Text(
               'Útvary a lidé se nabídnou, jakmile se načtou zakázky.',
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
@@ -272,6 +273,14 @@ class _VychoziFiltrCard extends ConsumerWidget {
               moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
               onZmena: (kod) =>
                   ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
+            ),
+            const SizedBox(height: Insets.base),
+            _Vyber(
+              popisek: 'Pořadač',
+              hodnota: nastaveni.vychoziPoradac,
+              moznosti: {for (final p in poradace) p.kod: p.nazev},
+              onZmena: (kod) =>
+                  ref.read(nastaveniProvider.notifier).zmenVychoziPoradac(kod),
             ),
             const SizedBox(height: Insets.base),
             _Vyber(

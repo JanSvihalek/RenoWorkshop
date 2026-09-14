@@ -21,6 +21,7 @@ class OrderFilter {
     this.branchCode,
     this.departmentCode,
     this.typZakazkyKod,
+    this.poradacKod,
     this.statusCode,
     this.heliosStav,
     this.mechanicName,
@@ -37,6 +38,9 @@ class OrderFilter {
 
   /// Kód typu zakázky (běžná, interní, klempířská). `null` = všechny.
   final String? typZakazkyKod;
+
+  /// Číslo pořadače z Heliosu. `null` = všechny.
+  final String? poradacKod;
 
   /// Kód dílenského stavu z číselníku. `null` = všechny stavy.
   final String? statusCode;
@@ -55,6 +59,7 @@ class OrderFilter {
       branchCode != null ||
       departmentCode != null ||
       typZakazkyKod != null ||
+      poradacKod != null ||
       statusCode != null ||
       heliosStav != null ||
       mechanicName != null ||
@@ -65,6 +70,7 @@ class OrderFilter {
     branchCode != null,
     departmentCode != null,
     typZakazkyKod != null,
+    poradacKod != null,
     statusCode != null,
     heliosStav != null,
     mechanicName != null,
@@ -75,6 +81,7 @@ class OrderFilter {
     String? branchCode,
     String? departmentCode,
     String? typZakazkyKod,
+    String? poradacKod,
     String? statusCode,
     String? heliosStav,
     String? mechanicName,
@@ -83,6 +90,7 @@ class OrderFilter {
     bool clearBranch = false,
     bool clearDepartment = false,
     bool clearTypZakazky = false,
+    bool clearPoradac = false,
     bool clearStatus = false,
     bool clearHeliosStav = false,
     bool clearMechanic = false,
@@ -95,6 +103,7 @@ class OrderFilter {
       typZakazkyKod: clearTypZakazky
           ? null
           : (typZakazkyKod ?? this.typZakazkyKod),
+      poradacKod: clearPoradac ? null : (poradacKod ?? this.poradacKod),
       statusCode: clearStatus ? null : (statusCode ?? this.statusCode),
       heliosStav: clearHeliosStav ? null : (heliosStav ?? this.heliosStav),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
@@ -113,6 +122,7 @@ class OrderFilter {
       if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
         return false;
       }
+      if (poradacKod != null && order.poradac?.kod != poradacKod) return false;
       if (statusCode != null && order.stav?.kod != statusCode) return false;
       if (heliosStav != null && order.heliosStatus != heliosStav) return false;
       if (mechanicName != null && order.mechanicName != mechanicName) {
@@ -155,6 +165,7 @@ class OrderFilter {
           // Typ tu dřív chyběl - „Zrušit filtry" pak s vybraným typem
           // shodilo i výchozí filtr z nastavení, místo aby se na něj vrátilo.
           other.typZakazkyKod == typZakazkyKod &&
+          other.poradacKod == poradacKod &&
           other.statusCode == statusCode &&
           other.heliosStav == heliosStav &&
           other.mechanicName == mechanicName &&
@@ -166,6 +177,7 @@ class OrderFilter {
     branchCode,
     departmentCode,
     typZakazkyKod,
+    poradacKod,
     statusCode,
     heliosStav,
     mechanicName,

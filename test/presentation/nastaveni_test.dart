@@ -61,6 +61,18 @@ void main() {
       },
     );
 
+    test('výchozí pořadač přežije restart a po zrušení zmizí', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final uloziste = SharedPreferencesNastaveni(prefs);
+
+      await uloziste.uloz(const Nastaveni(vychoziPoradac: '10026'));
+      expect(SharedPreferencesNastaveni(prefs).nacti().vychoziPoradac, '10026');
+
+      await uloziste.uloz(const Nastaveni());
+      expect(prefs.getString('nastaveni.vychoziPoradac'), isNull);
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

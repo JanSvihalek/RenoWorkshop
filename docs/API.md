@@ -170,6 +170,7 @@ stránkování.
     "repairSubject": "Zadní nárazník, víko kufru",
     "insurer": { "id": 60001, "name": "Kooperativa" },
     "insuranceClaimNumber": "4201234567",
+    "folder": { "code": "10026", "label": "BMW BSL" },
     "status": "Klempířské práce",
     "statusCode": "klempirna",
     "statusHistory": [
@@ -286,6 +287,13 @@ pak ukáže číslo.
 `insuranceClaimNumber` je číslo pojistné události - uživatelsky definovaný
 atribut `ino_cpu` v Heliosu. Text (pojišťovny ho píší různě), nejvýš
 100 znaků, `null` = nezadáno. Hledání v archivu podle něj zakázku najde.
+
+### Pořadač zakázky
+
+`folder` je pořadač zakázky v Heliosu (`cislo_poradace`) - v zásadě značka
+a pobočka zpracování. `label` je krátký název z převodní tabulky
+`poradace` na serveru; když v ní pořadač chybí, přijde jako `label` samo
+číslo. `null` u zakázky bez pořadače nebo ze starší verze API.
 
 ### PUT /orders/{id}/repair-subject
 

@@ -215,6 +215,7 @@ ServiceOrderDto buildOrderDto({
   List<Zavada> defects = const [],
   Map<String, dynamic>? insurer,
   String? insuranceClaimNumber,
+  Map<String, dynamic>? folder,
 }) {
   return ServiceOrderDto(
     id: id,
@@ -246,6 +247,7 @@ ServiceOrderDto buildOrderDto({
     defects: defects,
     insurer: insurer,
     insuranceClaimNumber: insuranceClaimNumber,
+    folder: folder,
   );
 }
 

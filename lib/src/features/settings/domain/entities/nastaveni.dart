@@ -34,6 +34,7 @@ class Nastaveni {
   const Nastaveni({
     this.vzhled = RezimVzhledu.podleSystemu,
     this.vychoziUtvar,
+    this.vychoziPoradac,
     this.vychoziZodpovida,
   });
 
@@ -44,6 +45,9 @@ class Nastaveni {
   /// Kód, ne název - názvy útvarů se v Heliosu přepisují, kód drží.
   final String? vychoziUtvar;
 
+  /// Číslo pořadače, na který se seznam otevře. `null` = všechny.
+  final String? vychoziPoradac;
+
   /// Kdo za zakázky zodpovídá - seznam se otevře jen na jeho zakázkách.
   /// `null` = všichni.
   ///
@@ -52,18 +56,26 @@ class Nastaveni {
   /// pak se filtr prostě přestane uplatňovat a jde vybrat znovu.
   final String? vychoziZodpovida;
 
-  bool get maVychoziFiltr => vychoziUtvar != null || vychoziZodpovida != null;
+  bool get maVychoziFiltr =>
+      vychoziUtvar != null ||
+      vychoziPoradac != null ||
+      vychoziZodpovida != null;
 
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
     String? vychoziUtvar,
     bool zrusUtvar = false,
+    String? vychoziPoradac,
+    bool zrusPoradac = false,
     String? vychoziZodpovida,
     bool zrusZodpovida = false,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
       vychoziUtvar: zrusUtvar ? null : (vychoziUtvar ?? this.vychoziUtvar),
+      vychoziPoradac: zrusPoradac
+          ? null
+          : (vychoziPoradac ?? this.vychoziPoradac),
       vychoziZodpovida: zrusZodpovida
           ? null
           : (vychoziZodpovida ?? this.vychoziZodpovida),
@@ -76,8 +88,10 @@ class Nastaveni {
       (other is Nastaveni &&
           other.vzhled == vzhled &&
           other.vychoziUtvar == vychoziUtvar &&
+          other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida);
 
   @override
-  int get hashCode => Object.hash(vzhled, vychoziUtvar, vychoziZodpovida);
+  int get hashCode =>
+      Object.hash(vzhled, vychoziUtvar, vychoziPoradac, vychoziZodpovida);
 }
