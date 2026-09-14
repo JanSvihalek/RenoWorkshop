@@ -43,6 +43,24 @@ void main() {
       expect(uloziste.nacti().vzhled, RezimVzhledu.podleSystemu);
     });
 
+    test(
+      'výchozí zodpovědná osoba přežije restart a po zrušení zmizí',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final uloziste = SharedPreferencesNastaveni(prefs);
+
+        await uloziste.uloz(const Nastaveni(vychoziZodpovida: 'Eva Malá'));
+        expect(
+          SharedPreferencesNastaveni(prefs).nacti().vychoziZodpovida,
+          'Eva Malá',
+        );
+
+        await uloziste.uloz(const Nastaveni());
+        expect(prefs.getString('nastaveni.vychoziZodpovida'), isNull);
+      },
+    );
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

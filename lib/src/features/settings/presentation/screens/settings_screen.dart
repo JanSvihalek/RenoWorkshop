@@ -227,6 +227,7 @@ class _VychoziFiltrCard extends ConsumerWidget {
     final palette = context.palette;
     final nastaveni = ref.watch(nastaveniProvider);
     final utvary = ref.watch(availableDepartmentsProvider);
+    final zodpovedni = ref.watch(mechanicsProvider);
 
     return _Card(
       child: Column(
@@ -259,12 +260,12 @@ class _VychoziFiltrCard extends ConsumerWidget {
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
           ),
           const SizedBox(height: Insets.base),
-          if (utvary.isEmpty)
+          if (utvary.isEmpty && zodpovedni.isEmpty)
             Text(
-              'Útvary se nabídnou, jakmile se načtou zakázky.',
+              'Útvary a lidé se nabídnou, jakmile se načtou zakázky.',
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             )
-          else
+          else ...[
             _Vyber(
               popisek: 'Útvar',
               hodnota: nastaveni.vychoziUtvar,
@@ -272,6 +273,16 @@ class _VychoziFiltrCard extends ConsumerWidget {
               onZmena: (kod) =>
                   ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
             ),
+            const SizedBox(height: Insets.base),
+            _Vyber(
+              popisek: 'Zodpovídá',
+              hodnota: nastaveni.vychoziZodpovida,
+              moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
+              onZmena: (jmeno) => ref
+                  .read(nastaveniProvider.notifier)
+                  .zmenVychoziZodpovida(jmeno),
+            ),
+          ],
         ],
       ),
     );
@@ -296,32 +307,63 @@ class _Vyber extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
+    // Uložená volba, která zrovna mezi načtenými zakázkami není (technik
+    // dnes žádnou nemá), se nabídne i tak. Jinak by výběr ukazoval „Vše",
+    // přestože filtr platí a seznam je kvůli němu prázdný.
+    final vybrana = hodnota;
+    final vsechny = {
+      ...moznosti,
+      if (vybrana != null && !moznosti.containsKey(vybrana)) vybrana: vybrana,
+    };
+
+    final popisky = ['Vše', ...vsechny.values];
+
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            popisek,
-            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-          ),
+        Text(
+          popisek,
+          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
         ),
-        DropdownButtonHideUnderline(
-          child: DropdownButton<String?>(
-            value: moznosti.containsKey(hodnota) ? hodnota : null,
-            isDense: true,
-            borderRadius: BorderRadius.circular(Radii.input),
-            style: AppTextStyles.cardBody.copyWith(
-              color: palette.text,
-              fontWeight: FontWeight.w600,
+        const SizedBox(width: Insets.base),
+        // Výběr vyplní zbytek řádku a dlouhé jméno zkrátí třemi tečkami -
+        // jinak by „Bc. Jaroslava Nováková-Dvořáčková" vytlačila šipku
+        // za okraj karty.
+        Expanded(
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: vybrana,
+              isDense: true,
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(Radii.input),
+              style: AppTextStyles.cardBody.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w600,
+              ),
+              selectedItemBuilder: (_) => [
+                for (final text in popisky)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Vše')),
+                for (final polozka in vsechny.entries)
+                  DropdownMenuItem(
+                    value: polozka.key,
+                    child: Text(
+                      polozka.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: onZmena,
             ),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('Vše')),
-              for (final polozka in moznosti.entries)
-                DropdownMenuItem(
-                  value: polozka.key,
-                  child: Text(polozka.value),
-                ),
-            ],
-            onChanged: onZmena,
           ),
         ),
       ],

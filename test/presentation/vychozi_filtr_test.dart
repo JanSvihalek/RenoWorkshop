@@ -55,4 +55,49 @@ void main() {
     controller.reset();
     expect(container.read(orderFilterProvider).departmentCode, '12100');
   });
+
+  test('výchozí zodpovědná osoba se propíše do filtru', () {
+    final filter = kontejner(
+      const Nastaveni(vychoziUtvar: '12100', vychoziZodpovida: 'Eva Malá'),
+    ).read(orderFilterProvider);
+
+    expect(filter.departmentCode, '12100');
+    expect(filter.mechanicName, 'Eva Malá');
+  });
+
+  test('zrušení výchozího filtru v nastavení shodí útvar i osobu', () {
+    final container = kontejner(
+      const Nastaveni(vychoziUtvar: '12100', vychoziZodpovida: 'Eva Malá'),
+    );
+
+    container.read(nastaveniProvider.notifier).zrusVychoziFiltr();
+
+    final nastaveni = container.read(nastaveniProvider);
+    expect(nastaveni.vychoziUtvar, isNull);
+    expect(nastaveni.vychoziZodpovida, isNull);
+    expect(nastaveni.maVychoziFiltr, isFalse);
+  });
+
+  test('druhé zrušení filtrů shodí i výchozí, ať tlačítko nezůstane mrtvé', () {
+    // Technik s výchozím filtrem na sebe, který dnes nemá žádnou zakázku:
+    // seznam je prázdný a „Zrušit filtry" ho nesmí vracet na tentýž.
+    final container = kontejner(const Nastaveni(vychoziZodpovida: 'Eva Malá'));
+    final controller = container.read(orderFilterProvider.notifier);
+
+    controller.reset();
+    expect(container.read(orderFilterProvider).mechanicName, isNull);
+    expect(container.read(orderFilterProvider).isActive, isFalse);
+  });
+
+  test('zrušení s jiným než výchozím filtrem vrací nejdřív na výchozí', () {
+    final container = kontejner(const Nastaveni(vychoziZodpovida: 'Eva Malá'));
+    final controller = container.read(orderFilterProvider.notifier);
+
+    controller.setMechanic('Jan Dvořák');
+    controller.reset();
+    expect(container.read(orderFilterProvider).mechanicName, 'Eva Malá');
+
+    controller.reset();
+    expect(container.read(orderFilterProvider).mechanicName, isNull);
+  });
 }

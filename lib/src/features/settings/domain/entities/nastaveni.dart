@@ -31,7 +31,11 @@ enum RezimVzhledu {
 /// se vzhled mění pod rukama podle toho, kdo se zrovna přihlásil.
 @immutable
 class Nastaveni {
-  const Nastaveni({this.vzhled = RezimVzhledu.podleSystemu, this.vychoziUtvar});
+  const Nastaveni({
+    this.vzhled = RezimVzhledu.podleSystemu,
+    this.vychoziUtvar,
+    this.vychoziZodpovida,
+  });
 
   final RezimVzhledu vzhled;
 
@@ -40,16 +44,29 @@ class Nastaveni {
   /// Kód, ne název - názvy útvarů se v Heliosu přepisují, kód drží.
   final String? vychoziUtvar;
 
-  bool get maVychoziFiltr => vychoziUtvar != null;
+  /// Kdo za zakázky zodpovídá - seznam se otevře jen na jeho zakázkách.
+  /// `null` = všichni.
+  ///
+  /// Jméno, ne kód: podle jména filtruje i lišta nad seznamem, kód osoby
+  /// do aplikace nechodí. Jméno se v Heliosu mění výjimečně (sňatek) -
+  /// pak se filtr prostě přestane uplatňovat a jde vybrat znovu.
+  final String? vychoziZodpovida;
+
+  bool get maVychoziFiltr => vychoziUtvar != null || vychoziZodpovida != null;
 
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
     String? vychoziUtvar,
     bool zrusUtvar = false,
+    String? vychoziZodpovida,
+    bool zrusZodpovida = false,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
       vychoziUtvar: zrusUtvar ? null : (vychoziUtvar ?? this.vychoziUtvar),
+      vychoziZodpovida: zrusZodpovida
+          ? null
+          : (vychoziZodpovida ?? this.vychoziZodpovida),
     );
   }
 
@@ -58,8 +75,9 @@ class Nastaveni {
       identical(this, other) ||
       (other is Nastaveni &&
           other.vzhled == vzhled &&
-          other.vychoziUtvar == vychoziUtvar);
+          other.vychoziUtvar == vychoziUtvar &&
+          other.vychoziZodpovida == vychoziZodpovida);
 
   @override
-  int get hashCode => Object.hash(vzhled, vychoziUtvar);
+  int get hashCode => Object.hash(vzhled, vychoziUtvar, vychoziZodpovida);
 }

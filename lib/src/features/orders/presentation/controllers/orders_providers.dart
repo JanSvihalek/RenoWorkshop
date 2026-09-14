@@ -200,8 +200,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   @override
   OrderFilter build() => _vychozi(ref.watch(nastaveniProvider));
 
-  static OrderFilter _vychozi(Nastaveni nastaveni) =>
-      OrderFilter(departmentCode: nastaveni.vychoziUtvar);
+  static OrderFilter _vychozi(Nastaveni nastaveni) => OrderFilter(
+    departmentCode: nastaveni.vychoziUtvar,
+    mechanicName: nastaveni.vychoziZodpovida,
+  );
 
   void setBranch(String? branchCode) => state = branchCode == null
       ? state.copyWith(clearBranch: true, clearDepartment: true)
@@ -229,7 +231,15 @@ class OrderFilterController extends Notifier<OrderFilter> {
 
   /// Vrací na výchozí filtr z nastavení, ne na prázdný - jinak by
   /// „zrušit filtry" znamenalo něco jiného než otevření appky.
-  void reset() => state = _vychozi(ref.read(nastaveniProvider));
+  ///
+  /// Když už seznam na výchozím filtru stojí, shodí se i ten. Jinak by
+  /// tlačítko v prázdném seznamu nedělalo nic: technik s výchozím filtrem
+  /// na sebe, který zrovna nemá žádnou zakázku, by zůstal u prázdné
+  /// obrazovky a „Zrušit filtry" by ho vracelo na ni.
+  void reset() {
+    final vychozi = _vychozi(ref.read(nastaveniProvider));
+    state = state == vychozi ? const OrderFilter() : vychozi;
+  }
 }
 
 /// Zakázka otevřená v pravém sloupci rozděleného zobrazení na tabletu.
