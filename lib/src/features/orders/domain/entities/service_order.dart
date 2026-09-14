@@ -3,6 +3,7 @@ import 'dilensky_stav.dart';
 import 'order_note.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
+import 'zavada.dart';
 
 /// Servisní zakázka na dílně - hlavní entita fáze 1.
 ///
@@ -29,6 +30,7 @@ class ServiceOrder {
     this.bay,
     this.notes = const [],
     this.workItems = const [],
+    this.zavady = const [],
   });
 
   /// Číslo zakázky, např. "ZK-26-0418".
@@ -82,6 +84,9 @@ class ServiceOrder {
 
   final List<OrderNote> notes;
   final List<WorkItem> workItems;
+
+  /// Závady z Heliosu, v pořadí, v jakém je poradce zapsal. Jen ke čtení.
+  final List<Zavada> zavady;
 
   /// Zakázka je po termínu.
   ///
@@ -174,6 +179,7 @@ class ServiceOrder {
       bay: bay ?? this.bay,
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
+      zavady: zavady,
     );
   }
 

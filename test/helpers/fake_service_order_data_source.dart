@@ -1,6 +1,7 @@
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
@@ -211,6 +212,7 @@ ServiceOrderDto buildOrderDto({
   String? mechanicName = 'Jan Dvořák',
   List<WorkItemDto> workItems = const [],
   List<OrderNoteDto> notes = const [],
+  List<Zavada> defects = const [],
 }) {
   return ServiceOrderDto(
     id: id,
@@ -239,6 +241,7 @@ ServiceOrderDto buildOrderDto({
     bay: 'Stání 1',
     notes: notes,
     workItems: workItems,
+    defects: defects,
   );
 }
 

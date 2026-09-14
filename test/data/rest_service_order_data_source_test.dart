@@ -114,6 +114,32 @@ void main() {
       expect(dto!.toDomain().predmetOpravy, isNull);
     });
 
+    test('závady z Heliosu se načtou i s víceřádkovým popisem', () async {
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            ..._zakazka(),
+            'defects': [
+              {'id': '9001', 'code': '001', 'text': 'Zadní nárazník\nlakovat'},
+              {'id': '9002', 'code': '', 'text': 'Geometrie'},
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+
+      final zakazka = (await _zdroj(
+        client,
+      ).fetchOrder('ZK-26-0418'))!.toDomain();
+
+      expect(zakazka.zavady, hasLength(2));
+      expect(zakazka.zavady.first.text, 'Zadní nárazník\nlakovat');
+      expect(zakazka.zavady.first.kod, '001');
+      // Prázdné číslo závady je nevyplněné, ať se neukáže „Závada ".
+      expect(zakazka.zavady.last.kod, isNull);
+    });
+
     test('neznámá zakázka vrací null, ne výjimku', () async {
       final client = MockClient((request) async => http.Response('', 404));
 

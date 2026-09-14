@@ -4,6 +4,7 @@ import '../../domain/entities/order_note.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
+import '../../domain/entities/zavada.dart';
 
 /// Přenosový model zakázky.
 ///
@@ -31,6 +32,7 @@ class ServiceOrderDto {
     required this.bay,
     required this.notes,
     required this.workItems,
+    this.defects = const [],
   });
 
   final String id;
@@ -75,6 +77,9 @@ class ServiceOrderDto {
   final List<OrderNoteDto> notes;
   final List<WorkItemDto> workItems;
 
+  /// Závady z Heliosu. Chybí u starší verze API - pak prázdné.
+  final List<Zavada> defects;
+
   factory ServiceOrderDto.fromJson(Map<String, dynamic> json) {
     return ServiceOrderDto(
       id: json['id'] as String,
@@ -102,6 +107,9 @@ class ServiceOrderDto {
       workItems: (json['workItems'] as List<dynamic>? ?? const [])
           .map((item) => WorkItemDto.fromJson(item as Map<String, dynamic>))
           .toList(),
+      defects: (json['defects'] as List<dynamic>? ?? const [])
+          .map((item) => Zavada.fromJson(item as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -126,6 +134,7 @@ class ServiceOrderDto {
     'bay': bay,
     'notes': notes.map((note) => note.toJson()).toList(),
     'workItems': workItems.map((item) => item.toJson()).toList(),
+    'defects': defects.map((zavada) => zavada.toJson()).toList(),
   };
 
   ServiceOrder toDomain() => ServiceOrder(
@@ -156,6 +165,7 @@ class ServiceOrderDto {
     bay: bay,
     notes: notes.map((note) => note.toDomain()).toList(),
     workItems: workItems.map((item) => item.toDomain()).toList(),
+    zavady: defects,
   );
 
   ServiceOrderDto copyWith({
@@ -197,6 +207,7 @@ class ServiceOrderDto {
       bay: bay,
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
+      defects: defects,
     );
   }
 }

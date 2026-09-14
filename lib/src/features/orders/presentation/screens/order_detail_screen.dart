@@ -9,7 +9,6 @@ import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
-import '../../domain/entities/work_item.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/detail_cards.dart';
@@ -18,7 +17,7 @@ import '../widgets/status_badge.dart';
 import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/predmet_opravy_card.dart';
 import '../widgets/status_timeline.dart';
-import '../widgets/work_items_card.dart';
+import '../widgets/zavady_card.dart';
 
 /// Detail zakázky: stav, časová osa, vozidlo, mechanik, úkony, poznámky.
 class OrderDetailScreen extends ConsumerWidget {
@@ -154,16 +153,6 @@ class _DetailBody extends ConsumerWidget {
         .addNote(orderId: order.id, text: text);
   }
 
-  void _toggleWorkItem(WidgetRef ref, WorkItem item, bool isDone) {
-    ref
-        .read(orderActionsProvider.notifier)
-        .setWorkItemDone(
-          orderId: order.id,
-          workItemId: item.id,
-          isDone: isDone,
-        );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isBusy = ref.watch(orderActionsProvider).isLoading;
@@ -232,11 +221,9 @@ class _DetailBody extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: Insets.base),
-              WorkItemsCard(
-                items: order.workItems,
-                isBusy: isBusy,
-                onToggle: (item, isDone) => _toggleWorkItem(ref, item, isDone),
-              ),
+              // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
+              // s odškrtáváním, do které ale nikdy nic neteklo.
+              ZavadyCard(zavady: order.zavady),
               const SizedBox(height: Insets.base),
               NotesCard(
                 notes: order.notes,

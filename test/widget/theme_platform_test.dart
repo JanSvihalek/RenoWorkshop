@@ -74,7 +74,7 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -900));
       await tester.pumpAndSettle();
 
-      expect(find.text('ÚKONY NA ZAKÁZCE'), findsOneWidget);
+      expect(find.text('ZÁVADY'), findsOneWidget);
       expect(find.text('POZNÁMKY'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });

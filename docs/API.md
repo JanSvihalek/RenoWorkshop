@@ -256,6 +256,23 @@ Dotaz kratší než tři znaky vrací `400`.
 Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
 uživatel načte VIN fotoaparátem.
 
+### Závady u zakázky
+
+Každá zakázka nese pole `defects` - závady (úkony) zapsané poradcem
+v Heliosu, v pořadí zápisu. Jen ke čtení, aplikace je nemění.
+
+```json
+"defects": [
+  { "id": "9001", "code": "001", "text": "Vyměnit zadní nárazník
+lakovat do barvy" },
+  { "id": "9002", "code": null, "text": "Seřídit geometrii" }
+]
+```
+
+`text` může mít víc řádků. U rozdělané zakázky se změna v Heliosu projeví
+do pěti minut, u ukončené po nočním běhu. Starší verze API pole neposílá -
+aplikace ho pak bere jako prázdné.
+
 ### PUT /orders/{id}/repair-subject
 
 Předmět opravy - co se na voze opravuje. Zapisuje ho dílna ručně, Helios
