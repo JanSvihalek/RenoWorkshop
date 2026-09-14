@@ -306,7 +306,9 @@ void main() {
     // Útvar, stav, typ, zodpovídá a řazení - všechno v jedné liště,
     // ne schované pod tlačítkem.
     expect(find.text('Útvar'), findsOneWidget);
-    expect(find.text('Stav'), findsOneWidget);
+    // Dva stavy zvlášť, jako na kartě: z Heliosu a dílenský.
+    expect(find.text('Stav Helios'), findsOneWidget);
+    expect(find.text('Stav dílna'), findsOneWidget);
     expect(find.text('Typ'), findsOneWidget);
     expect(find.text('Zodpovídá'), findsOneWidget);
     expect(find.textContaining('Řadit'), findsOneWidget);

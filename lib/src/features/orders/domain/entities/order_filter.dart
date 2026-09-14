@@ -22,6 +22,7 @@ class OrderFilter {
     this.departmentCode,
     this.typZakazkyKod,
     this.statusCode,
+    this.heliosStav,
     this.mechanicName,
     this.query = '',
     this.sort = OrderSort.receivedDate,
@@ -40,6 +41,10 @@ class OrderFilter {
   /// Kód dílenského stavu z číselníku. `null` = všechny stavy.
   final String? statusCode;
 
+  /// Stav z Heliosu tak, jak ho zakázka ukazuje („Zpracováváno").
+  /// Podle textu, ne čísla: aplikace číslo stavu nedostává. `null` = všechny.
+  final String? heliosStav;
+
   /// `null` = všichni mechanici.
   final String? mechanicName;
 
@@ -51,6 +56,7 @@ class OrderFilter {
       departmentCode != null ||
       typZakazkyKod != null ||
       statusCode != null ||
+      heliosStav != null ||
       mechanicName != null ||
       query.trim().isNotEmpty;
 
@@ -60,6 +66,7 @@ class OrderFilter {
     departmentCode != null,
     typZakazkyKod != null,
     statusCode != null,
+    heliosStav != null,
     mechanicName != null,
     query.trim().isNotEmpty,
   ].where((active) => active).length;
@@ -69,6 +76,7 @@ class OrderFilter {
     String? departmentCode,
     String? typZakazkyKod,
     String? statusCode,
+    String? heliosStav,
     String? mechanicName,
     String? query,
     OrderSort? sort,
@@ -76,6 +84,7 @@ class OrderFilter {
     bool clearDepartment = false,
     bool clearTypZakazky = false,
     bool clearStatus = false,
+    bool clearHeliosStav = false,
     bool clearMechanic = false,
   }) {
     return OrderFilter(
@@ -87,6 +96,7 @@ class OrderFilter {
           ? null
           : (typZakazkyKod ?? this.typZakazkyKod),
       statusCode: clearStatus ? null : (statusCode ?? this.statusCode),
+      heliosStav: clearHeliosStav ? null : (heliosStav ?? this.heliosStav),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
       query: query ?? this.query,
       sort: sort ?? this.sort,
@@ -104,6 +114,7 @@ class OrderFilter {
         return false;
       }
       if (statusCode != null && order.stav?.kod != statusCode) return false;
+      if (heliosStav != null && order.heliosStatus != heliosStav) return false;
       if (mechanicName != null && order.mechanicName != mechanicName) {
         return false;
       }
@@ -141,7 +152,11 @@ class OrderFilter {
       (other is OrderFilter &&
           other.branchCode == branchCode &&
           other.departmentCode == departmentCode &&
+          // Typ tu dřív chyběl - „Zrušit filtry" pak s vybraným typem
+          // shodilo i výchozí filtr z nastavení, místo aby se na něj vrátilo.
+          other.typZakazkyKod == typZakazkyKod &&
           other.statusCode == statusCode &&
+          other.heliosStav == heliosStav &&
           other.mechanicName == mechanicName &&
           other.query == query &&
           other.sort == sort);
@@ -150,7 +165,9 @@ class OrderFilter {
   int get hashCode => Object.hash(
     branchCode,
     departmentCode,
+    typZakazkyKod,
     statusCode,
+    heliosStav,
     mechanicName,
     query,
     sort,

@@ -28,6 +28,7 @@ class FiltrLista extends ConsumerWidget {
 
     final utvary = ref.watch(availableDepartmentsProvider);
     final stavy = ref.watch(pouziteStavyProvider);
+    final stavyHelios = ref.watch(pouziteStavyHeliosProvider);
     final typy = ref.watch(availableOrderTypesProvider);
     final lide = ref.watch(mechanicsProvider);
 
@@ -51,8 +52,17 @@ class FiltrLista extends ConsumerWidget {
               onZmena: controller.setDepartment,
             ),
             const SizedBox(width: Insets.sm),
+            // Dva nezávislé stavy jako na kartě: co o zakázce ví ERP
+            // a co dílna.
             _Filtr<String>(
-              popisek: 'Stav',
+              popisek: 'Stav Helios',
+              hodnota: filter.heliosStav,
+              moznosti: {for (final stav in stavyHelios) stav: stav},
+              onZmena: controller.setHeliosStav,
+            ),
+            const SizedBox(width: Insets.sm),
+            _Filtr<String>(
+              popisek: 'Stav dílna',
               hodnota: filter.statusCode,
               moznosti: {
                 for (final stav in stavy)
@@ -145,8 +155,12 @@ class _Filtr<T> extends StatelessWidget {
           ),
           // Zavřený seznam leží na světlém podkladu, vybraný na tmavém -
           // barva textu se proto liší od té v rozbalené nabídce.
+          // Musí mít přesně tolik položek a ve stejném pořadí jako `items`,
+          // DropdownButton je páruje podle indexu. Řazení nemá položku
+          // „Vše" - kdyby tu zůstal zástupný řádek, posunulo by se to o jednu
+          // a u „Datum přijetí" by svítil „Termín dokončení".
           selectedItemBuilder: (context) => [
-            _zavreny(popisek, false),
+            if (!vzdyVybrano) _zavreny(popisek, false),
             for (final polozka in moznosti.entries)
               _zavreny(
                 vzdyVybrano ? '$popisek: ${polozka.value}' : polozka.value,

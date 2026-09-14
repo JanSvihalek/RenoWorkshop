@@ -101,6 +101,24 @@ void main() {
       expect(filter.apply(orders).map((o) => o.id), ['A', 'C', 'B']);
     });
 
+    test('stav z Heliosu a dílenský stav se filtrují zvlášť', () {
+      final filter = const OrderFilter(heliosStav: 'K fakturaci');
+      expect(filter.isActive, isTrue);
+      expect(filter.copyWith(clearHeliosStav: true).heliosStav, isNull);
+    });
+
+    test('filtry lišící se jen typem nebo stavem Heliosu nejsou stejné', () {
+      // Na rovnosti stojí „Zrušit filtry": shodný s výchozím se shodí úplně.
+      expect(
+        const OrderFilter(typZakazkyKod: '801') == const OrderFilter(),
+        isFalse,
+      );
+      expect(
+        const OrderFilter(heliosStav: 'Zpracováváno') == const OrderFilter(),
+        isFalse,
+      );
+    });
+
     test('activeCount počítá jen skutečně aktivní filtry', () {
       expect(const OrderFilter().activeCount, 0);
       expect(const OrderFilter(query: '   ').activeCount, 0);

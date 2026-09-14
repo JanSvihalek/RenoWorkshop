@@ -112,6 +112,20 @@ final pouziteStavyProvider = Provider<List<DilenskyStav>>((ref) {
   return seznam;
 });
 
+/// Stavy z Heliosu, které mají načtené zakázky - pro filtr. Z dat, ne
+/// z číselníku: nabízet stav, ve kterém žádná zakázka na dílně není,
+/// by jen přidalo řádky do nabídky.
+final pouziteStavyHeliosProvider = Provider<List<String>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  return orders
+      .map((order) => order.heliosStatus)
+      .nonNulls
+      .where((stav) => stav.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+});
+
 /// Čtení VINu a SPZ fotoaparátem. Vlastní provider, aby šel v testech
 /// nahradit bez zapojení kamery.
 final skenerProvider = Provider<SkenerKodu>((ref) {
@@ -220,6 +234,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setStatus(String? statusCode) => state = statusCode == null
       ? state.copyWith(clearStatus: true)
       : state.copyWith(statusCode: statusCode);
+
+  void setHeliosStav(String? stav) => state = stav == null
+      ? state.copyWith(clearHeliosStav: true)
+      : state.copyWith(heliosStav: stav);
 
   void setMechanic(String? mechanicName) => state = mechanicName == null
       ? state.copyWith(clearMechanic: true)
