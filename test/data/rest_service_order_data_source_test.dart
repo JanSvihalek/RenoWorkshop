@@ -120,7 +120,12 @@ void main() {
           jsonEncode({
             ..._zakazka(),
             'defects': [
-              {'id': '9001', 'code': '001', 'text': 'Zadní nárazník\nlakovat'},
+              {
+                'id': '9001',
+                'code': '001',
+                'title': 'Nárazník',
+                'text': 'Zadní nárazník\nlakovat',
+              },
               {'id': '9002', 'code': '', 'text': 'Geometrie'},
             ],
           }),
@@ -136,6 +141,9 @@ void main() {
       expect(zakazka.zavady, hasLength(2));
       expect(zakazka.zavady.first.text, 'Zadní nárazník\nlakovat');
       expect(zakazka.zavady.first.kod, '001');
+      expect(zakazka.zavady.first.nazev, 'Nárazník');
+      // Starší API bez stručného popisu - závada zůstane jen s poznámkou.
+      expect(zakazka.zavady.last.nazev, isNull);
       // Prázdné číslo závady je nevyplněné, ať se neukáže „Závada ".
       expect(zakazka.zavady.last.kod, isNull);
     });

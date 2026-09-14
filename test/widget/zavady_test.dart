@@ -28,7 +28,12 @@ void main() {
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
               defects: const [
-                Zavada(id: '9001', kod: '001', text: 'Vyměnit zadní nárazník'),
+                Zavada(
+                  id: '9001',
+                  kod: '001',
+                  nazev: 'Zadní nárazník',
+                  text: 'Vyměnit, lakovat do barvy, nové čidlo parkování',
+                ),
                 Zavada(id: '9002', text: 'Seřídit geometrii'),
               ],
             ),
@@ -60,7 +65,19 @@ void main() {
     );
 
     expect(nadpis, findsOneWidget);
-    expect(find.text('Vyměnit zadní nárazník'), findsOneWidget);
+    // Stručný popis tučně, podrobnosti pod ním menším písmem.
+    final nazev = tester.widget<SelectableText>(
+      find.widgetWithText(SelectableText, 'Zadní nárazník'),
+    );
+    final poznamka = tester.widget<SelectableText>(
+      find.widgetWithText(
+        SelectableText,
+        'Vyměnit, lakovat do barvy, nové čidlo parkování',
+      ),
+    );
+    expect(nazev.style!.fontWeight, FontWeight.w600);
+    expect(poznamka.style!.fontSize, lessThan(nazev.style!.fontSize!));
+    // Závada bez popisu ukáže aspoň poznámku.
     expect(find.text('Závada 001'), findsOneWidget);
     expect(find.text('1.'), findsOneWidget);
     expect(find.text('2.'), findsOneWidget);

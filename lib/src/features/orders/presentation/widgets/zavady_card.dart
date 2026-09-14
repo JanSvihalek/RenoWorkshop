@@ -59,7 +59,8 @@ class _RadekZavady extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final text = zavada.text.trim();
+    final nazev = zavada.nazev;
+    final poznamka = zavada.text.trim();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: Insets.base),
@@ -77,12 +78,33 @@ class _RadekZavady extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
-                  text.isEmpty ? 'Bez popisu' : text,
-                  style: AppTextStyles.cardBody.copyWith(
-                    color: text.isEmpty ? palette.muted : palette.text,
+                // Stručný popis tučně, podrobnosti z poznámky pod ním menším
+                // písmem. Starší závady bez popisu mají jen poznámku - ta
+                // pak zastoupí popis, ať se nic neztratí.
+                if (nazev != null) ...[
+                  SelectableText(
+                    nazev,
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: palette.text,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                  if (poznamka.isNotEmpty && poznamka != nazev) ...[
+                    const SizedBox(height: 2),
+                    SelectableText(
+                      poznamka,
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ],
+                ] else
+                  SelectableText(
+                    poznamka.isEmpty ? 'Bez popisu' : poznamka,
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: poznamka.isEmpty ? palette.muted : palette.text,
+                    ),
+                  ),
                 if (zavada.kod case final kod?) ...[
                   const SizedBox(height: 2),
                   Text(

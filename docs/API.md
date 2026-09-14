@@ -265,13 +265,14 @@ v Heliosu, v pořadí zápisu. Jen ke čtení, aplikace je nemění.
 
 ```json
 "defects": [
-  { "id": "9001", "code": "001", "text": "Vyměnit zadní nárazník
+  { "id": "9001", "code": "001", "title": "Zadní nárazník", "text": "Vyměnit
 lakovat do barvy" },
-  { "id": "9002", "code": null, "text": "Seřídit geometrii" }
+  { "id": "9002", "code": null, "title": null, "text": "Seřídit geometrii" }
 ]
 ```
 
-`text` může mít víc řádků. U rozdělané zakázky se změna v Heliosu projeví
+`title` je stručný popis (`nazev_subjektu`), `text` podrobnosti z poznámky
+a může mít víc řádků. Bez `title` aplikace ukáže jen `text`. U rozdělané zakázky se změna v Heliosu projeví
 do pěti minut, u ukončené po nočním běhu. Starší verze API pole neposílá -
 aplikace ho pak bere jako prázdné.
 
