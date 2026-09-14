@@ -163,11 +163,13 @@ class _DetailBody extends ConsumerWidget {
         _DetailHeader(order: order, onBack: onBack, zobrazitZpet: zobrazitZpet),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(
+            // Dole i systémová lišta telefonu: spodní tlačítko, které ji
+            // dřív kryl, už tu není.
+            padding: EdgeInsets.fromLTRB(
               Insets.xl,
               Insets.xl,
               Insets.xl,
-              Insets.huge,
+              Insets.huge + MediaQuery.paddingOf(context).bottom,
             ),
             children: [
               Row(
@@ -231,8 +233,16 @@ class _DetailBody extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SectionLabel('POSTUP ZAKÁZKY'),
-                    const SizedBox(height: Insets.lg),
+                    Row(
+                      children: [
+                        const Expanded(child: SectionLabel('POSTUP ZAKÁZKY')),
+                        _PridatStavOdkaz(
+                          isBusy: isBusy,
+                          onTap: () => _pridejStav(context, ref),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Insets.base),
                     StatusTimeline(
                       historie: order.historieStavu,
                       bay: order.bayLabel,
@@ -252,11 +262,6 @@ class _DetailBody extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-        _AdvanceStatusBar(
-          order: order,
-          isBusy: isBusy,
-          onAdvance: () => _pridejStav(context, ref),
         ),
       ],
     );
@@ -459,76 +464,49 @@ class _HeaderChip extends StatelessWidget {
 }
 
 /// Spodní lišta s hlavní akcí - posun zakázky o krok dál.
-class _AdvanceStatusBar extends StatelessWidget {
-  const _AdvanceStatusBar({
-    required this.order,
-    required this.isBusy,
-    required this.onAdvance,
-  });
+/// Odkaz „Přidat" v záhlaví karty Postup zakázky.
+///
+/// Dřív to bylo velké tlačítko přes celou šířku dole. Stav se ale přidává
+/// k postupu, tak patří k němu - stejně jako Přidat u poznámek - a dole
+/// uvolnil místo, které na telefonu v hale chybí.
+class _PridatStavOdkaz extends StatelessWidget {
+  const _PridatStavOdkaz({required this.isBusy, required this.onTap});
 
-  final ServiceOrder order;
   final bool isBusy;
-  final VoidCallback onAdvance;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    final isIOS = context.isIOS;
     // Stav jde přidat vždycky - i k zakázce, která už nějaký má, a i po
-    // vyzvednutí: reklamace a dodělávky jsou na klempírně běžné.
-    final enabled = !isBusy;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        Insets.xl,
-        Insets.base,
-        Insets.xl,
-        MediaQuery.paddingOf(context).bottom + Insets.base,
-      ),
-      decoration: BoxDecoration(
-        color: palette.card,
-        border: Border(top: BorderSide(color: palette.hairline)),
-      ),
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        child: GestureDetector(
-          onTap: enabled ? onAdvance : null,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            height: Sizes.ctaHeight,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              // Android: pill CTA, iOS: jemně zaoblený obdélník.
-              borderRadius: BorderRadius.circular(
-                isIOS ? Radii.ctaIos : Radii.ctaAndroid,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x47031E49),
-                  blurRadius: 18,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
-            child: isBusy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation(Colors.white),
-                    ),
-                  )
-                : Text(
-                    'Přidat stav',
-                    style: AppTextStyles.buttonLabel.copyWith(
-                      color: Colors.white,
-                    ),
+    // vyzvednutí: reklamace a dodělávky jsou na klempírně běžné. Jen ne
+    // dvakrát naráz, dokud se předchozí ukládá.
+    return Semantics(
+      button: true,
+      enabled: !isBusy,
+      label: 'Přidat stav zakázky',
+      child: GestureDetector(
+        key: const Key('pridat-stav'),
+        onTap: isBusy ? null : onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          // Větší plocha pro prst, než je samotné slovo.
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: isBusy
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.accent,
                   ),
-          ),
+                )
+              : Text(
+                  'Přidat',
+                  style: AppTextStyles.chip.copyWith(
+                    fontSize: 13,
+                    color: AppColors.accent,
+                  ),
+                ),
         ),
       ),
     );

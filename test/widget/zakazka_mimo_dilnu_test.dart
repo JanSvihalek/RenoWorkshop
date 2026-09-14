@@ -71,7 +71,9 @@ void main() {
 
     expect(find.text('Lakovna'), findsNothing);
 
-    await tester.tap(find.text('Přidat stav'));
+    await tester.ensureVisible(find.byKey(const Key('pridat-stav')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pridat-stav')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vyberte stav'));
     await tester.pumpAndSettle();

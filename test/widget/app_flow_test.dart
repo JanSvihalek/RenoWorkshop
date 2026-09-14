@@ -118,10 +118,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
+    // Stav se přidává odkazem v kartě postupu, velké tlačítko dole zmizelo.
+    expect(find.text('Přidat stav'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('POSTUP ZAKÁZKY'),
+          matching: find.byType(Row),
+        ),
+        matching: find.byKey(const Key('pridat-stav')),
+      ),
+      findsOneWidget,
+    );
 
     // Stav se přidává formulářem: vyber v seznamu, volitelně poznámka,
     // potvrď. Neposouvá se o krok.
-    await tester.tap(find.text('Přidat stav'));
+    await tester.ensureVisible(find.byKey(const Key('pridat-stav')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pridat-stav')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Vyberte stav'));
