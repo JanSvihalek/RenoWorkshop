@@ -140,6 +140,24 @@ void main() {
       expect(zakazka.zavady.last.kod, isNull);
     });
 
+    test('číslo pojistné události se načte, prázdné jako nevyplněné', () async {
+      Future<String?> cislo(Object? hodnota) async {
+        final client = MockClient(
+          (request) async => http.Response(
+            jsonEncode({..._zakazka(), 'insuranceClaimNumber': hodnota}),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          ),
+        );
+        final dto = await _zdroj(client).fetchOrder('ZK-26-0418');
+        return dto!.toDomain().cisloPojistneUdalosti;
+      }
+
+      expect(await cislo('4201234567'), '4201234567');
+      expect(await cislo('  '), isNull);
+      expect(await cislo(null), isNull);
+    });
+
     test('pojišťovna se načte, bez názvu aspoň s číslem', () async {
       Future<String?> nazev(Object? insurer) async {
         final client = MockClient(

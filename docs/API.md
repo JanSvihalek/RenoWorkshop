@@ -169,6 +169,7 @@ stránkování.
     "customerName": "Petr Novák",
     "repairSubject": "Zadní nárazník, víko kufru",
     "insurer": { "id": 60001, "name": "Kooperativa" },
+    "insuranceClaimNumber": "4201234567",
     "status": "Klempířské práce",
     "statusCode": "klempirna",
     "statusHistory": [
@@ -280,6 +281,10 @@ aplikace ho pak bere jako prázdné.
 hlavičce zakázky), `null` u zakázky, která pojistnou událostí není.
 `name` může být prázdný, když se organizace ještě nedotáhla - aplikace
 pak ukáže číslo.
+
+`insuranceClaimNumber` je číslo pojistné události - uživatelsky definovaný
+atribut `ino_cpu` v Heliosu. Text (pojišťovny ho píší různě), nejvýš
+100 znaků, `null` = nezadáno. Hledání v archivu podle něj zakázku najde.
 
 ### PUT /orders/{id}/repair-subject
 

@@ -18,6 +18,7 @@ class ServiceOrderDto {
     required this.customerName,
     this.repairSubject,
     this.insurer,
+    this.insuranceClaimNumber,
     this.status,
     this.statusCode,
     this.statusHistory = const [],
@@ -47,6 +48,9 @@ class ServiceOrderDto {
   /// `{"id": 60001, "name": "Kooperativa"}` - pojišťovna z Heliosu,
   /// nebo `null`, když zakázka pojistnou událostí není.
   final Map<String, dynamic>? insurer;
+
+  /// Číslo pojistné události (uživatelsky definovaný atribut v Heliosu).
+  final String? insuranceClaimNumber;
 
   /// Text aktuálního dílenského stavu, `null` u zakázky bez stavu.
   final String? status;
@@ -93,6 +97,7 @@ class ServiceOrderDto {
       customerName: json['customerName'] as String,
       repairSubject: json['repairSubject'] as String?,
       insurer: json['insurer'] as Map<String, dynamic>?,
+      insuranceClaimNumber: json['insuranceClaimNumber'] as String?,
       status: json['status'] as String?,
       statusCode: json['statusCode'] as String?,
       statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
@@ -126,6 +131,7 @@ class ServiceOrderDto {
     'customerName': customerName,
     'repairSubject': repairSubject,
     'insurer': insurer,
+    'insuranceClaimNumber': insuranceClaimNumber,
     'status': status,
     'statusCode': statusCode,
     'statusHistory': statusHistory,
@@ -151,6 +157,9 @@ class ServiceOrderDto {
     customerName: customerName,
     predmetOpravy: repairSubject,
     pojistovna: _nazevPojistovny(insurer),
+    cisloPojistneUdalosti: insuranceClaimNumber?.trim().isEmpty ?? true
+        ? null
+        : insuranceClaimNumber!.trim(),
     // Aktuální stav je první záznam historie; `status` je jen jeho text,
     // takže z historie se vezme i kdo a kdy ho zapsal.
     stav: statusHistory.isNotEmpty
@@ -198,6 +207,7 @@ class ServiceOrderDto {
       model: model,
       customerName: customerName,
       insurer: insurer,
+      insuranceClaimNumber: insuranceClaimNumber,
       repairSubject: vymazatPredmet
           ? null
           : (repairSubject ?? this.repairSubject),

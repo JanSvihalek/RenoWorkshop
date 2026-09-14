@@ -28,6 +28,7 @@ void main() {
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
               insurer: const {'id': 60001, 'name': 'Kooperativa'},
+              insuranceClaimNumber: '4201234567',
             ),
             buildOrderDto(id: 'ZK-26-0002', licensePlate: '2SC 9014'),
           ]),
@@ -50,7 +51,7 @@ void main() {
     expect(
       find.descendant(
         of: find.widgetWithText(OrderCard, '8AB 4721'),
-        matching: find.text('Kooperativa'),
+        matching: find.text('Kooperativa · PU 4201234567'),
       ),
       findsOneWidget,
     );
@@ -70,6 +71,20 @@ void main() {
 
     expect(find.text('POJIŠŤOVNA'), findsOneWidget);
     expect(find.text('Kooperativa'), findsOneWidget);
+    expect(find.text('POJISTNÁ UDÁLOST'), findsOneWidget);
+    expect(find.text('4201234567'), findsOneWidget);
+  });
+
+  testWidgets('hledání najde zakázku podle čísla pojistné události', (
+    tester,
+  ) async {
+    await prihlas(tester);
+
+    await tester.enterText(find.byType(TextField).first, '42012');
+    await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+    expect(find.text('8AB 4721'), findsOneWidget);
+    expect(find.text('2SC 9014'), findsNothing);
   });
 
   testWidgets('hledání najde zakázky podle pojišťovny', (tester) async {

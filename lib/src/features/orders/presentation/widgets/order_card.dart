@@ -89,7 +89,7 @@ class OrderCard extends StatelessWidget {
             // dřív než podle SPZ. Na kartě jen dva řádky, celé je v detailu.
             // Pojistná událost - na klempírně rozhoduje o tom, kdo platí
             // a na čí schválení se čeká.
-            if (order.pojistovna case final pojistovna?) ...[
+            if (order.pojisteniPopisek case final pojisteni?) ...[
               const SizedBox(height: 5),
               Row(
                 children: [
@@ -97,7 +97,7 @@ class OrderCard extends StatelessWidget {
                   const SizedBox(width: Insets.xs),
                   Expanded(
                     child: Text(
-                      pojistovna,
+                      pojisteni,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.cardBody.copyWith(

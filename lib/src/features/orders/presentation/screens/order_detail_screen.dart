@@ -195,8 +195,25 @@ class _DetailBody extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: Insets.base),
-              if (order.pojistovna case final pojistovna?) ...[
-                InfoBox(label: 'POJIŠŤOVNA', value: pojistovna),
+              if (order.pojisteniPopisek != null) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: InfoBox(
+                        label: 'POJIŠŤOVNA',
+                        value: order.pojistovna ?? 'Neuvedeno',
+                      ),
+                    ),
+                    const SizedBox(width: Insets.md),
+                    Expanded(
+                      child: InfoBox(
+                        label: 'POJISTNÁ UDÁLOST',
+                        value: order.cisloPojistneUdalosti ?? 'Neuvedeno',
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: Insets.base),
               ],
               PredmetOpravyCard(

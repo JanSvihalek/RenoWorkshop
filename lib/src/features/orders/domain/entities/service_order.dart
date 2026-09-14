@@ -17,6 +17,7 @@ class ServiceOrder {
     required this.customerName,
     this.predmetOpravy,
     this.pojistovna,
+    this.cisloPojistneUdalosti,
     this.stav,
     this.historieStavu = const [],
     this.heliosStatus,
@@ -47,6 +48,20 @@ class ServiceOrder {
   /// Název pojišťovny u pojistné události (z Heliosu). `null` = zakázka
   /// pojistnou událostí není.
   final String? pojistovna;
+
+  /// Číslo pojistné události, jak ho vede Helios. Podle něj se dílna
+  /// s pojišťovnou dorozumívá. `null` = nezadáno.
+  final String? cisloPojistneUdalosti;
+
+  /// Pojišťovna a číslo události na jeden řádek - „Kooperativa · PU 42012".
+  /// `null`, když zakázka nemá ani jedno.
+  String? get pojisteniPopisek {
+    final casti = [
+      ?pojistovna,
+      if (cisloPojistneUdalosti case final cislo?) 'PU $cislo',
+    ];
+    return casti.isEmpty ? null : casti.join(' · ');
+  }
 
   /// Aktuální dílenský stav = poslední záznam v historii. `null` u zakázky,
   /// které stav ještě nikdo nedal - z Heliosu se neodvozuje.
@@ -139,8 +154,8 @@ class ServiceOrder {
   /// z API dál chodí, jen se nezobrazuje.
   String get departmentLabel => department?.code ?? 'Bez útvaru';
 
-  /// Fulltext přes SPZ, zákazníka, číslo zakázky, model, předmět opravy
-  /// a pojišťovnu.
+  /// Fulltext přes SPZ, zákazníka, číslo zakázky, model, předmět opravy,
+  /// pojišťovnu a číslo pojistné události.
   bool matchesQuery(String query) {
     final needle = query.trim().toLowerCase();
     if (needle.isEmpty) return true;
@@ -153,6 +168,7 @@ class ServiceOrder {
       vin,
       predmetOpravy ?? '',
       pojistovna ?? '',
+      cisloPojistneUdalosti ?? '',
     ].join(' ').toLowerCase();
     return haystack.contains(needle);
   }
@@ -173,6 +189,7 @@ class ServiceOrder {
       customerName: customerName,
       predmetOpravy: predmetOpravy ?? this.predmetOpravy,
       pojistovna: pojistovna,
+      cisloPojistneUdalosti: cisloPojistneUdalosti,
       stav: stav ?? this.stav,
       historieStavu: historieStavu ?? this.historieStavu,
       heliosStatus: heliosStatus,

@@ -214,6 +214,7 @@ ServiceOrderDto buildOrderDto({
   List<OrderNoteDto> notes = const [],
   List<Zavada> defects = const [],
   Map<String, dynamic>? insurer,
+  String? insuranceClaimNumber,
 }) {
   return ServiceOrderDto(
     id: id,
@@ -244,6 +245,7 @@ ServiceOrderDto buildOrderDto({
     workItems: workItems,
     defects: defects,
     insurer: insurer,
+    insuranceClaimNumber: insuranceClaimNumber,
   );
 }
 
