@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
+import 'package:renoworkshop/src/core/theme/app_colors.dart';
+import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
 import 'package:renoworkshop/src/core/widgets/workshop_side_nav.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
@@ -114,5 +116,36 @@ void main() {
 
     expect(karta(0).jeVybrana, isTrue);
     expect(karta(1).jeVybrana, isFalse);
+  });
+
+  /// Barva podkladu hlavičky seznamu - nejbližší obarvený Container nad
+  /// nadpisem.
+  Color barvaHlavicky(WidgetTester tester) {
+    final kontejnery = tester.widgetList<Container>(
+      find.ancestor(
+        of: find.text('Zakázky na dílně'),
+        matching: find.byType(Container),
+      ),
+    );
+    return kontejnery.firstWhere((c) => c.color != null).color!;
+  }
+
+  testWidgets('na tabletu má hlavička seznamu stejnou šedou jako seznam', (
+    tester,
+  ) async {
+    await tabletovaObrazovka(tester);
+    await prihlas(tester);
+
+    final palette = tester.element(find.text('Zakázky na dílně')).palette;
+    expect(barvaHlavicky(tester), palette.background);
+
+    // Pole hledání nesmí mít bílý text - na šedém by nebyl vidět.
+    final pole = tester.widget<TextField>(find.byType(TextField).first);
+    expect(pole.style!.color, isNot(Colors.white));
+  });
+
+  testWidgets('na telefonu zůstává hlavička tmavomodrá', (tester) async {
+    await prihlas(tester);
+    expect(barvaHlavicky(tester), AppColors.primary);
   });
 }

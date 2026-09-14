@@ -93,6 +93,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       body: Column(
         children: [
           _ListHeader(
+            naTablet: widget.vRozdelenem,
             searchController: _searchController,
             onQueryChanged: _onQueryChanged,
             onScan: _skenuj,
@@ -166,11 +167,17 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
 /// Navy hlavička seznamu - titul, hledání, výběr útvaru.
 class _ListHeader extends ConsumerWidget {
   const _ListHeader({
+    required this.naTablet,
     required this.searchController,
     required this.onQueryChanged,
     required this.onScan,
     required this.onHledatVArchivu,
   });
+
+  /// Na tabletu leží hlavička ve stejné šedé jako seznam pod ní. Tmavomodrý
+  /// pruh v úzkém sloupci vedle navy navigace a detailu tvořil těžký blok;
+  /// na telefonu je hlavička přes celou šířku a navy zůstává.
+  final bool naTablet;
 
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
@@ -182,10 +189,12 @@ class _ListHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isIOS = context.isIOS;
+    final palette = context.palette;
     final employee = ref.watch(currentEmployeeProvider);
+    final text = naTablet ? palette.text : Colors.white;
 
     return Container(
-      color: AppColors.primary,
+      color: naTablet ? palette.background : AppColors.primary,
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
         MediaQuery.paddingOf(context).top + Insets.base,
@@ -203,7 +212,7 @@ class _ListHeader extends ConsumerWidget {
                   'Zakázky na dílně',
                   style: AppTextStyles.appBarTitle(
                     isIOS: isIOS,
-                  ).copyWith(color: Colors.white),
+                  ).copyWith(color: text),
                 ),
               ),
               _EmployeeAvatar(initials: employee?.initials ?? 'RW'),
@@ -214,6 +223,7 @@ class _ListHeader extends ConsumerWidget {
             controller: searchController,
             onChanged: onQueryChanged,
             onScan: onScan,
+            naTmavem: !naTablet,
           ),
           if (onHledatVArchivu != null) ...[
             const SizedBox(height: Insets.sm),
@@ -227,16 +237,16 @@ class _ListHeader extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.history_rounded,
                         size: 16,
-                        color: Colors.white70,
+                        color: naTablet ? AppColors.accent : Colors.white70,
                       ),
                       const SizedBox(width: Insets.xs),
                       Text(
                         'Hledat i v archivu',
                         style: AppTextStyles.cardBody.copyWith(
-                          color: Colors.white,
+                          color: naTablet ? AppColors.accent : Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
