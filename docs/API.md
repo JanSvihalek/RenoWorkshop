@@ -167,6 +167,7 @@ stránkování.
     "licensePlate": "8AB 4721",
     "model": "BMW X5 xDrive40d",
     "customerName": "Petr Novák",
+    "repairSubject": "Zadní nárazník, víko kufru",
     "status": "Klempířské práce",
     "statusCode": "klempirna",
     "statusHistory": [
@@ -254,6 +255,19 @@ Dotaz kratší než tři znaky vrací `400`.
 
 Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
 uživatel načte VIN fotoaparátem.
+
+### PUT /orders/{id}/repair-subject
+
+Předmět opravy - co se na voze opravuje. Zapisuje ho dílna ručně, Helios
+ho nezná. Přepisuje se celý, prázdný text ho smaže.
+
+```json
+{ "text": "Zadní nárazník, víko kufru" }
+```
+
+Vrací celou zakázku. Text delší než 1000 znaků vrací `400`. U zakázky je
+v poli `repairSubject`, `null` = zatím nezadáno. Hledání v archivu
+(`/orders/search`) prohledává i předmět opravy.
 
 ### GET /vehicles/search?q=…
 

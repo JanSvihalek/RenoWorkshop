@@ -80,6 +80,40 @@ void main() {
       expect(jsonDecode(telo), {'code': 'lakovna'});
     });
 
+    test('předmět opravy pošle PUT a přečte se zpátky', () async {
+      late http.Request zachyceno;
+      final client = MockClient((request) async {
+        zachyceno = request;
+        return http.Response(
+          jsonEncode({..._zakazka(), 'repairSubject': 'Zadní nárazník'}),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final dto = await _zdroj(
+        client,
+      ).ulozPredmetOpravy('ZK-26-0418', 'Zadní nárazník');
+
+      expect(zachyceno.method, 'PUT');
+      expect(zachyceno.url.path, endsWith('/orders/ZK-26-0418/repair-subject'));
+      expect(jsonDecode(zachyceno.body), {'text': 'Zadní nárazník'});
+      expect(dto!.toDomain().predmetOpravy, 'Zadní nárazník');
+    });
+
+    test('zakázka ze starší verze API bez předmětu opravy se načte', () async {
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode(_zakazka()),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+
+      final dto = await _zdroj(client).fetchOrder('ZK-26-0418');
+      expect(dto!.toDomain().predmetOpravy, isNull);
+    });
+
     test('neznámá zakázka vrací null, ne výjimku', () async {
       final client = MockClient((request) async => http.Response('', 404));
 

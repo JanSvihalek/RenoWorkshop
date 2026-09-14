@@ -85,6 +85,35 @@ class OrderCard extends StatelessWidget {
               order.customerName,
               style: AppTextStyles.cardBody.copyWith(color: palette.muted2),
             ),
+            // Co se opravuje - na klempírně podle toho člověk zakázku pozná
+            // dřív než podle SPZ. Na kartě jen dva řádky, celé je v detailu.
+            if (order.predmetOpravy case final predmet?) ...[
+              const SizedBox(height: 5),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.build_outlined,
+                      size: 13,
+                      color: palette.muted,
+                    ),
+                  ),
+                  const SizedBox(width: Insets.xs),
+                  Expanded(
+                    child: Text(
+                      predmet,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.text,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 9),
             // Dva nezávislé pohledy na tutéž zakázku, každý popsaný, ať se
             // nepletou: co o ní ví ERP a co dílna.

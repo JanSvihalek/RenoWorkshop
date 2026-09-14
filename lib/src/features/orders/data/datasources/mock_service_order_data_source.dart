@@ -144,6 +144,23 @@ class MockServiceOrderDataSource
   ];
 
   @override
+  Future<ServiceOrderDto?> ulozPredmetOpravy(
+    String orderId,
+    String text,
+  ) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+
+    final orezany = text.trim();
+    return orders[index] = orders[index].copyWith(
+      repairSubject: orezany.isEmpty ? null : orezany,
+      vymazatPredmet: orezany.isEmpty,
+    );
+  }
+
+  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();

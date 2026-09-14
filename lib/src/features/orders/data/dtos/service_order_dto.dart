@@ -15,6 +15,7 @@ class ServiceOrderDto {
     required this.licensePlate,
     required this.model,
     required this.customerName,
+    this.repairSubject,
     this.status,
     this.statusCode,
     this.statusHistory = const [],
@@ -36,6 +37,9 @@ class ServiceOrderDto {
   final String licensePlate;
   final String model;
   final String customerName;
+
+  /// Předmět opravy, zapsaný ručně na dílně. `null` = nezadáno.
+  final String? repairSubject;
 
   /// Text aktuálního dílenského stavu, `null` u zakázky bez stavu.
   final String? status;
@@ -77,6 +81,7 @@ class ServiceOrderDto {
       licensePlate: json['licensePlate'] as String,
       model: json['model'] as String,
       customerName: json['customerName'] as String,
+      repairSubject: json['repairSubject'] as String?,
       status: json['status'] as String?,
       statusCode: json['statusCode'] as String?,
       statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
@@ -105,6 +110,7 @@ class ServiceOrderDto {
     'licensePlate': licensePlate,
     'model': model,
     'customerName': customerName,
+    'repairSubject': repairSubject,
     'status': status,
     'statusCode': statusCode,
     'statusHistory': statusHistory,
@@ -127,6 +133,7 @@ class ServiceOrderDto {
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,
+    predmetOpravy: repairSubject,
     // Aktuální stav je první záznam historie; `status` je jen jeho text,
     // takže z historie se vezme i kdo a kdy ho zapsal.
     stav: statusHistory.isNotEmpty
@@ -152,6 +159,10 @@ class ServiceOrderDto {
   );
 
   ServiceOrderDto copyWith({
+    String? repairSubject,
+
+    /// Smazaný předmět opravy - `??` by jinak nechalo původní.
+    bool vymazatPredmet = false,
     String? status,
     String? statusCode,
     List<Map<String, dynamic>>? statusHistory,
@@ -168,6 +179,9 @@ class ServiceOrderDto {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
+      repairSubject: vymazatPredmet
+          ? null
+          : (repairSubject ?? this.repairSubject),
       status: vymazatStav ? null : (status ?? this.status),
       statusCode: vymazatStav ? null : (statusCode ?? this.statusCode),
       statusHistory: statusHistory ?? this.statusHistory,

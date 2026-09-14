@@ -14,6 +14,7 @@ class ServiceOrder {
     required this.licensePlate,
     required this.model,
     required this.customerName,
+    this.predmetOpravy,
     this.stav,
     this.historieStavu = const [],
     this.heliosStatus,
@@ -35,6 +36,10 @@ class ServiceOrder {
   final String licensePlate;
   final String model;
   final String customerName;
+
+  /// Co se na voze opravuje. Zapisuje dílna ručně (dřív do Excelu),
+  /// Helios to nezná. `null` = zatím nezadáno.
+  final String? predmetOpravy;
 
   /// Aktuální dílenský stav = poslední záznam v historii. `null` u zakázky,
   /// které stav ještě nikdo nedal - z Heliosu se neodvozuje.
@@ -124,7 +129,7 @@ class ServiceOrder {
   /// z API dál chodí, jen se nezobrazuje.
   String get departmentLabel => department?.code ?? 'Bez útvaru';
 
-  /// Fulltext přes SPZ, zákazníka, číslo zakázky a model.
+  /// Fulltext přes SPZ, zákazníka, číslo zakázky, model a předmět opravy.
   bool matchesQuery(String query) {
     final needle = query.trim().toLowerCase();
     if (needle.isEmpty) return true;
@@ -135,11 +140,13 @@ class ServiceOrder {
       model,
       mechanicName ?? '',
       vin,
+      predmetOpravy ?? '',
     ].join(' ').toLowerCase();
     return haystack.contains(needle);
   }
 
   ServiceOrder copyWith({
+    String? predmetOpravy,
     DilenskyStav? stav,
     List<DilenskyStav>? historieStavu,
     String? mechanicName,
@@ -152,6 +159,7 @@ class ServiceOrder {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
+      predmetOpravy: predmetOpravy ?? this.predmetOpravy,
       stav: stav ?? this.stav,
       historieStavu: historieStavu ?? this.historieStavu,
       heliosStatus: heliosStatus,
@@ -174,10 +182,14 @@ class ServiceOrder {
       identical(this, other) ||
       (other is ServiceOrder &&
           other.id == id &&
+          // Předmět opravy je obsah zakázky jako stav - dvě verze lišící se
+          // jen v něm nejsou tatáž zakázka.
+          other.predmetOpravy == predmetOpravy &&
           other.stav == stav &&
           other.notes.length == notes.length &&
           other.workItems == workItems);
 
   @override
-  int get hashCode => Object.hash(id, stav, notes.length, workItems.length);
+  int get hashCode =>
+      Object.hash(id, predmetOpravy, stav, notes.length, workItems.length);
 }

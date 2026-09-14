@@ -16,6 +16,7 @@ import '../widgets/detail_cards.dart';
 import '../widgets/notes_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/pridat_stav_sheet.dart';
+import '../widgets/predmet_opravy_card.dart';
 import '../widgets/status_timeline.dart';
 import '../widgets/work_items_card.dart';
 
@@ -136,6 +137,15 @@ class _DetailBody extends ConsumerWidget {
     }
   }
 
+  Future<void> _upravPredmet(BuildContext context, WidgetRef ref) async {
+    final text = await upravPredmetOpravy(context, order.predmetOpravy);
+    // null = zrušeno; prázdný text je platná úprava (smazání).
+    if (text == null || text == (order.predmetOpravy ?? '')) return;
+    await ref
+        .read(orderActionsProvider.notifier)
+        .ulozPredmetOpravy(order.id, text);
+  }
+
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
     final text = await showAddNoteDialog(context);
     if (text == null || text.isEmpty) return;
@@ -194,6 +204,11 @@ class _DetailBody extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: Insets.base),
+              PredmetOpravyCard(
+                predmet: order.predmetOpravy,
+                onUpravit: () => _upravPredmet(context, ref),
               ),
               const SizedBox(height: Insets.base),
               DetailCard(

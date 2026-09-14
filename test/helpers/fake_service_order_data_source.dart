@@ -125,6 +125,20 @@ class FakeServiceOrderDataSource
   ];
 
   @override
+  Future<ServiceOrderDto?> ulozPredmetOpravy(
+    String orderId,
+    String text,
+  ) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    final orezany = text.trim();
+    return _orders[index] = _orders[index].copyWith(
+      repairSubject: orezany.isEmpty ? null : orezany,
+      vymazatPredmet: orezany.isEmpty,
+    );
+  }
+
+  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;

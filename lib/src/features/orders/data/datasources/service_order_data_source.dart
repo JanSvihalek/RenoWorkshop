@@ -28,6 +28,10 @@ abstract interface class ServiceOrderDataSource {
     String? poznamka,
   });
 
+  /// `PUT /orders/{id}/repair-subject` - přepíše předmět opravy, prázdný
+  /// text ho smaže.
+  Future<ServiceOrderDto?> ulozPredmetOpravy(String orderId, String text);
+
   /// Smaže záznam z historie stavů.
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
 

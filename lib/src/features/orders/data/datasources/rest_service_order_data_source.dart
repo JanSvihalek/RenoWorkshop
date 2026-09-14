@@ -83,6 +83,19 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<ServiceOrderDto?> ulozPredmetOpravy(
+    String orderId,
+    String text,
+  ) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/repair-subject',
+      body: {'text': text},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final data = await _send(
       'DELETE',

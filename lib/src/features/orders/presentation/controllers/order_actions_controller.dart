@@ -96,6 +96,20 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Přepíše předmět opravy. Prázdný text ho smaže - i to je platná úprava.
+  Future<bool> ulozPredmetOpravy(String orderId, String text) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.ulozPredmetOpravy(orderId, text.trim());
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<bool> smazStav(String orderId, String zaznamId) async {
     state = const AsyncLoading();

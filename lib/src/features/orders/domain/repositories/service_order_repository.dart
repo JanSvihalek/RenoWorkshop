@@ -36,6 +36,9 @@ abstract interface class ServiceOrderRepository {
     String? poznamka,
   });
 
+  /// Přepíše předmět opravy; prázdný text ho smaže.
+  Future<ServiceOrder> ulozPredmetOpravy(String orderId, String text);
+
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<ServiceOrder> smazStav(String orderId, String zaznamId);
 
