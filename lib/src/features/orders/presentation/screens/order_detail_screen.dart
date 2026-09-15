@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
+import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
@@ -28,6 +29,7 @@ class OrderDetailScreen extends ConsumerWidget {
     required this.onBack,
     this.zobrazitZpet = true,
     this.onFotodokumentace,
+    this.onPrijem,
   });
 
   final String orderId;
@@ -35,6 +37,9 @@ class OrderDetailScreen extends ConsumerWidget {
 
   /// Otevření fotodokumentace. Bez něj se karta fotek nezobrazí.
   final ValueChanged<String>? onFotodokumentace;
+
+  /// Otevření příjmu vozidla. Bez něj se karta příjmu nezobrazí.
+  final ValueChanged<String>? onPrijem;
 
   /// V rozděleném zobrazení na tabletu není kam se vracet - detail je
   /// vedle seznamu, ne nad ním.
@@ -72,6 +77,7 @@ class OrderDetailScreen extends ConsumerWidget {
             onBack: onBack,
             zobrazitZpet: zobrazitZpet,
             onFotodokumentace: onFotodokumentace,
+            onPrijem: onPrijem,
           );
         },
       ),
@@ -85,12 +91,14 @@ class _DetailBody extends ConsumerWidget {
     required this.onBack,
     required this.zobrazitZpet,
     required this.onFotodokumentace,
+    required this.onPrijem,
   });
 
   final ServiceOrder order;
   final VoidCallback onBack;
   final bool zobrazitZpet;
   final ValueChanged<String>? onFotodokumentace;
+  final ValueChanged<String>? onPrijem;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
     final vybrany = await vyberStav(context);
@@ -260,6 +268,15 @@ class _DetailBody extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: Insets.base),
+              if (onPrijem != null) ...[
+                // Příjem před fotkami - vůz se nejdřív zkontroluje, pak
+                // se nafotí, a nálezy z kontroly má vidět každý.
+                PrijemKarta(
+                  orderId: order.id,
+                  onOtevrit: () => onPrijem!(order.id),
+                ),
+                const SizedBox(height: Insets.base),
+              ],
               if (onFotodokumentace != null) ...[
                 // Hned pod postupem: při příjmu je to první, co se u zakázky
                 // dělá, a během opravy se k fotkám vrací.

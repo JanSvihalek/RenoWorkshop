@@ -7,12 +7,18 @@ import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.d
 import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/data/fotky_data_source.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
+import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
 class FakeServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
+    implements
+        ServiceOrderDataSource,
+        VozidlaDataSource,
+        FotkyDataSource,
+        PrijemDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -40,6 +46,39 @@ class FakeServiceOrderDataSource
     _orders.addAll(poSynchronizaci);
     poSynchronizaci = const [];
   }
+
+  /// Příjmy v paměti. [ulozeniPrijmuSelze] simuluje výpadek sítě.
+  final PametovyPrijem prijmy = PametovyPrijem();
+  bool ulozeniPrijmuSelze = false;
+  int pocetZmenPrijmu = 0;
+
+  Future<Prijem> _sPrijmem(Prijem Function() akce) async {
+    if (ulozeniPrijmuSelze) {
+      throw const ServiceOrderException('Server neodpovídá.');
+    }
+    try {
+      return akce();
+    } on StateError catch (chyba) {
+      throw ServiceOrderException(chyba.message);
+    }
+  }
+
+  @override
+  Future<Prijem> prijemZakazky(String orderId) async => prijmy.nacti(orderId);
+
+  @override
+  Future<Prijem> zmenPolozku(String orderId, String kod, ZmenaPolozky zmena) {
+    pocetZmenPrijmu++;
+    return _sPrijmem(() => prijmy.zmen(orderId, kod, zmena));
+  }
+
+  @override
+  Future<Prijem> dokonciPrijem(String orderId) =>
+      _sPrijmem(() => prijmy.dokonci(orderId));
+
+  @override
+  Future<Prijem> znovuOtevriPrijem(String orderId) =>
+      _sPrijmem(() => prijmy.znovuOtevri(orderId));
 
   /// Fotky v paměti. [nahravaniSelze] simuluje výpadek sítě při nahrávání.
   final Map<String, List<Fotka>> fotky = {};

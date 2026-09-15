@@ -3,12 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../../core/widgets/hlavicka_zakazky.dart';
 import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../domain/entities/fotka.dart';
@@ -109,7 +109,8 @@ class FotodokumentaceScreen extends ConsumerWidget {
       backgroundColor: palette.background,
       body: Column(
         children: [
-          _Hlavicka(
+          HlavickaZakazky(
+            nadpis: 'Fotodokumentace',
             onBack: onBack,
             spz: zakazka?.licensePlate,
             model: zakazka?.model,
@@ -211,79 +212,6 @@ class FotodokumentaceScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Hlavicka extends StatelessWidget {
-  const _Hlavicka({
-    required this.onBack,
-    required this.cisloZakazky,
-    this.spz,
-    this.model,
-  });
-
-  final VoidCallback onBack;
-  final String cisloZakazky;
-  final String? spz;
-  final String? model;
-
-  @override
-  Widget build(BuildContext context) {
-    final isIOS = context.isIOS;
-    final podtitulek = [
-      if (model != null && model!.isNotEmpty) model!,
-      cisloZakazky,
-    ].join(' · ');
-
-    return Container(
-      width: double.infinity,
-      color: AppColors.primary,
-      padding: EdgeInsets.fromLTRB(
-        Insets.base,
-        MediaQuery.paddingOf(context).top + Insets.base,
-        Insets.xxl,
-        Insets.xl,
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: 'Zpět',
-            onPressed: onBack,
-            icon: Icon(
-              isIOS
-                  ? Icons.arrow_back_ios_new_rounded
-                  : Icons.arrow_back_rounded,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: Insets.xxs),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Fotodokumentace',
-                  style: AppTextStyles.appBarTitle(
-                    isIOS: isIOS,
-                  ).copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  [
-                    if (spz != null && spz!.isNotEmpty) spz!,
-                    podtitulek,
-                  ].join(' · '),
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.appBarMeta.copyWith(
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/rest_service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 
 /// Jedna zakázka v takovém tvaru, v jakém ji má vracet API.
 Map<String, dynamic> _zakazka({String id = 'ZK-26-0418'}) => {
@@ -262,6 +263,115 @@ void main() {
 
       expect(zachyceno.url.queryParameters['branch'], 'Bubeneč');
       expect(zachyceno.url.queryParameters['category'], 'vin');
+    });
+
+    group('příjem vozidla', () {
+      Map<String, Object?> odpovedPrijmu({String status = 'in_progress'}) => {
+        'status': status,
+        'startedBy': 'Jan Dvořák',
+        'startedAt': '2026-09-15T08:00:00',
+        'completedBy': null,
+        'completedAt': null,
+        'missing': 1,
+        'items': [
+          {
+            'code': 'brzdy',
+            'label': 'Brzdy',
+            'type': 'check',
+            'required': true,
+            'checked': true,
+            'value': null,
+            'note': 'opotřebené destičky',
+          },
+          {
+            'code': 'stk',
+            'label': 'Datum platnosti STK',
+            'type': 'date',
+            'required': true,
+            'checked': false,
+            'value': null,
+            'note': null,
+          },
+        ],
+      };
+
+      http.Response json(Object telo, [int kod = 200]) => http.Response(
+        jsonEncode(telo),
+        kod,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+
+      test('načte checklist zakázky', () async {
+        late http.Request zachyceno;
+        final client = MockClient((request) async {
+          zachyceno = request;
+          return json(odpovedPrijmu());
+        });
+
+        final prijem = await _zdroj(client).prijemZakazky('Z121/26');
+
+        expect(zachyceno.method, 'GET');
+        expect(zachyceno.url.path, endsWith('/orders/Z121%2F26/intake'));
+        expect(prijem.stav, StavPrijmu.rozpracovany);
+        expect(prijem.polozky.first.poznamka, 'opotřebené destičky');
+        expect(prijem.chybi, 1);
+      });
+
+      test('změna položky pošle jen to, co se mění', () async {
+        late http.Request zachyceno;
+        final client = MockClient((request) async {
+          zachyceno = request;
+          return json(odpovedPrijmu());
+        });
+
+        await _zdroj(
+          client,
+        ).zmenPolozku('ZK-26-0418', 'brzdy', ZmenaPolozky.splneno(true));
+
+        expect(zachyceno.method, 'PUT');
+        expect(
+          zachyceno.url.path,
+          endsWith('/orders/ZK-26-0418/intake/items/brzdy'),
+        );
+        expect(jsonDecode(zachyceno.body), {'checked': true});
+      });
+
+      test('nedokončitelný příjem vrátí zprávu ze serveru', () async {
+        final client = MockClient(
+          (request) async => json({
+            'error': {
+              'code': 'intake_incomplete',
+              'message': 'Příjem nejde dokončit, chybí: Datum platnosti STK.',
+            },
+          }, 422),
+        );
+
+        expect(
+          () => _zdroj(client).dokonciPrijem('ZK-26-0418'),
+          throwsA(
+            isA<ServiceOrderException>().having(
+              (e) => e.message,
+              'zpráva',
+              'Příjem nejde dokončit, chybí: Datum platnosti STK.',
+            ),
+          ),
+        );
+      });
+
+      test('znovuotevření je DELETE na dokončení', () async {
+        late http.Request zachyceno;
+        final client = MockClient((request) async {
+          zachyceno = request;
+          return json(odpovedPrijmu());
+        });
+
+        await _zdroj(client).znovuOtevriPrijem('ZK-26-0418');
+        expect(zachyceno.method, 'DELETE');
+        expect(
+          zachyceno.url.path,
+          endsWith('/orders/ZK-26-0418/intake/complete'),
+        );
+      });
     });
 
     test('seznam poboček ze serveru', () async {

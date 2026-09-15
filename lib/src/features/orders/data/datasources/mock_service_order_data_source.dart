@@ -5,6 +5,9 @@ import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
+import '../../../prijem/data/prijem_data_source.dart';
+import '../../../prijem/domain/entities/prijem.dart';
+import '../../domain/repositories/service_order_repository.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -16,7 +19,11 @@ import 'service_order_data_source.dart';
 /// Simuluje latenci sítě, aby UI muselo počítat s loading stavem stejně
 /// jako u reálného API.
 class MockServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
+    implements
+        ServiceOrderDataSource,
+        VozidlaDataSource,
+        FotkyDataSource,
+        PrijemDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -293,6 +300,34 @@ class MockServiceOrderDataSource
 
   @override
   Future<void> synchronizuj() => _simulateLatency();
+
+  /// Příjmy jen v paměti, se stejnými pravidly jako server.
+  final PametovyPrijem _prijmy = PametovyPrijem();
+
+  Future<Prijem> _sPrijmem(Prijem Function() akce) async {
+    await _simulateLatency();
+    try {
+      return akce();
+    } on StateError catch (chyba) {
+      throw ServiceOrderException(chyba.message);
+    }
+  }
+
+  @override
+  Future<Prijem> prijemZakazky(String orderId) =>
+      _sPrijmem(() => _prijmy.nacti(orderId));
+
+  @override
+  Future<Prijem> zmenPolozku(String orderId, String kod, ZmenaPolozky zmena) =>
+      _sPrijmem(() => _prijmy.zmen(orderId, kod, zmena));
+
+  @override
+  Future<Prijem> dokonciPrijem(String orderId) =>
+      _sPrijmem(() => _prijmy.dokonci(orderId));
+
+  @override
+  Future<Prijem> znovuOtevriPrijem(String orderId) =>
+      _sPrijmem(() => _prijmy.znovuOtevri(orderId));
 
   /// Fotky jen v paměti - bez serveru se ukládají, dokud appka běží.
   final Map<String, List<Fotka>> _fotky = {};

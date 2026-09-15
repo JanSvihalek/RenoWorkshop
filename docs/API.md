@@ -454,6 +454,67 @@ a zakázka bez vyplněného typu nemá `orderType`.
 Odvození patří na server schválně - kdyby pravidlo přestalo platit nebo
 přibyla pobočka, mění se to na jednom místě.
 
+## Příjem vozidla
+
+Checklist, co má technik při příjmu na voze zkontrolovat. Kontroly jsou
+v číselníku v databázi (`prijem_kontroly_ciselnik`) - nová kontrola se
+v telefonech objeví sama a hned je povinná. Jeden příjem na zakázku;
+vzniká první vyplněnou položkou.
+
+| Endpoint | Co dělá |
+|---|---|
+| `GET /orders/{id}/intake` | příjem zakázky; u nezahájeného prázdný checklist |
+| `PUT /orders/{id}/intake/items/{kod}` | změna jedné položky, vrací celý příjem |
+| `POST /orders/{id}/intake/complete` | dokončení - jen s vyplněnými povinnými body |
+| `DELETE /orders/{id}/intake/complete` | znovuotevření dokončeného příjmu |
+
+```json
+{
+  "status": "in_progress",
+  "startedBy": "Jan Dvořák",
+  "startedAt": "2026-09-15T08:02:11",
+  "completedBy": null,
+  "completedAt": null,
+  "missing": 1,
+  "items": [
+    {
+      "code": "brzdy",
+      "label": "Brzdy: destičky, kotouče, hadičky",
+      "type": "check",
+      "required": true,
+      "checked": true,
+      "value": null,
+      "note": "Opotřebené destičky vpředu",
+      "changedBy": "Jan Dvořák",
+      "changedAt": "2026-09-15T08:05:40"
+    },
+    {
+      "code": "stk",
+      "label": "Datum platnosti STK",
+      "type": "date",
+      "required": true,
+      "checked": false,
+      "value": null,
+      "note": null,
+      "changedBy": null,
+      "changedAt": null
+    }
+  ]
+}
+```
+
+- `status`: `not_started` · `in_progress` · `completed`.
+- `type`: `check` se zaškrtává (`checked`), `date` se vyplňuje datem
+  `RRRR-MM-DD` ve `value` (platnost STK).
+- PUT posílá jen to, co se mění: `{"checked": true}`, `{"value": "2027-05-31"}`
+  nebo `{"note": "…"}` (`null` smaže). Aplikace změnu ukáže hned a posílá
+  je po jedné za sebou.
+- Dokončit bez vyplněného checklistu: `422` `intake_incomplete` se seznamem
+  chybějících bodů v `message`. Změna dokončeného příjmu: `409`
+  `intake_completed`. Neznámá nebo vyřazená kontrola: `404`.
+- `required: false` má jen vyplněná kontrola, která byla mezitím
+  z číselníku vyřazena - zůstává vidět, ale dokončení neblokuje.
+
 ## Fotodokumentace
 
 Fotky **nepocházejí z Heliosu** - jsou to naše data jako stav a poznámky.

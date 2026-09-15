@@ -21,11 +21,13 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
     required this.onSearchArchive,
     required this.onScanCode,
     required this.onFotodokumentace,
+    required this.onPrijem,
   });
 
   final ValueChanged<String> onSearchArchive;
   final VoidCallback onScanCode;
   final ValueChanged<String> onFotodokumentace;
+  final ValueChanged<String> onPrijem;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,6 +62,7 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                         ref.read(vybranaZakazkaProvider.notifier).state = null,
                     zobrazitZpet: false,
                     onFotodokumentace: onFotodokumentace,
+                    onPrijem: onPrijem,
                   ),
           ),
         ],

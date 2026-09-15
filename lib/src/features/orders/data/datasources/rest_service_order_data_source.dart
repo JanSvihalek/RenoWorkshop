@@ -8,6 +8,8 @@ import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
+import '../../../prijem/data/prijem_data_source.dart';
+import '../../../prijem/domain/entities/prijem.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../dtos/service_order_dto.dart';
@@ -22,7 +24,11 @@ import 'service_order_data_source.dart';
 /// Autorizace: Firebase ID token v hlavičce `Authorization`. Token dodává
 /// [tokenProvider], aby datová vrstva nezávisela na Firebase a šla testovat.
 class RestServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
+    implements
+        ServiceOrderDataSource,
+        VozidlaDataSource,
+        FotkyDataSource,
+        PrijemDataSource {
   RestServiceOrderDataSource({
     required Uri baseUrl,
     required Future<String?> Function() tokenProvider,
@@ -215,6 +221,44 @@ class RestServiceOrderDataSource
   Future<void> smazFotku(String id) async {
     await _send('DELETE', 'photos/${Uri.encodeComponent(id)}');
   }
+
+  String _cestaPrijmu(String orderId) =>
+      'orders/${Uri.encodeComponent(orderId)}/intake';
+
+  Prijem _prijem(Object? data) {
+    // 404 pod orders/ vrací null: zakázka nebo kontrola na serveru není.
+    if (data is! Map<String, dynamic>) {
+      throw const ServiceOrderException(
+        'Zakázka nebo kontrola příjmu nebyla nalezena.',
+      );
+    }
+    return Prijem.fromJson(data);
+  }
+
+  @override
+  Future<Prijem> prijemZakazky(String orderId) async =>
+      _prijem(await _send('GET', _cestaPrijmu(orderId)));
+
+  @override
+  Future<Prijem> zmenPolozku(
+    String orderId,
+    String kod,
+    ZmenaPolozky zmena,
+  ) async => _prijem(
+    await _send(
+      'PUT',
+      '${_cestaPrijmu(orderId)}/items/${Uri.encodeComponent(kod)}',
+      body: zmena.json,
+    ),
+  );
+
+  @override
+  Future<Prijem> dokonciPrijem(String orderId) async =>
+      _prijem(await _send('POST', '${_cestaPrijmu(orderId)}/complete'));
+
+  @override
+  Future<Prijem> znovuOtevriPrijem(String orderId) async =>
+      _prijem(await _send('DELETE', '${_cestaPrijmu(orderId)}/complete'));
 
   @override
   Future<List<NalezeneVozidlo>> hledejVozidla(String dotaz) async {

@@ -131,6 +131,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// V detailu je nad fotkami i karta příjmu - karta fotek bývá pod okrajem
+  /// a seznam ji do té doby nepostaví.
+  Future<Finder> naKartuFotek(WidgetTester tester) async {
+    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
+    await tester.scrollUntilVisible(
+      karta,
+      200,
+      // Svislý seznam - VIN v hlavičce má vlastní vodorovný posuvník.
+      scrollable: find
+          .descendant(
+            of: find.byType(OrderDetailScreen),
+            matching: find.byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            ),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    return karta;
+  }
+
   Future<void> otevriDetail(
     WidgetTester tester, {
     Nastaveni nastaveni = const Nastaveni(),
@@ -146,7 +167,7 @@ void main() {
     Nastaveni nastaveni = const Nastaveni(),
   }) async {
     await otevriDetail(tester, nastaveni: nastaveni);
-    await klepni(tester, find.byKey(const Key('otevrit-fotodokumentaci')));
+    await klepni(tester, await naKartuFotek(tester));
   }
 
   Future<void> zpet(WidgetTester tester) async {
@@ -156,14 +177,10 @@ void main() {
 
   testWidgets('fotodokumentace se otevírá z detailu zakázky', (tester) async {
     await naZakazky(tester);
-    // Záložka Příjem už není - fotky jsou u zakázky.
-    expect(find.text('Příjem'), findsNothing);
-
     await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
-    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
-    await tester.ensureVisible(karta);
+    final karta = await naKartuFotek(tester);
     expect(
       find.descendant(of: karta, matching: find.text('Zatím bez fotek.')),
       findsOneWidget,
@@ -189,8 +206,7 @@ void main() {
     await klepni(tester, vKarte('poskozeni', find.byTooltip('Vyfotit')));
     await zpet(tester);
 
-    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
-    await tester.ensureVisible(karta);
+    final karta = await naKartuFotek(tester);
     expect(
       find.descendant(
         of: karta,
@@ -208,8 +224,7 @@ void main() {
     await klepni(tester, vKarte('vin', find.byTooltip('Přidat z galerie')));
     await zpet(tester);
 
-    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
-    await tester.ensureVisible(karta);
+    final karta = await naKartuFotek(tester);
     expect(
       find.descendant(of: karta, matching: find.text('Nenahráno: 2')),
       findsOneWidget,
@@ -371,7 +386,7 @@ void main() {
     await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
-    await klepni(tester, find.byKey(const Key('otevrit-fotodokumentaci')));
+    await klepni(tester, await naKartuFotek(tester));
     await klepni(tester, vKarte('vin', find.byTooltip('Přidat z galerie')));
 
     expect(zdroj.posledniPobocka, 'Cestlice');
