@@ -25,7 +25,7 @@ class ZavadyCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(child: SectionLabel('ZÁVADY')),
+              const Expanded(child: SectionLabel('ZÁVADY/ÚKONY')),
               if (zavady.isNotEmpty)
                 Text(
                   '${zavady.length}',

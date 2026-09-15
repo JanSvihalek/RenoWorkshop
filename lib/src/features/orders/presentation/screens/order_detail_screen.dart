@@ -252,14 +252,16 @@ class _DetailBody extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: Insets.base),
-              // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
-              // s odškrtáváním, do které ale nikdy nic neteklo.
-              ZavadyCard(zavady: order.zavady),
-              const SizedBox(height: Insets.base),
+              // Poznámky hned pod postupem - dopisují se k tomu, co se na
+              // zakázce děje, a čtou se spolu s ním.
               NotesCard(
                 notes: order.notes,
                 onAddNote: () => _addNote(context, ref),
               ),
+              const SizedBox(height: Insets.base),
+              // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
+              // s odškrtáváním, do které ale nikdy nic neteklo.
+              ZavadyCard(zavady: order.zavady),
             ],
           ),
         ),

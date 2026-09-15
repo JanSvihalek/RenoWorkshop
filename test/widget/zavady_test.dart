@@ -57,7 +57,7 @@ void main() {
   testWidgets('detail ukáže závady z Heliosu v pořadí zápisu', (tester) async {
     await otevri(tester, '8AB 4721');
 
-    final nadpis = find.text('ZÁVADY');
+    final nadpis = find.text('ZÁVADY/ÚKONY');
     await tester.scrollUntilVisible(
       find.text('Seřídit geometrii'),
       300,
@@ -83,6 +83,20 @@ void main() {
     expect(find.text('2.'), findsOneWidget);
     // Jen ke čtení - žádné zaškrtávátko, závady zapisuje poradce v Heliosu.
     expect(find.byType(Checkbox), findsNothing);
+  });
+
+  testWidgets('pořadí karet: postup, poznámky, závady', (tester) async {
+    await otevri(tester, '8AB 4721');
+
+    await tester.scrollUntilVisible(
+      find.text('ZÁVADY/ÚKONY'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    double y(String text) => tester.getTopLeft(find.text(text)).dy;
+
+    expect(y('POSTUP ZAKÁZKY'), lessThan(y('POZNÁMKY')));
+    expect(y('POZNÁMKY'), lessThan(y('ZÁVADY/ÚKONY')));
   });
 
   testWidgets('zakázka bez závad to řekne', (tester) async {
