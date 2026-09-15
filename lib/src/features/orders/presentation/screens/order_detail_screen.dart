@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
@@ -19,17 +20,21 @@ import '../widgets/predmet_opravy_card.dart';
 import '../widgets/status_timeline.dart';
 import '../widgets/zavady_card.dart';
 
-/// Detail zakázky: stav, časová osa, vozidlo, mechanik, úkony, poznámky.
+/// Detail zakázky: stav, časová osa, fotodokumentace, poznámky, závady.
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({
     super.key,
     required this.orderId,
     required this.onBack,
     this.zobrazitZpet = true,
+    this.onFotodokumentace,
   });
 
   final String orderId;
   final VoidCallback onBack;
+
+  /// Otevření fotodokumentace. Bez něj se karta fotek nezobrazí.
+  final ValueChanged<String>? onFotodokumentace;
 
   /// V rozděleném zobrazení na tabletu není kam se vracet - detail je
   /// vedle seznamu, ne nad ním.
@@ -66,6 +71,7 @@ class OrderDetailScreen extends ConsumerWidget {
             order: order,
             onBack: onBack,
             zobrazitZpet: zobrazitZpet,
+            onFotodokumentace: onFotodokumentace,
           );
         },
       ),
@@ -78,11 +84,13 @@ class _DetailBody extends ConsumerWidget {
     required this.order,
     required this.onBack,
     required this.zobrazitZpet,
+    required this.onFotodokumentace,
   });
 
   final ServiceOrder order;
   final VoidCallback onBack;
   final bool zobrazitZpet;
+  final ValueChanged<String>? onFotodokumentace;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
     final vybrany = await vyberStav(context);
@@ -252,6 +260,15 @@ class _DetailBody extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: Insets.base),
+              if (onFotodokumentace != null) ...[
+                // Hned pod postupem: při příjmu je to první, co se u zakázky
+                // dělá, a během opravy se k fotkám vrací.
+                FotodokumentaceKarta(
+                  orderId: order.id,
+                  onOtevrit: () => onFotodokumentace!(order.id),
+                ),
+                const SizedBox(height: Insets.base),
+              ],
               // Poznámky hned pod postupem - dopisují se k tomu, co se na
               // zakázce děje, a čtou se spolu s ním.
               NotesCard(

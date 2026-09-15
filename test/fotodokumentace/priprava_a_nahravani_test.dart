@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/prijem/data/fotky_data_source.dart';
-import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/ulozeni_do_zarizeni.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/data/fotky_data_source.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/controllers/fotky_providers.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -19,37 +18,6 @@ Uint8List jpeg({int sirka = 40, int vyska = 20}) =>
     img.encodeJpg(img.Image(width: sirka, height: vyska));
 
 void main() {
-  group('hledání zakázky podle SPZ', () {
-    final zakazky = [
-      buildOrderDto(
-        id: 'ZK-1',
-        licensePlate: '2BK 9485',
-        receivedAt: '2026-09-01T08:00:00',
-      ).toDomain(),
-      buildOrderDto(
-        id: 'ZK-2',
-        licensePlate: '2BK 9485',
-        receivedAt: '2026-09-10T08:00:00',
-      ).toDomain(),
-      buildOrderDto(id: 'ZK-3', licensePlate: '8AB 4721').toDomain(),
-    ];
-
-    test('najde bez ohledu na mezery, pomlčky a velikost písmen', () {
-      expect(zakazkyPodleSpz(zakazky, '2bk-9485').map((z) => z.id), [
-        'ZK-2',
-        'ZK-1',
-      ]);
-    });
-
-    test('nejnovější příjem je první', () {
-      expect(zakazkyPodleSpz(zakazky, '2BK').first.id, 'ZK-2');
-    });
-
-    test('pod tři znaky nehledá', () {
-      expect(zakazkyPodleSpz(zakazky, '2B'), isEmpty);
-    });
-  });
-
   test('jméno fotky v telefonu nese zakázku, kategorii a čas', () {
     expect(
       nazevFotkyVZarizeni(

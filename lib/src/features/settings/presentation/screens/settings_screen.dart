@@ -10,8 +10,8 @@ import '../../../../core/theme/dimens.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
-import '../../../prijem/presentation/controllers/prijem_providers.dart';
-import '../../../prijem/presentation/ulozeni_do_zarizeni.dart';
+import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
+import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import '../../domain/entities/nastaveni.dart';
 import '../controllers/nastaveni_controller.dart';
 

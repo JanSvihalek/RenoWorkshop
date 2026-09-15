@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/rest_service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
-import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 
 /// Jedna zakázka v takovém tvaru, v jakém ji má vracet API.
 Map<String, dynamic> _zakazka({String id = 'ZK-26-0418'}) => {

@@ -10,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/service_order.dart';
+import '../../domain/repositories/service_order_repository.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_search_field.dart';
@@ -48,6 +49,7 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  bool _nacitaZHeliosu = false;
 
   @override
   void initState() {
@@ -75,6 +77,36 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   /// hledá v archivu - kvůli tomu se VIN fotí.
   void _skenuj() => widget.onScanCode();
 
+  /// Dotáhne zakázky z Heliosu hned. Když pak hledání najde jedinou,
+  /// otevře se - kvůli ní se načítalo.
+  Future<void> _nacistZHeliosu() async {
+    setState(() => _nacitaZHeliosu = true);
+    try {
+      await ref.read(serviceOrderDataSourceProvider).synchronizuj();
+      ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
+      ref.invalidate(ordersStreamProvider);
+      await ref.read(ordersStreamProvider.future);
+    } on ServiceOrderException catch (chyba) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(chyba.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _nacitaZHeliosu = false);
+    }
+  }
+
+  /// Po naskenování otevře jedinou nalezenou zakázku. Příznak se shodí
+  /// v každém případě, ať se zakázka neotevře sama později při psaní.
+  void _otevriJedinou(List<ServiceOrder> nalezene) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !ref.read(otevritJedinouZakazkuProvider)) return;
+      ref.read(otevritJedinouZakazkuProvider.notifier).state = false;
+      if (nalezene.length == 1) widget.onOpenOrder(nalezene.single);
+    });
+  }
+
   void _resetFilters() {
     _debounce?.cancel();
     _searchController.clear();
@@ -87,6 +119,19 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final palette = context.palette;
     final orders = ref.watch(filteredOrdersProvider);
     final filter = ref.watch(orderFilterProvider);
+
+    // Hledání vyplněné zvenčí (skener) se musí objevit i v poli - seznam
+    // zůstává otevřený pod skenerem a pole by jinak ukazovalo starý text.
+    ref.listen(orderFilterProvider, (predchozi, novy) {
+      if (novy.query == predchozi?.query) return;
+      if (novy.query == _searchController.text) return;
+      _debounce?.cancel();
+      _searchController.text = novy.query;
+    });
+
+    if (ref.watch(otevritJedinouZakazkuProvider) && orders.hasValue) {
+      _otevriJedinou(orders.requireValue);
+    }
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -121,10 +166,19 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                           ref.invalidate(ordersStreamProvider),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: MediaQuery.sizeOf(context).height * 0.6,
+                        // Jen nejmenší výška, ne pevná: s nabídkou Heliosu
+                        // a archivu by se na nízkém displeji nevešel.
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: MediaQuery.sizeOf(context).height * 0.6,
+                          ),
                           child: OrdersEmptyState(
                             onResetFilters: _resetFilters,
+                            onNacistZHeliosu:
+                                _searchController.text.trim().length >= 3
+                                ? _nacistZHeliosu
+                                : null,
+                            nacitaZHeliosu: _nacitaZHeliosu,
                             onHledatVArchivu:
                                 _searchController.text.trim().length >= 3
                                 ? () => widget.onSearchArchive(

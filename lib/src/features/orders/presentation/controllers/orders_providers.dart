@@ -277,6 +277,12 @@ class OrderFilterController extends Notifier<OrderFilter> {
   }
 }
 
+/// Hledání vyplnil skener - jediná nalezená zakázka se otevře rovnou.
+///
+/// U příjmu vozu je to nejčastější cesta: naskenovat SPZ a nafotit. Při
+/// psaní rukou se zakázka sama neotvírá, výsledek se mění s každým znakem.
+final otevritJedinouZakazkuProvider = StateProvider<bool>((ref) => false);
+
 /// Zakázka otevřená v pravém sloupci rozděleného zobrazení na tabletu.
 ///
 /// Na telefonu se detail otevírá jako samostatná obrazovka a provider

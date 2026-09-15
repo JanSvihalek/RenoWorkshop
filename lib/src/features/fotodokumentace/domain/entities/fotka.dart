@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Kategorie fotodokumentace při příjmu vozidla.
+/// Kategorie fotodokumentace zakázky.
 ///
 /// Klíč se posílá na server a určuje podsložku ve sdílené složce
 /// (`Foto-doc\<pobočka>\<zakázka>\<kategorie>`). Pořadí je pořadí karet
@@ -22,6 +22,9 @@ enum KategorieFotky {
   final String nazev;
   final IconData ikona;
 
+  /// Název bez upřesnění v závorce - do souhrnu v detailu zakázky.
+  String get kratkyNazev => nazev.split(' (').first;
+
   static KategorieFotky? zKlice(String? klic) {
     for (final kategorie in values) {
       if (kategorie.klic == klic) return kategorie;
@@ -29,6 +32,13 @@ enum KategorieFotky {
     return null;
   }
 }
+
+/// „1 fotka", „3 fotky", „5 fotek".
+String pocetFotek(int pocet) => switch (pocet) {
+  1 => '1 fotka',
+  >= 2 && <= 4 => '$pocet fotky',
+  _ => '$pocet fotek',
+};
 
 /// Fotka nahraná k zakázce.
 @immutable

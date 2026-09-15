@@ -13,9 +13,7 @@ import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
-import '../features/prijem/presentation/controllers/prijem_providers.dart';
-import '../features/prijem/presentation/screens/fotodokumentace_screen.dart';
-import '../features/prijem/presentation/screens/prijem_screen.dart';
+import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
@@ -31,13 +29,6 @@ abstract final class AppRoutes {
   static const String archiv = '/archiv';
   static const String skener = '/skener';
   static const String vyhledavani = '/vyhledavani';
-  static const String prijem = '/prijem';
-
-  /// Skener, jehož SPZ jde do hledání zakázky k příjmu.
-  static const String skenerPrijmu = '$skener?cil=prijem';
-
-  static String fotodokumentace(String orderId) =>
-      '$prijem/${Uri.encodeComponent(orderId)}';
   static const String vozidla = '/vozidla';
 
   /// Skener, jehož výsledek jde do vyhledání vozidla, ne do seznamu zakázek.
@@ -49,6 +40,9 @@ abstract final class AppRoutes {
       '$archiv?q=${Uri.encodeQueryComponent(dotaz)}';
 
   static String orderDetail(String orderId) => '$orders/$orderId';
+
+  static String fotodokumentace(String orderId) =>
+      '$orders/${Uri.encodeComponent(orderId)}/fotky';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -89,20 +83,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             onNalezeno: (kod) {
               // Ze záložky vozidel: SPZ jde do vyhledání vozidla a jediný
               // nalezený vůz se rovnou otevře.
-              // Z příjmu: SPZ jde do hledání zakázky a jediná nalezená
-              // se rovnou otevře k nafocení.
-              if (state.uri.queryParameters['cil'] == 'prijem') {
-                ref.read(dotazPrijmuProvider.notifier).state = kod.hodnota;
-                ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
-                context.go(AppRoutes.prijem);
-                return;
-              }
               if (state.uri.queryParameters['cil'] == 'vozidla') {
                 ref.read(dotazVozidlaProvider.notifier).state = kod.hodnota;
                 ref.read(otevritJedineVozidloProvider.notifier).state = true;
                 context.go(AppRoutes.vyhledavani);
                 return;
               }
+              // Jediná nalezená zakázka se otevře rovnou - u příjmu se
+              // tak po naskenování SPZ jde přímo k detailu a fotkám.
+              ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
               ref.read(orderFilterProvider.notifier).setQuery(kod.hodnota);
               context.go(AppRoutes.orders);
             },
@@ -135,6 +124,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                         onSearchArchive: (dotaz) =>
                             context.push(AppRoutes.archivHledani(dotaz)),
                         onScanCode: () => context.push(AppRoutes.skener),
+                        onFotodokumentace: (id) =>
+                            context.push(AppRoutes.fotodokumentace(id)),
                       )
                     : OrdersListScreen(
                         onOpenOrder: (order) =>
@@ -146,20 +137,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Pořadí větví musí sedět s WorkshopTab: zakázky, příjem, vozidla,
+          // Pořadí větví musí sedět s WorkshopTab: zakázky, vozidla,
           // nastavení.
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoutes.prijem,
-                builder: (context, state) => PrijemScreen(
-                  onScan: () => context.push(AppRoutes.skenerPrijmu),
-                  onOpenZakazka: (zakazka) =>
-                      context.push(AppRoutes.fotodokumentace(zakazka.id)),
-                ),
-              ),
-            ],
-          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -191,12 +170,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Karta vozidla i detail zakázky jsou mimo rám schválně: na telefonu
       // překryjí i lištu záložek, protože nejsou záložka, ale zanoření.
       GoRoute(
-        path: '${AppRoutes.prijem}/:orderId',
-        builder: (context, state) => FotodokumentaceScreen(
-          orderId: state.pathParameters['orderId']!,
-          onBack: () =>
-              context.canPop() ? context.pop() : context.go(AppRoutes.prijem),
-        ),
+        path: '${AppRoutes.orders}/:orderId/fotky',
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId']!;
+          return FotodokumentaceScreen(
+            orderId: orderId,
+            onBack: () => context.canPop()
+                ? context.pop()
+                : context.go(AppRoutes.orderDetail(orderId)),
+          );
+        },
       ),
       GoRoute(
         path: '${AppRoutes.vozidla}/:vozidloId',
@@ -214,6 +197,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           orderId: state.pathParameters['orderId']!,
           onBack: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+          onFotodokumentace: (id) =>
+              context.push(AppRoutes.fotodokumentace(id)),
         ),
       ),
     ],

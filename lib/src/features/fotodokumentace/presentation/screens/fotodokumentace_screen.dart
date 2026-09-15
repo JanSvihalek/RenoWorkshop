@@ -13,11 +13,12 @@ import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../domain/entities/fotka.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
-import '../controllers/prijem_providers.dart';
+import '../controllers/fotky_providers.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 
-/// Fotodokumentace zakázky při příjmu - karta na každou kategorii.
+/// Fotodokumentace zakázky - karta na každou kategorii. Otevírá se
+/// z detailu zakázky.
 ///
 /// Fotky se nahrávají hned po pořízení, jedna za druhou. Když nahrání
 /// selže (hala bez signálu), fotka zůstane na kartě s červeným rámečkem
@@ -386,7 +387,7 @@ class _KartaKategorie extends StatelessWidget {
                     ),
                     if (pocet > 0)
                       Text(
-                        _fotek(pocet),
+                        pocetFotek(pocet),
                         style: AppTextStyles.metaSmall.copyWith(
                           color: palette.muted,
                         ),
@@ -436,12 +437,6 @@ class _KartaKategorie extends StatelessWidget {
       ),
     );
   }
-
-  static String _fotek(int pocet) => switch (pocet) {
-    1 => '1 fotka',
-    >= 2 && <= 4 => '$pocet fotky',
-    _ => '$pocet fotek',
-  };
 }
 
 class _Miniatura extends ConsumerWidget {

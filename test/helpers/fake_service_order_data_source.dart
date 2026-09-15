@@ -5,8 +5,8 @@ import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dar
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
-import 'package:renoworkshop/src/features/prijem/data/fotky_data_source.dart';
-import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/data/fotky_data_source.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
@@ -30,8 +30,16 @@ class FakeServiceOrderDataSource
   /// Kolikrát se volala synchronizace na vyžádání.
   int pocetSynchronizaci = 0;
 
+  /// Zakázky, které se objeví až po synchronizaci - poradce je v Heliosu
+  /// založil před chvílí.
+  List<ServiceOrderDto> poSynchronizaci = const [];
+
   @override
-  Future<void> synchronizuj() async => pocetSynchronizaci++;
+  Future<void> synchronizuj() async {
+    pocetSynchronizaci++;
+    _orders.addAll(poSynchronizaci);
+    poSynchronizaci = const [];
+  }
 
   /// Fotky v paměti. [nahravaniSelze] simuluje výpadek sítě při nahrávání.
   final Map<String, List<Fotka>> fotky = {};

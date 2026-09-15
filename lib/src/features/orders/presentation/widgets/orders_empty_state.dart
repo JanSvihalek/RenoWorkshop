@@ -11,6 +11,8 @@ class OrdersEmptyState extends StatelessWidget {
     super.key,
     required this.onResetFilters,
     this.onHledatVArchivu,
+    this.onNacistZHeliosu,
+    this.nacitaZHeliosu = false,
   });
 
   final VoidCallback onResetFilters;
@@ -19,6 +21,11 @@ class OrdersEmptyState extends StatelessWidget {
   /// případ, že zakázka je stará a v seznamu vůbec není, než že by se
   /// člověk spletl ve filtru.
   final VoidCallback? onHledatVArchivu;
+
+  /// Dotáhne nové zakázky hned, bez čekání na pětiminutovou synchronizaci.
+  /// Vůz se často přijímá chvíli po založení zakázky v Heliosu.
+  final VoidCallback? onNacistZHeliosu;
+  final bool nacitaZHeliosu;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +92,26 @@ class OrdersEmptyState extends StatelessWidget {
               child: const Text('Zrušit filtry'),
             ),
           ),
+          if (onNacistZHeliosu != null) ...[
+            const SizedBox(height: Insets.base),
+            TextButton.icon(
+              onPressed: nacitaZHeliosu ? null : onNacistZHeliosu,
+              icon: nacitaZHeliosu
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync_rounded, size: 18),
+              label: const Text('Načíst nové zakázky z Heliosu'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                textStyle: AppTextStyles.cardBody.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           if (onHledatVArchivu != null) ...[
             const SizedBox(height: Insets.base),
             TextButton.icon(

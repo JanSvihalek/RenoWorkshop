@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
-import '../../../prijem/data/fotky_data_source.dart';
-import '../../../prijem/domain/entities/fotka.dart';
+import '../../../fotodokumentace/data/fotky_data_source.dart';
+import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../dtos/service_order_dto.dart';

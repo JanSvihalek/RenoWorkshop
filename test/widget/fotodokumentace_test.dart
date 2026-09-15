@@ -10,11 +10,12 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/fotodokumentace_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/ulozeni_do_zarizeni.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/ziskani_fotek.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/controllers/fotky_providers.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
+import 'package:renoworkshop/src/features/orders/presentation/screens/order_detail_screen.dart';
+import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/ziskani_fotek.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -98,7 +99,7 @@ void main() {
     );
   }
 
-  Future<void> naPrijem(
+  Future<void> naZakazky(
     WidgetTester tester, {
     Nastaveni nastaveni = const Nastaveni(),
   }) async {
@@ -106,14 +107,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Příjem'));
-    await tester.pumpAndSettle();
   }
 
   Future<void> napis(WidgetTester tester, String text) async {
     await tester.enterText(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(OrdersListScreen),
         matching: find.byType(TextField),
       ),
       text,
@@ -132,30 +131,45 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> otevriZakazku(
+  Future<void> otevriDetail(
     WidgetTester tester, {
     Nastaveni nastaveni = const Nastaveni(),
   }) async {
-    await naPrijem(tester, nastaveni: nastaveni);
-    await napis(tester, '2bk 94');
+    await naZakazky(tester, nastaveni: nastaveni);
+    await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('najde zakázku podle SPZ a otevře fotodokumentaci', (
-    tester,
-  ) async {
-    await naPrijem(tester);
-    expect(find.text('Najděte zakázku'), findsOneWidget);
+  Future<void> otevriZakazku(
+    WidgetTester tester, {
+    Nastaveni nastaveni = const Nastaveni(),
+  }) async {
+    await otevriDetail(tester, nastaveni: nastaveni);
+    await klepni(tester, find.byKey(const Key('otevrit-fotodokumentaci')));
+  }
 
-    await napis(tester, '2bk 94');
-    expect(find.byType(OrderCard), findsOneWidget);
-    // Psaní rukou zakázku sama neotevírá.
-    expect(find.byType(FotodokumentaceScreen), findsNothing);
+  Future<void> zpet(WidgetTester tester) async {
+    tester.state<NavigatorState>(find.byType(Navigator).last).pop();
+    await tester.pumpAndSettle();
+  }
 
+  testWidgets('fotodokumentace se otevírá z detailu zakázky', (tester) async {
+    await naZakazky(tester);
+    // Záložka Příjem už není - fotky jsou u zakázky.
+    expect(find.text('Příjem'), findsNothing);
+
+    await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
+    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
+    await tester.ensureVisible(karta);
+    expect(
+      find.descendant(of: karta, matching: find.text('Zatím bez fotek.')),
+      findsOneWidget,
+    );
 
+    await klepni(tester, karta);
     expect(find.byType(FotodokumentaceScreen), findsOneWidget);
     expect(find.text('Exteriér (dokola vozu)'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -164,6 +178,42 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('Ostatní dokumentace'), findsOneWidget);
+  });
+
+  testWidgets('karta v detailu ukáže počet a kategorie fotek', (tester) async {
+    await otevriZakazku(tester);
+    await klepni(
+      tester,
+      vKarte('exterier', find.byTooltip('Přidat z galerie')),
+    );
+    await klepni(tester, vKarte('poskozeni', find.byTooltip('Vyfotit')));
+    await zpet(tester);
+
+    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
+    await tester.ensureVisible(karta);
+    expect(
+      find.descendant(
+        of: karta,
+        matching: find.text('5 fotek · Exteriér, Zjištěná poškození'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('karta v detailu hlásí fotky, které se nenahrály', (
+    tester,
+  ) async {
+    await otevriZakazku(tester);
+    zdroj.nahravaniSelze = true;
+    await klepni(tester, vKarte('vin', find.byTooltip('Přidat z galerie')));
+    await zpet(tester);
+
+    final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
+    await tester.ensureVisible(karta);
+    expect(
+      find.descendant(of: karta, matching: find.text('Nenahráno: 2')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('fotky z galerie se nahrají do své kategorie', (tester) async {
@@ -244,14 +294,12 @@ void main() {
     expect(zdroj.fotky['ZK-26-0001'], hasLength(3));
   });
 
-  testWidgets('zálohu jde zapnout jen s přístupem k fotkám', (tester) async {
-    await naPrijem(tester);
+  Future<void> naKartuNastaveni(WidgetTester tester, Finder cil) async {
     await tester.tap(find.text('Nastavení'));
     await tester.pumpAndSettle();
-
-    final prepinac = find.byKey(const Key('ukladat-do-zarizeni'));
+    // Karta je pod okrajem a seznam ji do té doby nepostaví.
     await tester.scrollUntilVisible(
-      prepinac,
+      cil,
       200,
       scrollable: find
           .descendant(
@@ -261,6 +309,12 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('zálohu jde zapnout jen s přístupem k fotkám', (tester) async {
+    await naZakazky(tester);
+    final prepinac = find.byKey(const Key('ukladat-do-zarizeni'));
+    await naKartuNastaveni(tester, prepinac);
 
     ulozeni.pristup = false;
     await tester.tap(prepinac);
@@ -295,23 +349,9 @@ void main() {
   testWidgets('pobočka zvolená v nastavení jde s fotkou na server', (
     tester,
   ) async {
-    await naPrijem(tester);
-    await tester.tap(find.text('Nastavení'));
-    await tester.pumpAndSettle();
-
+    await naZakazky(tester);
     final vyber = find.byKey(const Key('slozka-fotek'));
-    // Karta je pod okrajem a seznam ji do té doby nepostaví.
-    await tester.scrollUntilVisible(
-      vyber,
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byType(SettingsScreen),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
+    await naKartuNastaveni(tester, vyber);
     expect(
       find.descendant(of: vyber, matching: find.text('Podle pořadače')),
       findsOneWidget,
@@ -326,37 +366,84 @@ void main() {
     await tester.tap(find.text('Cestlice').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Zakázky'));
     await tester.pumpAndSettle();
-    await napis(tester, '2bk 94');
+    await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
+    await klepni(tester, find.byKey(const Key('otevrit-fotodokumentaci')));
     await klepni(tester, vKarte('vin', find.byTooltip('Přidat z galerie')));
 
     expect(zdroj.posledniPobocka, 'Cestlice');
   });
 
-  testWidgets('nenalezenou zakázku jde dotáhnout z Heliosu', (tester) async {
-    await naPrijem(tester);
-    await napis(tester, '9Z9 1234');
+  group('příjem ze seznamu zakázek', () {
+    testWidgets('nenalezenou zakázku jde dotáhnout z Heliosu a otevře se', (
+      tester,
+    ) async {
+      await naZakazky(tester);
+      zdroj.poSynchronizaci = [
+        buildOrderDto(id: 'ZK-26-0003', licensePlate: '9Z9 1234'),
+      ];
+      await napis(tester, '9Z9 1234');
 
-    expect(find.text('Zakázka na dílně nenalezena'), findsOneWidget);
-    await tester.tap(find.text('Načíst nové zakázky z Heliosu'));
-    await tester.pumpAndSettle();
+      expect(find.byType(OrderCard), findsNothing);
+      await tester.tap(find.text('Načíst nové zakázky z Heliosu'));
+      await tester.pumpAndSettle();
 
-    expect(zdroj.pocetSynchronizaci, 1);
-  });
+      expect(zdroj.pocetSynchronizaci, 1);
+      // Kvůli ní se načítalo - otevře se rovnou.
+      expect(find.byType(OrderDetailScreen), findsOneWidget);
+      expect(find.text('ZK-26-0003'), findsWidgets);
+    });
 
-  testWidgets('po naskenování se jediná zakázka otevře rovnou', (tester) async {
-    await naPrijem(tester);
+    testWidgets('bez hledaného textu se Helios nenabízí', (tester) async {
+      await naZakazky(tester);
+      await napis(tester, 'xx');
+      expect(find.text('Načíst nové zakázky z Heliosu'), findsNothing);
+    });
 
-    final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(PrijemScreen)),
-    );
-    kontejner.read(otevritJedinouZakazkuProvider.notifier).state = true;
-    kontejner.read(dotazPrijmuProvider.notifier).state = '2BK 9485';
-    await tester.pumpAndSettle();
+    testWidgets('po naskenování se jediná zakázka otevře rovnou', (
+      tester,
+    ) async {
+      await naZakazky(tester);
 
-    expect(find.byType(FotodokumentaceScreen), findsOneWidget);
+      final kontejner = ProviderScope.containerOf(
+        tester.element(find.byType(OrdersListScreen)),
+      );
+      // Tak to po naskenování dělá router.
+      kontejner.read(otevritJedinouZakazkuProvider.notifier).state = true;
+      kontejner.read(orderFilterProvider.notifier).setQuery('2BK 9485');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OrderDetailScreen), findsOneWidget);
+
+      // Po návratu je naskenovaná SPZ v poli hledání a zakázka se znovu
+      // sama neotvírá.
+      await zpet(tester);
+      expect(find.byType(OrderDetailScreen), findsNothing);
+      final pole = tester.widget<TextField>(
+        find.descendant(
+          of: find.byType(OrdersListScreen),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(pole.controller!.text, '2BK 9485');
+    });
+
+    testWidgets('po naskenování víc zakázek zůstane seznam', (tester) async {
+      await naZakazky(tester);
+
+      final kontejner = ProviderScope.containerOf(
+        tester.element(find.byType(OrdersListScreen)),
+      );
+      kontejner.read(otevritJedinouZakazkuProvider.notifier).state = true;
+      // „ZK-26" mají obě zakázky.
+      kontejner.read(orderFilterProvider.notifier).setQuery('ZK-26');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OrderDetailScreen), findsNothing);
+      expect(find.byType(OrderCard), findsNWidgets(2));
+    });
   });
 }

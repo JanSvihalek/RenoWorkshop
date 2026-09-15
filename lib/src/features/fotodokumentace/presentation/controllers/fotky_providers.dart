@@ -19,12 +19,6 @@ final fotkyDataSourceProvider = Provider<FotkyDataSource>((ref) {
   );
 });
 
-/// Co se hledá na záložce Příjem. Mimo obrazovku, ať ho vyplní skener.
-final dotazPrijmuProvider = StateProvider<String>((ref) => '');
-
-/// Dotaz přišel ze skeneru - jediná nalezená zakázka se otevře rovnou.
-final otevritJedinouZakazkuProvider = StateProvider<bool>((ref) => false);
-
 /// Nahrané fotky zakázky, nejnovější první.
 final fotkyZakazkyProvider = FutureProvider.autoDispose
     .family<List<Fotka>, String>((ref, orderId) async {

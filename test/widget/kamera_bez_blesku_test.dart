@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/skener_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/seriove_foceni_screen.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/screens/seriove_foceni_screen.dart';
 
 /// Kamera jako na tabletu bez blesku a s pevným ostřením: spustí se, ale
 /// blesk ani ostření nastavit nejde. Na takovém tabletu focení u příjmu

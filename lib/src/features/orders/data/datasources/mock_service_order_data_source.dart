@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
-import '../../../prijem/data/fotky_data_source.dart';
-import '../../../prijem/domain/entities/fotka.dart';
+import '../../../fotodokumentace/data/fotky_data_source.dart';
+import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../domain/entities/dilensky_stav.dart';
