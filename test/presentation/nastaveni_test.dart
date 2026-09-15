@@ -73,6 +73,27 @@ void main() {
       expect(prefs.getString('nastaveni.vychoziPoradac'), isNull);
     });
 
+    test('umístění spouště přežije restart, neznámé je dole', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await SharedPreferencesNastaveni(
+        prefs,
+      ).uloz(const Nastaveni(spoust: UmisteniSpouste.vlevo));
+
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().spoust,
+        UmisteniSpouste.vlevo,
+      );
+
+      SharedPreferences.setMockInitialValues({'nastaveni.spoust': 'nahore'});
+      expect(
+        SharedPreferencesNastaveni(
+          await SharedPreferences.getInstance(),
+        ).nacti().spoust,
+        UmisteniSpouste.dole,
+      );
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

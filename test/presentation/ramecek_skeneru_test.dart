@@ -168,4 +168,58 @@ void main() {
     expect(r.obdelnik.width, greaterThan(0));
     expect(r.obdelnik.height, greaterThan(0));
   });
+
+  group('spoušť na boku', () {
+    // Pruh pro sloupec se spouští, jako ho počítá obrazovka skeneru.
+    const pruh = 104.0;
+
+    test('výchozí rámeček se vyhne pruhu vpravo', () {
+      final r = RamecekSkeneru.vychozi(plocha, vpravo: pruh).obdelnik;
+
+      expect(r.right, lessThanOrEqualTo(plocha.width - pruh));
+      expect(r.left, greaterThanOrEqualTo(RamecekSkeneru.okraj));
+      // Uprostřed toho, co zbylo, ne nalepený na jednu stranu.
+      expect(
+        r.left - RamecekSkeneru.okraj,
+        closeTo(plocha.width - pruh - r.right, 0.01),
+      );
+    });
+
+    test('výchozí rámeček se vyhne pruhu vlevo', () {
+      final r = RamecekSkeneru.vychozi(plocha, vlevo: pruh).obdelnik;
+      expect(r.left, greaterThanOrEqualTo(pruh));
+    });
+
+    test('za stranu nejde rámeček vytáhnout pod tlačítka', () {
+      final r = RamecekSkeneru.vychozi(
+        plocha,
+        vpravo: pruh,
+      ).tahni(StranaRamecku.vpravo, const Offset(500, 0)).obdelnik;
+
+      expect(r.right, plocha.width - pruh);
+    });
+
+    test('roztažení ani posun rámeček pod tlačítka nepustí', () {
+      final vychozi = RamecekSkeneru.vychozi(plocha, vlevo: pruh);
+
+      final roztazeny = vychozi.zvetseny(vodorovne: 5, svisle: 1).obdelnik;
+      expect(roztazeny.left, greaterThanOrEqualTo(pruh));
+
+      final posunuty = vychozi.posunuty(const Offset(-500, 0)).obdelnik;
+      expect(posunuty.left, greaterThanOrEqualTo(pruh));
+    });
+
+    test('přesun spouště na druhý bok rámeček odsune z cesty', () {
+      final vlevo = RamecekSkeneru.vychozi(
+        plocha,
+        vpravo: pruh,
+      ).tahni(StranaRamecku.vlevo, const Offset(-500, 0));
+      expect(vlevo.obdelnik.left, RamecekSkeneru.okraj);
+
+      final prehozeny = vlevo
+          .sOkraji(vlevo: pruh, vpravo: RamecekSkeneru.okraj)
+          .obdelnik;
+      expect(prehozeny.left, greaterThanOrEqualTo(pruh));
+    });
+  });
 }

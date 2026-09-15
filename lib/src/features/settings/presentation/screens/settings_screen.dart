@@ -44,6 +44,8 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: Insets.base),
                 const _VzhledCard(),
                 const SizedBox(height: Insets.base),
+                const _SkenerCard(),
+                const SizedBox(height: Insets.base),
                 const _VychoziFiltrCard(),
                 const SizedBox(height: Insets.base),
                 const _AboutCard(),
@@ -210,6 +212,54 @@ class _VzhledCard extends ConsumerWidget {
               ),
               onSelectionChanged: (vyber) =>
                   ref.read(nastaveniProvider.notifier).zmenVzhled(vyber.first),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kde je spoušť na obrazovce skeneru.
+class _SkenerCard extends ConsumerWidget {
+  const _SkenerCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final vybrane = ref.watch(nastaveniProvider).spoust;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'SPOUŠŤ SKENERU',
+            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          ),
+          const SizedBox(height: Insets.xxs),
+          Text(
+            'Kde je tlačítko na vyfocení SPZ a VINu. Na tabletu na šířku je '
+            'po straně blíž palci.',
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+          ),
+          const SizedBox(height: Insets.base),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<UmisteniSpouste>(
+              segments: [
+                for (final umisteni in UmisteniSpouste.values)
+                  ButtonSegment(value: umisteni, label: Text(umisteni.label)),
+              ],
+              selected: {vybrane},
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                textStyle: AppTextStyles.cardBody,
+                selectedBackgroundColor: AppColors.accent,
+                selectedForegroundColor: Colors.white,
+              ),
+              onSelectionChanged: (vyber) =>
+                  ref.read(nastaveniProvider.notifier).zmenSpoust(vyber.first),
             ),
           ),
         ],

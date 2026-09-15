@@ -21,6 +21,9 @@ class NastaveniController extends Notifier<Nastaveni> {
 
   void zmenVzhled(RezimVzhledu vzhled) => _uloz(state.copyWith(vzhled: vzhled));
 
+  void zmenSpoust(UmisteniSpouste spoust) =>
+      _uloz(state.copyWith(spoust: spoust));
+
   void zmenVychoziUtvar(String? kodUtvaru) => _uloz(
     kodUtvaru == null
         ? state.copyWith(zrusUtvar: true)

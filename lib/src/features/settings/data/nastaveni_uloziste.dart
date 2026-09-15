@@ -23,6 +23,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   final SharedPreferences _prefs;
 
   static const _klicVzhled = 'nastaveni.vzhled';
+  static const _klicSpoust = 'nastaveni.spoust';
   static const _klicUtvar = 'nastaveni.vychoziUtvar';
   static const _klicPoradac = 'nastaveni.vychoziPoradac';
   static const _klicZodpovida = 'nastaveni.vychoziZodpovida';
@@ -31,6 +32,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   Nastaveni nacti() {
     return Nastaveni(
       vzhled: RezimVzhledu.zNazvu(_prefs.getString(_klicVzhled)),
+      spoust: UmisteniSpouste.zNazvu(_prefs.getString(_klicSpoust)),
       vychoziUtvar: _prazdneJakoNull(_prefs.getString(_klicUtvar)),
       vychoziPoradac: _prazdneJakoNull(_prefs.getString(_klicPoradac)),
       vychoziZodpovida: _prazdneJakoNull(_prefs.getString(_klicZodpovida)),
@@ -40,6 +42,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   @override
   Future<void> uloz(Nastaveni nastaveni) async {
     await _prefs.setString(_klicVzhled, nastaveni.vzhled.name);
+    await _prefs.setString(_klicSpoust, nastaveni.spoust.name);
     await _ulozNeboSmaz(_klicUtvar, nastaveni.vychoziUtvar);
     await _ulozNeboSmaz(_klicPoradac, nastaveni.vychoziPoradac);
     await _ulozNeboSmaz(_klicZodpovida, nastaveni.vychoziZodpovida);

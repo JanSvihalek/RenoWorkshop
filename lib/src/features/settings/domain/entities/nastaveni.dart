@@ -24,6 +24,28 @@ enum RezimVzhledu {
   }
 }
 
+/// Kde je na obrazovce skeneru spoušť.
+///
+/// Na telefonu na výšku na dolní střed dosáhne palec kterékoli ruky. Na
+/// tabletu drženém oběma rukama na šířku je ale dolní střed nejdál od
+/// obou palců - tam je spoušť po straně blíž, a levák ji chce vlevo.
+enum UmisteniSpouste {
+  vlevo('Vlevo'),
+  dole('Dole'),
+  vpravo('Vpravo');
+
+  const UmisteniSpouste(this.label);
+
+  final String label;
+
+  static UmisteniSpouste zNazvu(String? nazev) {
+    for (final umisteni in values) {
+      if (umisteni.name == nazev) return umisteni;
+    }
+    return UmisteniSpouste.dole;
+  }
+}
+
 /// Co si aplikace pamatuje mezi spuštěními.
 ///
 /// Drží se v telefonu, ne na serveru: jde o pohodlí konkrétního přístroje.
@@ -33,12 +55,16 @@ enum RezimVzhledu {
 class Nastaveni {
   const Nastaveni({
     this.vzhled = RezimVzhledu.podleSystemu,
+    this.spoust = UmisteniSpouste.dole,
     this.vychoziUtvar,
     this.vychoziPoradac,
     this.vychoziZodpovida,
   });
 
   final RezimVzhledu vzhled;
+
+  /// Kde je spoušť na obrazovce skeneru SPZ a VINu.
+  final UmisteniSpouste spoust;
 
   /// Kód útvaru, na který se seznam otevře. `null` = všechny.
   ///
@@ -63,6 +89,7 @@ class Nastaveni {
 
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
+    UmisteniSpouste? spoust,
     String? vychoziUtvar,
     bool zrusUtvar = false,
     String? vychoziPoradac,
@@ -72,6 +99,7 @@ class Nastaveni {
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
+      spoust: spoust ?? this.spoust,
       vychoziUtvar: zrusUtvar ? null : (vychoziUtvar ?? this.vychoziUtvar),
       vychoziPoradac: zrusPoradac
           ? null
@@ -87,11 +115,17 @@ class Nastaveni {
       identical(this, other) ||
       (other is Nastaveni &&
           other.vzhled == vzhled &&
+          other.spoust == spoust &&
           other.vychoziUtvar == vychoziUtvar &&
           other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida);
 
   @override
-  int get hashCode =>
-      Object.hash(vzhled, vychoziUtvar, vychoziPoradac, vychoziZodpovida);
+  int get hashCode => Object.hash(
+    vzhled,
+    spoust,
+    vychoziUtvar,
+    vychoziPoradac,
+    vychoziZodpovida,
+  );
 }

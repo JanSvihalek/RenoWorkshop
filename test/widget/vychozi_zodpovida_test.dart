@@ -54,12 +54,14 @@ void main() {
     final vyber = find
         .ancestor(of: find.text('Zodpovídá'), matching: find.byType(Row))
         .first;
-    await tester.tap(
-      find.descendant(
-        of: vyber,
-        matching: find.byType(DropdownButton<String?>),
-      ),
+    final rozbalovaci = find.descendant(
+      of: vyber,
+      matching: find.byType(DropdownButton<String?>),
     );
+    // Nastavení je delší než obrazovka - výchozí filtr může být pod okrajem.
+    await tester.ensureVisible(rozbalovaci);
+    await tester.pumpAndSettle();
+    await tester.tap(rozbalovaci);
     await tester.pumpAndSettle();
     await tester.tap(find.text(jmeno).last);
     await tester.pumpAndSettle();

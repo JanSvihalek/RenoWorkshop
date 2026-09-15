@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../settings/domain/entities/nastaveni.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../domain/entities/kod_vozidla.dart';
 import '../controllers/orders_providers.dart';
 import '../../domain/entities/vyrez_snimku.dart';
@@ -94,6 +96,14 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
             ? 'Aplikace nemá přístup k fotoaparátu. Povolte ho v nastavení telefonu.'
             : 'Fotoaparát se nepodařilo spustit (${chyba.code}).';
       });
+    } catch (_) {
+      // Zařízení bez fotoaparátu nebo plugin, který se nenačetl. Radši
+      // hláška a funkční tlačítko Zavřít než spadlá obrazovka.
+      if (!mounted) return;
+      setState(() {
+        _pripravuje = false;
+        _chyba = 'Fotoaparát není k dispozici.';
+      });
     }
   }
 
@@ -112,11 +122,15 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   /// Rámeček pro danou plochu. Při prvním sestavení se založí výchozí,
   /// po otočení telefonu se přepočítá, jinak se vrátí ten, který si
   /// uživatel nastavil.
-  RamecekSkeneru _ramecekPro(Size plocha) {
+  RamecekSkeneru _ramecekPro(
+    Size plocha, {
+    required double vlevo,
+    required double vpravo,
+  }) {
     final soucasny = _ramecek;
     final novy = soucasny == null
-        ? RamecekSkeneru.vychozi(plocha)
-        : soucasny.sPlochou(plocha);
+        ? RamecekSkeneru.vychozi(plocha, vlevo: vlevo, vpravo: vpravo)
+        : soucasny.sPlochou(plocha).sOkraji(vlevo: vlevo, vpravo: vpravo);
     _ramecek = novy;
     return novy;
   }
@@ -154,7 +168,11 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     if (soucasny == null) return;
 
     setState(() {
-      _ramecek = RamecekSkeneru.vychozi(soucasny.plocha);
+      _ramecek = RamecekSkeneru.vychozi(
+        soucasny.plocha,
+        vlevo: soucasny.vlevo,
+        vpravo: soucasny.vpravo,
+      );
       _menilRamecek = true;
     });
   }
@@ -234,12 +252,24 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   @override
   Widget build(BuildContext context) {
     final kamera = _kamera;
+    final spoust = ref.watch(nastaveniProvider).spoust;
+    final bezpecne = MediaQuery.paddingOf(context);
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final ramecek = _ramecekPro(constraints.biggest);
+          // Spoušť na boku: rámeček se vyhne pruhu s tlačítky, jinak by je
+          // na úzkém telefonu překrýval a za okraj pod nimi by nešlo vzít.
+          final ramecek = _ramecekPro(
+            constraints.biggest,
+            vlevo: spoust == UmisteniSpouste.vlevo
+                ? bezpecne.left + _Ovladani.sirkaPruhu
+                : RamecekSkeneru.okraj,
+            vpravo: spoust == UmisteniSpouste.vpravo
+                ? bezpecne.right + _Ovladani.sirkaPruhu
+                : RamecekSkeneru.okraj,
+          );
 
           return Stack(
             fit: StackFit.expand,
@@ -275,6 +305,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                 ),
               // Až za rámečkem, aby tlačítka dostala doteky přednostně.
               _Ovladani(
+                umisteni: spoust,
                 svetlo: _svetlo,
                 pracuje: _pracuje,
                 muzeFotit: kamera != null && _chyba == null,
@@ -461,6 +492,7 @@ class _Uchyt extends StatelessWidget {
 
 class _Ovladani extends StatelessWidget {
   const _Ovladani({
+    required this.umisteni,
     required this.svetlo,
     required this.pracuje,
     required this.muzeFotit,
@@ -469,6 +501,7 @@ class _Ovladani extends StatelessWidget {
     required this.onZpet,
   });
 
+  final UmisteniSpouste umisteni;
   final bool svetlo;
   final bool pracuje;
   final bool muzeFotit;
@@ -476,41 +509,72 @@ class _Ovladani extends StatelessWidget {
   final VoidCallback onVyfot;
   final VoidCallback onZpet;
 
+  /// Šířka pruhu u kraje, který zabírá sloupec se spouští na boku - odstup
+  /// od kraje, spoušť a mezera k rámečku.
+  static const double sirkaPruhu = Insets.xl + _Spoust.prumer + Insets.xl;
+
   @override
   Widget build(BuildContext context) {
+    final svetlo = IconButton(
+      onPressed: muzeFotit ? onSvetlo : null,
+      icon: Icon(
+        this.svetlo ? Icons.flashlight_on : Icons.flashlight_off,
+        color: Colors.white,
+      ),
+      tooltip: 'Přisvítit',
+    );
+    final spoust = _Spoust(pracuje: pracuje, onTap: muzeFotit ? onVyfot : null);
+
     return SafeArea(
-      child: Column(
+      child: Stack(
         children: [
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.topLeft,
             child: IconButton(
               onPressed: onZpet,
               icon: const Icon(Icons.close_rounded, color: Colors.white),
               tooltip: 'Zavřít',
             ),
           ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.only(bottom: Insets.giant),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Štítek s VINem bývá na tmavém místě pod kapotou.
-                IconButton(
-                  onPressed: muzeFotit ? onSvetlo : null,
-                  icon: Icon(
-                    svetlo ? Icons.flashlight_on : Icons.flashlight_off,
-                    color: Colors.white,
-                  ),
-                  tooltip: 'Přisvítit',
+          switch (umisteni) {
+            UmisteniSpouste.dole => Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: Insets.giant),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Štítek s VINem bývá na tmavém místě pod kapotou.
+                    svetlo,
+                    const SizedBox(width: Insets.giant),
+                    spoust,
+                    const SizedBox(width: Insets.giant),
+                    // Protiváha svítilny, ať je spoušť opravdu uprostřed.
+                    const SizedBox(width: 48),
+                  ],
                 ),
-                const SizedBox(width: Insets.giant),
-                _Spoust(pracuje: pracuje, onTap: muzeFotit ? onVyfot : null),
-                const SizedBox(width: Insets.giant),
-                const SizedBox(width: 48),
-              ],
+              ),
             ),
-          ),
+            // Na boku uprostřed výšky - tam, kam sahá palec ruky, která
+            // tablet drží. Svítilna nad spouští, ať ji palec nezakrývá.
+            UmisteniSpouste.vlevo || UmisteniSpouste.vpravo => Align(
+              alignment: umisteni == UmisteniSpouste.vlevo
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Insets.xl),
+                child: Column(
+                  key: const Key('spoust-na-boku'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    svetlo,
+                    const SizedBox(height: Insets.xl),
+                    spoust,
+                  ],
+                ),
+              ),
+            ),
+          },
         ],
       ),
     );
@@ -519,6 +583,8 @@ class _Ovladani extends StatelessWidget {
 
 class _Spoust extends StatelessWidget {
   const _Spoust({required this.pracuje, required this.onTap});
+
+  static const double prumer = 72;
 
   final bool pracuje;
   final VoidCallback? onTap;
@@ -531,8 +597,8 @@ class _Spoust extends StatelessWidget {
       child: GestureDetector(
         onTap: pracuje ? null : onTap,
         child: Container(
-          width: 72,
-          height: 72,
+          width: prumer,
+          height: prumer,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white.withValues(alpha: onTap == null ? 0.3 : 1),
