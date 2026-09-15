@@ -68,8 +68,20 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
         ResolutionPreset.max,
         enableAudio: false,
       );
-      await kamera.initialize();
-      await kamera.setFlashMode(FlashMode.off);
+      try {
+        await kamera.initialize();
+      } catch (_) {
+        await kamera.dispose();
+        rethrow;
+      }
+      // Bez blesku - odlesky na laku by schovaly škrábance. Jen pokus:
+      // tablet bez blesku nastavení odmítne (setFlashModeFailed) a kvůli
+      // tomu se focení nesmí zastavit.
+      try {
+        await kamera.setFlashMode(FlashMode.off);
+      } on CameraException {
+        // Zařízení bez blesku - není co vypínat.
+      }
       if (!mounted) {
         await kamera.dispose();
         return;

@@ -76,9 +76,20 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
         ResolutionPreset.high,
         enableAudio: false,
       );
-      await controller.initialize();
-      // Ostření na blízko - štítek se fotí z dvaceti centimetrů.
-      await controller.setFocusMode(FocusMode.auto);
+      try {
+        await controller.initialize();
+      } catch (_) {
+        await controller.dispose();
+        rethrow;
+      }
+      // Ostření na blízko - štítek se fotí z dvaceti centimetrů. Jen pokus:
+      // zařízení s pevným ostřením nastavení odmítne a skener musí běžet
+      // i tak.
+      try {
+        await controller.setFocusMode(FocusMode.auto);
+      } on CameraException {
+        // Pevné ostření - není co nastavovat.
+      }
 
       if (!mounted) {
         await controller.dispose();
