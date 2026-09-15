@@ -1,7 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Načtení VINu a SPZ ze štítku vlastním náhledem fotoaparátu. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Záloha fotek z příjmu do galerie. Od Androidu 11 není potřeba. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
     <application
+        android:requestLegacyExternalStorage="true"
         android:label="RenoWorkshop"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"

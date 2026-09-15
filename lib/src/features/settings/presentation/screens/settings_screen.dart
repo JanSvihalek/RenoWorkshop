@@ -11,6 +11,7 @@ import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../prijem/presentation/controllers/prijem_providers.dart';
+import '../../../prijem/presentation/ulozeni_do_zarizeni.dart';
 import '../../domain/entities/nastaveni.dart';
 import '../controllers/nastaveni_controller.dart';
 
@@ -358,7 +359,8 @@ class _FotodokumentaceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final slozka = ref.watch(nastaveniProvider).slozkaFotek;
+    final nastaveni = ref.watch(nastaveniProvider);
+    final slozka = nastaveni.slozkaFotek;
     final pobocky = ref.watch(slozkyPobocekProvider);
 
     return _Card(
@@ -394,9 +396,73 @@ class _FotodokumentaceCard extends ConsumerWidget {
               style: AppTextStyles.metaSmall.copyWith(color: AppColors.danger),
             ),
           ],
+          const SizedBox(height: Insets.base),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ukládat i do telefonu',
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Fotky z fotoaparátu se hned uloží i do galerie, album '
+                      '$albumFotek. Nepřijdete o ně, ani když se nenahrají.',
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Insets.base),
+              Switch.adaptive(
+                key: const Key('ukladat-do-zarizeni'),
+                value: nastaveni.ukladatFotkyDoZarizeni,
+                activeTrackColor: AppColors.accent,
+                onChanged: (zapnout) =>
+                    _zmenUkladaniDoZarizeni(context, ref, zapnout),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  /// Přístup ke galerii se žádá hned při zapnutí, ne až při focení -
+  /// jinak by se na něj přišlo až v hale s první fotkou v ruce.
+  Future<void> _zmenUkladaniDoZarizeni(
+    BuildContext context,
+    WidgetRef ref,
+    bool zapnout,
+  ) async {
+    final nastaveni = ref.read(nastaveniProvider.notifier);
+    if (!zapnout) {
+      nastaveni.zmenUkladaniFotekDoZarizeni(false);
+      return;
+    }
+    final povoleno = await ref.read(ulozeniDoZarizeniProvider).pozadejPristup();
+    if (povoleno) {
+      nastaveni.zmenUkladaniFotekDoZarizeni(true);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Bez přístupu k fotkám nejde ukládat do telefonu. '
+              'Povolte ho aplikaci v nastavení telefonu.',
+            ),
+          ),
+        );
+    }
   }
 }
 

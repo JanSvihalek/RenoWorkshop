@@ -106,6 +106,23 @@ void main() {
       expect(prefs.getString('nastaveni.slozkaFotek'), isNull);
     });
 
+    test('ukládání fotek do telefonu přežije restart', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().ukladatFotkyDoZarizeni,
+        isFalse,
+      );
+      await SharedPreferencesNastaveni(
+        prefs,
+      ).uloz(const Nastaveni(ukladatFotkyDoZarizeni: true));
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().ukladatFotkyDoZarizeni,
+        isTrue,
+      );
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

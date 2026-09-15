@@ -13,7 +13,11 @@ import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card
 import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/fotodokumentace_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/prijem/presentation/ulozeni_do_zarizeni.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/ziskani_fotek.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
+import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
+import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
@@ -42,12 +46,34 @@ class _FalesneZiskani implements ZiskaniFotek {
   }
 }
 
+/// Galerie telefonu bez zařízení: pamatuje si jména uložených fotek.
+class _FalesneUlozeni implements UlozeniDoZarizeni {
+  bool pristup = true;
+  bool ulozeniSelze = false;
+  final List<String> ulozene = [];
+
+  @override
+  Future<bool> pozadejPristup() async => pristup;
+
+  @override
+  Future<void> uloz(Uint8List jpeg, {required String nazev}) async {
+    if (ulozeniSelze) {
+      throw const UlozeniDoZarizeniException(
+        'Fotku nejde uložit do telefonu - není v něm místo.',
+      );
+    }
+    ulozene.add(nazev);
+  }
+}
+
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
   late FakeServiceOrderDataSource zdroj;
+  late _FalesneUlozeni ulozeni;
 
-  Widget buildApp() {
+  Widget buildApp({Nastaveni nastaveni = const Nastaveni()}) {
+    ulozeni = _FalesneUlozeni();
     zdroj = FakeServiceOrderDataSource([
       buildOrderDto(id: 'ZK-26-0001', licensePlate: '2BK 9485'),
       buildOrderDto(id: 'ZK-26-0002', licensePlate: '8AB 4721'),
@@ -63,13 +89,20 @@ void main() {
         serviceOrderDataSourceProvider.overrideWithValue(zdroj),
         ziskaniFotekProvider.overrideWithValue(_FalesneZiskani()),
         pripravaFotkyProvider.overrideWithValue((data) async => data),
+        ulozeniDoZarizeniProvider.overrideWithValue(ulozeni),
+        nastaveniUlozisteProvider.overrideWithValue(
+          PametoveNastaveni(nastaveni),
+        ),
       ],
       child: const RenoWorkshopApp(),
     );
   }
 
-  Future<void> naPrijem(WidgetTester tester) async {
-    await tester.pumpWidget(buildApp());
+  Future<void> naPrijem(
+    WidgetTester tester, {
+    Nastaveni nastaveni = const Nastaveni(),
+  }) async {
+    await tester.pumpWidget(buildApp(nastaveni: nastaveni));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
@@ -99,8 +132,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> otevriZakazku(WidgetTester tester) async {
-    await naPrijem(tester);
+  Future<void> otevriZakazku(
+    WidgetTester tester, {
+    Nastaveni nastaveni = const Nastaveni(),
+  }) async {
+    await naPrijem(tester, nastaveni: nastaveni);
     await napis(tester, '2bk 94');
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
@@ -150,6 +186,92 @@ void main() {
     await klepni(tester, vKarte('poskozeni', find.byTooltip('Vyfotit')));
 
     expect(vKarte('poskozeni', find.text('3 fotky')), findsOneWidget);
+  });
+
+  testWidgets('se zapnutou zálohou jde každá fotka i do telefonu', (
+    tester,
+  ) async {
+    await otevriZakazku(
+      tester,
+      nastaveni: const Nastaveni(ukladatFotkyDoZarizeni: true),
+    );
+
+    await klepni(tester, vKarte('poskozeni', find.byTooltip('Vyfotit')));
+
+    expect(ulozeni.ulozene, hasLength(3));
+    expect(ulozeni.ulozene.first, startsWith('ZK-26-0001_poskozeni_'));
+    // Záloha nahrávání nebrání.
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(3));
+  });
+
+  testWidgets('bez zálohy ani z galerie se do telefonu neukládá', (
+    tester,
+  ) async {
+    await otevriZakazku(tester);
+    await klepni(tester, vKarte('poskozeni', find.byTooltip('Vyfotit')));
+    expect(ulozeni.ulozene, isEmpty);
+
+    // Se zapnutou zálohou se neukládá ani z galerie - tam fotky už jsou.
+    await tester.pumpWidget(const SizedBox());
+    await otevriZakazku(
+      tester,
+      nastaveni: const Nastaveni(ukladatFotkyDoZarizeni: true),
+    );
+    await klepni(tester, vKarte('kola', find.byTooltip('Přidat z galerie')));
+    expect(ulozeni.ulozene, isEmpty);
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(2));
+  });
+
+  testWidgets('nepovedenou zálohu aplikace ohlásí a fotku nahraje', (
+    tester,
+  ) async {
+    await otevriZakazku(
+      tester,
+      nastaveni: const Nastaveni(ukladatFotkyDoZarizeni: true),
+    );
+    ulozeni.ulozeniSelze = true;
+
+    await tester.ensureVisible(vKarte('vin', find.byTooltip('Vyfotit')));
+    await tester.pumpAndSettle();
+    await tester.tap(vKarte('vin', find.byTooltip('Vyfotit')));
+    await tester.pump();
+
+    expect(
+      find.text('Fotku nejde uložit do telefonu - není v něm místo.'),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(3));
+  });
+
+  testWidgets('zálohu jde zapnout jen s přístupem k fotkám', (tester) async {
+    await naPrijem(tester);
+    await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+
+    final prepinac = find.byKey(const Key('ukladat-do-zarizeni'));
+    await tester.scrollUntilVisible(
+      prepinac,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SettingsScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+
+    ulozeni.pristup = false;
+    await tester.tap(prepinac);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(prepinac).value, isFalse);
+    expect(find.textContaining('Bez přístupu k fotkám'), findsOneWidget);
+
+    ulozeni.pristup = true;
+    await tester.tap(prepinac);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(prepinac).value, isTrue);
   });
 
   testWidgets('fotka, která nešla nahrát, jde poslat znovu', (tester) async {

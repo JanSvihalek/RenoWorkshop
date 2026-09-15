@@ -8,6 +8,7 @@ import 'package:renoworkshop/src/features/prijem/data/fotky_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/prijem/presentation/ulozeni_do_zarizeni.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -47,6 +48,17 @@ void main() {
     test('pod tři znaky nehledá', () {
       expect(zakazkyPodleSpz(zakazky, '2B'), isEmpty);
     });
+  });
+
+  test('jméno fotky v telefonu nese zakázku, kategorii a čas', () {
+    expect(
+      nazevFotkyVZarizeni(
+        'Z121/26 0123',
+        KategorieFotky.poskozeni,
+        DateTime(2026, 9, 15, 10, 30, 12, 45),
+      ),
+      'Z121-26-0123_poskozeni_20260915-103012-045',
+    );
   });
 
   group('příprava fotky', () {

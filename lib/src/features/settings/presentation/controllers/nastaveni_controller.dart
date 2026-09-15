@@ -48,6 +48,9 @@ class NastaveniController extends Notifier<Nastaveni> {
         : state.copyWith(slozkaFotek: slozka),
   );
 
+  void zmenUkladaniFotekDoZarizeni(bool ukladat) =>
+      _uloz(state.copyWith(ukladatFotkyDoZarizeni: ukladat));
+
   void zrusVychoziFiltr() => _uloz(
     state.copyWith(zrusUtvar: true, zrusPoradac: true, zrusZodpovida: true),
   );

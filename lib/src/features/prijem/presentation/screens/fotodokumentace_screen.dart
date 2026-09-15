@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +12,9 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../domain/entities/fotka.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../controllers/prijem_providers.dart';
+import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 
 /// Fotodokumentace zakázky při příjmu - karta na každou kategorii.
@@ -51,8 +55,46 @@ class FotodokumentaceScreen extends ConsumerWidget {
         .foceni(
           context,
           nadpis: kategorie.nazev,
-          onFotka: (fotka) => nahravani.pridej(kategorie, [fotka]),
+          onFotka: (fotka) {
+            // Do telefonu jen z fotoaparátu - fotky z galerie v něm už jsou.
+            // Záloha běží vedle nahrávání a nečeká se na ni.
+            if (ref.read(nastaveniProvider).ukladatFotkyDoZarizeni) {
+              _ulozDoZarizeni(context, ref, kategorie, fotka);
+            }
+            nahravani.pridej(kategorie, [fotka]);
+          },
         );
+  }
+
+  Future<void> _ulozDoZarizeni(
+    BuildContext context,
+    WidgetRef ref,
+    KategorieFotky kategorie,
+    Uint8List fotka,
+  ) async {
+    try {
+      await ref
+          .read(ulozeniDoZarizeniProvider)
+          .uloz(
+            fotka,
+            nazev: nazevFotkyVZarizeni(orderId, kategorie, DateTime.now()),
+          );
+    } catch (chyba) {
+      // Technik spoléhá, že fotku v telefonu má - když tam není, musí to
+      // vědět hned, ne až ji bude hledat.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              chyba is UlozeniDoZarizeniException
+                  ? chyba.message
+                  : 'Fotku se nepodařilo uložit do telefonu.',
+            ),
+          ),
+        );
+    }
   }
 
   @override

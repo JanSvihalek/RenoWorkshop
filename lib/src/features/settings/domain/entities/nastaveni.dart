@@ -60,6 +60,7 @@ class Nastaveni {
     this.vychoziPoradac,
     this.vychoziZodpovida,
     this.slozkaFotek,
+    this.ukladatFotkyDoZarizeni = false,
   });
 
   final RezimVzhledu vzhled;
@@ -90,6 +91,12 @@ class Nastaveni {
   /// pobočka, než která zakázku založila.
   final String? slozkaFotek;
 
+  /// Fotky z fotoaparátu se hned po vyfocení uloží i do galerie telefonu.
+  ///
+  /// Vypnuté ve výchozím stavu: fotky zákaznických vozů v galerii
+  /// sdíleného telefonu nejsou samozřejmost a zabírají místo.
+  final bool ukladatFotkyDoZarizeni;
+
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
@@ -106,6 +113,7 @@ class Nastaveni {
     bool zrusZodpovida = false,
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
+    bool? ukladatFotkyDoZarizeni,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -118,6 +126,8 @@ class Nastaveni {
           ? null
           : (vychoziZodpovida ?? this.vychoziZodpovida),
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
+      ukladatFotkyDoZarizeni:
+          ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
     );
   }
 
@@ -130,7 +140,8 @@ class Nastaveni {
           other.vychoziUtvar == vychoziUtvar &&
           other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida &&
-          other.slozkaFotek == slozkaFotek);
+          other.slozkaFotek == slozkaFotek &&
+          other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni);
 
   @override
   int get hashCode => Object.hash(
@@ -140,5 +151,6 @@ class Nastaveni {
     vychoziPoradac,
     vychoziZodpovida,
     slozkaFotek,
+    ukladatFotkyDoZarizeni,
   );
 }
