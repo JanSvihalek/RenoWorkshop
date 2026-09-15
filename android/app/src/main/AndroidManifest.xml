@@ -1,10 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Načtení VINu a SPZ ze štítku vlastním náhledem fotoaparátu. -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- Záloha fotek z příjmu do galerie. Od Androidu 11 není potřeba. -->
+    <!-- Záloha fotek do galerie. Od Androidu 11 není potřeba.
+         Plugin kamery deklaruje totéž oprávnění jen do verze 28; záloha
+         ho potřebuje i na Androidu 10 (29), proto tools:replace. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
     <application
         android:requestLegacyExternalStorage="true"
         android:label="RenoWorkshop"
