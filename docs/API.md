@@ -458,7 +458,7 @@ přibyla pobočka, mění se to na jednom místě.
 
 Fotky **nepocházejí z Heliosu** - jsou to naše data jako stav a poznámky.
 Soubory neleží na RENDCAPPu, ale ve sdílené složce na souborovém serveru
-(`FOTO_ADRESAR` služby, dnes `\renocar.local\share\Foto-doc` na RENDCFILE):
+(`FOTO_ADRESAR` služby, dnes `\\renocar.local\share\Foto-doc` na RENDCFILE):
 
 ```
 Foto-doc\<pobočka>\<číslo zakázky>\<kategorie>\<čas>-<id>.jpg
