@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
@@ -69,23 +70,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Tlačítko je pod checklistem a seznam ho do té doby nepostaví.
-  Future<void> naDokonceni(WidgetTester tester) async {
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('dokoncit-prijem')),
-      300,
-      scrollable: find
-          .descendant(
-            of: find.byType(PrijemZakazkyScreen),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-  }
+  String krok(WidgetTester tester) =>
+      tester.widget<Text>(find.byKey(const Key('prijem-krok'))).data!;
 
   String postup(WidgetTester tester) =>
       tester.widget<Text>(find.byKey(const Key('prijem-postup'))).data!;
+
+  Future<void> pokracuj(WidgetTester tester, {int kolikrat = 1}) async {
+    for (var i = 0; i < kolikrat; i++) {
+      await tester.tap(find.byKey(const Key('prijem-pokracovat')));
+      await tester.pumpAndSettle();
+    }
+  }
 
   ButtonStyleButton dokoncit(WidgetTester tester) => tester
       .widget<ButtonStyleButton>(find.byKey(const Key('dokoncit-prijem')));
@@ -102,16 +98,36 @@ void main() {
     }
   }
 
-  testWidgets('příjem: najít vůz, projít checklist a dokončit', (tester) async {
+  testWidgets('příjem jde po krocích: vozidlo, fotky, kontrola, souhrn', (
+    tester,
+  ) async {
     await spust(tester);
     await otevriPrijem(tester);
 
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
-    expect(postup(tester), '0 / 9');
-    await naDokonceni(tester);
-    expect(dokoncit(tester).onPressed, isNull);
-    expect(find.text('Zbývá zkontrolovat: 9'), findsOneWidget);
+    expect(krok(tester), 'KROK 1 Z 4 · VOZIDLO');
+    expect(find.text('WBATEST0000000001'), findsOneWidget);
+    // Na prvním kroku není kam se vracet.
+    expect(find.byKey(const Key('prijem-zpet')), findsNothing);
 
+    await pokracuj(tester);
+    expect(krok(tester), 'KROK 2 Z 4 · FOTODOKUMENTACE');
+    expect(find.byType(FotodokumentaceObsah), findsOneWidget);
+
+    await pokracuj(tester);
+    expect(krok(tester), 'KROK 3 Z 4 · KONTROLA');
+    expect(postup(tester), '0 / 9');
+
+    // Souhrn ukáže, co chybí, a dokončit nejde.
+    await pokracuj(tester);
+    expect(krok(tester), 'KROK 4 Z 4 · SOUHRN');
+    expect(find.text('Chybí zkontrolovat: 9'), findsOneWidget);
+    expect(dokoncit(tester).onPressed, isNull);
+
+    // Zpět na kontrolu a vyplnit.
+    await tester.tap(find.byKey(const Key('prijem-zpet')));
+    await tester.pumpAndSettle();
+    expect(krok(tester), 'KROK 3 Z 4 · KONTROLA');
     for (final polozka in vychoziChecklist) {
       if (polozka.typ == TypKontroly.kontrola) {
         await klepni(tester, kontrola(polozka.kod));
@@ -127,35 +143,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(postup(tester), '9 / 9');
 
-    await naDokonceni(tester);
+    await pokracuj(tester);
+    expect(find.text('Zkontrolováno vše (9)'), findsOneWidget);
     await tester.tap(find.byKey(const Key('dokoncit-prijem')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.textContaining('Příjem dokončen'),
-      -300,
-      scrollable: find
-          .descendant(
-            of: find.byType(PrijemZakazkyScreen),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    expect(find.textContaining('Příjem dokončen'), findsWidgets);
+
+    expect(find.textContaining('Příjem dokončen'), findsOneWidget);
     expect(zdroj.prijmy.nacti('ZK-26-0001').stav, StavPrijmu.dokoncen);
+    expect(find.byKey(const Key('prijem-hotovo')), findsOneWidget);
 
     // Dokončený příjem je zamčený.
+    await tester.tap(find.byKey(const Key('prijem-zpet')));
+    await tester.pumpAndSettle();
     final zmen = zdroj.pocetZmenPrijmu;
     await klepni(tester, kontrola('brzdy'));
     expect(zdroj.pocetZmenPrijmu, zmen);
     expect(postup(tester), '9 / 9');
   });
 
-  testWidgets('dokončený příjem jde znovu otevřít', (tester) async {
+  testWidgets('dokončený příjem se otevře na souhrnu a jde znovu otevřít', (
+    tester,
+  ) async {
     await spust(tester);
     vyplnVse('ZK-26-0001');
     zdroj.prijmy.dokonci('ZK-26-0001');
     await otevriPrijem(tester);
 
+    expect(krok(tester), 'KROK 4 Z 4 · SOUHRN');
     expect(find.byKey(const Key('dokoncit-prijem')), findsNothing);
     await tester.tap(find.text('Znovu otevřít'));
     await tester.pumpAndSettle();
@@ -164,7 +178,6 @@ void main() {
 
     expect(find.textContaining('Příjem dokončen'), findsNothing);
     expect(zdroj.prijmy.nacti('ZK-26-0001').stav, StavPrijmu.rozpracovany);
-    await naDokonceni(tester);
     expect(dokoncit(tester).onPressed, isNotNull);
   });
 
@@ -173,6 +186,7 @@ void main() {
   ) async {
     await spust(tester);
     await otevriPrijem(tester);
+    await pokracuj(tester, kolikrat: 2);
     zdroj.ulozeniPrijmuSelze = true;
 
     await klepni(tester, kontrola('brzdy'));
@@ -181,11 +195,12 @@ void main() {
     expect(postup(tester), '0 / 9');
   });
 
-  testWidgets('poznámka z kontroly je vidět i v detailu zakázky', (
+  testWidgets('nález z kontroly je v souhrnu i v detailu zakázky', (
     tester,
   ) async {
     await spust(tester);
     await otevriPrijem(tester);
+    await pokracuj(tester, kolikrat: 2);
 
     await klepni(
       tester,
@@ -204,8 +219,11 @@ void main() {
     await tester.tap(find.text('Uložit'));
     await tester.pumpAndSettle();
     expect(find.text('Opotřebené destičky vpředu'), findsOneWidget);
-
     await klepni(tester, kontrola('brzdy'));
+
+    await pokracuj(tester);
+    expect(find.text('NÁLEZY'), findsOneWidget);
+    expect(find.text('Opotřebené destičky vpředu'), findsOneWidget);
 
     // Detail zakázky ze seznamu.
     tester.state<NavigatorState>(find.byType(Navigator).last).pop();
@@ -239,6 +257,28 @@ void main() {
 
     await klepni(tester, karta);
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
+  });
+
+  testWidgets('na tabletu jsou kroky vlevo a jde na ně klepnout', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await spust(tester);
+    await otevriPrijem(tester);
+
+    for (final k in KrokPrijmu.values) {
+      expect(find.byKey(Key('prijem-krok-${k.name}')), findsOneWidget);
+    }
+    // Pruh s krokem je jen na telefonu - na tabletu je seznam kroků.
+    expect(find.byKey(const Key('prijem-krok')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('prijem-krok-kontrola')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prijem-postup')), findsOneWidget);
   });
 
   testWidgets('po naskenování se jediná zakázka otevře rovnou do příjmu', (

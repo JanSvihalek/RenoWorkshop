@@ -209,8 +209,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             orderId: orderId,
             onBack: () =>
                 context.canPop() ? context.pop() : context.go(AppRoutes.prijem),
-            onFotodokumentace: () =>
-                context.push(AppRoutes.fotodokumentace(orderId)),
           );
         },
       ),

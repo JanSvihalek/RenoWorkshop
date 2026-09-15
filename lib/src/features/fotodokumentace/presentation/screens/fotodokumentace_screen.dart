@@ -17,12 +17,7 @@ import '../controllers/fotky_providers.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 
-/// Fotodokumentace zakázky - karta na každou kategorii. Otevírá se
-/// z detailu zakázky.
-///
-/// Fotky se nahrávají hned po pořízení, jedna za druhou. Když nahrání
-/// selže (hala bez signálu), fotka zůstane na kartě s červeným rámečkem
-/// a jde poslat znovu.
+/// Fotodokumentace zakázky - samostatná obrazovka z detailu zakázky.
 class FotodokumentaceScreen extends ConsumerWidget {
   const FotodokumentaceScreen({
     super.key,
@@ -32,6 +27,39 @@ class FotodokumentaceScreen extends ConsumerWidget {
 
   final String orderId;
   final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final zakazka = ref.watch(orderByIdProvider(orderId)).valueOrNull;
+
+    return Scaffold(
+      backgroundColor: context.palette.background,
+      body: Column(
+        children: [
+          HlavickaZakazky(
+            nadpis: 'Fotodokumentace',
+            onBack: onBack,
+            spz: zakazka?.licensePlate,
+            model: zakazka?.model,
+            cisloZakazky: orderId,
+          ),
+          Expanded(child: FotodokumentaceObsah(orderId: orderId)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Karta na každou kategorii fotek. Samostatně ve fotodokumentaci
+/// i jako krok příjmu vozidla.
+///
+/// Fotky se nahrávají hned po pořízení, jedna za druhou. Když nahrání
+/// selže (hala bez signálu), fotka zůstane na kartě s červeným rámečkem
+/// a jde poslat znovu.
+class FotodokumentaceObsah extends ConsumerWidget {
+  const FotodokumentaceObsah({super.key, required this.orderId});
+
+  final String orderId;
 
   Future<void> _zGalerie(
     BuildContext context,
@@ -100,72 +128,60 @@ class FotodokumentaceScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final zakazka = ref.watch(orderByIdProvider(orderId)).valueOrNull;
     final fotky = ref.watch(fotkyZakazkyProvider(orderId));
     final nahravane = ref.watch(nahravaniFotekProvider(orderId));
 
-    return Scaffold(
-      backgroundColor: palette.background,
-      body: Column(
-        children: [
-          HlavickaZakazky(
-            nadpis: 'Fotodokumentace',
-            onBack: onBack,
-            spz: zakazka?.licensePlate,
-            model: zakazka?.model,
-            cisloZakazky: orderId,
+    return Column(
+      children: [
+        if (fotky.hasError)
+          _ChybaNacteni(
+            zprava: fotky.error is ServiceOrderException
+                ? (fotky.error! as ServiceOrderException).message
+                : 'Fotky se nepodařilo načíst.',
+            onZnovu: () => ref.invalidate(fotkyZakazkyProvider(orderId)),
           ),
-          if (fotky.hasError)
-            _ChybaNacteni(
-              zprava: fotky.error is ServiceOrderException
-                  ? (fotky.error! as ServiceOrderException).message
-                  : 'Fotky se nepodařilo načíst.',
-              onZnovu: () => ref.invalidate(fotkyZakazkyProvider(orderId)),
-            ),
-          Expanded(
-            child: RefreshIndicator.adaptive(
-              onRefresh: () async =>
-                  ref.invalidate(fotkyZakazkyProvider(orderId)),
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  Insets.xl,
-                  Insets.lg,
-                  Insets.xl,
-                  Insets.giant + MediaQuery.paddingOf(context).bottom,
-                ),
-                itemCount: KategorieFotky.values.length,
-                separatorBuilder: (_, _) => const SizedBox(height: Insets.md),
-                itemBuilder: (context, index) {
-                  final kategorie = KategorieFotky.values[index];
-                  return _KartaKategorie(
-                    kategorie: kategorie,
-                    nacita: fotky.isLoading && !fotky.hasValue,
-                    fotky: [
-                      for (final fotka in fotky.valueOrNull ?? const <Fotka>[])
-                        if (fotka.kategorie == kategorie) fotka,
-                    ],
-                    nahravane: [
-                      for (final fotka in nahravane)
-                        if (fotka.kategorie == kategorie) fotka,
-                    ],
-                    onGalerie: () => _zGalerie(context, ref, kategorie),
-                    onFotit: () => _fotit(context, ref, kategorie),
-                    onOtevrit: (fotka) => _ProhlizeniFotky.otevri(
-                      context,
-                      orderId: orderId,
-                      fotka: fotka,
-                    ),
-                    onNahravana: (fotka) =>
-                        _nabidkaNahravane(context, ref, fotka),
-                  );
-                },
+        Expanded(
+          child: RefreshIndicator.adaptive(
+            onRefresh: () async =>
+                ref.invalidate(fotkyZakazkyProvider(orderId)),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                Insets.xl,
+                Insets.lg,
+                Insets.xl,
+                Insets.giant + MediaQuery.paddingOf(context).bottom,
               ),
+              itemCount: KategorieFotky.values.length,
+              separatorBuilder: (_, _) => const SizedBox(height: Insets.md),
+              itemBuilder: (context, index) {
+                final kategorie = KategorieFotky.values[index];
+                return _KartaKategorie(
+                  kategorie: kategorie,
+                  nacita: fotky.isLoading && !fotky.hasValue,
+                  fotky: [
+                    for (final fotka in fotky.valueOrNull ?? const <Fotka>[])
+                      if (fotka.kategorie == kategorie) fotka,
+                  ],
+                  nahravane: [
+                    for (final fotka in nahravane)
+                      if (fotka.kategorie == kategorie) fotka,
+                  ],
+                  onGalerie: () => _zGalerie(context, ref, kategorie),
+                  onFotit: () => _fotit(context, ref, kategorie),
+                  onOtevrit: (fotka) => _ProhlizeniFotky.otevri(
+                    context,
+                    orderId: orderId,
+                    fotka: fotka,
+                  ),
+                  onNahravana: (fotka) =>
+                      _nabidkaNahravane(context, ref, fotka),
+                );
+              },
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
