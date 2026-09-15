@@ -94,6 +94,18 @@ void main() {
       );
     });
 
+    test('složka fotek přežije restart a po zrušení zmizí', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final uloziste = SharedPreferencesNastaveni(prefs);
+
+      await uloziste.uloz(const Nastaveni(slozkaFotek: 'Cestlice'));
+      expect(SharedPreferencesNastaveni(prefs).nacti().slozkaFotek, 'Cestlice');
+
+      await uloziste.uloz(const Nastaveni());
+      expect(prefs.getString('nastaveni.slozkaFotek'), isNull);
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -142,6 +154,19 @@ void main() {
       container.read(nastaveniProvider.notifier).zmenVychoziUtvar('11211');
 
       expect(container.read(nastaveniProvider).vychoziUtvar, '11211');
+    });
+
+    test('složka fotek nepatří k výchozímu filtru', () {
+      final container = kontejner(
+        PametoveNastaveni(const Nastaveni(slozkaFotek: 'Brno')),
+      );
+
+      // „Zrušit" u výchozího filtru nesmí shodit, kam se ukládají fotky.
+      container.read(nastaveniProvider.notifier).zrusVychoziFiltr();
+      expect(container.read(nastaveniProvider).slozkaFotek, 'Brno');
+
+      container.read(nastaveniProvider.notifier).zmenSlozkuFotek(null);
+      expect(container.read(nastaveniProvider).slozkaFotek, isNull);
     });
 
     test('zrušení výchozího filtru smaže útvar', () {

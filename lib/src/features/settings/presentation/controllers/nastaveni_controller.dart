@@ -42,6 +42,12 @@ class NastaveniController extends Notifier<Nastaveni> {
         : state.copyWith(vychoziZodpovida: jmeno),
   );
 
+  void zmenSlozkuFotek(String? slozka) => _uloz(
+    slozka == null
+        ? state.copyWith(zrusSlozkuFotek: true)
+        : state.copyWith(slozkaFotek: slozka),
+  );
+
   void zrusVychoziFiltr() => _uloz(
     state.copyWith(zrusUtvar: true, zrusPoradac: true, zrusZodpovida: true),
   );

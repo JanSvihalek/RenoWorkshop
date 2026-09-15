@@ -8,6 +8,9 @@ import 'package:renoworkshop/src/features/prijem/data/fotky_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
+import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
+import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -110,6 +113,27 @@ void main() {
       expect(cekajici(), isEmpty);
       expect(zdroj.fotky['ZK-1'], hasLength(2));
       expect(zdroj.fotky['ZK-1']!.first.kategorie, KategorieFotky.exterier);
+      // Bez volby v nastavení se pobočka neposílá.
+      expect(zdroj.posledniPobocka, isNull);
+    });
+
+    test('fotka jde do pobočky zvolené v nastavení', () async {
+      final kontejnerSPobockou = ProviderContainer(
+        overrides: [
+          serviceOrderDataSourceProvider.overrideWithValue(zdroj),
+          pripravaFotkyProvider.overrideWithValue((data) async => data),
+          nastaveniUlozisteProvider.overrideWithValue(
+            PametoveNastaveni(const Nastaveni(slozkaFotek: 'Cestlice')),
+          ),
+        ],
+      );
+      addTearDown(kontejnerSPobockou.dispose);
+
+      await kontejnerSPobockou
+          .read(nahravaniFotekProvider('ZK-1').notifier)
+          .pridej(KategorieFotky.vin, [jpeg()]);
+
+      expect(zdroj.posledniPobocka, 'Cestlice');
     });
 
     test('fotka, která nešla nahrát, zůstane a jde poslat znovu', () async {

@@ -167,12 +167,14 @@ class RestServiceOrderDataSource
   Future<Fotka> nahrajFotku(
     String orderId,
     KategorieFotky kategorie,
-    Uint8List jpeg,
-  ) async {
+    Uint8List jpeg, {
+    String? pobocka,
+  }) async {
     final data = await _send(
       'POST',
       'orders/${Uri.encodeComponent(orderId)}/photos'
-          '?category=${Uri.encodeQueryComponent(kategorie.klic)}',
+          '?category=${Uri.encodeQueryComponent(kategorie.klic)}'
+          '${pobocka == null ? '' : '&branch=${Uri.encodeQueryComponent(pobocka)}'}',
       bajty: jpeg,
       // Půl megabajtu po dílenské wi-fi - víc času než na běžný dotaz.
       timeout: const Duration(seconds: 90),
@@ -181,6 +183,18 @@ class RestServiceOrderDataSource
       throw const ServiceOrderException('Fotku se nepodařilo nahrát.');
     }
     return Fotka.fromJson(data);
+  }
+
+  @override
+  Future<List<String>> slozkyPobocek() async {
+    final data = await _send('GET', 'photos/branches');
+    if (data is! List) {
+      // 404 = služba ještě bez volby pobočky.
+      throw const ServiceOrderException(
+        'Server seznam poboček zatím nenabízí.',
+      );
+    }
+    return data.whereType<String>().toList();
   }
 
   @override

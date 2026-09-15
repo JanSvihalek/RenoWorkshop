@@ -10,6 +10,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
+import '../../../prijem/presentation/controllers/prijem_providers.dart';
 import '../../domain/entities/nastaveni.dart';
 import '../controllers/nastaveni_controller.dart';
 
@@ -47,6 +48,8 @@ class SettingsScreen extends ConsumerWidget {
                 const _SkenerCard(),
                 const SizedBox(height: Insets.base),
                 const _VychoziFiltrCard(),
+                const SizedBox(height: Insets.base),
+                const _FotodokumentaceCard(),
                 const SizedBox(height: Insets.base),
                 const _AboutCard(),
                 const SizedBox(height: Insets.huge),
@@ -348,19 +351,71 @@ class _VychoziFiltrCard extends ConsumerWidget {
   }
 }
 
-/// Řádek s rozbalovacím výběrem. `null` znamená „vše".
+/// Složka pobočky, kam se ukládají fotky z příjmu.
+class _FotodokumentaceCard extends ConsumerWidget {
+  const _FotodokumentaceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final slozka = ref.watch(nastaveniProvider).slozkaFotek;
+    final pobocky = ref.watch(slozkyPobocekProvider);
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'FOTODOKUMENTACE',
+            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          ),
+          const SizedBox(height: Insets.xxs),
+          Text(
+            'Do které složky pobočky se ukládají fotky z příjmu. Bez volby '
+            'rozhodne pořadač zakázky.',
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+          ),
+          const SizedBox(height: Insets.base),
+          _Vyber(
+            key: const Key('slozka-fotek'),
+            popisek: 'Pobočka',
+            prazdnaVolba: 'Podle pořadače',
+            hodnota: slozka,
+            // Nabízí se jen složky, které ve Foto-doc opravdu jsou - server
+            // jinou pobočku stejně odmítne.
+            moznosti: {for (final p in pobocky.valueOrNull ?? const []) p: p},
+            onZmena: (slozka) =>
+                ref.read(nastaveniProvider.notifier).zmenSlozkuFotek(slozka),
+          ),
+          if (pobocky.hasError) ...[
+            const SizedBox(height: Insets.sm),
+            Text(
+              'Seznam poboček se nepodařilo načíst.',
+              style: AppTextStyles.metaSmall.copyWith(color: AppColors.danger),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Řádek s rozbalovacím výběrem. `null` znamená „vše" ([prazdnaVolba]).
 class _Vyber extends StatelessWidget {
   const _Vyber({
+    super.key,
     required this.popisek,
     required this.hodnota,
     required this.moznosti,
     required this.onZmena,
+    this.prazdnaVolba = 'Vše',
   });
 
   final String popisek;
   final String? hodnota;
   final Map<String, String> moznosti;
   final ValueChanged<String?> onZmena;
+  final String prazdnaVolba;
 
   @override
   Widget build(BuildContext context) {
@@ -375,7 +430,7 @@ class _Vyber extends StatelessWidget {
       if (vybrana != null && !moznosti.containsKey(vybrana)) vybrana: vybrana,
     };
 
-    final popisky = ['Vše', ...vsechny.values];
+    final popisky = [prazdnaVolba, ...vsechny.values];
 
     return Row(
       children: [
@@ -410,7 +465,7 @@ class _Vyber extends StatelessWidget {
                   ),
               ],
               items: [
-                const DropdownMenuItem(value: null, child: Text('Vše')),
+                DropdownMenuItem(value: null, child: Text(prazdnaVolba)),
                 for (final polozka in vsechny.entries)
                   DropdownMenuItem(
                     value: polozka.key,

@@ -10,12 +10,19 @@ abstract interface class FotkyDataSource {
   /// `GET /orders/{id}/photos` - fotky zakázky, nejnovější první.
   Future<List<Fotka>> fotkyZakazky(String orderId);
 
-  /// `POST /orders/{id}/photos?category=...` - JPEG tělo.
+  /// `POST /orders/{id}/photos?category=...&branch=...` - JPEG tělo.
+  ///
+  /// [pobocka] je složka pobočky zvolená v nastavení; bez ní rozhodne
+  /// server podle pořadače zakázky.
   Future<Fotka> nahrajFotku(
     String orderId,
     KategorieFotky kategorie,
-    Uint8List jpeg,
-  );
+    Uint8List jpeg, {
+    String? pobocka,
+  });
+
+  /// `GET /photos/branches` - složky poboček ve Foto-doc.
+  Future<List<String>> slozkyPobocek();
 
   /// `GET /photos/{id}` - bajty fotky. Přes službu a s přihlášením, ne
   /// přímou adresou: telefon na sdílenou složku nesahá.

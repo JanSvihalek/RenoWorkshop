@@ -231,9 +231,52 @@ void main() {
       expect(zachyceno.method, 'POST');
       expect(zachyceno.url.path, endsWith('/orders/ZK-26-0418/photos'));
       expect(zachyceno.url.queryParameters['category'], 'poskozeni');
+      // Bez zvolené pobočky rozhoduje server podle pořadače.
+      expect(zachyceno.url.queryParameters.containsKey('branch'), isFalse);
       expect(zachyceno.headers['Content-Type'], 'image/jpeg');
       expect(zachyceno.bodyBytes, [0xff, 0xd8, 0xff]);
       expect(fotka.kategorie, KategorieFotky.poskozeni);
+    });
+
+    test('zvolená pobočka jde s fotkou jako parametr', () async {
+      late http.Request zachyceno;
+      final client = MockClient((request) async {
+        zachyceno = request;
+        return http.Response(
+          jsonEncode({
+            'id': 'f1',
+            'category': 'vin',
+            'uploadedAt': '2026-09-15T10:30:00',
+          }),
+          201,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      await _zdroj(client).nahrajFotku(
+        'ZK-26-0418',
+        KategorieFotky.vin,
+        Uint8List.fromList([0xff, 0xd8, 0xff]),
+        pobocka: 'Bubeneč',
+      );
+
+      expect(zachyceno.url.queryParameters['branch'], 'Bubeneč');
+      expect(zachyceno.url.queryParameters['category'], 'vin');
+    });
+
+    test('seznam poboček ze serveru', () async {
+      late http.Request zachyceno;
+      final client = MockClient((request) async {
+        zachyceno = request;
+        return http.Response(
+          jsonEncode(['Brno', 'KCP']),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      expect(await _zdroj(client).slozkyPobocek(), ['Brno', 'KCP']);
+      expect(zachyceno.url.path, endsWith('/photos/branches'));
     });
 
     test('stažená fotka jsou bajty, ne JSON', () async {

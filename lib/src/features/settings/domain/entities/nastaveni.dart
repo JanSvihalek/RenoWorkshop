@@ -59,6 +59,7 @@ class Nastaveni {
     this.vychoziUtvar,
     this.vychoziPoradac,
     this.vychoziZodpovida,
+    this.slozkaFotek,
   });
 
   final RezimVzhledu vzhled;
@@ -82,6 +83,13 @@ class Nastaveni {
   /// pak se filtr prostě přestane uplatňovat a jde vybrat znovu.
   final String? vychoziZodpovida;
 
+  /// Složka pobočky ve Foto-doc, kam jdou fotky z příjmu. `null` = podle
+  /// pořadače zakázky.
+  ///
+  /// Pro pobočku, kde pořadač místo neurčuje - třeba když vůz přijímá jiná
+  /// pobočka, než která zakázku založila.
+  final String? slozkaFotek;
+
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
@@ -96,6 +104,8 @@ class Nastaveni {
     bool zrusPoradac = false,
     String? vychoziZodpovida,
     bool zrusZodpovida = false,
+    String? slozkaFotek,
+    bool zrusSlozkuFotek = false,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -107,6 +117,7 @@ class Nastaveni {
       vychoziZodpovida: zrusZodpovida
           ? null
           : (vychoziZodpovida ?? this.vychoziZodpovida),
+      slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
     );
   }
 
@@ -118,7 +129,8 @@ class Nastaveni {
           other.spoust == spoust &&
           other.vychoziUtvar == vychoziUtvar &&
           other.vychoziPoradac == vychoziPoradac &&
-          other.vychoziZodpovida == vychoziZodpovida);
+          other.vychoziZodpovida == vychoziZodpovida &&
+          other.slozkaFotek == slozkaFotek);
 
   @override
   int get hashCode => Object.hash(
@@ -127,5 +139,6 @@ class Nastaveni {
     vychoziUtvar,
     vychoziPoradac,
     vychoziZodpovida,
+    slozkaFotek,
   );
 }

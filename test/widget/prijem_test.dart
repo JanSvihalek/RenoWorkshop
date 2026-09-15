@@ -14,6 +14,7 @@ import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem
 import 'package:renoworkshop/src/features/prijem/presentation/screens/fotodokumentace_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/ziskani_fotek.dart';
+import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -167,6 +168,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(zdroj.fotky['ZK-26-0001'], hasLength(1));
+  });
+
+  testWidgets('pobočka zvolená v nastavení jde s fotkou na server', (
+    tester,
+  ) async {
+    await naPrijem(tester);
+    await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+
+    final vyber = find.byKey(const Key('slozka-fotek'));
+    // Karta je pod okrajem a seznam ji do té doby nepostaví.
+    await tester.scrollUntilVisible(
+      vyber,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SettingsScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: vyber, matching: find.text('Podle pořadače')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(
+        of: vyber,
+        matching: find.byType(DropdownButton<String?>),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cestlice').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Příjem'));
+    await tester.pumpAndSettle();
+    await napis(tester, '2bk 94');
+    await tester.tap(find.byType(OrderCard));
+    await tester.pumpAndSettle();
+    await klepni(tester, vKarte('vin', find.byTooltip('Přidat z galerie')));
+
+    expect(zdroj.posledniPobocka, 'Cestlice');
   });
 
   testWidgets('nenalezenou zakázku jde dotáhnout z Heliosu', (tester) async {

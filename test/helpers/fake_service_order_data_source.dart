@@ -38,6 +38,13 @@ class FakeServiceOrderDataSource
   final Map<String, Uint8List> bajtyFotek = {};
   bool nahravaniSelze = false;
 
+  /// Složky poboček, které „server" nabízí, a pobočka poslední nahrané fotky.
+  List<String> pobocky = const ['Brno', 'Cestlice', 'KCP'];
+  String? posledniPobocka;
+
+  @override
+  Future<List<String>> slozkyPobocek() async => pobocky;
+
   @override
   Future<List<Fotka>> fotkyZakazky(String orderId) async =>
       List.of(fotky[orderId] ?? const []);
@@ -46,8 +53,10 @@ class FakeServiceOrderDataSource
   Future<Fotka> nahrajFotku(
     String orderId,
     KategorieFotky kategorie,
-    Uint8List jpeg,
-  ) async {
+    Uint8List jpeg, {
+    String? pobocka,
+  }) async {
+    posledniPobocka = pobocka;
     if (nahravaniSelze) {
       throw const ServiceOrderException('Server neodpovídá.');
     }

@@ -308,8 +308,9 @@ class MockServiceOrderDataSource
   Future<Fotka> nahrajFotku(
     String orderId,
     KategorieFotky kategorie,
-    Uint8List jpeg,
-  ) async {
+    Uint8List jpeg, {
+    String? pobocka,
+  }) async {
     await _simulateLatency();
     final fotka = Fotka(
       id: 'mock-${DateTime.now().microsecondsSinceEpoch}',
@@ -320,6 +321,12 @@ class MockServiceOrderDataSource
     _bajtyFotek[fotka.id] = jpeg;
     _fotky.putIfAbsent(orderId, () => []).insert(0, fotka);
     return fotka;
+  }
+
+  @override
+  Future<List<String>> slozkyPobocek() async {
+    await _simulateLatency();
+    return const ['Brno', 'Bubenec', 'Ceska', 'Cestlice', 'KCP'];
   }
 
   @override

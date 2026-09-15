@@ -464,8 +464,8 @@ Soubory neleží na RENDCAPPu, ale ve sdílené složce na souborovém serveru
 Foto-doc\<pobočka>\<číslo zakázky>\<kategorie>\<čas>-<id>.jpg
 ```
 
-Pobočka je složka podle pořadače zakázky (`poradace.slozka`), bez ní
-`Nezarazeno`. **Telefon na sdílenou složku nesahá** - posílá fotku službě
+Pobočka je složka zvolená v nastavení aplikace (parametr `branch`); bez
+volby rozhodne pořadač zakázky (`poradace.slozka`) a bez něj `Nezarazeno`. **Telefon na sdílenou složku nesahá** - posílá fotku službě
 a stahuje ji přes ni, vždy s přihlášením.
 
 Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
@@ -474,7 +474,8 @@ Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
 | Endpoint | Co dělá |
 |---|---|
 | `GET /orders/{id}/photos` | seznam fotek zakázky, nejnovější první |
-| `POST /orders/{id}/photos?category=…` | nahrání; tělo je JPEG (`Content-Type: image/jpeg`), vrací `201` a fotku |
+| `POST /orders/{id}/photos?category=…&branch=…` | nahrání; tělo je JPEG (`Content-Type: image/jpeg`), vrací `201` a fotku. `branch` je nepovinný |
+| `GET /photos/branches` | složky poboček ve Foto-doc (`["Brno", "KCP", …]`) pro nastavení |
 | `GET /photos/{photoId}` | soubor fotky (`image/jpeg`) |
 | `DELETE /photos/{photoId}` | smaže soubor i záznam, `204` |
 
@@ -492,6 +493,10 @@ Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
 - Aplikace fotku před odesláním srovná podle EXIFu, zmenší (delší strana
   2000 px) a uloží jako JPEG 85 - kolem půl megabajtu. Server přijme jen
   JPEG do 15 MB.
+- `branch` musí být existující složka ve Foto-doc (velikost písmen
+  nerozhoduje), jinak `400` `unknown_branch` - překlep ani stará volba
+  v telefonu nezaloží novou složku. Seznam poboček vynechává `Nezarazeno`
+  a skryté složky.
 - Bez `FOTO_ADRESAR` vrací všechny fotkové endpointy `503`
   (`photo_storage_unavailable`); nepovedený zápis na souborový server `502`
   (`photo_storage_failed`). Obě chyby mají srozumitelnou `message`.

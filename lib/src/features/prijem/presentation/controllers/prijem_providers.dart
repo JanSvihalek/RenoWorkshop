@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../data/fotky_data_source.dart';
 import '../../domain/entities/fotka.dart';
 
@@ -35,6 +36,11 @@ final fotkyZakazkyProvider = FutureProvider.autoDispose
         throw ServiceOrderException('Fotky se nepodařilo načíst: $chyba');
       }
     });
+
+/// Složky poboček ve Foto-doc - nabídka v nastavení.
+final slozkyPobocekProvider = FutureProvider.autoDispose<List<String>>((ref) {
+  return ref.watch(fotkyDataSourceProvider).slozkyPobocek();
+});
 
 /// Bajty jedné fotky. Fotka se pod stejným id nikdy nemění, takže se po
 /// načtení drží, dokud ji někdo zobrazuje.
@@ -143,7 +149,14 @@ class NahravaniFotek extends FamilyNotifier<List<NahravanaFotka>, String> {
     try {
       await ref
           .read(fotkyDataSourceProvider)
-          .nahrajFotku(_orderId, fotka.kategorie, fotka.jpeg);
+          .nahrajFotku(
+            _orderId,
+            fotka.kategorie,
+            fotka.jpeg,
+            // Pobočka se bere v okamžiku nahrání - i „Zkusit znovu" po
+            // opravě volby v nastavení tak jde už do správné složky.
+            pobocka: ref.read(nastaveniProvider).slozkaFotek,
+          );
       state = [
         for (final f in state)
           if (f.klic != fotka.klic) f,
