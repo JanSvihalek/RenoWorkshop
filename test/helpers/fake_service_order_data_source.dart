@@ -1,13 +1,18 @@
+import 'dart:typed_data';
+
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
+import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
+import 'package:renoworkshop/src/features/prijem/data/fotky_data_source.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
 class FakeServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource {
+    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -21,6 +26,53 @@ class FakeServiceOrderDataSource
   final List<ServiceOrderDto> _orders;
   final Set<String> _archivIds;
   final List<KartaVozidla> _vozidla;
+
+  /// Kolikrát se volala synchronizace na vyžádání.
+  int pocetSynchronizaci = 0;
+
+  @override
+  Future<void> synchronizuj() async => pocetSynchronizaci++;
+
+  /// Fotky v paměti. [nahravaniSelze] simuluje výpadek sítě při nahrávání.
+  final Map<String, List<Fotka>> fotky = {};
+  final Map<String, Uint8List> bajtyFotek = {};
+  bool nahravaniSelze = false;
+
+  @override
+  Future<List<Fotka>> fotkyZakazky(String orderId) async =>
+      List.of(fotky[orderId] ?? const []);
+
+  @override
+  Future<Fotka> nahrajFotku(
+    String orderId,
+    KategorieFotky kategorie,
+    Uint8List jpeg,
+  ) async {
+    if (nahravaniSelze) {
+      throw const ServiceOrderException('Server neodpovídá.');
+    }
+    final seznam = fotky.putIfAbsent(orderId, () => []);
+    final fotka = Fotka(
+      id: 'fotka-${bajtyFotek.length + 1}',
+      kategorie: kategorie,
+      nahranoAt: DateTime(2026, 9, 15, 10, 30),
+      nahralKdo: 'Jan Dvořák',
+    );
+    bajtyFotek[fotka.id] = jpeg;
+    seznam.insert(0, fotka);
+    return fotka;
+  }
+
+  @override
+  Future<Uint8List> stahniFotku(String id) async => bajtyFotek[id]!;
+
+  @override
+  Future<void> smazFotku(String id) async {
+    bajtyFotek.remove(id);
+    for (final seznam in fotky.values) {
+      seznam.removeWhere((fotka) => fotka.id == id);
+    }
+  }
 
   /// Poslední dotaz na vozidla - test pozná, co šlo na server.
   String? posledniHledaniVozidla;

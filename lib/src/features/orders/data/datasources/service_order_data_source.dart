@@ -35,6 +35,10 @@ abstract interface class ServiceOrderDataSource {
   /// Smaže záznam z historie stavů.
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
 
+  /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
+  /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.
+  Future<void> synchronizuj();
+
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();
 

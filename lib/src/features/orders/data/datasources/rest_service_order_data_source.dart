@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../../prijem/data/fotky_data_source.dart';
+import '../../../prijem/domain/entities/fotka.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../dtos/service_order_dto.dart';
@@ -19,7 +22,7 @@ import 'service_order_data_source.dart';
 /// Autorizace: Firebase ID token v hlavičce `Authorization`. Token dodává
 /// [tokenProvider], aby datová vrstva nezávisela na Firebase a šla testovat.
 class RestServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource {
+    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
   RestServiceOrderDataSource({
     required Uri baseUrl,
     required Future<String?> Function() tokenProvider,
@@ -144,6 +147,62 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<void> synchronizuj() async {
+    await _send('POST', 'sync', timeout: const Duration(seconds: 60));
+  }
+
+  @override
+  Future<List<Fotka>> fotkyZakazky(String orderId) async {
+    final data = await _send(
+      'GET',
+      'orders/${Uri.encodeComponent(orderId)}/photos',
+    );
+    if (data is! List) return const [];
+    return data
+        .map((item) => Fotka.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<Fotka> nahrajFotku(
+    String orderId,
+    KategorieFotky kategorie,
+    Uint8List jpeg,
+  ) async {
+    final data = await _send(
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}/photos'
+          '?category=${Uri.encodeQueryComponent(kategorie.klic)}',
+      bajty: jpeg,
+      // Půl megabajtu po dílenské wi-fi - víc času než na běžný dotaz.
+      timeout: const Duration(seconds: 90),
+    );
+    if (data is! Map<String, dynamic>) {
+      throw const ServiceOrderException('Fotku se nepodařilo nahrát.');
+    }
+    return Fotka.fromJson(data);
+  }
+
+  @override
+  Future<Uint8List> stahniFotku(String id) async {
+    final data = await _send(
+      'GET',
+      'photos/${Uri.encodeComponent(id)}',
+      binarni: true,
+      timeout: const Duration(seconds: 60),
+    );
+    if (data is! Uint8List) {
+      throw const ServiceOrderException('Fotka nebyla nalezena.');
+    }
+    return data;
+  }
+
+  @override
+  Future<void> smazFotku(String id) async {
+    await _send('DELETE', 'photos/${Uri.encodeComponent(id)}');
+  }
+
+  @override
   Future<List<NalezeneVozidlo>> hledejVozidla(String dotaz) async {
     final data = await _send(
       'GET',
@@ -168,9 +227,12 @@ class RestServiceOrderDataSource
     String method,
     String path, {
     Map<String, Object?>? body,
+    Uint8List? bajty,
+    bool binarni = false,
+    Duration? timeout,
   }) async {
     final request = http.Request(method, _baseUrl.resolve(path))
-      ..headers['Accept'] = 'application/json';
+      ..headers['Accept'] = binarni ? 'image/jpeg' : 'application/json';
 
     final token = await _tokenProvider();
     if (token != null && token.isNotEmpty) {
@@ -180,10 +242,16 @@ class RestServiceOrderDataSource
       request.headers['Content-Type'] = 'application/json; charset=utf-8';
       request.body = jsonEncode(body);
     }
+    if (bajty != null) {
+      request.headers['Content-Type'] = 'image/jpeg';
+      request.bodyBytes = bajty;
+    }
 
     final http.Response odpoved;
     try {
-      final streamed = await _client.send(request).timeout(timeout);
+      final streamed = await _client
+          .send(request)
+          .timeout(timeout ?? this.timeout);
       odpoved = await http.Response.fromStream(streamed);
     } on TimeoutException {
       throw const ServiceOrderException(
@@ -195,15 +263,17 @@ class RestServiceOrderDataSource
       );
     }
 
-    return _zpracuj(odpoved, path);
+    return _zpracuj(odpoved, path, binarni: binarni);
   }
 
-  Object? _zpracuj(http.Response odpoved, String path) {
+  Object? _zpracuj(http.Response odpoved, String path, {bool binarni = false}) {
     final kod = odpoved.statusCode;
 
     if (kod == 404) {
       // Volající rozliší chybějící zakázku nebo vozidlo podle null.
-      if (path.startsWith('orders/') || path.startsWith('vehicles/')) {
+      if (path.startsWith('orders/') ||
+          path.startsWith('vehicles/') ||
+          path.startsWith('photos/')) {
         return null;
       }
       throw const ServiceOrderException('Požadovaný zdroj nebyl nalezen.');
@@ -214,8 +284,11 @@ class RestServiceOrderDataSource
       );
     }
     if (kod >= 500) {
-      throw const ServiceOrderException(
-        'Server hlásí chybu. Zkuste to za chvíli znovu.',
+      // Konkrétní zpráva ze serveru má přednost - u fotek říká, jestli
+      // chybí úložiště, nebo nešel zápis na souborový server.
+      throw ServiceOrderException(
+        _chybaZTela(odpoved) ??
+            'Server hlásí chybu. Zkuste to za chvíli znovu.',
       );
     }
     if (kod < 200 || kod >= 300) {
@@ -224,6 +297,7 @@ class RestServiceOrderDataSource
       );
     }
     if (odpoved.bodyBytes.isEmpty) return null;
+    if (binarni) return odpoved.bodyBytes;
 
     try {
       return jsonDecode(utf8.decode(odpoved.bodyBytes));

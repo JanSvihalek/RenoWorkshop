@@ -454,48 +454,47 @@ a zakázka bez vyplněného typu nemá `orderType`.
 Odvození patří na server schválně - kdyby pravidlo přestalo platit nebo
 přibyla pobočka, mění se to na jednom místě.
 
-## Fotodokumentace (plánováno)
+## Fotodokumentace
 
-Není postavená, ale kontrakt s ní počítá, aby se do ní později nemuselo
-zasahovat na obou stranách zároveň. Fotky **nepocházejí z Heliosu** - jsou to
-naše data jako stav a poznámky.
+Fotky **nepocházejí z Heliosu** - jsou to naše data jako stav a poznámky.
+Soubory neleží na RENDCAPPu, ale ve sdílené složce na souborovém serveru
+(`FOTO_ADRESAR` služby, dnes `\renocar.local\share\Foto-doc` na RENDCFILE):
 
-**V seznamu nikdy nejsou.** `GET /orders` zůstává štíhlý; detail vrací jen
-metadata s odkazy, binární data se stahují až na vyžádání:
-
-```json
-"photos": [
-  {
-    "id": "F-0418-1",
-    "phase": "intake",
-    "url": "/renoworkshop/api/orders/ZK-26-0418/photos/F-0418-1",
-    "thumbnailUrl": "/renoworkshop/api/orders/ZK-26-0418/photos/F-0418-1?size=thumb",
-    "caption": "Poškozený přední nárazník při příjmu",
-    "author": "Jan Dvořák",
-    "createdAt": "2026-08-21T07:22:00"
-  }
-]
+```
+Foto-doc\<pobočka>\<číslo zakázky>\<kategorie>\<čas>-<id>.jpg
 ```
 
-`phase`: `intake` (příjem) · `finding` (nalezená závada) · `done` (hotovo) ·
-`handover` (předání).
+Pobočka je složka podle pořadače zakázky (`poradace.slozka`), bez ní
+`Nezarazeno`. **Telefon na sdílenou složku nesahá** - posílá fotku službě
+a stahuje ji přes ni, vždy s přihlášením.
 
-**Zamýšlené endpointy**
+Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
+`interier` · `tachometr` · `vin` · `ostatni`.
 
 | Endpoint | Co dělá |
 |---|---|
-| `POST /orders/{id}/photos` | nahrání (multipart), vrací metadata fotky |
-| `GET /orders/{id}/photos/{photoId}` | soubor; `?size=thumb` náhled |
-| `PATCH /orders/{id}/photos/{photoId}` | úprava popisku nebo skrytí |
+| `GET /orders/{id}/photos` | seznam fotek zakázky, nejnovější první |
+| `POST /orders/{id}/photos?category=…` | nahrání; tělo je JPEG (`Content-Type: image/jpeg`), vrací `201` a fotku |
+| `GET /photos/{photoId}` | soubor fotky (`image/jpeg`) |
+| `DELETE /photos/{photoId}` | smaže soubor i záznam, `204` |
 
-**Append-only.** Fotodokumentace při příjmu slouží k doložení stavu vozu, tedy
-se nepřepisuje ani nemaže - nejvýš skryje příznakem. Autor a čas se berou
-z tokenu a ze serveru, ne z telefonu.
+```json
+{
+  "id": "5f0c2a9d1e7b44c8a3d6e1f2",
+  "category": "poskozeni",
+  "size": 512384,
+  "uploadedBy": "Jan Dvořák",
+  "uploadedAt": "2026-09-15T10:30:12"
+}
+```
 
-**Uložení.** Soubory na disku RENDCAPPu, metadata v Postgresu. Appka fotku
-před odesláním zmenší (dlouhá hrana ~1600 px, JPEG 80), jinak by při padesáti
-zakázkách denně přibýval zhruba gigabajt denně. Doba uchování se musí domluvit
-s tím, kdo řeší reklamace.
+- Autor a čas bere server z tokenu a ze svých hodin, ne z telefonu.
+- Aplikace fotku před odesláním srovná podle EXIFu, zmenší (delší strana
+  2000 px) a uloží jako JPEG 85 - kolem půl megabajtu. Server přijme jen
+  JPEG do 15 MB.
+- Bez `FOTO_ADRESAR` vrací všechny fotkové endpointy `503`
+  (`photo_storage_unavailable`); nepovedený zápis na souborový server `502`
+  (`photo_storage_failed`). Obě chyby mají srozumitelnou `message`.
 
 ## Co ještě není vyřešené
 

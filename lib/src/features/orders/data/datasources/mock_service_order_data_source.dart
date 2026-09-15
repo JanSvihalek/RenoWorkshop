@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
+import '../../../prijem/data/fotky_data_source.dart';
+import '../../../prijem/domain/entities/fotka.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -13,7 +16,7 @@ import 'service_order_data_source.dart';
 /// Simuluje latenci sítě, aby UI muselo počítat s loading stavem stejně
 /// jako u reálného API.
 class MockServiceOrderDataSource
-    implements ServiceOrderDataSource, VozidlaDataSource {
+    implements ServiceOrderDataSource, VozidlaDataSource, FotkyDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -286,5 +289,53 @@ class MockServiceOrderDataSource
       majitel: MajitelVozidla(nazev: prvni.customerName),
       zakazky: [for (final dto in zakazky) dto.toDomain()],
     );
+  }
+
+  @override
+  Future<void> synchronizuj() => _simulateLatency();
+
+  /// Fotky jen v paměti - bez serveru se ukládají, dokud appka běží.
+  final Map<String, List<Fotka>> _fotky = {};
+  final Map<String, Uint8List> _bajtyFotek = {};
+
+  @override
+  Future<List<Fotka>> fotkyZakazky(String orderId) async {
+    await _simulateLatency();
+    return List.of(_fotky[orderId] ?? const []);
+  }
+
+  @override
+  Future<Fotka> nahrajFotku(
+    String orderId,
+    KategorieFotky kategorie,
+    Uint8List jpeg,
+  ) async {
+    await _simulateLatency();
+    final fotka = Fotka(
+      id: 'mock-${DateTime.now().microsecondsSinceEpoch}',
+      kategorie: kategorie,
+      nahranoAt: DateTime.now(),
+      nahralKdo: 'Mock',
+    );
+    _bajtyFotek[fotka.id] = jpeg;
+    _fotky.putIfAbsent(orderId, () => []).insert(0, fotka);
+    return fotka;
+  }
+
+  @override
+  Future<Uint8List> stahniFotku(String id) async {
+    final bajty = _bajtyFotek[id];
+    if (bajty == null) {
+      throw StateError('Fotka $id v mocku není.');
+    }
+    return bajty;
+  }
+
+  @override
+  Future<void> smazFotku(String id) async {
+    _bajtyFotek.remove(id);
+    for (final seznam in _fotky.values) {
+      seznam.removeWhere((fotka) => fotka.id == id);
+    }
   }
 }

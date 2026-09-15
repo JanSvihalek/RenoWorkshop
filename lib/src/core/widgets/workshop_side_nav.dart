@@ -36,6 +36,7 @@ class WorkshopSideNav extends StatelessWidget {
       Icons.assignment_outlined,
       Icons.assignment,
     ),
+    (WorkshopTab.prijem, 'Příjem', Icons.fact_check_outlined, Icons.fact_check),
     (
       WorkshopTab.vyhledavani,
       'Vozidla',

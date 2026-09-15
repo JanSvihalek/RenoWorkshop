@@ -89,7 +89,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Fotoaparát slouží k načtení VIN nebo SPZ ze štítku vozidla, abyste je nemuseli opisovat.</string>
+	<string>Fotoaparát slouží k načtení VIN nebo SPZ ze štítku vozidla a k fotodokumentaci vozidla při příjmu.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Z galerie můžete k zakázce přidat fotky vozidla, které jste pořídili dřív.</string>
 	<!-- Nešifrované spojení na server API, dokud nemá certifikát.
 
 	     iOS nešifrovaný provoz zakazuje. Výjimka platí VÝHRADNĚ pro jméno

@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/rest_service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/fotka.dart';
 
 /// Jedna zakázka v takovém tvaru, v jakém ji má vracet API.
 Map<String, dynamic> _zakazka({String id = 'ZK-26-0418'}) => {
@@ -201,6 +203,80 @@ void main() {
       expect(await nazev({'code': '10026', 'label': 'BMW BSL'}), 'BMW BSL');
       expect(await nazev({'code': '10026', 'label': ''}), '10026');
       expect(await nazev(null), isNull);
+    });
+
+    test('fotka se nahraje jako JPEG tělo do kategorie', () async {
+      late http.Request zachyceno;
+      final client = MockClient((request) async {
+        zachyceno = request;
+        return http.Response(
+          jsonEncode({
+            'id': 'f1',
+            'category': 'poskozeni',
+            'size': 3,
+            'uploadedBy': 'Jan Dvořák',
+            'uploadedAt': '2026-09-15T10:30:00',
+          }),
+          201,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final fotka = await _zdroj(client).nahrajFotku(
+        'ZK-26-0418',
+        KategorieFotky.poskozeni,
+        Uint8List.fromList([0xff, 0xd8, 0xff]),
+      );
+
+      expect(zachyceno.method, 'POST');
+      expect(zachyceno.url.path, endsWith('/orders/ZK-26-0418/photos'));
+      expect(zachyceno.url.queryParameters['category'], 'poskozeni');
+      expect(zachyceno.headers['Content-Type'], 'image/jpeg');
+      expect(zachyceno.bodyBytes, [0xff, 0xd8, 0xff]);
+      expect(fotka.kategorie, KategorieFotky.poskozeni);
+    });
+
+    test('stažená fotka jsou bajty, ne JSON', () async {
+      final client = MockClient(
+        (request) async => http.Response.bytes(
+          [0xff, 0xd8, 0xff, 0xe0],
+          200,
+          headers: {'content-type': 'image/jpeg'},
+        ),
+      );
+
+      final bajty = await _zdroj(client).stahniFotku('f1');
+      expect(bajty, [0xff, 0xd8, 0xff, 0xe0]);
+    });
+
+    test('nenastavené úložiště se ohlásí zprávou ze serveru', () async {
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'error': {
+              'code': 'photo_storage_unavailable',
+              'message': 'Úložiště fotodokumentace není na serveru nastavené.',
+            },
+          }),
+          503,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+
+      expect(
+        () => _zdroj(client).nahrajFotku(
+          'ZK-26-0418',
+          KategorieFotky.vin,
+          Uint8List.fromList([0xff, 0xd8, 0xff]),
+        ),
+        throwsA(
+          isA<ServiceOrderException>().having(
+            (e) => e.message,
+            'zpráva',
+            'Úložiště fotodokumentace není na serveru nastavené.',
+          ),
+        ),
+      );
     });
 
     test('neznámá zakázka vrací null, ne výjimku', () async {
