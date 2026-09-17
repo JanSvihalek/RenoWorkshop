@@ -49,6 +49,8 @@ android/key.properties
 **/*.jks
 **/*.keystore
 **/*.p12
+# Base64 kopie keystoru pro GitHub secret - je to celý klíč.
+**/*.p12.base64
 **/*.p8
 **/*.mobileprovision
 **/*.cer
