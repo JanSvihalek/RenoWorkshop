@@ -42,6 +42,15 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
   bool _foti = false;
   int _pocet = 0;
 
+  /// Poslední pořízená fotka - náhled v rohu, ať technik vidí, že fotka je.
+  /// Drží se jen ta jedna, deset fotek v paměti by telefon zbytečně zatížilo.
+  Uint8List? _posledni;
+
+  FlashMode _blesk = FlashMode.off;
+
+  /// Tablet blesk nemá; pozná se to až podle odmítnutí a tlačítko pak zmizí.
+  bool _maBlesk = true;
+
   @override
   void initState() {
     super.initState();
@@ -74,13 +83,13 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
         await kamera.dispose();
         rethrow;
       }
-      // Bez blesku - odlesky na laku by schovaly škrábance. Jen pokus:
-      // tablet bez blesku nastavení odmítne (setFlashModeFailed) a kvůli
-      // tomu se focení nesmí zastavit.
+      // Začíná se bez blesku - odlesky na laku schovají škrábance. Jen
+      // pokus: tablet bez blesku nastavení odmítne (setFlashModeFailed)
+      // a kvůli tomu se focení nesmí zastavit.
       try {
         await kamera.setFlashMode(FlashMode.off);
       } on CameraException {
-        // Zařízení bez blesku - není co vypínat.
+        if (mounted) setState(() => _maBlesk = false);
       }
       if (!mounted) {
         await kamera.dispose();
@@ -100,6 +109,30 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
     }
   }
 
+  /// Přepíná vypnuto → automaticky → zapnuto. Když zařízení blesk nemá,
+  /// tlačítko po prvním pokusu zmizí.
+  Future<void> _prepniBlesk() async {
+    final kamera = _kamera;
+    if (kamera == null) return;
+    final novy = switch (_blesk) {
+      FlashMode.off => FlashMode.auto,
+      FlashMode.auto => FlashMode.always,
+      _ => FlashMode.off,
+    };
+    try {
+      await kamera.setFlashMode(novy);
+      if (mounted) setState(() => _blesk = novy);
+    } on CameraException {
+      if (!mounted) return;
+      setState(() => _maBlesk = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Tohle zařízení blesk nemá.')),
+        );
+    }
+  }
+
   Future<void> _vyfot() async {
     final kamera = _kamera;
     if (kamera == null || _foti) return;
@@ -109,7 +142,12 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
       final snimek = await kamera.takePicture();
       final data = await File(snimek.path).readAsBytes();
       widget.onFotka(data);
-      if (mounted) setState(() => _pocet++);
+      if (mounted) {
+        setState(() {
+          _pocet++;
+          _posledni = data;
+        });
+      }
     } on CameraException {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -160,6 +198,23 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
                   ),
                 ),
               ),
+            // Tmavý přechod pod horní lištou - na světlém náhledu (bílé
+            // auto, zeď v hale) by bílý text i tlačítka zanikly.
+            Align(
+              alignment: Alignment.topCenter,
+              child: IgnorePointer(
+                child: Container(
+                  height: 140,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black87, Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             SafeArea(
               child: Stack(
                 children: [
@@ -174,6 +229,17 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
                       ),
                       child: Row(
                         children: [
+                          // Šipka zpět i tlačítko Hotovo dělají totéž -
+                          // z focení se odchází kamkoli z obou stran.
+                          IconButton(
+                            key: const Key('foceni-zpet'),
+                            tooltip: 'Zpět',
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
                           Expanded(
                             child: Text(
                               widget.nadpis,
@@ -183,6 +249,27 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
                               ),
                             ),
                           ),
+                          if (_maBlesk)
+                            IconButton(
+                              key: const Key('foceni-blesk'),
+                              tooltip: switch (_blesk) {
+                                FlashMode.off => 'Blesk vypnutý',
+                                FlashMode.auto => 'Blesk automaticky',
+                                _ => 'Blesk zapnutý',
+                              },
+                              onPressed: kamera == null ? null : _prepniBlesk,
+                              icon: Icon(
+                                switch (_blesk) {
+                                  FlashMode.off => Icons.flash_off_rounded,
+                                  FlashMode.auto => Icons.flash_auto_rounded,
+                                  _ => Icons.flash_on_rounded,
+                                },
+                                color: _blesk == FlashMode.off
+                                    ? Colors.white
+                                    : AppColors.accent,
+                              ),
+                            ),
+                          const SizedBox(width: Insets.sm),
                           FilledButton(
                             onPressed: () => Navigator.of(context).pop(),
                             style: FilledButton.styleFrom(
@@ -196,6 +283,17 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
                       ),
                     ),
                   ),
+                  if (_posledni case final fotka?)
+                    Align(
+                      // Na opačné straně než spoušť, ať ji náhled nekryje.
+                      alignment: spoust == UmisteniSpouste.vlevo
+                          ? Alignment.bottomRight
+                          : Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(Insets.xl),
+                        child: _NahledPosledni(fotka: fotka, pocet: _pocet),
+                      ),
+                    ),
                   Align(
                     alignment: switch (spoust) {
                       UmisteniSpouste.vlevo => Alignment.centerLeft,
@@ -222,6 +320,56 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
   }
 }
 
+/// Poslední vyfocená fotka a kolik jich v této kategorii přibylo.
+class _NahledPosledni extends StatelessWidget {
+  const _NahledPosledni({required this.fotka, required this.pocet});
+
+  final Uint8List fotka;
+  final int pocet;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('foceni-nahled'),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.black38,
+        borderRadius: BorderRadius.circular(Radii.input),
+        border: Border.all(color: Colors.white70, width: 2),
+      ),
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.input - 3),
+            child: Image.memory(
+              fotka,
+              width: 62,
+              height: 62,
+              fit: BoxFit.cover,
+              // Náhled se dekóduje zmenšený - fotka z telefonu má i deset
+              // megapixelů a v plné velikosti by ukrojila z paměti.
+              cacheWidth: 180,
+              gaplessPlayback: true,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+            child: Text(
+              '$pocet',
+              style: AppTextStyles.chip.copyWith(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Spoust extends StatelessWidget {
   const _Spoust({required this.foti, required this.onTap});
 
@@ -234,6 +382,7 @@ class _Spoust extends StatelessWidget {
       button: true,
       label: 'Vyfotit',
       child: GestureDetector(
+        key: const Key('foceni-spoust'),
         onTap: foti ? null : onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 90),
