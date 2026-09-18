@@ -30,14 +30,28 @@ class SloupecZakazek {
   final bool mono;
 }
 
-/// Sloupce v pořadí jako v Heliosu: nejdřív kdy a co, pak vůz, zákazník
-/// a kdo to má na starosti, nakonec stavy a termín.
+/// Sloupce v pořadí podle Heliosu: kdy přišel vůz a kdo ho má, komu
+/// patří, pak zakázka a vozidlo, nakonec typ, stavy a termín.
+///
+/// „Ukončení" je **plánovaný termín dokončení** z Heliosu. Skutečné datum
+/// uzavření zakázky aplikace zatím nezná - u rozdělaných zakázek stejně
+/// žádné není.
 final sloupceZakazek = <SloupecZakazek>[
   SloupecZakazek(
     nazev: 'Přijato',
     sirka: 92,
     hodnota: (z) =>
         z.receivedAt == null ? '-' : AppDateFormat.dayMonthSmart(z.receivedAt!),
+  ),
+  SloupecZakazek(
+    nazev: 'Zodpovídá',
+    sirka: 150,
+    hodnota: (z) => z.mechanicName ?? '-',
+  ),
+  SloupecZakazek(
+    nazev: 'Organizace',
+    sirka: 190,
+    hodnota: (z) => z.customerName,
   ),
   SloupecZakazek(
     nazev: 'Zakázka',
@@ -51,13 +65,8 @@ final sloupceZakazek = <SloupecZakazek>[
     hodnota: (z) => z.licensePlate,
     mono: true,
   ),
-  SloupecZakazek(nazev: 'Model', sirka: 190, hodnota: (z) => z.model),
-  SloupecZakazek(nazev: 'Zákazník', sirka: 190, hodnota: (z) => z.customerName),
-  SloupecZakazek(
-    nazev: 'Zodpovídá',
-    sirka: 150,
-    hodnota: (z) => z.mechanicName ?? '-',
-  ),
+  SloupecZakazek(nazev: 'Model', sirka: 180, hodnota: (z) => z.model),
+  SloupecZakazek(nazev: 'VIN', sirka: 175, hodnota: (z) => z.vin, mono: true),
   SloupecZakazek(
     nazev: 'Typ',
     sirka: 110,
@@ -77,8 +86,8 @@ final sloupceZakazek = <SloupecZakazek>[
     barva: (z) => z.stav?.color,
   ),
   SloupecZakazek(
-    nazev: 'Termín',
-    sirka: 92,
+    nazev: 'Ukončení',
+    sirka: 100,
     hodnota: (z) =>
         z.dueAt == null ? '-' : AppDateFormat.dayMonthSmart(z.dueAt!),
     barva: (z) => z.isOverdue() ? AppColors.danger : null,

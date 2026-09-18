@@ -82,8 +82,21 @@ void main() {
 
     expect(find.byType(TabulkaZakazek), findsOneWidget);
     expect(find.byType(OrderCard), findsNothing);
-    // Sloupce a data z obou zakázek.
-    expect(find.text('ZÁKAZNÍK'), findsOneWidget);
+    // Sloupce v dohodnutém pořadí a data z obou zakázek.
+    expect(sloupceZakazek.map((s) => s.nazev).toList(), [
+      'Přijato',
+      'Zodpovídá',
+      'Organizace',
+      'Zakázka',
+      'SPZ',
+      'Model',
+      'VIN',
+      'Typ',
+      'Stav Helios',
+      'Stav dílna',
+      'Ukončení',
+    ]);
+    expect(find.text('ORGANIZACE'), findsOneWidget);
     expect(find.text('ZK-26-0001'), findsOneWidget);
     expect(find.text('MIFAL SE'), findsOneWidget);
     // Volba přežije restart aplikace.
