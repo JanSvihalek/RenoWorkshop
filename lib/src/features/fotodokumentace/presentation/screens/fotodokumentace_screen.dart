@@ -56,16 +56,24 @@ class FotodokumentaceScreen extends ConsumerWidget {
 /// Fotky se nahrávají hned po pořízení, jedna za druhou. Když nahrání
 /// selže (hala bez signálu), fotka zůstane na kartě s červeným rámečkem
 /// a jde poslat znovu.
-class FotodokumentaceObsah extends ConsumerWidget {
+class FotodokumentaceObsah extends ConsumerStatefulWidget {
   const FotodokumentaceObsah({super.key, required this.orderId});
 
   final String orderId;
 
-  Future<void> _zGalerie(
-    BuildContext context,
-    WidgetRef ref,
-    KategorieFotky kategorie,
-  ) async {
+  @override
+  ConsumerState<FotodokumentaceObsah> createState() =>
+      _FotodokumentaceObsahState();
+}
+
+class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
+  /// Id vybraných fotek. Prázdné = běžný režim, klepnutí fotku otevře.
+  final Set<String> _vybrane = {};
+  bool _maze = false;
+
+  String get orderId => widget.orderId;
+
+  Future<void> _zGalerie(KategorieFotky kategorie) async {
     final fotky = await ref.read(ziskaniFotekProvider).zGalerie(context);
     if (fotky.isEmpty) return;
     await ref
@@ -73,11 +81,7 @@ class FotodokumentaceObsah extends ConsumerWidget {
         .pridej(kategorie, fotky);
   }
 
-  Future<void> _fotit(
-    BuildContext context,
-    WidgetRef ref,
-    KategorieFotky kategorie,
-  ) {
+  Future<void> _fotit(KategorieFotky kategorie) {
     final nahravani = ref.read(nahravaniFotekProvider(orderId).notifier);
     return ref
         .read(ziskaniFotekProvider)
@@ -88,7 +92,7 @@ class FotodokumentaceObsah extends ConsumerWidget {
             // Do telefonu jen z fotoaparátu - fotky z galerie v něm už jsou.
             // Záloha běží vedle nahrávání a nečeká se na ni.
             if (ref.read(nastaveniProvider).ukladatFotkyDoZarizeni) {
-              _ulozDoZarizeni(context, ref, kategorie, fotka);
+              _ulozDoZarizeni(kategorie, fotka);
             }
             nahravani.pridej(kategorie, [fotka]);
           },
@@ -96,8 +100,6 @@ class FotodokumentaceObsah extends ConsumerWidget {
   }
 
   Future<void> _ulozDoZarizeni(
-    BuildContext context,
-    WidgetRef ref,
     KategorieFotky kategorie,
     Uint8List fotka,
   ) async {
@@ -111,7 +113,7 @@ class FotodokumentaceObsah extends ConsumerWidget {
     } catch (chyba) {
       // Technik spoléhá, že fotku v telefonu má - když tam není, musí to
       // vědět hned, ne až ji bude hledat.
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -126,13 +128,84 @@ class FotodokumentaceObsah extends ConsumerWidget {
     }
   }
 
+  /// Klepnutí na fotku: v běžném režimu otevře, ve výběru přidá a ubere.
+  void _klepnuti(Fotka fotka) {
+    if (_vybrane.isEmpty) {
+      _ProhlizeniFotky.otevri(context, orderId: orderId, fotka: fotka);
+      return;
+    }
+    _prepni(fotka);
+  }
+
+  void _prepni(Fotka fotka) => setState(() {
+    if (!_vybrane.remove(fotka.id)) _vybrane.add(fotka.id);
+  });
+
+  void _zrusVyber() => setState(_vybrane.clear);
+
+  /// Smaže vybrané fotky. Maže se po jedné; co se nepovede, zůstane
+  /// vybrané, ať jde zkusit znovu.
+  Future<void> _smazVybrane() async {
+    final pocet = _vybrane.length;
+    final potvrzeno = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: Text('Smazat ${pocetFotek(pocet)}?'),
+        content: const Text(
+          'Fotky se smažou i ze sdílené složky. Vrátit to nejde.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Zrušit'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Smazat'),
+          ),
+        ],
+      ),
+    );
+    if (!(potvrzeno ?? false) || !mounted) return;
+
+    setState(() => _maze = true);
+    final zdroj = ref.read(fotkyDataSourceProvider);
+    String? chyba;
+    for (final id in _vybrane.toList()) {
+      try {
+        await zdroj.smazFotku(id);
+        _vybrane.remove(id);
+      } catch (e) {
+        chyba = e is ServiceOrderException
+            ? e.message
+            : 'Fotku se nepodařilo smazat.';
+      }
+    }
+
+    ref.invalidate(fotkyZakazkyProvider(orderId));
+    if (!mounted) return;
+    setState(() => _maze = false);
+    if (chyba != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(chyba)));
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final fotky = ref.watch(fotkyZakazkyProvider(orderId));
     final nahravane = ref.watch(nahravaniFotekProvider(orderId));
 
     return Column(
       children: [
+        if (_vybrane.isNotEmpty)
+          _ListaVyberu(
+            pocet: _vybrane.length,
+            maze: _maze,
+            onZrusit: _zrusVyber,
+            onSmazat: _smazVybrane,
+          ),
         if (fotky.hasError)
           _ChybaNacteni(
             zprava: fotky.error is ServiceOrderException
@@ -167,15 +240,12 @@ class FotodokumentaceObsah extends ConsumerWidget {
                     for (final fotka in nahravane)
                       if (fotka.kategorie == kategorie) fotka,
                   ],
-                  onGalerie: () => _zGalerie(context, ref, kategorie),
-                  onFotit: () => _fotit(context, ref, kategorie),
-                  onOtevrit: (fotka) => _ProhlizeniFotky.otevri(
-                    context,
-                    orderId: orderId,
-                    fotka: fotka,
-                  ),
-                  onNahravana: (fotka) =>
-                      _nabidkaNahravane(context, ref, fotka),
+                  onGalerie: () => _zGalerie(kategorie),
+                  onFotit: () => _fotit(kategorie),
+                  vybrane: _vybrane,
+                  onOtevrit: _klepnuti,
+                  onVybrat: _prepni,
+                  onNahravana: _nabidkaNahravane,
                 );
               },
             ),
@@ -185,11 +255,7 @@ class FotodokumentaceObsah extends ConsumerWidget {
     );
   }
 
-  Future<void> _nabidkaNahravane(
-    BuildContext context,
-    WidgetRef ref,
-    NahravanaFotka fotka,
-  ) async {
+  Future<void> _nabidkaNahravane(NahravanaFotka fotka) async {
     if (!fotka.selhala) return;
     final nahravani = ref.read(nahravaniFotekProvider(orderId).notifier);
     await showModalBottomSheet<void>(
@@ -273,7 +339,9 @@ class _KartaKategorie extends StatelessWidget {
     required this.nahravane,
     required this.onGalerie,
     required this.onFotit,
+    required this.vybrane,
     required this.onOtevrit,
+    required this.onVybrat,
     required this.onNahravana,
   });
 
@@ -283,7 +351,13 @@ class _KartaKategorie extends StatelessWidget {
   final List<NahravanaFotka> nahravane;
   final VoidCallback onGalerie;
   final VoidCallback onFotit;
+
+  /// Id vybraných fotek napříč všemi kategoriemi.
+  final Set<String> vybrane;
   final void Function(Fotka fotka) onOtevrit;
+
+  /// Dlouhý stisk: zapne výběr, případně fotku z výběru zase vyřadí.
+  final void Function(Fotka fotka) onVybrat;
   final void Function(NahravanaFotka fotka) onNahravana;
 
   @override
@@ -368,7 +442,12 @@ class _KartaKategorie extends StatelessWidget {
                       onTap: () => onNahravana(fotka),
                     ),
                   for (final fotka in fotky)
-                    _Miniatura(fotka: fotka, onTap: () => onOtevrit(fotka)),
+                    _Miniatura(
+                      fotka: fotka,
+                      vybrana: vybrane.contains(fotka.id),
+                      onTap: () => onOtevrit(fotka),
+                      onLongPress: () => onVybrat(fotka),
+                    ),
                 ],
               ),
             ),
@@ -384,10 +463,17 @@ class _KartaKategorie extends StatelessWidget {
 }
 
 class _Miniatura extends ConsumerWidget {
-  const _Miniatura({required this.fotka, required this.onTap});
+  const _Miniatura({
+    required this.fotka,
+    required this.vybrana,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final Fotka fotka;
+  final bool vybrana;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -398,32 +484,121 @@ class _Miniatura extends ConsumerWidget {
       padding: const EdgeInsets.only(right: Insets.sm),
       child: GestureDetector(
         onTap: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(Radii.input),
-          child: Container(
-            width: 80,
-            height: 80,
-            color: palette.plate,
-            child: obrazek.when(
-              data: (bajty) => Image.memory(
-                bajty,
-                fit: BoxFit.cover,
-                // Dekódovat jen v rozměru miniatury, ne 2000 px.
-                cacheWidth: 240,
-                gaplessPlayback: true,
-              ),
-              loading: () => const Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+        onLongPress: onLongPress,
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.input),
+              child: Container(
+                width: 80,
+                height: 80,
+                color: palette.plate,
+                foregroundDecoration: vybrana
+                    ? BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(Radii.input),
+                        border: Border.all(color: AppColors.accent, width: 3),
+                      )
+                    : null,
+                child: obrazek.when(
+                  data: (bajty) => Image.memory(
+                    bajty,
+                    fit: BoxFit.cover,
+                    // Dekódovat jen v rozměru miniatury, ne 2000 px.
+                    cacheWidth: 240,
+                    gaplessPlayback: true,
+                  ),
+                  loading: () => const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  error: (_, _) =>
+                      Icon(Icons.broken_image_outlined, color: palette.muted),
                 ),
               ),
-              error: (_, _) =>
-                  Icon(Icons.broken_image_outlined, color: palette.muted),
+            ),
+            if (vybrana)
+              const Positioned(
+                right: 4,
+                top: 4,
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 20,
+                  color: AppColors.accent,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Lišta nad kategoriemi, když je něco vybrané.
+class _ListaVyberu extends StatelessWidget {
+  const _ListaVyberu({
+    required this.pocet,
+    required this.maze,
+    required this.onZrusit,
+    required this.onSmazat,
+  });
+
+  final int pocet;
+  final bool maze;
+  final VoidCallback onZrusit;
+  final VoidCallback onSmazat;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      key: const Key('vyber-fotek'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.base,
+        vertical: Insets.xs,
+      ),
+      decoration: BoxDecoration(
+        color: palette.card,
+        border: Border(bottom: BorderSide(color: palette.hairline)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Zrušit výběr',
+            onPressed: maze ? null : onZrusit,
+            icon: const Icon(Icons.close_rounded),
+          ),
+          Expanded(
+            child: Text(
+              'Vybráno: $pocet',
+              style: AppTextStyles.cardBody.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
+          if (maze)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: Insets.base),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            TextButton.icon(
+              key: const Key('smazat-vybrane'),
+              onPressed: onSmazat,
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Smazat'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            ),
+        ],
       ),
     );
   }

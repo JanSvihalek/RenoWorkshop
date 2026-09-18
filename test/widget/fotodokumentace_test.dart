@@ -216,6 +216,55 @@ void main() {
     );
   });
 
+  testWidgets('vybrané fotky jdou smazat najednou', (tester) async {
+    await otevriZakazku(tester);
+    await klepni(
+      tester,
+      vKarte('exterier', find.byTooltip('Přidat z galerie')),
+    );
+    await klepni(
+      tester,
+      vKarte('poskozeni', find.byTooltip('Přidat z galerie')),
+    );
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(4));
+
+    // Dlouhý stisk zapne výběr, klepnutí přidává další fotky - i z jiné
+    // kategorie.
+    // Seznam kategorií je líný - po práci s druhou kartou je ta první
+    // mimo paměť, tak se k ní vrátíme posunem nahoru.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('kategorie-exterier')),
+      -300,
+      scrollable: find
+          .descendant(
+            of: find.byType(FotodokumentaceObsah),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+
+    final prvni = vKarte('exterier', find.byType(Image)).first;
+    await tester.longPress(prvni);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('vyber-fotek')), findsOneWidget);
+    expect(find.text('Vybráno: 1'), findsOneWidget);
+
+    await klepni(tester, vKarte('poskozeni', find.byType(Image)).first);
+    expect(find.text('Vybráno: 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('smazat-vybrane')));
+    await tester.pumpAndSettle();
+    // „Smazat" je i na tlačítku v liště - potvrzuje se to v dialogu,
+    // který je v seznamu widgetů poslední.
+    expect(find.text('Smazat 2 fotky?'), findsOneWidget);
+    await tester.tap(find.text('Smazat').last);
+    await tester.pumpAndSettle();
+
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(2));
+    expect(find.byKey(const Key('vyber-fotek')), findsNothing);
+  });
+
   testWidgets('karta v detailu hlásí fotky, které se nenahrály', (
     tester,
   ) async {
