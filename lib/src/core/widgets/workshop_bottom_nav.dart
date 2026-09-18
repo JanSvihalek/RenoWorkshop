@@ -39,8 +39,8 @@ class WorkshopBottomNav extends StatelessWidget {
     _NavItem(
       WorkshopTab.vyhledavani,
       'Vozidla',
-      Icons.directions_car_outlined,
-      Icons.directions_car,
+      Icons.search_outlined,
+      Icons.search_rounded,
     ),
     _NavItem(
       WorkshopTab.settings,

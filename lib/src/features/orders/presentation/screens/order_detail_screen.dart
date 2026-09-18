@@ -174,132 +174,177 @@ class _DetailBody extends ConsumerWidget {
     final isBusy = ref.watch(orderActionsProvider).isLoading;
     final overdue = order.isOverdue();
 
+    final datumy = Row(
+      children: [
+        Expanded(
+          child: InfoBox(
+            label: 'PŘIJATO',
+            // Bez času: s ním se datum v úzkém sloupci lámalo do dvou
+            // řádků a hodina příjmu nikoho nezajímá.
+            value: order.receivedAt == null
+                ? 'Neuvedeno'
+                : AppDateFormat.date(order.receivedAt!),
+          ),
+        ),
+        const SizedBox(width: Insets.md),
+        Expanded(
+          child: InfoBox(
+            label: 'TERMÍN DOKONČENÍ',
+            value: order.dueAt == null
+                ? 'Neuvedeno'
+                : AppDateFormat.date(order.dueAt!),
+            valueColor: overdue ? AppColors.danger : null,
+          ),
+        ),
+      ],
+    );
+
+    final pojisteni = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: InfoBox(
+            label: 'POJIŠŤOVNA',
+            value: order.pojistovna ?? 'Neuvedeno',
+          ),
+        ),
+        const SizedBox(width: Insets.md),
+        Expanded(
+          child: InfoBox(
+            label: 'POJISTNÁ UDÁLOST',
+            value: order.cisloPojistneUdalosti ?? 'Neuvedeno',
+          ),
+        ),
+      ],
+    );
+
+    final postup = DetailCard(
+      padding: const EdgeInsets.fromLTRB(
+        Insets.xl,
+        Insets.xl,
+        Insets.xl,
+        Insets.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: SectionLabel('POSTUP ZAKÁZKY')),
+              _PridatStavOdkaz(
+                isBusy: isBusy,
+                onTap: () => _pridejStav(context, ref),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.base),
+          StatusTimeline(
+            historie: order.historieStavu,
+            bay: order.bayLabel,
+            onSmazat: (stav) => _smazStav(context, ref, stav),
+          ),
+        ],
+      ),
+    );
+
+    final predmet = PredmetOpravyCard(
+      predmet: order.predmetOpravy,
+      onUpravit: () => _upravPredmet(context, ref),
+    );
+
+    final poznamky = NotesCard(
+      notes: order.notes,
+      onAddNote: () => _addNote(context, ref),
+    );
+
+    final prijem = onPrijem == null
+        ? null
+        : PrijemKarta(orderId: order.id, onOtevrit: () => onPrijem!(order.id));
+
+    final fotky = onFotodokumentace == null
+        ? null
+        : FotodokumentaceKarta(
+            orderId: order.id,
+            onOtevrit: () => onFotodokumentace!(order.id),
+          );
+
+    // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
+    // s odškrtáváním, do které ale nikdy nic neteklo.
+    final zavady = ZavadyCard(zavady: order.zavady);
+
+    // Na širokém tabletu dva sloupce: vlevo co se čte (kdy přišel vůz,
+    // pojištění, příjem, fotky, závady), vpravo co se zapisuje. Přes celou
+    // šířku by karty byly nepřehledně roztažené.
+    final ctenari = <Widget>[
+      datumy,
+      if (order.pojisteniPopisek != null) pojisteni,
+      ?prijem,
+      ?fotky,
+      zavady,
+    ];
+    final zapisovaci = <Widget>[postup, predmet, poznamky];
+
+    // Na telefonu jeden sloupec v pořadí, jak se zakázka prochází.
+    final zaSebou = <Widget>[
+      datumy,
+      if (order.pojisteniPopisek != null) pojisteni,
+      predmet,
+      postup,
+      ?prijem,
+      ?fotky,
+      poznamky,
+      zavady,
+    ];
+
     return Column(
       children: [
         _DetailHeader(order: order, onBack: onBack, zobrazitZpet: zobrazitZpet),
         Expanded(
-          child: ListView(
-            // Dole i systémová lišta telefonu: spodní tlačítko, které ji
-            // dřív kryl, už tu není.
-            padding: EdgeInsets.fromLTRB(
-              Insets.xl,
-              Insets.xl,
-              Insets.xl,
-              Insets.huge + MediaQuery.paddingOf(context).bottom,
-            ),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: InfoBox(
-                      label: 'PŘIJATO',
-                      // Bez času: s ním se datum v úzkém sloupci lámalo
-                      // do dvou řádků a hodina příjmu nikoho nezajímá.
-                      value: order.receivedAt == null
-                          ? 'Neuvedeno'
-                          : AppDateFormat.date(order.receivedAt!),
-                    ),
-                  ),
-                  const SizedBox(width: Insets.md),
-                  Expanded(
-                    child: InfoBox(
-                      label: 'TERMÍN DOKONČENÍ',
-                      value: order.dueAt == null
-                          ? 'Neuvedeno'
-                          : AppDateFormat.date(order.dueAt!),
-                      valueColor: overdue ? AppColors.danger : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Insets.base),
-              if (order.pojisteniPopisek != null) ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: InfoBox(
-                        label: 'POJIŠŤOVNA',
-                        value: order.pojistovna ?? 'Neuvedeno',
-                      ),
-                    ),
-                    const SizedBox(width: Insets.md),
-                    Expanded(
-                      child: InfoBox(
-                        label: 'POJISTNÁ UDÁLOST',
-                        value: order.cisloPojistneUdalosti ?? 'Neuvedeno',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Insets.base),
-              ],
-              PredmetOpravyCard(
-                predmet: order.predmetOpravy,
-                onUpravit: () => _upravPredmet(context, ref),
-              ),
-              const SizedBox(height: Insets.base),
-              DetailCard(
-                padding: const EdgeInsets.fromLTRB(
-                  Insets.xl,
-                  Insets.xl,
-                  Insets.xl,
-                  Insets.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(child: SectionLabel('POSTUP ZAKÁZKY')),
-                        _PridatStavOdkaz(
-                          isBusy: isBusy,
-                          onTap: () => _pridejStav(context, ref),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Insets.base),
-                    StatusTimeline(
-                      historie: order.historieStavu,
-                      bay: order.bayLabel,
-                      onSmazat: (stav) => _smazStav(context, ref, stav),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Insets.base),
-              if (onPrijem != null) ...[
-                // Příjem před fotkami - vůz se nejdřív zkontroluje, pak
-                // se nafotí, a nálezy z kontroly má vidět každý.
-                PrijemKarta(
-                  orderId: order.id,
-                  onOtevrit: () => onPrijem!(order.id),
-                ),
-                const SizedBox(height: Insets.base),
-              ],
-              if (onFotodokumentace != null) ...[
-                // Hned pod postupem: při příjmu je to první, co se u zakázky
-                // dělá, a během opravy se k fotkám vrací.
-                FotodokumentaceKarta(
-                  orderId: order.id,
-                  onOtevrit: () => onFotodokumentace!(order.id),
-                ),
-                const SizedBox(height: Insets.base),
-              ],
-              // Poznámky hned pod postupem - dopisují se k tomu, co se na
-              // zakázce děje, a čtou se spolu s ním.
-              NotesCard(
-                notes: order.notes,
-                onAddNote: () => _addNote(context, ref),
-              ),
-              const SizedBox(height: Insets.base),
-              // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
-              // s odškrtáváním, do které ale nikdy nic neteklo.
-              ZavadyCard(zavady: order.zavady),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) =>
+                constraints.maxWidth >= _sirkaProDvaSloupce
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Každý sloupec se posouvá zvlášť - časová osa bývá
+                      // dlouhá a nemá tahat dolů i zbytek.
+                      Expanded(child: _Sloupec(karty: ctenari)),
+                      Expanded(child: _Sloupec(karty: zapisovaci)),
+                    ],
+                  )
+                : _Sloupec(karty: zaSebou),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Od téhle šířky se detail dělí na dva sloupce. Míň než šířka tabletu:
+/// v rozděleném zobrazení vedle seznamu zbude na detail jen část plochy
+/// a tam dva sloupce nedávají smysl.
+const double _sirkaProDvaSloupce = 900;
+
+/// Karty pod sebou s mezerami a odsazením.
+class _Sloupec extends StatelessWidget {
+  const _Sloupec({required this.karty});
+
+  final List<Widget> karty;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      // Dole i systémová lišta telefonu: spodní tlačítko, které ji dřív
+      // krylo, už tu není.
+      padding: EdgeInsets.fromLTRB(
+        Insets.xl,
+        Insets.xl,
+        Insets.xl,
+        Insets.huge + MediaQuery.paddingOf(context).bottom,
+      ),
+      itemCount: karty.length,
+      separatorBuilder: (_, _) => const SizedBox(height: Insets.base),
+      itemBuilder: (_, index) => karty[index],
     );
   }
 }

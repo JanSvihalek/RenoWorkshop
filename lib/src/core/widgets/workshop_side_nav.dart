@@ -40,8 +40,8 @@ class WorkshopSideNav extends StatelessWidget {
     (
       WorkshopTab.vyhledavani,
       'Vozidla',
-      Icons.directions_car_outlined,
-      Icons.directions_car,
+      Icons.search_outlined,
+      Icons.search_rounded,
     ),
     (
       WorkshopTab.settings,
