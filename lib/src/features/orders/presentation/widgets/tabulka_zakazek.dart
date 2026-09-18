@@ -68,11 +68,6 @@ final sloupceZakazek = <SloupecZakazek>[
   SloupecZakazek(nazev: 'Model', sirka: 180, hodnota: (z) => z.model),
   SloupecZakazek(nazev: 'VIN', sirka: 175, hodnota: (z) => z.vin, mono: true),
   SloupecZakazek(
-    nazev: 'Typ',
-    sirka: 80,
-    hodnota: (z) => z.typZakazky?.nazev ?? '-',
-  ),
-  SloupecZakazek(
     nazev: 'Stav Helios',
     sirka: 100,
     hodnota: (z) => z.heliosStatus ?? '-',
@@ -86,11 +81,21 @@ final sloupceZakazek = <SloupecZakazek>[
     barva: (z) => z.stav?.color,
   ),
   SloupecZakazek(
+    nazev: 'Typ',
+    sirka: 80,
+    hodnota: (z) => z.typZakazky?.nazev ?? '-',
+  ),
+  SloupecZakazek(
     nazev: 'Ukončení',
     sirka: 100,
     hodnota: (z) =>
         z.dueAt == null ? '-' : AppDateFormat.dayMonthSmart(z.dueAt!),
     barva: (z) => z.isOverdue() ? AppColors.danger : null,
+  ),
+  SloupecZakazek(
+    nazev: 'Útvar',
+    sirka: 90,
+    hodnota: (z) => z.department?.code ?? '-',
   ),
 ];
 

@@ -91,10 +91,11 @@ void main() {
       'SPZ',
       'Model',
       'VIN',
-      'Typ',
       'Stav Helios',
       'Stav dílna',
+      'Typ',
       'Ukončení',
+      'Útvar',
     ]);
     expect(find.text('ORGANIZACE'), findsOneWidget);
     expect(find.text('ZK-26-0001'), findsOneWidget);
