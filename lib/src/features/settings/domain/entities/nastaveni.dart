@@ -46,6 +46,27 @@ enum UmisteniSpouste {
   }
 }
 
+/// Jak se ukazuje seznam zakázek.
+///
+/// Karty jsou na dílně v ruce čitelnější, tabulka ukáže víc zakázek naráz
+/// a údaje pod sebou - u stolu se v ní hledá rychleji, podobně jako
+/// v Heliosu.
+enum ZobrazeniZakazek {
+  karty('Karty'),
+  tabulka('Tabulka');
+
+  const ZobrazeniZakazek(this.label);
+
+  final String label;
+
+  static ZobrazeniZakazek zNazvu(String? nazev) {
+    for (final zobrazeni in values) {
+      if (zobrazeni.name == nazev) return zobrazeni;
+    }
+    return ZobrazeniZakazek.karty;
+  }
+}
+
 /// Co si aplikace pamatuje mezi spuštěními.
 ///
 /// Drží se v telefonu, ne na serveru: jde o pohodlí konkrétního přístroje.
@@ -61,6 +82,7 @@ class Nastaveni {
     this.vychoziZodpovida,
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
+    this.zobrazeniZakazek = ZobrazeniZakazek.karty,
   });
 
   final RezimVzhledu vzhled;
@@ -97,6 +119,10 @@ class Nastaveni {
   /// sdíleného telefonu nejsou samozřejmost a zabírají místo.
   final bool ukladatFotkyDoZarizeni;
 
+  /// Karty, nebo řádková tabulka. V tabulce se detail otevírá přes celou
+  /// obrazovku i na tabletu - vedle tabulky by se nevešel.
+  final ZobrazeniZakazek zobrazeniZakazek;
+
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
@@ -114,6 +140,7 @@ class Nastaveni {
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
+    ZobrazeniZakazek? zobrazeniZakazek,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -128,6 +155,7 @@ class Nastaveni {
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
+      zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
     );
   }
 
@@ -141,7 +169,8 @@ class Nastaveni {
           other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida &&
           other.slozkaFotek == slozkaFotek &&
-          other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni);
+          other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
+          other.zobrazeniZakazek == zobrazeniZakazek);
 
   @override
   int get hashCode => Object.hash(
@@ -152,5 +181,6 @@ class Nastaveni {
     vychoziZodpovida,
     slozkaFotek,
     ukladatFotkyDoZarizeni,
+    zobrazeniZakazek,
   );
 }

@@ -17,6 +17,8 @@ import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.
 import '../features/prijem/presentation/controllers/prijem_providers.dart';
 import '../features/prijem/presentation/screens/prijem_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
+import '../features/settings/domain/entities/nastaveni.dart';
+import '../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
@@ -137,23 +139,32 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.orders,
                 // Na tabletu je seznam levým sloupcem vedle detailu, na
                 // telefonu zůstává detail samostatnou obrazovkou nad ním.
-                builder: (context, state) => context.jeTablet
-                    ? RozdeleneZakazkyScreen(
-                        onSearchArchive: (dotaz) =>
-                            context.push(AppRoutes.archivHledani(dotaz)),
-                        onScanCode: () => context.push(AppRoutes.skener),
-                        onFotodokumentace: (id) =>
-                            context.push(AppRoutes.fotodokumentace(id)),
-                        onPrijem: (id) =>
-                            context.push(AppRoutes.prijemZakazky(id)),
-                      )
-                    : OrdersListScreen(
-                        onOpenOrder: (order) =>
-                            context.push(AppRoutes.orderDetail(order.id)),
-                        onSearchArchive: (dotaz) =>
-                            context.push(AppRoutes.archivHledani(dotaz)),
-                        onScanCode: () => context.push(AppRoutes.skener),
-                      ),
+                // V tabulce je detail vždy přes celou obrazovku - vedle
+                // deseti sloupců by se nevešel.
+                builder: (context, state) => Consumer(
+                  builder: (context, ref, _) {
+                    final vTabulce =
+                        ref.watch(nastaveniProvider).zobrazeniZakazek ==
+                        ZobrazeniZakazek.tabulka;
+                    return context.jeTablet && !vTabulce
+                        ? RozdeleneZakazkyScreen(
+                            onSearchArchive: (dotaz) =>
+                                context.push(AppRoutes.archivHledani(dotaz)),
+                            onScanCode: () => context.push(AppRoutes.skener),
+                            onFotodokumentace: (id) =>
+                                context.push(AppRoutes.fotodokumentace(id)),
+                            onPrijem: (id) =>
+                                context.push(AppRoutes.prijemZakazky(id)),
+                          )
+                        : OrdersListScreen(
+                            onOpenOrder: (order) =>
+                                context.push(AppRoutes.orderDetail(order.id)),
+                            onSearchArchive: (dotaz) =>
+                                context.push(AppRoutes.archivHledani(dotaz)),
+                            onScanCode: () => context.push(AppRoutes.skener),
+                          );
+                  },
+                ),
               ),
             ],
           ),

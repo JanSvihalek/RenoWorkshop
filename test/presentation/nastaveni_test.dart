@@ -123,6 +123,29 @@ void main() {
       );
     });
 
+    test('zobrazení seznamu přežije restart, neznámé jsou karty', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await SharedPreferencesNastaveni(
+        prefs,
+      ).uloz(const Nastaveni(zobrazeniZakazek: ZobrazeniZakazek.tabulka));
+
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().zobrazeniZakazek,
+        ZobrazeniZakazek.tabulka,
+      );
+
+      SharedPreferences.setMockInitialValues({
+        'nastaveni.zobrazeniZakazek': 'dlazdice',
+      });
+      expect(
+        SharedPreferencesNastaveni(
+          await SharedPreferences.getInstance(),
+        ).nacti().zobrazeniZakazek,
+        ZobrazeniZakazek.karty,
+      );
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

@@ -16,6 +16,9 @@ import '../widgets/order_card.dart';
 import '../widgets/order_search_field.dart';
 import '../widgets/orders_empty_state.dart';
 import '../widgets/filtr_lista.dart';
+import '../widgets/tabulka_zakazek.dart';
+import '../../../settings/domain/entities/nastaveni.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 
 /// Hlavní obrazovka: všechny zakázky na dílně (ne "moje vozidlo").
 class OrdersListScreen extends ConsumerStatefulWidget {
@@ -119,6 +122,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final palette = context.palette;
     final orders = ref.watch(filteredOrdersProvider);
     final filter = ref.watch(orderFilterProvider);
+    final zobrazeni = ref.watch(nastaveniProvider).zobrazeniZakazek;
 
     // Hledání vyplněné zvenčí (skener) se musí objevit i v poli - seznam
     // zůstává otevřený pod skenerem a pole by jinak ukazovalo starý text.
@@ -187,6 +191,15 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                                 : null,
                           ),
                         ),
+                      ),
+                    )
+                  : zobrazeni == ZobrazeniZakazek.tabulka
+                  ? RefreshIndicator.adaptive(
+                      onRefresh: () async =>
+                          ref.invalidate(ordersStreamProvider),
+                      child: TabulkaZakazek(
+                        zakazky: data,
+                        onOpenOrder: widget.onOpenOrder,
                       ),
                     )
                   : RefreshIndicator.adaptive(
@@ -269,6 +282,8 @@ class _ListHeader extends ConsumerWidget {
                   ).copyWith(color: text),
                 ),
               ),
+              _PrepinacZobrazeni(naTmavem: !naTablet),
+              const SizedBox(width: Insets.sm),
               _EmployeeAvatar(initials: employee?.initials ?? 'RW'),
             ],
           ),
@@ -310,6 +325,71 @@ class _ListHeader extends ConsumerWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Přepnutí mezi kartami a řádkovou tabulkou. Volba se pamatuje
+/// v nastavení telefonu, takže seznam se příště otevře stejně.
+class _PrepinacZobrazeni extends ConsumerWidget {
+  const _PrepinacZobrazeni({required this.naTmavem});
+
+  /// V navy hlavičce (telefon) jsou ikony bílé, v šedé na tabletu tmavé.
+  final bool naTmavem;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final vybrane = ref.watch(nastaveniProvider).zobrazeniZakazek;
+    final barva = naTmavem ? Colors.white : palette.text;
+
+    Widget tlacitko(ZobrazeniZakazek zobrazeni, IconData ikona) {
+      final aktivni = zobrazeni == vybrane;
+      return Semantics(
+        button: true,
+        selected: aktivni,
+        label: 'Zobrazení: ${zobrazeni.label}',
+        child: GestureDetector(
+          key: Key('zobrazeni-${zobrazeni.name}'),
+          onTap: () => ref
+              .read(nastaveniProvider.notifier)
+              .zmenZobrazeniZakazek(zobrazeni),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 34,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: aktivni
+                  ? (naTmavem ? Colors.white24 : palette.hairline2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(Radii.chip),
+            ),
+            child: Icon(
+              ikona,
+              size: 18,
+              color: aktivni ? barva : barva.withValues(alpha: 0.55),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: naTmavem ? Colors.white30 : palette.hairline2,
+        ),
+        borderRadius: BorderRadius.circular(Radii.chip + 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          tlacitko(ZobrazeniZakazek.karty, Icons.view_agenda_outlined),
+          tlacitko(ZobrazeniZakazek.tabulka, Icons.table_rows_outlined),
         ],
       ),
     );
