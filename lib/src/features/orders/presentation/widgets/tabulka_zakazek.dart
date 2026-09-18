@@ -45,12 +45,12 @@ final sloupceZakazek = <SloupecZakazek>[
   ),
   SloupecZakazek(
     nazev: 'Zodpovídá',
-    sirka: 150,
+    sirka: 130,
     hodnota: (z) => z.mechanicName ?? '-',
   ),
   SloupecZakazek(
     nazev: 'Organizace',
-    sirka: 190,
+    sirka: 150,
     hodnota: (z) => z.customerName,
   ),
   SloupecZakazek(
@@ -69,19 +69,19 @@ final sloupceZakazek = <SloupecZakazek>[
   SloupecZakazek(nazev: 'VIN', sirka: 175, hodnota: (z) => z.vin, mono: true),
   SloupecZakazek(
     nazev: 'Typ',
-    sirka: 110,
+    sirka: 80,
     hodnota: (z) => z.typZakazky?.nazev ?? '-',
   ),
   SloupecZakazek(
     nazev: 'Stav Helios',
-    sirka: 140,
+    sirka: 100,
     hodnota: (z) => z.heliosStatus ?? '-',
     // Zeleně jako všude jinde - je pak poznat, který stav je z ERP.
     barva: (z) => z.heliosStatus == null ? null : AppColors.heliosGreen,
   ),
   SloupecZakazek(
     nazev: 'Stav dílna',
-    sirka: 170,
+    sirka: 130,
     hodnota: (z) => z.stav?.nazev ?? 'Bez stavu',
     barva: (z) => z.stav?.color,
   ),
