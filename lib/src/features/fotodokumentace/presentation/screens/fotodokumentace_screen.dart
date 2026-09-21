@@ -306,21 +306,9 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
                 Insets.xl,
                 Insets.giant + MediaQuery.paddingOf(context).bottom,
               ),
-              // Za kategoriemi fotek ještě karta dokumentů.
-              itemCount: KategorieFotky.values.length + 1,
+              itemCount: KategorieFotky.values.length,
               separatorBuilder: (_, _) => const SizedBox(height: Insets.md),
               itemBuilder: (context, index) {
-                if (index == KategorieFotky.values.length) {
-                  return _KartaDokumentu(
-                    dokumenty: dokumenty,
-                    nahrava: _nahravaDokumentu,
-                    oteviraId: _oteviraDokument,
-                    onNahrat: _nahrajDokumenty,
-                    onOtevrit: _otevriDokument,
-                    onZnovu: () =>
-                        ref.invalidate(dokumentyZakazkyProvider(orderId)),
-                  );
-                }
                 final kategorie = KategorieFotky.values[index];
                 return _KartaKategorie(
                   kategorie: kategorie,
@@ -339,6 +327,19 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
                   onOtevrit: _klepnuti,
                   onVybrat: _prepni,
                   onNahravana: _nabidkaNahravane,
+                  // Ostatní dokumentace má navíc dokumenty ze složky
+                  // zakázky - PDF i cokoli mimo ostatní kategorie.
+                  dokumenty: kategorie == KategorieFotky.ostatni
+                      ? _DokumentyKategorie(
+                          dokumenty: dokumenty,
+                          nahrava: _nahravaDokumentu,
+                          oteviraId: _oteviraDokument,
+                          onNahrat: _nahrajDokumenty,
+                          onOtevrit: _otevriDokument,
+                          onZnovu: () =>
+                              ref.invalidate(dokumentyZakazkyProvider(orderId)),
+                        )
+                      : null,
                 );
               },
             ),
@@ -436,6 +437,7 @@ class _KartaKategorie extends StatelessWidget {
     required this.onOtevrit,
     required this.onVybrat,
     required this.onNahravana,
+    this.dokumenty,
   });
 
   final KategorieFotky kategorie;
@@ -453,13 +455,21 @@ class _KartaKategorie extends StatelessWidget {
   final void Function(Fotka fotka) onVybrat;
   final void Function(NahravanaFotka fotka) onNahravana;
 
+  /// Dokumenty - jen u Ostatní dokumentace.
+  final _DokumentyKategorie? dokumenty;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final pocet = fotky.length + nahravane.length;
+    final pocetDok = dokumenty?.pocet ?? 0;
     // Zelený rámeček: kategorie je nafocená. Na první pohled je vidět, co
     // při obchůzce ještě chybí.
-    final hotovo = fotky.isNotEmpty;
+    final hotovo = fotky.isNotEmpty || pocetDok > 0;
+    final souhrn = [
+      if (pocet > 0) pocetFotek(pocet),
+      if (pocetDok > 0) pocetDokumentu(pocetDok),
+    ].join(' · ');
 
     return Container(
       key: Key('kategorie-${kategorie.klic}'),
@@ -496,9 +506,9 @@ class _KartaKategorie extends StatelessWidget {
                         color: palette.text,
                       ),
                     ),
-                    if (pocet > 0)
+                    if (souhrn.isNotEmpty)
                       Text(
-                        pocetFotek(pocet),
+                        souhrn,
                         style: AppTextStyles.metaSmall.copyWith(
                           color: palette.muted,
                         ),
@@ -511,6 +521,7 @@ class _KartaKategorie extends StatelessWidget {
                 onPressed: onGalerie,
                 icon: Icon(Icons.photo_library_rounded, color: palette.muted),
               ),
+              ?dokumenty?.tlacitko(context),
               IconButton(
                 tooltip: 'Vyfotit',
                 onPressed: onFotit,
@@ -549,16 +560,18 @@ class _KartaKategorie extends StatelessWidget {
               padding: EdgeInsets.only(top: Insets.sm),
               child: LinearProgressIndicator(minHeight: 2),
             ),
+          ?dokumenty,
         ],
       ),
     );
   }
 }
 
-/// Dokumenty zakázky: PDF, skeny, tabulky. Nahrané z aplikace i vložené
-/// ručně do složky zakázky na souborovém serveru.
-class _KartaDokumentu extends StatelessWidget {
-  const _KartaDokumentu({
+/// Dokumenty v kartě Ostatní dokumentace: tlačítko pro nahrání do hlavičky
+/// karty a seznam pod miniaturami fotek. Nahrané z aplikace i cokoli, co
+/// kolega vložil do složky zakázky mimo ostatní kategorie.
+class _DokumentyKategorie extends StatelessWidget {
+  const _DokumentyKategorie({
     required this.dokumenty,
     required this.nahrava,
     required this.oteviraId,
@@ -576,111 +589,70 @@ class _KartaDokumentu extends StatelessWidget {
   final void Function(Dokument dokument) onOtevrit;
   final VoidCallback onZnovu;
 
+  int get pocet => dokumenty.valueOrNull?.length ?? 0;
+
+  /// Nahrání dokumentu - vedle galerie a focení v hlavičce karty.
+  Widget tlacitko(BuildContext context) {
+    if (nahrava > 0) {
+      return const Padding(
+        padding: EdgeInsets.all(14),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    return IconButton(
+      key: const Key('nahrat-dokument'),
+      tooltip: 'Nahrát dokument (PDF…)',
+      onPressed: onNahrat,
+      icon: Icon(Icons.upload_file_rounded, color: context.palette.muted),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     final seznam = dokumenty.valueOrNull ?? const <Dokument>[];
 
-    return Container(
-      key: const Key('dokumenty'),
-      decoration: BoxDecoration(
-        color: palette.card,
-        borderRadius: BorderRadius.circular(Radii.card + 4),
-        border: Border.all(color: palette.hairline),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-        Insets.xl,
-        Insets.base,
-        Insets.sm,
-        Insets.base,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    if (dokumenty.hasError && !dokumenty.hasValue) {
+      return Row(
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.folder_copy_rounded,
-                color: AppColors.accent,
-                size: 28,
-              ),
-              const SizedBox(width: Insets.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Dokumenty',
-                      style: AppTextStyles.cardModel.copyWith(
-                        color: palette.text,
-                      ),
-                    ),
-                    Text(
-                      nahrava > 0
-                          ? 'Nahrávám… (zbývá $nahrava)'
-                          : seznam.isEmpty
-                          ? 'PDF, skeny, tabulky'
-                          : pocetDokumentu(seznam.length),
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (nahrava > 0)
-                const Padding(
-                  padding: EdgeInsets.all(Insets.base),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              else
-                IconButton(
-                  key: const Key('nahrat-dokument'),
-                  tooltip: 'Nahrát dokument',
-                  onPressed: onNahrat,
-                  icon: const Icon(
-                    Icons.upload_file_rounded,
-                    color: AppColors.accent,
-                  ),
-                ),
-            ],
+          Expanded(
+            child: Text(
+              dokumenty.error is ServiceOrderException
+                  ? (dokumenty.error! as ServiceOrderException).message
+                  : 'Dokumenty se nepodařilo načíst.',
+              style: AppTextStyles.metaSmall.copyWith(color: AppColors.danger),
+            ),
           ),
-          if (dokumenty.hasError && !dokumenty.hasValue)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    dokumenty.error is ServiceOrderException
-                        ? (dokumenty.error! as ServiceOrderException).message
-                        : 'Dokumenty se nepodařilo načíst.',
-                    style: AppTextStyles.metaSmall.copyWith(
-                      color: AppColors.danger,
-                    ),
-                  ),
-                ),
-                TextButton(onPressed: onZnovu, child: const Text('Znovu')),
-              ],
-            )
-          else if (dokumenty.isLoading && !dokumenty.hasValue)
-            const Padding(
-              padding: EdgeInsets.only(top: Insets.sm, right: Insets.lg),
-              child: LinearProgressIndicator(minHeight: 2),
-            )
-          else ...[
-            const SizedBox(height: Insets.xs),
-            for (final dokument in seznam)
-              _RadekDokumentu(
-                dokument: dokument,
-                otevira: oteviraId == dokument.id,
-                onTap: () => onOtevrit(dokument),
-              ),
-          ],
+          TextButton(onPressed: onZnovu, child: const Text('Znovu')),
         ],
-      ),
+      );
+    }
+
+    return Column(
+      key: const Key('dokumenty'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (nahrava > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: Insets.xs),
+            child: Text(
+              'Nahrávám dokumenty… (zbývá $nahrava)',
+              style: AppTextStyles.metaSmall.copyWith(
+                color: context.palette.muted,
+              ),
+            ),
+          ),
+        if (seznam.isNotEmpty) const SizedBox(height: Insets.xs),
+        for (final dokument in seznam)
+          _RadekDokumentu(
+            dokument: dokument,
+            otevira: oteviraId == dokument.id,
+            onTap: () => onOtevrit(dokument),
+          ),
+      ],
     );
   }
 }
@@ -702,8 +674,8 @@ class _RadekDokumentu extends StatelessWidget {
     final popis = [
       velikostSouboru(dokument.velikost),
       AppDateFormat.dateTime(dokument.zmenenoAt),
-      // Soubor, který někdo vložil přímo do složky zakázky na serveru.
-      if (!dokument.nahranyZAplikace) 'vloženo ve složce',
+      // Soubor mimo složku Ostatni - ať ho kolega na serveru najde.
+      ?dokument.umisteni,
     ].join(' · ');
 
     return InkWell(

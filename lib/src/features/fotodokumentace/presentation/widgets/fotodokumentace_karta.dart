@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../orders/presentation/widgets/detail_cards.dart';
+import '../../domain/entities/dokument.dart';
 import '../../domain/entities/fotka.dart';
 import '../controllers/fotky_providers.dart';
 
@@ -34,6 +35,12 @@ class FotodokumentaceKarta extends ConsumerWidget {
     final nahrava = nahravane.length - selhalo;
 
     final nahrane = fotky.valueOrNull ?? const <Fotka>[];
+    // Dokumenty (PDF a vše mimo kategorie fotek) se jen připočítají -
+    // když se nenačtou, karta kvůli nim chybu neukazuje.
+    final dokumenty =
+        ref.watch(dokumentyZakazkyProvider(orderId)).valueOrNull ??
+        const <Dokument>[];
+    final prazdna = nahrane.isEmpty && dokumenty.isEmpty;
     final kategorie = [
       for (final k in KategorieFotky.values)
         if (nahrane.any((f) => f.kategorie == k)) k,
@@ -44,12 +51,14 @@ class FotodokumentaceKarta extends ConsumerWidget {
       popis = 'Fotky se nepodařilo načíst.';
     } else if (!fotky.hasValue) {
       popis = 'Načítám fotky…';
-    } else if (nahrane.isEmpty) {
-      popis = 'Zatím bez fotek.';
+    } else if (prazdna) {
+      popis = 'Zatím bez fotek a dokumentů.';
     } else {
       popis = [
-        pocetFotek(nahrane.length),
-        kategorie.map((k) => k.kratkyNazev).join(', '),
+        if (nahrane.isNotEmpty) pocetFotek(nahrane.length),
+        if (kategorie.isNotEmpty)
+          kategorie.map((k) => k.kratkyNazev).join(', '),
+        if (dokumenty.isNotEmpty) pocetDokumentu(dokumenty.length),
       ].join(' · ');
     }
 
@@ -78,11 +87,11 @@ class FotodokumentaceKarta extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    nahrane.isEmpty
+                    prazdna
                         ? Icons.add_a_photo_outlined
                         : Icons.photo_library_outlined,
                     size: 20,
-                    color: nahrane.isEmpty ? AppColors.accent : palette.muted,
+                    color: prazdna ? AppColors.accent : palette.muted,
                   ),
                   const SizedBox(width: Insets.md),
                   Expanded(

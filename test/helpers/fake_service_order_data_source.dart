@@ -168,6 +168,8 @@ class FakeServiceOrderDataSource
       nazev: nazev,
       velikost: data.length,
       zmenenoAt: DateTime(2026, 9, 21, 12, 30),
+      // Server nahrává do složky kategorie Ostatní.
+      slozka: 'Ostatni',
     );
     bajtyDokumentu[dokument.id] = data;
     dokumenty.putIfAbsent(orderId, () => []).insert(0, dokument);

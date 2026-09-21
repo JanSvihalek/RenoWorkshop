@@ -182,7 +182,10 @@ void main() {
     await tester.pumpAndSettle();
     final karta = await naKartuFotek(tester);
     expect(
-      find.descendant(of: karta, matching: find.text('Zatím bez fotek.')),
+      find.descendant(
+        of: karta,
+        matching: find.text('Zatím bez fotek a dokumentů.'),
+      ),
       findsOneWidget,
     );
 

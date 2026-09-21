@@ -8,6 +8,7 @@ import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokument.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/presentation/prace_s_dokumenty.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
@@ -80,7 +81,6 @@ void main() {
   ) async {
     await otevri(tester, nastaveni: const Nastaveni(slozkaFotek: 'KCP'));
     await dolu(tester);
-    expect(find.text('PDF, skeny, tabulky'), findsOneWidget);
 
     prace.vybrane = [
       _soubor('Předávací protokol.pdf', [1, 2, 3]),
@@ -93,9 +93,13 @@ void main() {
     expect(zdroj.pobockaDokumentu, 'KCP');
     expect(find.text('Předávací protokol.pdf'), findsOneWidget);
     expect(find.text('1 dokument'), findsOneWidget);
+    // Nahrané leží ve složce Ostatni - umístění se nepíše.
+    expect(find.textContaining('ve složce'), findsNothing);
   });
 
-  testWidgets('ručně vložený soubor je vidět a otevře se', (tester) async {
+  testWidgets('soubor uložený jinam je vidět i se složkou a otevře se', (
+    tester,
+  ) async {
     await otevri(tester);
     zdroj.dokumenty['ZK-26-0001'] = [
       Dokument(
@@ -103,7 +107,7 @@ void main() {
         nazev: 'Zakázkový list.pdf',
         velikost: 2516582,
         zmenenoAt: DateTime(2026, 9, 21, 9, 15),
-        nahranyZAplikace: false,
+        slozka: 'Faktury/2026',
       ),
     ];
     zdroj.bajtyDokumentu['rucni'] = Uint8List.fromList([9, 9]);
@@ -119,7 +123,7 @@ void main() {
 
     expect(find.text('Zakázkový list.pdf'), findsOneWidget);
     expect(find.textContaining('2,4 MB'), findsOneWidget);
-    expect(find.textContaining('vloženo ve složce'), findsOneWidget);
+    expect(find.textContaining('ve složce Faktury/2026'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('dokument-rucni')));
     await tester.pumpAndSettle();
@@ -157,7 +161,38 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tento typ souboru nahrát nejde.'), findsOneWidget);
-    expect(find.text('PDF, skeny, tabulky'), findsOneWidget);
+    expect(zdroj.dokumenty['ZK-26-0001'], isNull);
+  });
+
+  testWidgets('karta v detailu počítá i dokumenty, ne jen fotky', (
+    tester,
+  ) async {
+    // Zakázka se samými PDF dřív hlásila „Zatím bez fotek."
+    zdroj = FakeServiceOrderDataSource([buildOrderDto(id: 'ZK-26-0001')]);
+    zdroj.dokumenty['ZK-26-0001'] = [
+      for (var i = 1; i <= 3; i++)
+        Dokument(
+          id: 'pdf-$i',
+          nazev: 'sken $i.pdf',
+          velikost: 1000,
+          zmenenoAt: DateTime(2026, 9, 21),
+        ),
+    ];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [serviceOrderDataSourceProvider.overrideWithValue(zdroj)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: FotodokumentaceKarta(orderId: 'ZK-26-0001', onOtevrit: () {}),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 dokumenty'), findsOneWidget);
+    expect(find.textContaining('Zatím bez'), findsNothing);
   });
 
   test('velikost souboru česky', () {

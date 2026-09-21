@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Dokument zakázky - PDF, sken, tabulka. Leží ve složce zakázky ve
-/// Foto-doc; nahraný z aplikace, nebo tam kolega vložil soubor ručně.
+/// Dokument zakázky v Ostatní dokumentaci - PDF, sken, tabulka, ale
+/// i fotka uložená mimo složky kategorií. Cokoli ve složce zakázky ve
+/// Foto-doc mimo složky kategorií fotek; nahrané z aplikace i vložené ručně.
 @immutable
 class Dokument {
   const Dokument({
@@ -9,7 +10,7 @@ class Dokument {
     required this.nazev,
     required this.velikost,
     required this.zmenenoAt,
-    this.nahranyZAplikace = true,
+    this.slozka,
   });
 
   /// Umístění souboru zakódované serverem - posílá se zpět při stažení.
@@ -18,8 +19,9 @@ class Dokument {
   final int velikost;
   final DateTime zmenenoAt;
 
-  /// `false` = soubor vložený ručně do složky zakázky.
-  final bool nahranyZAplikace;
+  /// Podsložka ve složce zakázky (`Ostatni`, `Faktury/2026`); `null`
+  /// = přímo ve složce zakázky.
+  final String? slozka;
 
   factory Dokument.fromJson(Map<String, dynamic> json) => Dokument(
     id: json['id'] as String,
@@ -28,8 +30,16 @@ class Dokument {
     zmenenoAt:
         DateTime.tryParse(json['modifiedAt'] as String? ?? '') ??
         DateTime.now(),
-    nahranyZAplikace: json['uploaded'] as bool? ?? true,
+    slozka: json['folder'] as String?,
   );
+
+  /// Kde soubor leží, když ne tam, kam nahrává aplikace - kolega ho pak
+  /// na serveru najde. `null` pro složku Ostatni.
+  String? get umisteni => switch (slozka) {
+    null || '' => 've složce zakázky',
+    final s when s.toLowerCase() == 'ostatni' => null,
+    final s => 've složce $s',
+  };
 
   String get pripona {
     final tecka = nazev.lastIndexOf('.');
