@@ -38,11 +38,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: OrdersListScreen(
-            onOpenOrder: (_) {},
-            onSearchArchive: (_) {},
-            onScanCode: () {},
-          ),
+          home: OrdersListScreen(onOpenOrder: (_) {}, onScanCode: () {}),
         ),
       ),
     );

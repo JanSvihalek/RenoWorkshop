@@ -27,7 +27,6 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     required this.onOpenOrder,
     this.vRozdelenem = false,
     this.vybranaId,
-    required this.onSearchArchive,
     required this.onScanCode,
   });
 
@@ -40,7 +39,6 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   /// Číslo právě otevřené zakázky - v rozděleném zobrazení musí být na
   /// první pohled poznat, ke které kartě patří detail vedle.
   final String? vybranaId;
-  final ValueChanged<String> onSearchArchive;
 
   /// Otevření skeneru VINu a SPZ.
   final VoidCallback onScanCode;
@@ -121,6 +119,20 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     });
   }
 
+  /// Stažení prstem: dílnu i archiv znovu ze serveru.
+  Future<void> _obnovit() async {
+    ref.invalidate(ordersStreamProvider);
+    ref.invalidate(archivProvider);
+  }
+
+  /// Zruší filtry lišty, ale nechá hledaný text - kvůli němu se hledá.
+  void _zrusFiltryKromeHledani() {
+    final dotaz = ref.read(orderFilterProvider).query;
+    ref.read(orderFilterProvider.notifier)
+      ..reset()
+      ..setQuery(dotaz);
+  }
+
   void _resetFilters() {
     _debounce?.cancel();
     _searchController.clear();
@@ -134,6 +146,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final orders = ref.watch(filteredOrdersProvider);
     final filter = ref.watch(orderFilterProvider);
     final zobrazeni = ref.watch(nastaveniProvider).zobrazeniZakazek;
+    // Od tří znaků se hledá i v archivu - výsledky jsou pak ve dvou
+    // částech, na dílně a v archivu.
+    final hledaVArchivu = filter.query.trim().length >= 3;
 
     // Hledání vyplněné zvenčí (skener) se musí objevit i v poli - seznam
     // zůstává otevřený pod skenerem a pole by jinak ukazovalo starý text.
@@ -159,12 +174,6 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             onScan: _skenuj,
             nacitaZHeliosu: _nacitaZHeliosu,
             onNacistZHeliosu: _nacistZHeliosu,
-            // Archiv se nabízí, jakmile je co hledat - ne až když seznam
-            // nic nenajde. Zakázka může být rozdělaná i v archivu (starší
-            // oprava téhož vozu) a tudy se k ní člověk dostane rovnou.
-            onHledatVArchivu: filter.query.trim().length >= 3
-                ? () => widget.onSearchArchive(filter.query.trim())
-                : null,
           ),
           const FiltrLista(),
           Expanded(
@@ -177,31 +186,37 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
               // Stažení prstem funguje i nad prázdným a krátkým seznamem:
               // dílenský stav je sdílený a člověk chce vidět, co mezitím
               // udělali ostatní, i když se nemá kam posouvat.
-              data: (data) => data.isEmpty
+              // Při hledání výsledky ve dvou částech - na dílně a v archivu.
+              // Karty i v režimu tabulky: nalezených je pár a archiv je
+              // pod dílnou jako druhá část, kterou tabulka neumí.
+              data: (data) => hledaVArchivu
+                  ? RefreshIndicator.adaptive(
+                      onRefresh: _obnovit,
+                      child: _VysledkyHledani(
+                        naDilne: data,
+                        archiv: ref.watch(archivKHledaniProvider),
+                        vybranaId: widget.vybranaId,
+                        onOpenOrder: widget.onOpenOrder,
+                        // `activeCount` počítá i hledaný text.
+                        jineFiltry: filter.activeCount > 1,
+                        onZrusitFiltry: _zrusFiltryKromeHledani,
+                        nacitaZHeliosu: _nacitaZHeliosu,
+                        onNacistZHeliosu: () => _nacistZHeliosu(zHledani: true),
+                        onZnovuArchiv: () => ref.invalidate(archivProvider),
+                      ),
+                    )
+                  : data.isEmpty
                   ? RefreshIndicator.adaptive(
                       onRefresh: () async =>
                           ref.invalidate(ordersStreamProvider),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        // Jen nejmenší výška, ne pevná: s nabídkou Heliosu
-                        // a archivu by se na nízkém displeji nevešel.
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             minHeight: MediaQuery.sizeOf(context).height * 0.6,
                           ),
                           child: OrdersEmptyState(
                             onResetFilters: _resetFilters,
-                            onNacistZHeliosu:
-                                _searchController.text.trim().length >= 3
-                                ? () => _nacistZHeliosu(zHledani: true)
-                                : null,
-                            nacitaZHeliosu: _nacitaZHeliosu,
-                            onHledatVArchivu:
-                                _searchController.text.trim().length >= 3
-                                ? () => widget.onSearchArchive(
-                                    _searchController.text.trim(),
-                                  )
-                                : null,
                           ),
                         ),
                       ),
@@ -253,7 +268,6 @@ class _ListHeader extends ConsumerWidget {
     required this.onScan,
     required this.nacitaZHeliosu,
     required this.onNacistZHeliosu,
-    required this.onHledatVArchivu,
   });
 
   /// Na tabletu leží hlavička ve stejné šedé jako seznam pod ní. Tmavomodrý
@@ -266,9 +280,6 @@ class _ListHeader extends ConsumerWidget {
   final VoidCallback onScan;
   final bool nacitaZHeliosu;
   final VoidCallback onNacistZHeliosu;
-
-  /// `null`, dokud není zadaný dost dlouhý dotaz.
-  final VoidCallback? onHledatVArchivu;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -316,38 +327,262 @@ class _ListHeader extends ConsumerWidget {
             onChanged: onQueryChanged,
             onScan: onScan,
             naTmavem: !naTablet,
+            // Hledá se i mezi uzavřenými - ať to je vidět dřív, než
+            // člověk začne psát.
+            hintText: 'SPZ, VIN, zakázka – i v archivu',
           ),
-          if (onHledatVArchivu != null) ...[
-            const SizedBox(height: Insets.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                onTap: onHledatVArchivu,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.history_rounded,
-                        size: 16,
-                        color: naTablet ? AppColors.accent : Colors.white70,
-                      ),
-                      const SizedBox(width: Insets.xs),
-                      Text(
-                        'Hledat i v archivu',
-                        style: AppTextStyles.cardBody.copyWith(
-                          color: naTablet ? AppColors.accent : Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Výsledky hledání: nejdřív zakázky na dílně, pod nimi uzavřené
+/// z archivu. Archiv se hledá sám, bez tlačítka - kdo hledá zpětně, často
+/// neví, jestli je zakázka ještě na dílně.
+class _VysledkyHledani extends StatelessWidget {
+  const _VysledkyHledani({
+    required this.naDilne,
+    required this.archiv,
+    required this.vybranaId,
+    required this.onOpenOrder,
+    required this.jineFiltry,
+    required this.onZrusitFiltry,
+    required this.nacitaZHeliosu,
+    required this.onNacistZHeliosu,
+    required this.onZnovuArchiv,
+  });
+
+  final List<ServiceOrder> naDilne;
+
+  /// `null` uvnitř = ještě se nehledá (uživatel dopisuje).
+  final AsyncValue<List<ServiceOrder>?> archiv;
+  final String? vybranaId;
+  final void Function(ServiceOrder order) onOpenOrder;
+
+  /// Kromě hledání je zapnutý i filtr lišty - na dílně pak může něco
+  /// chybět kvůli němu.
+  final bool jineFiltry;
+  final VoidCallback onZrusitFiltry;
+  final bool nacitaZHeliosu;
+  final VoidCallback onNacistZHeliosu;
+  final VoidCallback onZnovuArchiv;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final zArchivu = archiv.valueOrNull;
+    final hleda = archiv.isLoading || (archiv.hasValue && zArchivu == null);
+
+    Widget karta(ServiceOrder zakazka) => Padding(
+      padding: const EdgeInsets.only(bottom: Insets.md),
+      child: OrderCard(
+        order: zakazka,
+        onTap: () => onOpenOrder(zakazka),
+        jeVybrana: vybranaId == zakazka.id,
+      ),
+    );
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        Insets.xl,
+        Insets.lg,
+        Insets.xl,
+        Insets.huge,
+      ),
+      children: [
+        _NadpisSekce(
+          key: const Key('sekce-dilna'),
+          ikona: Icons.garage_rounded,
+          text: 'Na dílně',
+          pocet: naDilne.length,
+        ),
+        if (naDilne.isEmpty)
+          _NicNaDilne(
+            jineFiltry: jineFiltry,
+            onZrusitFiltry: onZrusitFiltry,
+            nacitaZHeliosu: nacitaZHeliosu,
+            onNacistZHeliosu: onNacistZHeliosu,
+          )
+        else
+          for (final zakazka in naDilne) karta(zakazka),
+        const SizedBox(height: Insets.lg),
+        _NadpisSekce(
+          key: const Key('sekce-archiv'),
+          ikona: Icons.inventory_2_outlined,
+          text: 'V archivu – uzavřené',
+          pocet: hleda || archiv.hasError ? null : zArchivu?.length,
+        ),
+        if (archiv.hasError && !hleda)
+          _RadekArchivu(
+            key: const Key('archiv-chyba'),
+            text: archiv.error is ServiceOrderException
+                ? (archiv.error! as ServiceOrderException).message
+                : 'V archivu se nepodařilo hledat.',
+            barva: AppColors.danger,
+            akce: TextButton(
+              onPressed: onZnovuArchiv,
+              child: const Text('Zkusit znovu'),
+            ),
+          )
+        else if (hleda)
+          const _RadekArchivu(
+            key: Key('archiv-hleda'),
+            text: 'Hledám i mezi uzavřenými zakázkami…',
+            nacita: true,
+          )
+        else if (zArchivu!.isEmpty)
+          _RadekArchivu(text: 'V archivu nic dalšího.', barva: palette.muted)
+        else
+          for (final zakazka in zArchivu) karta(zakazka),
+      ],
+    );
+  }
+}
+
+class _NadpisSekce extends StatelessWidget {
+  const _NadpisSekce({
+    super.key,
+    required this.ikona,
+    required this.text,
+    required this.pocet,
+  });
+
+  final IconData ikona;
+  final String text;
+
+  /// `null` = ještě se neví (hledá se).
+  final int? pocet;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.sm),
+      child: Row(
+        children: [
+          Icon(ikona, size: 16, color: palette.muted),
+          const SizedBox(width: Insets.sm),
+          Text(
+            pocet == null
+                ? text.toUpperCase()
+                : '${text.toUpperCase()} · $pocet',
+            style: AppTextStyles.metaSmall.copyWith(
+              color: palette.muted,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(width: Insets.md),
+          Expanded(child: Container(height: 1, color: palette.hairline)),
+        ],
+      ),
+    );
+  }
+}
+
+class _NicNaDilne extends StatelessWidget {
+  const _NicNaDilne({
+    required this.jineFiltry,
+    required this.onZrusitFiltry,
+    required this.nacitaZHeliosu,
+    required this.onNacistZHeliosu,
+  });
+
+  final bool jineFiltry;
+  final VoidCallback onZrusitFiltry;
+  final bool nacitaZHeliosu;
+  final VoidCallback onNacistZHeliosu;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final styl = TextButton.styleFrom(
+      foregroundColor: AppColors.accent,
+      padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
+      textStyle: AppTextStyles.cardBody.copyWith(fontWeight: FontWeight.w600),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            jineFiltry
+                ? 'Na dílně nic neodpovídá hledání a zapnutým filtrům.'
+                : 'Na dílně nic neodpovídá. Zakázku, kterou poradce právě '
+                      'založil, načtete z Heliosu.',
+            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+          ),
+          Wrap(
+            spacing: Insets.sm,
+            children: [
+              TextButton.icon(
+                onPressed: nacitaZHeliosu ? null : onNacistZHeliosu,
+                style: styl,
+                icon: nacitaZHeliosu
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync_rounded, size: 18),
+                label: const Text('Načíst nové zakázky z Heliosu'),
+              ),
+              if (jineFiltry)
+                TextButton.icon(
+                  onPressed: onZrusitFiltry,
+                  style: styl,
+                  icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                  label: const Text('Zrušit filtry'),
                 ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RadekArchivu extends StatelessWidget {
+  const _RadekArchivu({
+    super.key,
+    required this.text,
+    this.barva,
+    this.nacita = false,
+    this.akce,
+  });
+
+  final String text;
+  final Color? barva;
+  final bool nacita;
+  final Widget? akce;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Insets.sm),
+      child: Row(
+        children: [
+          if (nacita) ...[
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: Insets.md),
+          ],
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.cardBody.copyWith(
+                color: barva ?? palette.muted,
               ),
             ),
-          ],
+          ),
+          ?akce,
         ],
       ),
     );

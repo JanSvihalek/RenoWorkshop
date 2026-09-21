@@ -8,7 +8,6 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/rozlozeni.dart';
 import '../core/widgets/workshop_scaffold.dart';
 import '../features/orders/presentation/controllers/orders_providers.dart';
-import '../features/orders/presentation/screens/archiv_screen.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
@@ -31,7 +30,6 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String orders = '/orders';
   static const String settings = '/settings';
-  static const String archiv = '/archiv';
   static const String skener = '/skener';
   static const String vyhledavani = '/vyhledavani';
   static const String vozidla = '/vozidla';
@@ -47,9 +45,6 @@ abstract final class AppRoutes {
   static const String skenerVozidla = '$skener?cil=vozidla';
 
   static String kartaVozidla(int id) => '$vozidla/$id';
-
-  static String archivHledani(String dotaz) =>
-      '$archiv?q=${Uri.encodeQueryComponent(dotaz)}';
 
   static String orderDetail(String orderId) => '$orders/$orderId';
 
@@ -118,15 +113,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
-      GoRoute(
-        path: AppRoutes.archiv,
-        builder: (context, state) => ArchivScreen(
-          dotaz: state.uri.queryParameters['q'] ?? '',
-          onOpenOrder: (order) => context.push(AppRoutes.orderDetail(order.id)),
-          onBack: () =>
-              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
-        ),
-      ),
       // Záložky jsou ve společném rámu: přepnutí mění jen obsah, lišta
       // zůstává stát a každá záložka si drží svůj stav.
       StatefulShellRoute.indexedStack(
@@ -148,8 +134,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                         ZobrazeniZakazek.tabulka;
                     return context.jeTablet && !vTabulce
                         ? RozdeleneZakazkyScreen(
-                            onSearchArchive: (dotaz) =>
-                                context.push(AppRoutes.archivHledani(dotaz)),
                             onScanCode: () => context.push(AppRoutes.skener),
                             onFotodokumentace: (id) =>
                                 context.push(AppRoutes.fotodokumentace(id)),
@@ -159,8 +143,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                         : OrdersListScreen(
                             onOpenOrder: (order) =>
                                 context.push(AppRoutes.orderDetail(order.id)),
-                            onSearchArchive: (dotaz) =>
-                                context.push(AppRoutes.archivHledani(dotaz)),
                             onScanCode: () => context.push(AppRoutes.skener),
                           );
                   },

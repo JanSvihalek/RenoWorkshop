@@ -18,13 +18,11 @@ import 'orders_list_screen.dart';
 class RozdeleneZakazkyScreen extends ConsumerWidget {
   const RozdeleneZakazkyScreen({
     super.key,
-    required this.onSearchArchive,
     required this.onScanCode,
     required this.onFotodokumentace,
     required this.onPrijem,
   });
 
-  final ValueChanged<String> onSearchArchive;
   final VoidCallback onScanCode;
   final ValueChanged<String> onFotodokumentace;
   final ValueChanged<String> onPrijem;
@@ -45,7 +43,6 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
               vybranaId: vybrana,
               onOpenOrder: (ServiceOrder order) =>
                   ref.read(vybranaZakazkaProvider.notifier).state = order.id,
-              onSearchArchive: onSearchArchive,
               onScanCode: onScanCode,
             ),
           ),

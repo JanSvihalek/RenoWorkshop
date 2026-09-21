@@ -46,10 +46,9 @@ void main() {
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
 
+    // Archiv se při hledání prohledá sám - na dílně '9Z9' není.
     await tester.enterText(find.byType(TextField).first, '9Z9');
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Hledat i v archivu'));
-    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(OrderCard).first);
     await tester.pumpAndSettle();

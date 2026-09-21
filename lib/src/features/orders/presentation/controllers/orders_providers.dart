@@ -158,6 +158,41 @@ final archivProvider = FutureProvider.family<List<ServiceOrder>, String>((
   return ref.watch(serviceOrderRepositoryProvider).searchArchive(ocisteny);
 });
 
+/// Jak dlouho se po dopsání čeká, než se hledá v archivu. Hledání v seznamu
+/// je místní a okamžité, archiv je dotaz na server - každé písmeno by jinak
+/// byl jeden.
+const prodlevaHledaniVArchivu = Duration(milliseconds: 300);
+
+/// Uzavřené zakázky k tomu, co je napsané v hledání seznamu. Hledají se
+/// samy, bez tlačítka: kdo hledá zpětně, často neví, jestli je zakázka
+/// ještě na dílně, nebo už v archivu.
+///
+/// `null` = nehledá se (dotaz kratší než tři znaky). Zakázky, které jsou
+/// na dílně, se vynechají - ty ukazuje seznam nad archivem.
+final archivKHledaniProvider = FutureProvider.autoDispose<List<ServiceOrder>?>((
+  ref,
+) async {
+  final dotaz = ref.watch(orderFilterProvider.select((f) => f.query.trim()));
+  if (dotaz.length < 3) return null;
+
+  var zruseno = false;
+  ref.onDispose(() => zruseno = true);
+  await Future<void>.delayed(prodlevaHledaniVArchivu);
+  // Uživatel mezitím psal dál - výsledek by patřil ke starému dotazu.
+  if (zruseno) return null;
+
+  final nalezene = await ref.watch(archivProvider(dotaz).future);
+  final naDilne = {
+    for (final zakazka
+        in ref.read(ordersStreamProvider).valueOrNull ?? const <ServiceOrder>[])
+      zakazka.id,
+  };
+  return [
+    for (final zakazka in nalezene)
+      if (!naDilne.contains(zakazka.id)) zakazka,
+  ];
+});
+
 /// Aktivní filtry seznamu.
 final orderFilterProvider =
     NotifierProvider<OrderFilterController, OrderFilter>(

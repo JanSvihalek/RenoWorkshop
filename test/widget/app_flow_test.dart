@@ -242,7 +242,9 @@ void main() {
     expect(zdroj.pocetNacteni, greaterThan(pocetPredObnovou));
   });
 
-  testWidgets('prázdný výsledek nabídne hledání v archivu', (tester) async {
+  testWidgets('prázdný výsledek řekne, že nic není ani v archivu', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
@@ -253,16 +255,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(find.text('Žádná zakázka nevyhovuje'), findsOneWidget);
-    expect(find.text('Hledat v archivu'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('Hledat v archivu'));
-    await tester.tap(find.text('Hledat v archivu'));
-    await tester.pumpAndSettle();
-
-    // Archiv se ptá serveru, ne načteného seznamu.
-    expect(find.text('Archiv'), findsOneWidget);
-    expect(find.text('Nic se nenašlo'), findsOneWidget);
+    // Archiv se prohledá sám, bez klepnutí na tlačítko.
+    expect(find.text('NA DÍLNĚ · 0'), findsOneWidget);
+    expect(find.text('V archivu nic dalšího.'), findsOneWidget);
+    // Zakázka založená před chvílí se dá dotáhnout z Heliosu.
+    expect(find.text('Načíst nové zakázky z Heliosu'), findsOneWidget);
   });
 
   testWidgets('detail ukáže stav z Heliosu vedle dílenského', (tester) async {
@@ -279,21 +276,22 @@ void main() {
     expect(find.text('Klempířské práce'), findsWidgets);
   });
 
-  testWidgets('archiv je dostupný hned, jak je co hledat', (tester) async {
+  testWidgets('archiv se hledá sám, jakmile je co hledat', (tester) async {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
 
-    // Bez dotazu se archiv nenabízí - nebylo by co v něm hledat.
-    expect(find.text('Hledat i v archivu'), findsNothing);
+    // Bez dotazu jen seznam dílny - v archivu by nebylo co hledat.
+    expect(find.byKey(const Key('sekce-archiv')), findsNothing);
 
     await tester.enterText(find.byType(TextField).first, '8AB');
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
 
-    // Nabídne se i když seznam něco našel: tentýž vůz mohl být na dílně
+    // Hledá se i když seznam něco našel: tentýž vůz mohl být na dílně
     // už dřív a ta starší zakázka je jen v archivu.
-    expect(find.text('Hledat i v archivu'), findsOneWidget);
+    expect(find.text('NA DÍLNĚ · 1'), findsOneWidget);
+    expect(find.byKey(const Key('sekce-archiv')), findsOneWidget);
     expect(find.text('8AB 4721'), findsOneWidget);
   });
 
