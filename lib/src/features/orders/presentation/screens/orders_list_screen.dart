@@ -80,24 +80,35 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   /// hledá v archivu - kvůli tomu se VIN fotí.
   void _skenuj() => widget.onScanCode();
 
-  /// Dotáhne zakázky z Heliosu hned. Když pak hledání najde jedinou,
-  /// otevře se - kvůli ní se načítalo.
-  Future<void> _nacistZHeliosu() async {
+  /// Dotáhne zakázky z Heliosu hned, bez čekání na pětiminutovou
+  /// synchronizaci. Služba to pustí nejvýš jednou za minutu pro celou
+  /// dílnu - kdo přijde dřív, dostane hlášku, za kolik to zkusit.
+  ///
+  /// Z prázdného výsledku hledání ([zHledani]) se jediná nalezená zakázka
+  /// rovnou otevře - kvůli ní se načítalo.
+  Future<void> _nacistZHeliosu({bool zHledani = false}) async {
+    if (_nacitaZHeliosu) return;
     setState(() => _nacitaZHeliosu = true);
     try {
       await ref.read(serviceOrderDataSourceProvider).synchronizuj();
-      ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
+      if (zHledani) {
+        ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
+      }
       ref.invalidate(ordersStreamProvider);
       await ref.read(ordersStreamProvider.future);
+      if (!zHledani) _oznam('Zakázky jsou načtené z Heliosu');
     } on ServiceOrderException catch (chyba) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(chyba.message)));
-      }
+      _oznam(chyba.message);
     } finally {
       if (mounted) setState(() => _nacitaZHeliosu = false);
     }
+  }
+
+  void _oznam(String zprava) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(zprava)));
   }
 
   /// Po naskenování otevře jedinou nalezenou zakázku. Příznak se shodí
@@ -146,6 +157,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             searchController: _searchController,
             onQueryChanged: _onQueryChanged,
             onScan: _skenuj,
+            nacitaZHeliosu: _nacitaZHeliosu,
+            onNacistZHeliosu: _nacistZHeliosu,
             // Archiv se nabízí, jakmile je co hledat - ne až když seznam
             // nic nenajde. Zakázka může být rozdělaná i v archivu (starší
             // oprava téhož vozu) a tudy se k ní člověk dostane rovnou.
@@ -180,7 +193,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                             onResetFilters: _resetFilters,
                             onNacistZHeliosu:
                                 _searchController.text.trim().length >= 3
-                                ? _nacistZHeliosu
+                                ? () => _nacistZHeliosu(zHledani: true)
                                 : null,
                             nacitaZHeliosu: _nacitaZHeliosu,
                             onHledatVArchivu:
@@ -238,6 +251,8 @@ class _ListHeader extends ConsumerWidget {
     required this.searchController,
     required this.onQueryChanged,
     required this.onScan,
+    required this.nacitaZHeliosu,
+    required this.onNacistZHeliosu,
     required this.onHledatVArchivu,
   });
 
@@ -249,6 +264,8 @@ class _ListHeader extends ConsumerWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onScan;
+  final bool nacitaZHeliosu;
+  final VoidCallback onNacistZHeliosu;
 
   /// `null`, dokud není zadaný dost dlouhý dotaz.
   final VoidCallback? onHledatVArchivu;
@@ -282,6 +299,12 @@ class _ListHeader extends ConsumerWidget {
                   ).copyWith(color: text),
                 ),
               ),
+              _TlacitkoHeliosu(
+                naTmavem: !naTablet,
+                nacita: nacitaZHeliosu,
+                onPressed: onNacistZHeliosu,
+              ),
+              const SizedBox(width: Insets.sm),
               _PrepinacZobrazeni(naTmavem: !naTablet),
               const SizedBox(width: Insets.sm),
               _EmployeeAvatar(initials: employee?.initials ?? 'RW'),
@@ -391,6 +414,59 @@ class _PrepinacZobrazeni extends ConsumerWidget {
           tlacitko(ZobrazeniZakazek.karty, Icons.view_agenda_outlined),
           tlacitko(ZobrazeniZakazek.tabulka, Icons.table_rows_outlined),
         ],
+      ),
+    );
+  }
+}
+
+/// Ruční načtení z Heliosu - pro zakázku, kterou poradce právě založil
+/// a mechanik na ni čeká. Stažení prstem dolů Helios nevolá, jen znovu
+/// načte naši databázi.
+class _TlacitkoHeliosu extends StatelessWidget {
+  const _TlacitkoHeliosu({
+    required this.naTmavem,
+    required this.nacita,
+    required this.onPressed,
+  });
+
+  final bool naTmavem;
+  final bool nacita;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final barva = naTmavem ? Colors.white : context.palette.text;
+    return Tooltip(
+      message: 'Načíst nové zakázky z Heliosu',
+      child: Semantics(
+        button: true,
+        label: 'Načíst nové zakázky z Heliosu',
+        child: GestureDetector(
+          key: const Key('nacist-z-heliosu'),
+          onTap: nacita ? null : onPressed,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: naTmavem ? Colors.white30 : context.palette.hairline2,
+              ),
+              borderRadius: BorderRadius.circular(Radii.chip + 2),
+            ),
+            child: nacita
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: barva,
+                    ),
+                  )
+                : Icon(Icons.sync_rounded, size: 19, color: barva),
+          ),
+        ),
       ),
     );
   }

@@ -46,8 +46,13 @@ class FakeServiceOrderDataSource
   /// založil před chvílí.
   List<ServiceOrderDto> poSynchronizaci = const [];
 
+  /// Hláška, se kterou synchronizace spadne - třeba minutový limit služby.
+  String? chybaSynchronizace;
+
   @override
   Future<void> synchronizuj() async {
+    final chyba = chybaSynchronizace;
+    if (chyba != null) throw ServiceOrderException(chyba);
     pocetSynchronizaci++;
     _orders.addAll(poSynchronizaci);
     poSynchronizaci = const [];
