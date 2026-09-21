@@ -34,7 +34,7 @@ jobs:
     outputs:
       cislo_buildu: ${{ steps.verze.outputs.cislo }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Počítá se jednou tady a obě platformy si ho vezmou, ať nesou
       # buildy se stejným číslem stejný kód.
@@ -69,10 +69,10 @@ jobs:
     needs: kontrola
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Android Gradle Plugin i Flutter chtějí JDK 17.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -132,7 +132,7 @@ jobs:
           "$APKSIGNER" verify --print-certs "$APK" | head -5
 
       - name: Uložení APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: RenoWorkshop-apk-${{ needs.kontrola.outputs.cislo_buildu }}
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -145,7 +145,7 @@ jobs:
     needs: kontrola
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
@@ -362,7 +362,7 @@ jobs:
           ls -la "$RUNNER_TEMP/ipa"
 
       - name: Uložení IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: RenoWorkshop-ipa-${{ needs.kontrola.outputs.cislo_buildu }}
           path: ${{ runner.temp }}/ipa/*.ipa
