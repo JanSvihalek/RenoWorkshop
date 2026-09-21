@@ -10,6 +10,11 @@ import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card
 
 import '../helpers/fake_service_order_data_source.dart';
 
+/// Karta Předmět opravy je v detailu zatím schovaná (21. 9. 2026)
+/// (`_zobrazitPredmetOpravy` v order_detail_screen.dart). Až se vrátí,
+/// smaže se i tohle přeskočení.
+const _schovano = true;
+
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -91,7 +96,7 @@ void main() {
       ),
       findsOneWidget,
     );
-  });
+  }, skip: _schovano);
 
   testWidgets('smazaný předmět opravy zmizí', (tester) async {
     await otevriDetail(tester);
@@ -102,7 +107,7 @@ void main() {
 
     expect(find.text('Levé zadní světlo'), findsNothing);
     expect(find.text('Zatím nezapsáno.'), findsOneWidget);
-  });
+  }, skip: _schovano);
 
   testWidgets('hledání v seznamu najde zakázku podle předmětu opravy', (
     tester,
@@ -116,5 +121,5 @@ void main() {
 
     expect(find.text('8AB 4721'), findsOneWidget);
     expect(find.text('2SC 9014'), findsNothing);
-  });
+  }, skip: _schovano);
 }

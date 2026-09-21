@@ -86,6 +86,12 @@ void main() {
   });
 
   testWidgets('pořadí karet: postup, poznámky, závady', (tester) async {
+    // Vysoké okno: všechny tři karty musí být postavené najednou, líný
+    // seznam by po odrolování k závadám postup zahodil.
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await otevri(tester, '8AB 4721');
 
     await tester.scrollUntilVisible(

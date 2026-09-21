@@ -247,10 +247,12 @@ class _DetailBody extends ConsumerWidget {
       ),
     );
 
-    final predmet = PredmetOpravyCard(
-      predmet: order.predmetOpravy,
-      onUpravit: () => _upravPredmet(context, ref),
-    );
+    final predmet = _zobrazitPredmetOpravy
+        ? PredmetOpravyCard(
+            predmet: order.predmetOpravy,
+            onUpravit: () => _upravPredmet(context, ref),
+          )
+        : null;
 
     final poznamky = NotesCard(
       notes: order.notes,
@@ -282,13 +284,13 @@ class _DetailBody extends ConsumerWidget {
       ?fotky,
       zavady,
     ];
-    final zapisovaci = <Widget>[postup, predmet, poznamky];
+    final zapisovaci = <Widget>[postup, ?predmet, poznamky];
 
     // Na telefonu jeden sloupec v pořadí, jak se zakázka prochází.
     final zaSebou = <Widget>[
       datumy,
       if (order.pojisteniPopisek != null) pojisteni,
-      predmet,
+      ?predmet,
       postup,
       ?prijem,
       ?fotky,
@@ -323,6 +325,10 @@ class _DetailBody extends ConsumerWidget {
 /// Od téhle šířky se detail dělí na dva sloupce. Míň než šířka tabletu:
 /// v rozděleném zobrazení vedle seznamu zbude na detail jen část plochy
 /// a tam dva sloupce nedávají smysl.
+/// Předmět opravy se zatím nepoužívá (21. 9. 2026), karta je v detailu
+/// schovaná. Data i API zůstávají - vrátí se přepnutím na `true`.
+const bool _zobrazitPredmetOpravy = false;
+
 const double _sirkaProDvaSloupce = 900;
 
 /// Karty pod sebou s mezerami a odsazením.
