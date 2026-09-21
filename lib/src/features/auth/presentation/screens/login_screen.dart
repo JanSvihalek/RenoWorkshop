@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../domain/entities/auth_state.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/stav_serveru.dart';
 import '../widgets/microsoft_logo.dart';
 
 /// PLACEHOLDER přihlášení - UI kostra bez reálného ověřování.
@@ -428,11 +429,21 @@ class _SigningInIndicator extends StatelessWidget {
   }
 }
 
-class _NetworkStatusRow extends StatelessWidget {
+class _NetworkStatusRow extends ConsumerWidget {
   const _NetworkStatusRow();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stav =
+        ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje;
+    final verze = ref.watch(verzeAplikaceProvider).valueOrNull;
+
+    final barva = switch (stav) {
+      StavServeru.online => AppColors.readyGreen,
+      StavServeru.nedostupny => AppColors.danger,
+      _ => AppColors.neutralLight,
+    };
+
     return Container(
       padding: const EdgeInsets.only(top: Insets.sm),
       decoration: BoxDecoration(
@@ -446,16 +457,19 @@ class _NetworkStatusRow extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
-              color: AppColors.readyGreen,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
           ),
           const SizedBox(width: 9),
-          Text(
-            'FIREMNÍ SÍŤ · ONLINE · V1.0.0',
-            style: AppTextStyles.monoLabel.copyWith(
-              color: Colors.white.withValues(alpha: 0.3),
+          Flexible(
+            child: Text(
+              [stav.popisek, ?verze].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.monoLabel.copyWith(
+                color: Colors.white.withValues(
+                  alpha: stav == StavServeru.nedostupny ? 0.7 : 0.3,
+                ),
+              ),
             ),
           ),
         ],

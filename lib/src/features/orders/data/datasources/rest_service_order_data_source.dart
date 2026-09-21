@@ -153,6 +153,21 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<bool> serverBezi() async {
+    try {
+      // `/health` visí vedle `/api`, ne pod ním - proto o úroveň výš.
+      final odpoved = await _client
+          .get(_baseUrl.resolve('../health'))
+          .timeout(const Duration(seconds: 5));
+      return odpoved.statusCode == 200;
+    } catch (_) {
+      // Mimo firemní síť, vypnutá služba, špatná adresa - pro uživatele
+      // je to jedno, stejně vidí „server nedostupný".
+      return false;
+    }
+  }
+
+  @override
   Future<void> synchronizuj() async {
     await _send('POST', 'sync', timeout: const Duration(seconds: 60));
   }

@@ -8,6 +8,13 @@ import '../dtos/service_order_dto.dart';
 /// Plánovaná implementace fáze 2: `RestServiceOrderDataSource` (Dio + auth
 /// interceptor s tokenem z Entra ID).
 abstract interface class ServiceOrderDataSource {
+  /// Žije služba a je na ni z tohohle zařízení vidět?
+  ///
+  /// `GET /health` - jediný endpoint bez přihlášení. Používá to přihlašovací
+  /// obrazovka: technik v hale hned vidí, jestli je na firemní síti, místo
+  /// aby se to dozvěděl až chybou po přihlášení.
+  Future<bool> serverBezi();
+
   Future<List<ServiceOrderDto>> fetchOrders();
 
   Future<ServiceOrderDto?> fetchOrder(String orderId);

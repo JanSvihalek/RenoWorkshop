@@ -33,6 +33,12 @@ class FakeServiceOrderDataSource
   final Set<String> _archivIds;
   final List<KartaVozidla> _vozidla;
 
+  /// Odpověď na dotaz „běží server?" z přihlašovací obrazovky.
+  bool serverOdpovida = true;
+
+  @override
+  Future<bool> serverBezi() async => serverOdpovida;
+
   /// Kolikrát se volala synchronizace na vyžádání.
   int pocetSynchronizaci = 0;
 

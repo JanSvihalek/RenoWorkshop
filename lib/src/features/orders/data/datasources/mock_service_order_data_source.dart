@@ -299,6 +299,9 @@ class MockServiceOrderDataSource
   }
 
   @override
+  Future<bool> serverBezi() async => true;
+
+  @override
   Future<void> synchronizuj() => _simulateLatency();
 
   /// Příjmy jen v paměti, se stejnými pravidly jako server.
