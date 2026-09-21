@@ -1,7 +1,9 @@
 # Kontrakt REST API
 
-Rozhraní mezi mobilní appkou a službou RenoWorkshop API (poběží na RENDCAPP
-vedle RenoDesku). Klientskou stranu už plní
+Rozhraní mezi mobilní appkou a službou RenoWorkshop API (běží na RENDCAPP
+vedle RenoDesku). Přehled s diagramy - architektura, synchronizace, mapa
+endpointů - je v [`RenoWorkshopApi/docs/PREHLED.md`](https://github.com/JanSvihalek/RenoWorkshopApi/blob/main/docs/PREHLED.md);
+tady je přesný tvar požadavků a odpovědí. Klientskou stranu plní
 [`RestServiceOrderDataSource`](../lib/src/features/orders/data/datasources/rest_service_order_data_source.dart),
 ověřenou testy v `test/data/rest_service_order_data_source_test.dart` — server
 tedy stačí napsat proti tomuhle dokumentu a appka se na něj napojí beze změny.
@@ -14,7 +16,7 @@ oddělené věci:
 | Data | Vlastník | Chování |
 |---|---|---|
 | zakázka, vozidlo, zákazník, mechanik, termíny | Helios (read-only) | projekce, obnovuje se každých ~5 minut, přepisuje se |
-| stav na dílně, poznámky, hotové úkony, stání | RenoWorkshop | vzniká v appce, synchronizace na to nesmí sáhnout |
+| stav na dílně, poznámky, příjem, fotky, předmět opravy | RenoWorkshop | vzniká v appce, synchronizace na to nesmí sáhnout |
 
 Spojují se přes číslo zakázky (`reference_subjektu` z Heliosu).
 
@@ -110,13 +112,14 @@ textem:
 `note` je nepovinná poznámka ke kroku — kde vůz stojí, na kterém je
 zvedáku, na co se čeká.
 
+Vrací celou aktualizovanou zakázku. Název se ukládá i u číselníkového
+stavu — přejmenování v číselníku nesmí zpětně přepsat historii. Kód, který
+v číselníku není, vrací `400` `unknown_status`.
+
 ### DELETE /orders/{id}/stavy/{zaznamId}
 
 Smaže jeden záznam z historie. Oprava omylem přidaného stavu: je to
 pracovní přehled dílny, ne auditní doklad. Vrací aktualizovanou zakázku.
-
-Vrací celou aktualizovanou zakázku. Název se ukládá i u číselníkového
-stavu — přejmenování v číselníku nesmí zpětně přepsat historii.
 
 ## Autorizace
 
@@ -206,21 +209,16 @@ stránkování.
         "createdAt": "2026-08-25T09:40:00"
       }
     ],
-    "workItems": [
-      {
-        "id": "W-0418-1",
-        "title": "Diagnostika podvozku",
-        "isDone": true,
-        "estimatedHours": 1.0
-      }
-    ]
+    "workItems": [],
+    "defects": []
   }
 ]
 ```
 
 Povinné je všechno kromě `mechanicName`, `serviceAdvisorName`, `bay`,
 `branch`, `department`, `orderType`, **`receivedAt` a `dueAt`**, které smějí
-být `null`. `notes` a `workItems` smějí být prázdné pole.
+být `null`. `notes`, `workItems` a `defects` smějí být prázdné pole.
+`workItems` je zatím vždy prázdné - závady z Heliosu chodí v `defects`.
 
 Ta dvě data chybí častěji, než se čeká: Helios nemá datum přijetí u každé
 zakázky a termín se u spousty z nich doplní až později. Aplikace pak
@@ -372,65 +370,18 @@ Karta vozidla. `id` je `cislo_subjektu` z Heliosu, neexistující vrací `404`.
   neposílá, i když ji server má.
 - `soldAt` je datum prodeje u RENOCARu, ne rok výroby - ten Helios nevede.
 
-### PATCH /orders/{id}
-
-Posun stavu. Vrací celou aktualizovanou zakázku.
-
-```json
-{ "status": "quality_check" }
-```
-
-Server má ohlídat, že jde o **posun o jeden krok dopředu** podle pořadí níž,
-a odmítnout skok nebo návrat s `409` a srozumitelnou hláškou. Appka nabízí jen
-následující stav, ale spoléhat na to nelze.
-
 ### POST /orders/{id}/notes
 
 Přidá poznámku, vrací aktualizovanou zakázku.
 
 ```json
-{ "text": "Objednán vodní chladič, dodání 26. 8.", "author": "Jan Dvořák" }
+{ "text": "Objednán vodní chladič, dodání 26. 8." }
 ```
 
-`author` posílá appka podle přihlášeného účtu. Server ho může přepsat podle
-tokenu — je to důvěryhodnější zdroj.
-
-### GET /orders/search?q=…
-
-Hledání **napříč archivem**, tedy i mezi uzavřenými zakázkami. Prohledává
-číslo zakázky, VIN, SPZ a zákazníka; mezery se ignorují, protože z OCR
-chodí SPZ jednou s mezerou a jednou bez.
-
-Vrací pole zakázek ve stejném tvaru jako `GET /orders`, nejvýš sto.
-Dotaz kratší než tři znaky vrací `400`.
-
-Aplikace to volá, když se v načteném seznamu nic nenajde, nebo když
-uživatel načte VIN fotoaparátem.
-
-### PATCH /orders/{id}/work-items/{workItemId}
-
-Označí úkon za hotový nebo plánovaný, vrací aktualizovanou zakázku.
-
-```json
-{ "isDone": true }
-```
+Autora bere server z tokenu (jméno, jinak e-mail); `author` v těle se použije
+jen tehdy, když ho token nemá. Text nejvýš 2000 znaků, prázdný vrací `400`.
 
 ## Číselníky
-
-Hodnoty musí sedět přesně, appka je mapuje na výčtové typy a neznámou hodnotu
-odmítne.
-
-**Stav zakázky** (`status`) — pořadí je zároveň pořadí kroků na dílně:
-
-| Hodnota | Význam |
-|---|---|
-| `received` | Přijato |
-| `diagnostics` | V diagnostice |
-| `waiting_for_parts` | Čeká na díly |
-| `in_repair` | V opravě |
-| `quality_check` | Kontrola kvality |
-| `ready_for_pickup` | Připraveno k vyzvednutí |
-| `picked_up` | Vyzvednuto |
 
 **Pobočka a útvar** nejsou pevný číselník - appka je bere z dat, takže nová
 pobočka v Heliosu se objeví sama, bez nové verze aplikace.
@@ -562,13 +513,69 @@ Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
   (`photo_storage_unavailable`); nepovedený zápis na souborový server `502`
   (`photo_storage_failed`). Obě chyby mají srozumitelnou `message`.
 
+## Ostatní dokumentace
+
+PDF, skeny, tabulky a cokoli dalšího ze složky zakázky ve Foto-doc, **co
+neleží ve složkách kategorií fotek** (`Exterier`, `VIN`...). Nemá tabulku
+v databázi - služba čte složku, takže soubor vložený kolegou z počítače je
+v aplikaci hned. Aplikace je ukazuje v kategorii Ostatní dokumentace.
+
+| Endpoint | Co dělá |
+|---|---|
+| `GET /orders/{id}/documents` | dokumenty zakázky ze všech poboček, nejnovější první |
+| `POST /orders/{id}/documents?name=…&branch=…` | nahrání; tělo je soubor (`Content-Type: application/octet-stream`), jde do složky `Ostatni`; vrací `201` |
+| `GET /orders/{id}/documents/{docId}` | soubor dokumentu se správným `Content-Type` |
+
+```json
+{
+  "id": "S0NQL09zdGF0bmkvUHJvdG9rb2wucGRm",
+  "name": "Protokol.pdf",
+  "folder": "Ostatni",
+  "size": 245120,
+  "modifiedAt": "2026-09-21T10:15:00"
+}
+```
+
+- `id` je umístění souboru (pobočka a cesta) v base64url. Služba ho pustí jen
+  do složky zakázky z adresy, ne do složek kategorií fotek.
+- `folder` je podsložka ve složce zakázky (`Ostatni`, `Faktury/2026`),
+  `null` = přímo ve složce zakázky.
+- Nahrát jde pdf, jpg, jpeg, png, heic, doc, docx, xls, xlsx, txt a csv do
+  25 MB, jinak `400` `unsupported_document`. Stejné jméno nic nepřepíše,
+  uloží se jako `Protokol (2).pdf`. `branch` funguje stejně jako u fotek.
+- Mazání z aplikace není.
+
+## Provoz
+
+### GET /health
+
+Mimo `/api` a **bez přihlášení** - pro monitoring a pro přihlašovací
+obrazovku aplikace, která podle něj ukazuje „ONLINE" nebo „Server
+nedostupný".
+
+```json
+{ "stav": "ok", "posledniSynchronizace": "2026-09-21T12:05:03.000Z", "chybaSynchronizace": null }
+```
+
+`posledniSynchronizace` je konec posledního běhu. Posílá se tak, jak leží
+v databázi, s příponou `.000Z` - číslice jsou ale místní čas serveru
+(viz *Časy* v PROVOZ.md), `Z` tu neznamená UTC.
+
+### POST /sync
+
+Ruční načtení zakázek z Heliosu - tlačítko v hlavičce seznamu zakázek.
+Nejvýš **jednou za minutu pro celou dílnu**; další volání dostane `429`
+s hláškou, za kolik vteřin to zkusit. Když už přenos běží (pětiminutový
+časovač), počká se na jeho výsledek a na Helios nejde druhý dotaz.
+
+```json
+{ "pocet": 1460 }
+```
+
 ## Co ještě není vyřešené
 
 - **Sdílený stav dílny.** Dnes appka data načte a drží; když stav posune jiný
   mechanik, ostatní to uvidí až po obnovení. Až to začne vadit, přidá se buď
   krátký polling, nebo websocket.
-- **Ruční dotažení z Heliosu.** Chystá se endpoint, kterým appka řekne
-  „koukni se do Heliosu hned" — omezený na jedno volání za minutu pro celou
-  dílnu, ať se DMS nedá zahltit.
 - **Offline zápisy.** Posun stavu bez signálu se dnes ztratí. Až bude potřeba,
   přibude fronta v appce a `409` se bude řešit sloučením.
