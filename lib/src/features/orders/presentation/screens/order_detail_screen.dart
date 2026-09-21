@@ -274,17 +274,18 @@ class _DetailBody extends ConsumerWidget {
     // s odškrtáváním, do které ale nikdy nic neteklo.
     final zavady = ZavadyCard(zavady: order.zavady);
 
-    // Na širokém tabletu dva sloupce: vlevo co se čte (kdy přišel vůz,
-    // pojištění, příjem, fotky, závady), vpravo co se zapisuje. Přes celou
-    // šířku by karty byly nepřehledně roztažené.
+    // Na širokém tabletu dva sloupce: vlevo údaje o voze a příjmu (kdy
+    // přišel, pojištění, příjem, fotky), vpravo práce na něm (postup,
+    // poznámky, závady). Přes celou šířku by karty byly nepřehledně
+    // roztažené.
     final ctenari = <Widget>[
       datumy,
       if (order.pojisteniPopisek != null) pojisteni,
       ?prijem,
       ?fotky,
-      zavady,
     ];
-    final zapisovaci = <Widget>[postup, ?predmet, poznamky];
+    // Závady pod poznámkami - k práci na voze patří vedle postupu.
+    final zapisovaci = <Widget>[postup, ?predmet, poznamky, zavady];
 
     // Na telefonu jeden sloupec v pořadí, jak se zakázka prochází.
     final zaSebou = <Widget>[

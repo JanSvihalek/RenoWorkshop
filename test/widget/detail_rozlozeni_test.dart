@@ -55,6 +55,16 @@ void main() {
     expect(vpravo.left, greaterThan(640));
   });
 
+  testWidgets('na tabletu jsou závady vpravo pod poznámkami', (tester) async {
+    // Vysoký, ať je celý pravý sloupec postavený najednou.
+    await otevri(tester, const Size(1280, 2400));
+
+    final zavady = tester.getRect(find.text('ZÁVADY/ÚKONY'));
+    final poznamky = tester.getRect(find.text('POZNÁMKY'));
+    expect(zavady.left, greaterThan(640));
+    expect(zavady.top, greaterThan(poznamky.top));
+  });
+
   testWidgets('na telefonu jsou karty pod sebou', (tester) async {
     await otevri(tester, const Size(800, 1400));
 
