@@ -8,6 +8,7 @@ import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../data/fotky_data_source.dart';
+import '../../domain/entities/dokument.dart';
 import '../../domain/entities/fotka.dart';
 
 /// Zdroj fotek je tentýž jako zdroj zakázek - vrací je stejná služba.
@@ -28,6 +29,21 @@ final fotkyZakazkyProvider = FutureProvider.autoDispose
         rethrow;
       } catch (chyba) {
         throw ServiceOrderException('Fotky se nepodařilo načíst: $chyba');
+      }
+    });
+
+/// Dokumenty ze složky zakázky, nejnovější první. Čtou se pokaždé znovu -
+/// kolega mohl mezitím soubor vložit z počítače.
+final dokumentyZakazkyProvider = FutureProvider.autoDispose
+    .family<List<Dokument>, String>((ref, orderId) async {
+      try {
+        return await ref
+            .watch(fotkyDataSourceProvider)
+            .dokumentyZakazky(orderId);
+      } on ServiceOrderException {
+        rethrow;
+      } catch (chyba) {
+        throw ServiceOrderException('Dokumenty se nepodařilo načíst: $chyba');
       }
     });
 

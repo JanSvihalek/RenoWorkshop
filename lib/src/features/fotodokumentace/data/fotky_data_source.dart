@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import '../domain/entities/dokument.dart';
 import '../domain/entities/fotka.dart';
 
 /// Zdroj fotodokumentace. Plní ho tentýž zdroj jako zakázky - fotky vrací
@@ -30,6 +31,22 @@ abstract interface class FotkyDataSource {
 
   /// `DELETE /photos/{id}`.
   Future<void> smazFotku(String id);
+
+  /// `GET /orders/{id}/documents` - dokumenty ze složky zakázky,
+  /// nejnovější první. I ty, které tam kolega vložil ručně.
+  Future<List<Dokument>> dokumentyZakazky(String orderId);
+
+  /// `POST /orders/{id}/documents?name=...&branch=...` - holé tělo souboru.
+  /// Server ho uloží do `<zakázka>\Dokumenty`; stejné jméno dostane číslo.
+  Future<Dokument> nahrajDokument(
+    String orderId,
+    String nazev,
+    Uint8List data, {
+    String? pobocka,
+  });
+
+  /// `GET /orders/{id}/documents/{docId}` - bajty dokumentu.
+  Future<Uint8List> stahniDokument(String orderId, String id);
 }
 
 /// Nejdelší strana fotky po zmenšení. Na přečtení VINu i posouzení

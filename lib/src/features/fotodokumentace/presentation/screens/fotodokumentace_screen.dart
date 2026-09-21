@@ -11,9 +11,11 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/hlavicka_zakazky.dart';
 import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
+import '../../domain/entities/dokument.dart';
 import '../../domain/entities/fotka.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../controllers/fotky_providers.dart';
+import '../prace_s_dokumenty.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 
@@ -71,6 +73,12 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
   final Set<String> _vybrane = {};
   bool _maze = false;
 
+  /// Kolik vybraných dokumentů ještě čeká na nahrání.
+  int _nahravaDokumentu = 0;
+
+  /// Id dokumentu, který se právě stahuje k zobrazení.
+  String? _oteviraDokument;
+
   String get orderId => widget.orderId;
 
   Future<void> _zGalerie(KategorieFotky kategorie) async {
@@ -125,6 +133,76 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
             ),
           ),
         );
+    }
+  }
+
+  void _oznam(String zprava) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(zprava)));
+  }
+
+  /// Vybere dokumenty v zařízení a nahraje je jeden po druhém. Co nejde
+  /// (moc velký soubor, odmítnutý typ), se oznámí a ostatní se nahrají.
+  Future<void> _nahrajDokumenty() async {
+    final List<VybranySoubor> soubory;
+    try {
+      soubory = await ref.read(praceSDokumentyProvider).vyber();
+    } on PraceSDokumentyException catch (chyba) {
+      _oznam(chyba.message);
+      return;
+    }
+    if (soubory.isEmpty || !mounted) return;
+
+    final zdroj = ref.read(fotkyDataSourceProvider);
+    String? chyba;
+    setState(() => _nahravaDokumentu = soubory.length);
+    for (final soubor in soubory) {
+      try {
+        if (soubor.velikost > maxVelikostDokumentu) {
+          chyba =
+              '${soubor.nazev} je větší než '
+              '${velikostSouboru(maxVelikostDokumentu)}.';
+          continue;
+        }
+        await zdroj.nahrajDokument(
+          orderId,
+          soubor.nazev,
+          await soubor.nacti(),
+          // Do stejné pobočky jako fotky zakázky.
+          pobocka: ref.read(nastaveniProvider).slozkaFotek,
+        );
+      } on ServiceOrderException catch (e) {
+        chyba = e.message;
+      } catch (_) {
+        chyba = '${soubor.nazev} se nepodařilo nahrát.';
+      } finally {
+        if (mounted) setState(() => _nahravaDokumentu--);
+      }
+    }
+
+    ref.invalidate(dokumentyZakazkyProvider(orderId));
+    if (chyba != null) _oznam(chyba);
+  }
+
+  /// Stáhne dokument a ukáže ho.
+  Future<void> _otevriDokument(Dokument dokument) async {
+    if (_oteviraDokument != null) return;
+    setState(() => _oteviraDokument = dokument.id);
+    try {
+      final data = await ref
+          .read(fotkyDataSourceProvider)
+          .stahniDokument(orderId, dokument.id);
+      await ref.read(praceSDokumentyProvider).otevri(dokument.nazev, data);
+    } on ServiceOrderException catch (chyba) {
+      _oznam(chyba.message);
+    } on PraceSDokumentyException catch (chyba) {
+      _oznam(chyba.message);
+    } catch (_) {
+      _oznam('Dokument se nepodařilo otevřít.');
+    } finally {
+      if (mounted) setState(() => _oteviraDokument = null);
     }
   }
 
@@ -196,6 +274,7 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
   Widget build(BuildContext context) {
     final fotky = ref.watch(fotkyZakazkyProvider(orderId));
     final nahravane = ref.watch(nahravaniFotekProvider(orderId));
+    final dokumenty = ref.watch(dokumentyZakazkyProvider(orderId));
 
     return Column(
       children: [
@@ -215,8 +294,10 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
           ),
         Expanded(
           child: RefreshIndicator.adaptive(
-            onRefresh: () async =>
-                ref.invalidate(fotkyZakazkyProvider(orderId)),
+            onRefresh: () async {
+              ref.invalidate(fotkyZakazkyProvider(orderId));
+              ref.invalidate(dokumentyZakazkyProvider(orderId));
+            },
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
@@ -225,9 +306,21 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
                 Insets.xl,
                 Insets.giant + MediaQuery.paddingOf(context).bottom,
               ),
-              itemCount: KategorieFotky.values.length,
+              // Za kategoriemi fotek ještě karta dokumentů.
+              itemCount: KategorieFotky.values.length + 1,
               separatorBuilder: (_, _) => const SizedBox(height: Insets.md),
               itemBuilder: (context, index) {
+                if (index == KategorieFotky.values.length) {
+                  return _KartaDokumentu(
+                    dokumenty: dokumenty,
+                    nahrava: _nahravaDokumentu,
+                    oteviraId: _oteviraDokument,
+                    onNahrat: _nahrajDokumenty,
+                    onOtevrit: _otevriDokument,
+                    onZnovu: () =>
+                        ref.invalidate(dokumentyZakazkyProvider(orderId)),
+                  );
+                }
                 final kategorie = KategorieFotky.values[index];
                 return _KartaKategorie(
                   kategorie: kategorie,
@@ -457,6 +550,208 @@ class _KartaKategorie extends StatelessWidget {
               child: LinearProgressIndicator(minHeight: 2),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Dokumenty zakázky: PDF, skeny, tabulky. Nahrané z aplikace i vložené
+/// ručně do složky zakázky na souborovém serveru.
+class _KartaDokumentu extends StatelessWidget {
+  const _KartaDokumentu({
+    required this.dokumenty,
+    required this.nahrava,
+    required this.oteviraId,
+    required this.onNahrat,
+    required this.onOtevrit,
+    required this.onZnovu,
+  });
+
+  final AsyncValue<List<Dokument>> dokumenty;
+
+  /// Kolik souborů se ještě nahrává; 0 = nic.
+  final int nahrava;
+  final String? oteviraId;
+  final VoidCallback onNahrat;
+  final void Function(Dokument dokument) onOtevrit;
+  final VoidCallback onZnovu;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final seznam = dokumenty.valueOrNull ?? const <Dokument>[];
+
+    return Container(
+      key: const Key('dokumenty'),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(Radii.card + 4),
+        border: Border.all(color: palette.hairline),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        Insets.xl,
+        Insets.base,
+        Insets.sm,
+        Insets.base,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.folder_copy_rounded,
+                color: AppColors.accent,
+                size: 28,
+              ),
+              const SizedBox(width: Insets.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dokumenty',
+                      style: AppTextStyles.cardModel.copyWith(
+                        color: palette.text,
+                      ),
+                    ),
+                    Text(
+                      nahrava > 0
+                          ? 'Nahrávám… (zbývá $nahrava)'
+                          : seznam.isEmpty
+                          ? 'PDF, skeny, tabulky'
+                          : pocetDokumentu(seznam.length),
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (nahrava > 0)
+                const Padding(
+                  padding: EdgeInsets.all(Insets.base),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                IconButton(
+                  key: const Key('nahrat-dokument'),
+                  tooltip: 'Nahrát dokument',
+                  onPressed: onNahrat,
+                  icon: const Icon(
+                    Icons.upload_file_rounded,
+                    color: AppColors.accent,
+                  ),
+                ),
+            ],
+          ),
+          if (dokumenty.hasError && !dokumenty.hasValue)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    dokumenty.error is ServiceOrderException
+                        ? (dokumenty.error! as ServiceOrderException).message
+                        : 'Dokumenty se nepodařilo načíst.',
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: AppColors.danger,
+                    ),
+                  ),
+                ),
+                TextButton(onPressed: onZnovu, child: const Text('Znovu')),
+              ],
+            )
+          else if (dokumenty.isLoading && !dokumenty.hasValue)
+            const Padding(
+              padding: EdgeInsets.only(top: Insets.sm, right: Insets.lg),
+              child: LinearProgressIndicator(minHeight: 2),
+            )
+          else ...[
+            const SizedBox(height: Insets.xs),
+            for (final dokument in seznam)
+              _RadekDokumentu(
+                dokument: dokument,
+                otevira: oteviraId == dokument.id,
+                onTap: () => onOtevrit(dokument),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RadekDokumentu extends StatelessWidget {
+  const _RadekDokumentu({
+    required this.dokument,
+    required this.otevira,
+    required this.onTap,
+  });
+
+  final Dokument dokument;
+  final bool otevira;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final popis = [
+      velikostSouboru(dokument.velikost),
+      AppDateFormat.dateTime(dokument.zmenenoAt),
+      // Soubor, který někdo vložil přímo do složky zakázky na serveru.
+      if (!dokument.nahranyZAplikace) 'vloženo ve složce',
+    ].join(' · ');
+
+    return InkWell(
+      key: Key('dokument-${dokument.id}'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(Radii.input),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Insets.sm),
+        child: Row(
+          children: [
+            Icon(dokument.ikona, color: palette.muted, size: 26),
+            const SizedBox(width: Insets.base),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dokument.nazev,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: palette.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    popis,
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 48,
+              child: otevira
+                  ? const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : Icon(Icons.chevron_right_rounded, color: palette.muted),
+            ),
+          ],
+        ),
       ),
     );
   }

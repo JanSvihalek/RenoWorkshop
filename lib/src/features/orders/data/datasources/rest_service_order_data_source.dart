@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
+import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../prijem/data/prijem_data_source.dart';
 import '../../../prijem/domain/entities/prijem.dart';
@@ -237,6 +238,58 @@ class RestServiceOrderDataSource
     await _send('DELETE', 'photos/${Uri.encodeComponent(id)}');
   }
 
+  String _cestaDokumentu(String orderId) =>
+      'orders/${Uri.encodeComponent(orderId)}/documents';
+
+  @override
+  Future<List<Dokument>> dokumentyZakazky(String orderId) async {
+    final data = await _send('GET', _cestaDokumentu(orderId));
+    if (data is! List) return const [];
+    return data
+        .map((item) => Dokument.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<Dokument> nahrajDokument(
+    String orderId,
+    String nazev,
+    Uint8List data, {
+    String? pobocka,
+  }) async {
+    final odpoved = await _send(
+      'POST',
+      '${_cestaDokumentu(orderId)}'
+          '?name=${Uri.encodeQueryComponent(nazev)}'
+          '${pobocka == null ? '' : '&branch=${Uri.encodeQueryComponent(pobocka)}'}',
+      bajty: data,
+      typBajtu: 'application/octet-stream',
+      // Sken o desítkách MB po dílenské wi-fi.
+      timeout: const Duration(minutes: 3),
+    );
+    if (odpoved is! Map<String, dynamic>) {
+      throw const ServiceOrderException('Zakázka nebyla nalezena.');
+    }
+    return Dokument.fromJson({
+      ...odpoved,
+      'modifiedAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  @override
+  Future<Uint8List> stahniDokument(String orderId, String id) async {
+    final data = await _send(
+      'GET',
+      '${_cestaDokumentu(orderId)}/${Uri.encodeComponent(id)}',
+      binarni: true,
+      timeout: const Duration(minutes: 3),
+    );
+    if (data is! Uint8List) {
+      throw const ServiceOrderException('Dokument už ve složce zakázky není.');
+    }
+    return data;
+  }
+
   String _cestaPrijmu(String orderId) =>
       'orders/${Uri.encodeComponent(orderId)}/intake';
 
@@ -301,11 +354,12 @@ class RestServiceOrderDataSource
     String path, {
     Map<String, Object?>? body,
     Uint8List? bajty,
+    String typBajtu = 'image/jpeg',
     bool binarni = false,
     Duration? timeout,
   }) async {
     final request = http.Request(method, _baseUrl.resolve(path))
-      ..headers['Accept'] = binarni ? 'image/jpeg' : 'application/json';
+      ..headers['Accept'] = binarni ? '*/*' : 'application/json';
 
     final token = await _tokenProvider();
     if (token != null && token.isNotEmpty) {
@@ -316,7 +370,7 @@ class RestServiceOrderDataSource
       request.body = jsonEncode(body);
     }
     if (bajty != null) {
-      request.headers['Content-Type'] = 'image/jpeg';
+      request.headers['Content-Type'] = typBajtu;
       request.bodyBytes = bajty;
     }
 

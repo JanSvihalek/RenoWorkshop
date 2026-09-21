@@ -6,6 +6,7 @@ import 'package:renoworkshop/src/features/orders/domain/repositories/service_ord
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/data/fotky_data_source.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokument.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
@@ -140,6 +141,42 @@ class FakeServiceOrderDataSource
       seznam.removeWhere((fotka) => fotka.id == id);
     }
   }
+
+  /// Dokumenty v paměti. [nahravaniDokumentuSelze] simuluje odmítnutí
+  /// serverem, [pobockaDokumentu] je pobočka posledního nahrání.
+  final Map<String, List<Dokument>> dokumenty = {};
+  final Map<String, Uint8List> bajtyDokumentu = {};
+  String? nahravaniDokumentuSelze;
+  String? pobockaDokumentu;
+
+  @override
+  Future<List<Dokument>> dokumentyZakazky(String orderId) async =>
+      List.of(dokumenty[orderId] ?? const []);
+
+  @override
+  Future<Dokument> nahrajDokument(
+    String orderId,
+    String nazev,
+    Uint8List data, {
+    String? pobocka,
+  }) async {
+    final chyba = nahravaniDokumentuSelze;
+    if (chyba != null) throw ServiceOrderException(chyba);
+    pobockaDokumentu = pobocka;
+    final dokument = Dokument(
+      id: 'dok-${bajtyDokumentu.length + 1}',
+      nazev: nazev,
+      velikost: data.length,
+      zmenenoAt: DateTime(2026, 9, 21, 12, 30),
+    );
+    bajtyDokumentu[dokument.id] = data;
+    dokumenty.putIfAbsent(orderId, () => []).insert(0, dokument);
+    return dokument;
+  }
+
+  @override
+  Future<Uint8List> stahniDokument(String orderId, String id) async =>
+      bajtyDokumentu[id]!;
 
   /// Poslední dotaz na vozidla - test pozná, co šlo na server.
   String? posledniHledaniVozidla;

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
 import '../../../fotodokumentace/data/fotky_data_source.dart';
+import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../prijem/data/prijem_data_source.dart';
 import '../../../prijem/domain/entities/prijem.dart';
@@ -382,5 +383,41 @@ class MockServiceOrderDataSource
     for (final seznam in _fotky.values) {
       seznam.removeWhere((fotka) => fotka.id == id);
     }
+  }
+
+  /// Dokumenty jen v paměti, stejně jako fotky.
+  final Map<String, List<Dokument>> _dokumenty = {};
+  final Map<String, Uint8List> _bajtyDokumentu = {};
+
+  @override
+  Future<List<Dokument>> dokumentyZakazky(String orderId) async {
+    await _simulateLatency();
+    return List.of(_dokumenty[orderId] ?? const []);
+  }
+
+  @override
+  Future<Dokument> nahrajDokument(
+    String orderId,
+    String nazev,
+    Uint8List data, {
+    String? pobocka,
+  }) async {
+    await _simulateLatency();
+    final dokument = Dokument(
+      id: 'mock-dok-${DateTime.now().microsecondsSinceEpoch}',
+      nazev: nazev,
+      velikost: data.length,
+      zmenenoAt: DateTime.now(),
+    );
+    _bajtyDokumentu[dokument.id] = data;
+    _dokumenty.putIfAbsent(orderId, () => []).insert(0, dokument);
+    return dokument;
+  }
+
+  @override
+  Future<Uint8List> stahniDokument(String orderId, String id) async {
+    final bajty = _bajtyDokumentu[id];
+    if (bajty == null) throw StateError('Dokument $id v mocku není.');
+    return bajty;
   }
 }

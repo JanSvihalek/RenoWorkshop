@@ -9,6 +9,19 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29"
         tools:replace="android:maxSdkVersion" />
+    <!-- Plugin pro otevírání dokumentů (open_filex) si žádá čtení fotek,
+         videí a hudby v zařízení. Aplikace otevírá jen soubory ze své
+         mezipaměti, takže je nepotřebuje - a Google Play je u aplikací,
+         které nejsou galerií, nevidí rád. -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_AUDIO"
+        tools:node="remove" />
     <application
         android:requestLegacyExternalStorage="true"
         android:label="RenoWorkshop"
