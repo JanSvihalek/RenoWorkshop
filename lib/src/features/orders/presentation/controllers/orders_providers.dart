@@ -17,21 +17,26 @@ import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
+import '../../../../app/log_udalosti_provider.dart';
 
 /// Zdroj dat: bez `API_BASE_URL` mock JSON, s ním reálné API.
 /// Jediné místo, kde se to rozhoduje - zbytek appky rozdíl nepozná.
-final serviceOrderDataSourceProvider = Provider<ServiceOrderDataSource>((ref) {
-  if (!AppConfig.pouzivaApi) return MockServiceOrderDataSource();
+final Provider<ServiceOrderDataSource> serviceOrderDataSourceProvider =
+    Provider<ServiceOrderDataSource>((ref) {
+      if (!AppConfig.pouzivaApi) return MockServiceOrderDataSource();
 
-  final dataSource = RestServiceOrderDataSource(
-    baseUrl: Uri.parse(AppConfig.apiBaseUrl),
-    // Token se bere až při volání, ne při sestavení - Firebase ho sám
-    // obnovuje a starý by po hodině přestal platit.
-    tokenProvider: () async => FirebaseAuth.instance.currentUser?.getIdToken(),
-  );
-  ref.onDispose(dataSource.dispose);
-  return dataSource;
-});
+      final dataSource = RestServiceOrderDataSource(
+        baseUrl: Uri.parse(AppConfig.apiBaseUrl),
+        // Token se bere až při volání, ne při sestavení - Firebase ho sám
+        // obnovuje a starý by po hodině přestal platit.
+        tokenProvider: () async =>
+            FirebaseAuth.instance.currentUser?.getIdToken(),
+        onChyba: (nazev, detail) =>
+            ref.read(logUdalostiProvider).chyba(nazev, detail),
+      );
+      ref.onDispose(dataSource.dispose);
+      return dataSource;
+    });
 
 final serviceOrderRepositoryProvider = Provider<ServiceOrderRepository>((ref) {
   final repository = ServiceOrderRepositoryImpl(
@@ -187,10 +192,18 @@ final archivKHledaniProvider = FutureProvider.autoDispose<List<ServiceOrder>?>((
         in ref.read(ordersStreamProvider).valueOrNull ?? const <ServiceOrder>[])
       zakazka.id,
   };
-  return [
+  final vysledek = [
     for (final zakazka in nalezene)
       if (!naDilne.contains(zakazka.id)) zakazka,
   ];
+  // Jen délka dotazu a počet - hledaný text (SPZ, jméno) do logu nepatří.
+  ref
+      .read(logUdalostiProvider)
+      .udalost(
+        'hledani_archiv',
+        detail: 'znaků ${dotaz.length}, v archivu ${vysledek.length}',
+      );
+  return vysledek;
 });
 
 /// Aktivní filtry seznamu.

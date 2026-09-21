@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/firebase_auth_repository.dart';
 import '../../domain/entities/auth_state.dart';
 import '../../domain/entities/employee.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../../app/log_udalosti_provider.dart';
 
 /// Jediné místo, kde se vybírá implementace přihlášení.
 /// V testech se přepisuje na `PlaceholderAuthRepository`, aby nebylo
@@ -48,14 +51,33 @@ class AuthController extends Notifier<AuthState> {
         SignInMethod.biometric => await repository.signInWithBiometrics(),
       };
       state = AuthSignedIn(employee);
+      final log = ref.read(logUdalostiProvider)
+        ..udalost('prihlaseni', detail: method.name);
+      // Co se nasbíralo před přihlášením (i jeho chyby), jde hned.
+      unawaited(log.odesli());
     } on AuthException catch (error) {
+      ref
+          .read(logUdalostiProvider)
+          .chyba('prihlaseni_chyba', error.message, detail: method.name);
       state = AuthSignedOut(errorMessage: error.message);
-    } catch (error) {
+    } catch (error, zasobnik) {
+      ref
+          .read(logUdalostiProvider)
+          .chyba(
+            'prihlaseni_chyba',
+            error,
+            zasobnik: zasobnik,
+            detail: method.name,
+          );
       state = AuthSignedOut(errorMessage: 'Přihlášení se nezdařilo: $error');
     }
   }
 
   Future<void> signOut() async {
+    // Poslat ještě s platným přihlášením - po odhlášení by služba dávku
+    // odmítla.
+    final log = ref.read(logUdalostiProvider)..udalost('odhlaseni');
+    await log.odesli();
     await ref.read(authRepositoryProvider).signOut();
     state = const AuthSignedOut();
   }

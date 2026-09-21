@@ -23,6 +23,7 @@ import '../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
 import '../features/vozidla/presentation/screens/rozdelene_vyhledavani_screen.dart';
 import '../features/vozidla/presentation/screens/vyhledavani_screen.dart';
+import 'log_udalosti_provider.dart';
 
 /// Cesty appky na jednom místě - ať se v další fázi (deep linky z DMS,
 /// notifikace) nemusí hledat po widgetech.
@@ -56,7 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _AuthRefreshNotifier(ref);
   ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: AppRoutes.orders,
     refreshListenable: refresh,
     // Auth guard: bez přihlášení se do zakázek nedostaneme.
@@ -240,6 +241,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Každá změna obrazovky do logu událostí - z něj je pak vidět, jak se
+  // technik k chybě dostal. Jen cesta, bez query (hledaný text).
+  void zapisObrazovku() => ref
+      .read(logUdalostiProvider)
+      .obrazovka(router.routerDelegate.currentConfiguration.uri.path);
+  router.routerDelegate.addListener(zapisObrazovku);
+  ref.onDispose(() => router.routerDelegate.removeListener(zapisObrazovku));
+  return router;
 });
 
 /// Přemostění Riverpodu a go_routeru - při změně přihlášení přepočítá redirect.

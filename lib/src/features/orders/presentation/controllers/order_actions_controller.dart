@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/log_udalosti_provider.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import 'orders_providers.dart';
@@ -27,6 +28,13 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   void _obnovMimoDilnu(String orderId) =>
       ref.invalidate(zakazkaMimoDilnuProvider(orderId));
 
+  /// Zápis do logu událostí - ať je v posloupnosti kroků uživatele vidět
+  /// i práce s postupem a poznámkami. Text poznámky se nezapisuje, je
+  /// v tabulce poznámek; smazaný stav si do logu zapíše služba celý.
+  void _zaloguj(String nazev, String orderId, {String? detail}) => ref
+      .read(logUdalostiProvider)
+      .udalost(nazev, detail: detail, zakazka: orderId);
+
   /// Přidá dílenský stav do historie zakázky.
   ///
   /// Buď [kod] z číselníku, nebo [nazev] s vlastním textem. Vrací `true`
@@ -47,6 +55,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         nazev: nazev?.trim(),
         poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
       );
+      _zaloguj('stav_pridan', orderId, detail: kod ?? 'vlastní text');
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;
@@ -68,6 +77,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         text: trimmed,
         author: author,
       );
+      _zaloguj('poznamka_pridana', orderId, detail: 'znaků ${trimmed.length}');
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;
@@ -115,6 +125,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _repository.smazStav(orderId, zaznamId);
+      _zaloguj('stav_smazan', orderId);
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;

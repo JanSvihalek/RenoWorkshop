@@ -18,6 +18,7 @@ import '../controllers/fotky_providers.dart';
 import '../prace_s_dokumenty.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
+import '../../../../app/log_udalosti_provider.dart';
 
 /// Fotodokumentace zakázky - samostatná obrazovka z detailu zakázky.
 class FotodokumentaceScreen extends ConsumerWidget {
@@ -84,12 +85,19 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
   Future<void> _zGalerie(KategorieFotky kategorie) async {
     final fotky = await ref.read(ziskaniFotekProvider).zGalerie(context);
     if (fotky.isEmpty) return;
+    ref
+        .read(logUdalostiProvider)
+        .udalost(
+          'fotky_z_galerie',
+          detail: '${kategorie.klic}, ${fotky.length}',
+        );
     await ref
         .read(nahravaniFotekProvider(orderId).notifier)
         .pridej(kategorie, fotky);
   }
 
   Future<void> _fotit(KategorieFotky kategorie) {
+    ref.read(logUdalostiProvider).udalost('foceni', detail: kategorie.klic);
     final nahravani = ref.read(nahravaniFotekProvider(orderId).notifier);
     return ref
         .read(ziskaniFotekProvider)
@@ -175,8 +183,10 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
         );
       } on ServiceOrderException catch (e) {
         chyba = e.message;
-      } catch (_) {
+        _logChyba('dokument_nenahran', e.message, soubor.nazev);
+      } catch (e, zasobnik) {
         chyba = '${soubor.nazev} se nepodařilo nahrát.';
+        _logChyba('dokument_nenahran', e, soubor.nazev, zasobnik);
       } finally {
         if (mounted) setState(() => _nahravaDokumentu--);
       }
@@ -184,6 +194,25 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
 
     ref.invalidate(dokumentyZakazkyProvider(orderId));
     if (chyba != null) _oznam(chyba);
+  }
+
+  /// Do logu jen typ a velikost souboru, ne jeho jméno - to bývá jméno
+  /// zákazníka nebo číslo faktury.
+  void _logChyba(
+    String nazev,
+    Object chyba,
+    String souborJmeno, [
+    StackTrace? zasobnik,
+  ]) {
+    final tecka = souborJmeno.lastIndexOf('.');
+    ref
+        .read(logUdalostiProvider)
+        .chyba(
+          nazev,
+          chyba,
+          zasobnik: zasobnik,
+          detail: tecka < 0 ? null : souborJmeno.substring(tecka + 1),
+        );
   }
 
   /// Stáhne dokument a ukáže ho.
@@ -196,10 +225,13 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
           .stahniDokument(orderId, dokument.id);
       await ref.read(praceSDokumentyProvider).otevri(dokument.nazev, data);
     } on ServiceOrderException catch (chyba) {
+      _logChyba('dokument_neotevren', chyba.message, dokument.nazev);
       _oznam(chyba.message);
     } on PraceSDokumentyException catch (chyba) {
+      _logChyba('dokument_neotevren', chyba.message, dokument.nazev);
       _oznam(chyba.message);
-    } catch (_) {
+    } catch (chyba, zasobnik) {
+      _logChyba('dokument_neotevren', chyba, dokument.nazev, zasobnik);
       _oznam('Dokument se nepodařilo otevřít.');
     } finally {
       if (mounted) setState(() => _oteviraDokument = null);

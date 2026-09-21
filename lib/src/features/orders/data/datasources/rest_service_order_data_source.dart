@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
@@ -29,19 +30,46 @@ class RestServiceOrderDataSource
         ServiceOrderDataSource,
         VozidlaDataSource,
         FotkyDataSource,
-        PrijemDataSource {
+        PrijemDataSource,
+        OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
     required Future<String?> Function() tokenProvider,
     http.Client? client,
     this.timeout = const Duration(seconds: 15),
+    void Function(String nazev, String detail)? onChyba,
   }) : _baseUrl = baseUrl,
        _tokenProvider = tokenProvider,
-       _client = client ?? http.Client();
+       _client = client ?? http.Client(),
+       _onChyba = onChyba;
 
   final Uri _baseUrl;
   final Future<String?> Function() _tokenProvider;
   final http.Client _client;
+
+  /// Výpadek sítě nebo chyba serveru - pro log událostí. Ve službě se
+  /// nepovedený požadavek zapíše sám, ale ten, který k ní nedošel, ne.
+  final void Function(String nazev, String detail)? _onChyba;
+
+  /// Chyby při odesílání logu se nehlásí do logu - jinak by bez sítě
+  /// každý pokus přidal další záznam.
+  void _hlas(String nazev, String path, String detail) {
+    if (path == 'events') return;
+    _onChyba?.call(nazev, '${path.split('?').first}: $detail');
+  }
+
+  @override
+  Future<void> odesliUdalosti(
+    List<Map<String, Object?>> udalosti, {
+    required String zarizeni,
+    String? verze,
+  }) async {
+    await _send(
+      'POST',
+      'events',
+      body: {'device': zarizeni, 'appVersion': verze, 'events': udalosti},
+    );
+  }
 
   /// Dílenská wi-fi bývá vrtkavá - radši chybu než nekonečné čekání.
   final Duration timeout;
@@ -381,10 +409,12 @@ class RestServiceOrderDataSource
           .timeout(timeout ?? this.timeout);
       odpoved = await http.Response.fromStream(streamed);
     } on TimeoutException {
+      _hlas('sit_timeout', path, '$method bez odpovědi');
       throw const ServiceOrderException(
         'Server neodpovídá. Zkuste to znovu, až budete v dosahu sítě.',
       );
     } on http.ClientException catch (chyba) {
+      _hlas('sit_nedostupna', path, '$method ${chyba.message}');
       throw ServiceOrderException(
         'Nepodařilo se spojit se serverem: ${chyba.message}',
       );
@@ -411,6 +441,7 @@ class RestServiceOrderDataSource
       );
     }
     if (kod >= 500) {
+      _hlas('chyba_serveru', path, '$kod ${_chybaZTela(odpoved) ?? ''}');
       // Konkrétní zpráva ze serveru má přednost - u fotek říká, jestli
       // chybí úložiště, nebo nešel zápis na souborový server.
       throw ServiceOrderException(

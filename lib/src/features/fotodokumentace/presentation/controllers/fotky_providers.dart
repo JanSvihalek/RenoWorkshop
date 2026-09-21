@@ -10,6 +10,7 @@ import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../data/fotky_data_source.dart';
 import '../../domain/entities/dokument.dart';
 import '../../domain/entities/fotka.dart';
+import '../../../../app/log_udalosti_provider.dart';
 
 /// Zdroj fotek je tentýž jako zdroj zakázek - vrací je stejná služba.
 final fotkyDataSourceProvider = Provider<FotkyDataSource>((ref) {
@@ -172,10 +173,19 @@ class NahravaniFotek extends FamilyNotifier<List<NahravanaFotka>, String> {
           if (f.klic != fotka.klic) f,
       ];
       ref.invalidate(fotkyZakazkyProvider(_orderId));
-    } catch (chyba) {
+    } catch (chyba, zasobnik) {
       final zprava = chyba is ServiceOrderException
           ? chyba.message
           : 'Fotku se nepodařilo nahrát.';
+      ref
+          .read(logUdalostiProvider)
+          .chyba(
+            'fotka_nenahrana',
+            zprava,
+            zasobnik: chyba is ServiceOrderException ? null : zasobnik,
+            detail: fotka.kategorie.klic,
+            zakazka: _orderId,
+          );
       state = [
         for (final f in state)
           if (f.klic == fotka.klic) f.sChybou(zprava) else f,
