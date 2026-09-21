@@ -56,6 +56,35 @@ void main() {
     expect(find.textContaining('ONLINE'), findsNothing);
   });
 
+  testWidgets('u nedostupného serveru poradí firemní wi-fi', (tester) async {
+    await otevri(tester, serverOdpovida: false);
+
+    expect(find.textContaining('RenPriv, ISPA nebo ISPI'), findsOneWidget);
+  });
+
+  testWidgets('po zapnutí wi-fi se to spraví samo', (tester) async {
+    await otevri(tester, serverOdpovida: false);
+    expect(find.textContaining('SERVER NEDOSTUPNÝ'), findsOneWidget);
+
+    // Technik se mezitím připojí k firemní síti.
+    zdroj.serverOdpovida = true;
+    await tester.pump(opakovaniDotazu + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ONLINE · 1.2.0 (73)'), findsOneWidget);
+    expect(find.textContaining('RenPriv'), findsNothing);
+  });
+
+  testWidgets('klepnutím jde zkusit znovu hned', (tester) async {
+    await otevri(tester, serverOdpovida: false);
+
+    zdroj.serverOdpovida = true;
+    await tester.tap(find.byKey(const Key('stav-serveru')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ONLINE · 1.2.0 (73)'), findsOneWidget);
+  });
+
   testWidgets('build na ukázkových datech to přizná', (tester) async {
     await otevri(tester, serverOdpovida: true, pouzivaApi: false);
 

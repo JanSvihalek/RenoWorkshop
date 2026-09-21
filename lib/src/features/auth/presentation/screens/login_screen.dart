@@ -451,27 +451,55 @@ class _NetworkStatusRow extends ConsumerWidget {
           top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 9),
-          Flexible(
-            child: Text(
-              [stav.popisek, ?verze].join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.monoLabel.copyWith(
-                color: Colors.white.withValues(
-                  alpha: stav == StavServeru.nedostupny ? 0.7 : 0.3,
-                ),
+          // Klepnutí zkusí server hned, ať se nečeká na opakování.
+          InkWell(
+            key: const Key('stav-serveru'),
+            onTap: () => ref.invalidate(stavServeruProvider),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Insets.xxs),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: barva,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Flexible(
+                    child: Text(
+                      [stav.popisek, ?verze].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.monoLabel.copyWith(
+                        color: Colors.white.withValues(
+                          alpha: stav == StavServeru.nedostupny ? 0.7 : 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+          // Nejčastější příčina je špatná wi-fi, ne vypnutá služba.
+          if (stav == StavServeru.nedostupny)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Zkontrolujte, že jste připojeni k firemní wi-fi '
+                '(RenPriv, ISPA nebo ISPI). Klepnutím zkusíte znovu.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.metaSmall.copyWith(
+                  color: Colors.white.withValues(alpha: 0.45),
+                ),
+              ),
+            ),
         ],
       ),
     );

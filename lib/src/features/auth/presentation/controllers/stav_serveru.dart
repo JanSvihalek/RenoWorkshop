@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -27,6 +29,11 @@ enum StavServeru {
 /// přepnout - jinak by se stav serveru testoval jen v režimu ukázkových dat.
 final pouzivaApiProvider = Provider<bool>((ref) => AppConfig.pouzivaApi);
 
+/// Jak často se to zkouší znovu, dokud server neodpovídá. Technik zapne
+/// wi-fi a čeká u přihlašovací obrazovky - má se to spravit samo, bez
+/// zavírání aplikace.
+const opakovaniDotazu = Duration(seconds: 5);
+
 /// Dostupnost služby. Ptá se na `/health`, tedy bez přihlášení - smysl to
 /// má právě předtím, než se technik přihlásí.
 final stavServeruProvider = FutureProvider.autoDispose<StavServeru>((
@@ -34,7 +41,11 @@ final stavServeruProvider = FutureProvider.autoDispose<StavServeru>((
 ) async {
   if (!ref.watch(pouzivaApiProvider)) return StavServeru.ukazka;
   final bezi = await ref.watch(serviceOrderDataSourceProvider).serverBezi();
-  return bezi ? StavServeru.online : StavServeru.nedostupny;
+  if (bezi) return StavServeru.online;
+
+  final timer = Timer(opakovaniDotazu, ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+  return StavServeru.nedostupny;
 });
 
 /// Verze aplikace i s číslem buildu, např. `1.2.0 (73)`. Bere se ze
