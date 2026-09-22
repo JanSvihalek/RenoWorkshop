@@ -21,6 +21,7 @@ void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
   late PametoveNastaveni uloziste;
+  late FakeServiceOrderDataSource zdroj;
 
   Future<void> spust(
     WidgetTester tester, {
@@ -43,7 +44,7 @@ void main() {
             ),
           ),
           serviceOrderDataSourceProvider.overrideWithValue(
-            FakeServiceOrderDataSource([
+            zdroj = FakeServiceOrderDataSource([
               buildOrderDto(
                 id: 'ZK-26-0001',
                 licensePlate: '2BK 9485',
@@ -106,6 +107,20 @@ void main() {
     await tester.tap(find.byKey(const Key('zobrazeni-karty')));
     await tester.pumpAndSettle();
     expect(find.byType(OrderCard), findsNWidgets(2));
+  });
+
+  testWidgets('stažení prstem obnoví i tabulku', (tester) async {
+    await spust(
+      tester,
+      nastaveni: const Nastaveni(zobrazeniZakazek: ZobrazeniZakazek.tabulka),
+    );
+    final predObnovou = zdroj.pocetNacteni;
+
+    await tester.fling(find.text('ZK-26-0001'), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+
+    // Dřív tah po řádcích tabulky obnovu vůbec nespustil.
+    expect(zdroj.pocetNacteni, greaterThan(predObnovou));
   });
 
   testWidgets('filtr platí i v tabulce', (tester) async {

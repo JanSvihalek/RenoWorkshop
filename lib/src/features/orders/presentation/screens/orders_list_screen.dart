@@ -225,6 +225,11 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                   ? RefreshIndicator.adaptive(
                       onRefresh: () async =>
                           ref.invalidate(ordersStreamProvider),
+                      // Řádky tabulky jsou svislý seznam uvnitř vodorovně
+                      // posuvné tabulky - výchozí nastavení poslouchá jen
+                      // nejvyšší úroveň, a stažení prstem by nereagovalo.
+                      notificationPredicate: (oznameni) =>
+                          oznameni.metrics.axis == Axis.vertical,
                       child: TabulkaZakazek(
                         zakazky: data,
                         onOpenOrder: widget.onOpenOrder,
