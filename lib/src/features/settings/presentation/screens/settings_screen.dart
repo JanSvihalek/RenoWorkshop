@@ -231,13 +231,13 @@ class _SkenerCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'SPOUŠŤ SKENERU',
+            'SPOUŠŤ FOTOAPARÁTU/SKENERU',
             style: AppTextStyles.overline.copyWith(color: palette.muted),
           ),
           const SizedBox(height: Insets.xxs),
           Text(
-            'Kde je tlačítko na vyfocení SPZ a VINu. Na tabletu na šířku je '
-            'po straně blíž palci.',
+            'Kde je spoušť při focení fotodokumentace a načítání SPZ a VINu. '
+            'Na tabletu na šířku je po straně blíž palci.',
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
           ),
           const SizedBox(height: Insets.base),
@@ -397,7 +397,7 @@ class _FotodokumentaceCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ukládat i do telefonu',
+                      'Ukládat i do zařízení',
                       style: AppTextStyles.cardBody.copyWith(
                         color: palette.text,
                         fontWeight: FontWeight.w600,
