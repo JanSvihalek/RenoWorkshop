@@ -368,7 +368,8 @@ Karta vozidla. `id` je `cislo_subjektu` z Heliosu, neexistující vrací `404`.
   ve stejném tvaru jako `GET /orders`. Rozliší je `isActive`.
 - `owner` i `contact` mohou být `null`. Domácí adresa kontaktní osoby se
   neposílá, i když ji server má.
-- `soldAt` je datum prodeje u RENOCARu, ne rok výroby - ten Helios nevede.
+- `soldAt` je `prodej_datum` vozidla z Heliosu, ne rok výroby - ten Helios
+  nevede. Aplikace ho ukazuje jako „Datum registrace“.
 
 ### POST /orders/{id}/notes
 

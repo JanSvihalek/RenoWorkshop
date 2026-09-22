@@ -224,8 +224,9 @@ class _KartaVozu extends StatelessWidget {
                 ? null
                 : '${NumberFormat.decimalPattern('cs_CZ').format(tachometr)} km',
           ),
+          // `prodej_datum` z Heliosu - na dílně se mu říká datum registrace.
           _Udaj(
-            'Prodáno',
+            'Datum registrace',
             prodano == null ? null : AppDateFormat.date(prodano),
           ),
         ],
