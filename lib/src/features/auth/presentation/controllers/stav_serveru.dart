@@ -9,20 +9,27 @@ import '../../../orders/presentation/controllers/orders_providers.dart';
 /// Co ukazuje řádek pod přihlášením.
 enum StavServeru {
   /// Dotaz na službu ještě běží.
-  zjistuje('ZJIŠŤUJI'),
+  zjistuje('Zjišťuji…'),
 
   /// Služba odpověděla - technik je na firemní síti.
-  online('ONLINE'),
+  online('Připojeno'),
 
   /// Služba neodpovídá: telefon je mimo firemní síť, nebo služba neběží.
-  nedostupny('SERVER NEDOSTUPNÝ'),
+  nedostupny('Nedostupný'),
 
   /// Build bez API - jede na ukázkových datech.
-  ukazka('UKÁZKOVÁ DATA');
+  ukazka('Ukázková data');
 
   const StavServeru(this.popisek);
 
+  /// Stejný text na přihlášení i v nastavení, ať technik nevidí na
+  /// jednom místě „Online" a na druhém „Připojeno".
   final String popisek;
+
+  /// Pro řádek pod přihlášením: „Server: připojeno". Ukázková data
+  /// nejsou stav serveru, ta zůstávají samostatně.
+  String get sPopisem =>
+      this == StavServeru.ukazka ? popisek : 'Server: ${popisek.toLowerCase()}';
 }
 
 /// Jede build proti ostré službě? Vlastní provider, ať jde v testech

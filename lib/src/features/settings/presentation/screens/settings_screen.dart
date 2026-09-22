@@ -598,11 +598,11 @@ class _RadekServeru extends ConsumerWidget {
     final stav = viditelne
         ? ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje
         : StavServeru.zjistuje;
-    final (text, barva) = switch (stav) {
-      StavServeru.online => ('Připojeno', AppColors.readyGreen),
-      StavServeru.nedostupny => ('Nedostupný', AppColors.danger),
-      StavServeru.ukazka => ('Ukázková data', palette.muted),
-      StavServeru.zjistuje => ('Zjišťuji…', palette.muted),
+    final text = stav.popisek;
+    final barva = switch (stav) {
+      StavServeru.online => AppColors.readyGreen,
+      StavServeru.nedostupny => AppColors.danger,
+      StavServeru.ukazka || StavServeru.zjistuje => palette.muted,
     };
 
     return InkWell(

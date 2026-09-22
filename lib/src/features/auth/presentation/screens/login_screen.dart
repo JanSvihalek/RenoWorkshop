@@ -473,7 +473,7 @@ class _NetworkStatusRow extends ConsumerWidget {
                   const SizedBox(width: 9),
                   Flexible(
                     child: Text(
-                      [stav.popisek, ?verze].join(' · '),
+                      [stav.sPopisem, ?verze].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.monoLabel.copyWith(

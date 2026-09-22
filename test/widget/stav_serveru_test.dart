@@ -43,17 +43,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('když služba odpovídá, svítí ONLINE s verzí', (tester) async {
+  testWidgets('když služba odpovídá, svítí připojeno s verzí', (tester) async {
     await otevri(tester, serverOdpovida: true);
 
-    expect(find.text('ONLINE · 1.2.0 (73)'), findsOneWidget);
+    expect(find.text('Server: připojeno · 1.2.0 (73)'), findsOneWidget);
   });
 
   testWidgets('mimo firemní síť je vidět, že server nejede', (tester) async {
     await otevri(tester, serverOdpovida: false);
 
-    expect(find.text('SERVER NEDOSTUPNÝ · 1.2.0 (73)'), findsOneWidget);
-    expect(find.textContaining('ONLINE'), findsNothing);
+    expect(find.text('Server: nedostupný · 1.2.0 (73)'), findsOneWidget);
+    expect(find.textContaining('připojeno'), findsNothing);
   });
 
   testWidgets('u nedostupného serveru poradí firemní wi-fi', (tester) async {
@@ -64,14 +64,14 @@ void main() {
 
   testWidgets('po zapnutí wi-fi se to spraví samo', (tester) async {
     await otevri(tester, serverOdpovida: false);
-    expect(find.textContaining('SERVER NEDOSTUPNÝ'), findsOneWidget);
+    expect(find.textContaining('nedostupný'), findsOneWidget);
 
     // Technik se mezitím připojí k firemní síti.
     zdroj.serverOdpovida = true;
     await tester.pump(opakovaniDotazu + const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(find.text('ONLINE · 1.2.0 (73)'), findsOneWidget);
+    expect(find.text('Server: připojeno · 1.2.0 (73)'), findsOneWidget);
     expect(find.textContaining('RenPriv'), findsNothing);
   });
 
@@ -82,12 +82,12 @@ void main() {
     await tester.tap(find.byKey(const Key('stav-serveru')));
     await tester.pumpAndSettle();
 
-    expect(find.text('ONLINE · 1.2.0 (73)'), findsOneWidget);
+    expect(find.text('Server: připojeno · 1.2.0 (73)'), findsOneWidget);
   });
 
   testWidgets('build na ukázkových datech to přizná', (tester) async {
     await otevri(tester, serverOdpovida: true, pouzivaApi: false);
 
-    expect(find.text('UKÁZKOVÁ DATA · 1.2.0 (73)'), findsOneWidget);
+    expect(find.text('Ukázková data · 1.2.0 (73)'), findsOneWidget);
   });
 }
