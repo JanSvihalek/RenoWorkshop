@@ -124,9 +124,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
   static String _zprava(FirebaseAuthException chyba) {
     return switch (chyba.code) {
-      'web-context-canceled' ||
-      'canceled' ||
-      'user-canceled' => 'Přihlášení bylo zrušeno.',
+      // Sem patří i zavření okna s chybou „missing initial state" -
+      // známá chyba Firebase na iOS s Microsoftem (firebase-ios-sdk
+      // #16277). Druhý pokus projde, Microsoft už účet zná.
+      'web-context-canceled' || 'canceled' || 'user-canceled' =>
+        'Přihlášení se nedokončilo. Zkuste to prosím znovu - druhý pokus '
+            'obvykle projde.',
       'network-request-failed' =>
         'Není připojení k síti. Zkuste to znovu, až budete online.',
       'account-exists-with-different-credential' =>
