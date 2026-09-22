@@ -323,7 +323,11 @@ class _ListHeader extends ConsumerWidget {
               const SizedBox(width: Insets.sm),
               _PrepinacZobrazeni(naTmavem: !naTablet),
               const SizedBox(width: Insets.sm),
-              _EmployeeAvatar(initials: employee?.initials ?? 'RW'),
+              _MenuUzivatele(
+                jmeno: employee?.displayName,
+                email: employee?.email,
+                initials: employee?.initials ?? 'RW',
+              ),
             ],
           ),
           const SizedBox(height: Insets.lg),
@@ -708,6 +712,76 @@ class _TlacitkoHeliosu extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Avatar v hlavičce otevře rychlou volbu vzhledu - světlý na slunci
+/// před dílnou, tmavý večer v hale, bez chození do nastavení.
+class _MenuUzivatele extends ConsumerWidget {
+  const _MenuUzivatele({
+    required this.jmeno,
+    required this.email,
+    required this.initials,
+  });
+
+  final String? jmeno;
+  final String? email;
+  final String initials;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final vzhled = ref.watch(nastaveniProvider).vzhled;
+
+    return PopupMenuButton<RezimVzhledu>(
+      key: const Key('menu-uzivatele'),
+      tooltip: 'Vzhled',
+      position: PopupMenuPosition.under,
+      onSelected: (rezim) =>
+          ref.read(nastaveniProvider.notifier).zmenVzhled(rezim),
+      itemBuilder: (_) => [
+        if (jmeno != null)
+          PopupMenuItem<RezimVzhledu>(
+            enabled: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  jmeno!,
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (email != null)
+                  Text(
+                    email!,
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (jmeno != null) const PopupMenuDivider(),
+        PopupMenuItem<RezimVzhledu>(
+          enabled: false,
+          height: 28,
+          child: Text(
+            'VZHLED',
+            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          ),
+        ),
+        for (final rezim in RezimVzhledu.values)
+          CheckedPopupMenuItem<RezimVzhledu>(
+            key: Key('vzhled-${rezim.name}'),
+            value: rezim,
+            checked: rezim == vzhled,
+            child: Text(rezim.label),
+          ),
+      ],
+      child: _EmployeeAvatar(initials: initials),
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -9,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/presentation/controllers/stav_serveru.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
@@ -163,13 +163,6 @@ class _EmployeeCard extends StatelessWidget {
                 Text(
                   employee.email,
                   style: AppTextStyles.meta.copyWith(color: palette.muted),
-                ),
-                const SizedBox(height: Insets.xxs),
-                Text(
-                  employee.role.label,
-                  style: AppTextStyles.metaSmall.copyWith(
-                    color: palette.muted2,
-                  ),
                 ),
               ],
             ),
@@ -551,12 +544,13 @@ class _Vyber extends StatelessWidget {
   }
 }
 
-class _AboutCard extends StatelessWidget {
+class _AboutCard extends ConsumerWidget {
   const _AboutCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
+    final verze = ref.watch(verzeAplikaceProvider).valueOrNull;
 
     return _Card(
       child: Column(
@@ -571,10 +565,84 @@ class _AboutCard extends StatelessWidget {
             label: 'Zdroj dat',
             // Užitečné při hlášení chyby: ukázková data vypadají stejně
             // jako ostrá, ale znamenají něco jiného.
-            value: AppConfig.pouzivaApi ? 'Servisní systém' : 'Ukázková data',
+            value: ref.watch(pouzivaApiProvider)
+                ? 'Helios Data'
+                : 'Ukázková data',
           ),
           const SizedBox(height: Insets.sm),
+          const _RadekServeru(),
+          const SizedBox(height: Insets.sm),
           const _Row(label: 'Přihlášení', value: 'Firemní účet Microsoft'),
+          if (verze != null) ...[
+            const SizedBox(height: Insets.sm),
+            _Row(label: 'Verze aplikace', value: verze),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Jestli se zařízení teď dostane na server - stejný údaj jako pod
+/// přihlášením. Dokud server neodpovídá, zkouší se každých pár vteřin
+/// znovu; klepnutí zkusí hned.
+class _RadekServeru extends ConsumerWidget {
+  const _RadekServeru();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final stav =
+        ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje;
+    final (text, barva) = switch (stav) {
+      StavServeru.online => ('Připojeno', AppColors.readyGreen),
+      StavServeru.nedostupny => ('Nedostupný', AppColors.danger),
+      StavServeru.ukazka => ('Ukázková data', palette.muted),
+      StavServeru.zjistuje => ('Zjišťuji…', palette.muted),
+    };
+
+    return InkWell(
+      key: const Key('nastaveni-stav-serveru'),
+      onTap: () => ref.invalidate(stavServeruProvider),
+      borderRadius: BorderRadius.circular(Radii.input),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Server',
+                  style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+                ),
+              ),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: Insets.sm),
+              Text(
+                text,
+                style: AppTextStyles.cardBody.copyWith(
+                  color: stav == StavServeru.nedostupny
+                      ? AppColors.danger
+                      : palette.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          // Nejčastější příčina je špatná wi-fi, ne vypnutá služba.
+          if (stav == StavServeru.nedostupny)
+            Padding(
+              padding: const EdgeInsets.only(top: Insets.xxs),
+              child: Text(
+                'Zkontrolujte, že jste připojeni k firemní wi-fi '
+                '(RenPriv, ISPA nebo ISPI). Klepnutím zkusíte znovu.',
+                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              ),
+            ),
         ],
       ),
     );
