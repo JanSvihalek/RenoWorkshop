@@ -85,6 +85,19 @@ void main() {
     expect(find.textContaining('RenPriv'), findsNothing);
   });
 
+  testWidgets('výpadek spojení se v nastavení ukáže sám', (tester) async {
+    await spust(tester);
+    await naNastaveni(tester);
+    expect(find.text('Připojeno'), findsOneWidget);
+
+    // Technik odejde z dosahu firemní wi-fi.
+    zdroj.serverOdpovida = false;
+    await tester.pump(kontrolaSpojeni + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nedostupný'), findsOneWidget);
+  });
+
   testWidgets('vzhled jde přepnout z hlavičky zakázek', (tester) async {
     await spust(tester);
 

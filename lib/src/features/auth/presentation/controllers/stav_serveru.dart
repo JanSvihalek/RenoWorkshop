@@ -34,6 +34,10 @@ final pouzivaApiProvider = Provider<bool>((ref) => AppConfig.pouzivaApi);
 /// zavírání aplikace.
 const opakovaniDotazu = Duration(seconds: 5);
 
+/// Jak často se ověřuje, že spojení pořád trvá. Bez toho by po vypnutí
+/// wi-fi dál svítilo „připojeno", dokud by se na stav nikdo neklepl.
+const kontrolaSpojeni = Duration(seconds: 15);
+
 /// Dostupnost služby. Ptá se na `/health`, tedy bez přihlášení - smysl to
 /// má právě předtím, než se technik přihlásí.
 final stavServeruProvider = FutureProvider.autoDispose<StavServeru>((
@@ -41,11 +45,15 @@ final stavServeruProvider = FutureProvider.autoDispose<StavServeru>((
 ) async {
   if (!ref.watch(pouzivaApiProvider)) return StavServeru.ukazka;
   final bezi = await ref.watch(serviceOrderDataSourceProvider).serverBezi();
-  if (bezi) return StavServeru.online;
 
-  final timer = Timer(opakovaniDotazu, ref.invalidateSelf);
+  // Ptá se znovu, dokud stav někdo zobrazuje (autoDispose) - bez spojení
+  // často, ať se po zapnutí wi-fi spraví hned, se spojením méně.
+  final timer = Timer(
+    bezi ? kontrolaSpojeni : opakovaniDotazu,
+    ref.invalidateSelf,
+  );
   ref.onDispose(timer.cancel);
-  return StavServeru.nedostupny;
+  return bezi ? StavServeru.online : StavServeru.nedostupny;
 });
 
 /// Verze aplikace i s číslem buildu, např. `1.2.0 (73)`. Bere se ze

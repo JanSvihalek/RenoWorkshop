@@ -592,8 +592,12 @@ class _RadekServeru extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final stav =
-        ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje;
+    // Záložka nastavení zůstává postavená i na pozadí. Na server se ale
+    // ptá, jen když je vidět - skrytá záložka má vypnutý TickerMode.
+    final viditelne = TickerMode.valuesOf(context).enabled;
+    final stav = viditelne
+        ? ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje
+        : StavServeru.zjistuje;
     final (text, barva) = switch (stav) {
       StavServeru.online => ('Připojeno', AppColors.readyGreen),
       StavServeru.nedostupny => ('Nedostupný', AppColors.danger),
