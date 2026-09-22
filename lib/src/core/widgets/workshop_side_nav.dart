@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../features/auth/domain/entities/employee.dart';
 import '../layout/rozlozeni.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -20,14 +19,10 @@ class WorkshopSideNav extends StatelessWidget {
     super.key,
     required this.active,
     required this.onSelect,
-    this.employee,
   });
 
   final WorkshopTab active;
   final ValueChanged<WorkshopTab> onSelect;
-
-  /// Přihlášený zaměstnanec - iniciály dole v pruhu.
-  final Employee? employee;
 
   static const _polozky = [
     (
@@ -80,28 +75,8 @@ class WorkshopSideNav extends StatelessWidget {
               ),
               const SizedBox(height: Insets.sm),
             ],
-            const Spacer(),
-            if (employee != null) ...[
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  employee!.initials,
-                  style: const TextStyle(
-                    fontFamily: AppFonts.sans,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: Insets.xxl),
-            ],
+            // Iniciály přihlášeného tu nejsou - jsou v hlavičce zakázek
+            // i s volbou vzhledu, dvakrát vedle sebe působily jako chyba.
           ],
         ),
       ),

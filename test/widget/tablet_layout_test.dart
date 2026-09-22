@@ -65,6 +65,14 @@ void main() {
     expect(find.byType(WorkshopSideNav), findsOneWidget);
     // Dvě navigace najednou by braly místo a mátly.
     expect(find.byType(WorkshopBottomNav), findsNothing);
+    // Iniciály přihlášeného jsou v hlavičce zakázek, ne ještě v pruhu.
+    expect(
+      find.descendant(
+        of: find.byType(WorkshopSideNav),
+        matching: find.text('JD'),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('na telefonu zůstává lišta dole', (tester) async {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../layout/rozlozeni.dart';
 import 'workshop_bottom_nav.dart';
 import 'workshop_side_nav.dart';
@@ -37,7 +36,6 @@ class WorkshopScaffold extends ConsumerWidget {
             WorkshopSideNav(
               active: aktivni,
               onSelect: (tab) => _prepni(tab.index),
-              employee: ref.watch(currentEmployeeProvider),
             ),
             Expanded(child: navigationShell),
           ],
