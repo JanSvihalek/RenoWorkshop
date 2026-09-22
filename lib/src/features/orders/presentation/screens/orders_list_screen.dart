@@ -338,7 +338,7 @@ class _ListHeader extends ConsumerWidget {
             naTmavem: !naTablet,
             // Hledá se i mezi uzavřenými - ať to je vidět dřív, než
             // člověk začne psát.
-            hintText: 'SPZ, VIN, zakázka – i v archivu',
+            hintText: 'SPZ, VIN, zakázka – i ukončené',
           ),
         ],
       ),
@@ -404,7 +404,7 @@ class _VysledkyHledani extends StatelessWidget {
         _NadpisSekce(
           key: const Key('sekce-dilna'),
           ikona: Icons.garage_rounded,
-          text: 'Na dílně',
+          text: 'Otevřené',
           pocet: naDilne.length,
         ),
         if (naDilne.isEmpty)
@@ -420,7 +420,7 @@ class _VysledkyHledani extends StatelessWidget {
         _NadpisSekce(
           key: const Key('sekce-archiv'),
           ikona: Icons.inventory_2_outlined,
-          text: 'V archivu – uzavřené',
+          text: 'Ukončené',
           pocet: hleda || archiv.hasError ? null : zArchivu?.length,
         ),
         if (archiv.hasError && !hleda)
@@ -438,11 +438,11 @@ class _VysledkyHledani extends StatelessWidget {
         else if (hleda)
           const _RadekArchivu(
             key: Key('archiv-hleda'),
-            text: 'Hledám i mezi uzavřenými zakázkami…',
+            text: 'Hledám i mezi ukončenými zakázkami…',
             nacita: true,
           )
         else if (zArchivu!.isEmpty)
-          _RadekArchivu(text: 'V archivu nic dalšího.', barva: palette.muted)
+          _RadekArchivu(text: 'Žádná ukončená zakázka.', barva: palette.muted)
         else
           for (final zakazka in zArchivu) karta(zakazka),
       ],
@@ -519,8 +519,8 @@ class _NicNaDilne extends StatelessWidget {
         children: [
           Text(
             jineFiltry
-                ? 'Na dílně nic neodpovídá hledání a zapnutým filtrům.'
-                : 'Na dílně nic neodpovídá. Zakázku, kterou poradce právě '
+                ? 'Mezi otevřenými nic neodpovídá hledání a zapnutým filtrům.'
+                : 'Mezi otevřenými nic neodpovídá. Zakázku, kterou poradce právě '
                       'založil, načtete z Heliosu.',
             style: AppTextStyles.cardBody.copyWith(color: palette.muted),
           ),

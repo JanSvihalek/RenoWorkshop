@@ -242,7 +242,7 @@ void main() {
     expect(zdroj.pocetNacteni, greaterThan(pocetPredObnovou));
   });
 
-  testWidgets('prázdný výsledek řekne, že nic není ani v archivu', (
+  testWidgets('prázdný výsledek řekne, že nic není ani mezi ukončenými', (
     tester,
   ) async {
     await tester.pumpWidget(buildApp());
@@ -256,8 +256,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Archiv se prohledá sám, bez klepnutí na tlačítko.
-    expect(find.text('NA DÍLNĚ · 0'), findsOneWidget);
-    expect(find.text('V archivu nic dalšího.'), findsOneWidget);
+    expect(find.text('OTEVŘENÉ · 0'), findsOneWidget);
+    expect(find.text('Žádná ukončená zakázka.'), findsOneWidget);
     // Zakázka založená před chvílí se dá dotáhnout z Heliosu.
     expect(find.text('Načíst nové zakázky z Heliosu'), findsOneWidget);
   });
@@ -290,7 +290,7 @@ void main() {
 
     // Hledá se i když seznam něco našel: tentýž vůz mohl být na dílně
     // už dřív a ta starší zakázka je jen v archivu.
-    expect(find.text('NA DÍLNĚ · 1'), findsOneWidget);
+    expect(find.text('OTEVŘENÉ · 1'), findsOneWidget);
     expect(find.byKey(const Key('sekce-archiv')), findsOneWidget);
     expect(find.text('8AB 4721'), findsOneWidget);
   });

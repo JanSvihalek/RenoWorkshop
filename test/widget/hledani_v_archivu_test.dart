@@ -59,9 +59,9 @@ void main() {
     await spust(tester);
     await hledej(tester, '8AB 4721');
 
-    expect(find.text('NA DÍLNĚ · 1'), findsOneWidget);
+    expect(find.text('OTEVŘENÉ · 1'), findsOneWidget);
     // Server vrátí i rozdělanou zakázku - v archivu se znovu neukáže.
-    expect(find.text('V ARCHIVU – UZAVŘENÉ · 1'), findsOneWidget);
+    expect(find.text('UKONČENÉ · 1'), findsOneWidget);
     expect(find.byType(OrderCard), findsNWidgets(2));
     expect(find.text('ZK-25-0100'), findsOneWidget);
   });
