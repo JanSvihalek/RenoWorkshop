@@ -40,6 +40,32 @@ Snížit ho nejde nikdy.
 Job `ios` po archivaci kontroluje, že archiv nese očekávané číslo — jinak by
 odmítnutí přišlo až asynchronně od Applu a workflow by zůstal zelený.
 
+## Verze aplikace
+
+Verze pro lidi (`1.1.0`) je **ručně** v `pubspec.yaml`, řádek `version:`.
+Číslo za `+` se nemění - build ho přepíše číslem buildu z CI
+(`--build-number`). V aplikaci se ukazuje jako `1.1.0 (182)`: pod
+přihlášením, v Nastavení → O aplikaci a u každého záznamu v logu událostí.
+
+| Kdy | Co se zvedá | Příklad |
+|---|---|---|
+| dávka s novými funkcemi (typicky nový build pro testery) | prostřední číslo, poslední na 0 | 1.1.0 → 1.2.0 |
+| jen opravy chyb | poslední číslo | 1.2.0 → 1.2.1 |
+| ostré spuštění pro všechny, velká změna (např. přihlášení přes MSAL) | první číslo | 1.x → 2.0.0 |
+
+Verze nesmí klesnout - App Store Connect ani Google Play nižší verzi
+nepřijmou.
+
+Postup při vydání:
+
+1. V `pubspec.yaml` zvednout `version:` (např. `1.2.0+1`).
+2. Do [CHANGELOG.md](../CHANGELOG.md) nahoru sepsat, co je nového -
+   česky a pro techniky, ne názvy commitů. Z toho jde i popis do
+   TestFlightu („Co testovat").
+3. Commit a push do `main` - CI postaví APK i IPA s novou verzí.
+4. Označit commit tagem, ať jde dohledat, co ve verzi bylo:
+   `git tag v1.2.0` a `git push origin v1.2.0`.
+
 ## Kde jsou výstupy
 
 - **APK**: Actions → konkrétní běh → dole **Artifacts** → `RenoWorkshop-apk-<číslo>`
