@@ -30,6 +30,12 @@ class _FalesneZiskani implements ZiskaniFotek {
   static Uint8List jpeg() =>
       Uint8List.fromList(img.encodeJpg(img.Image(width: 8, height: 8)));
 
+  /// Jedna fotka z fotoaparátu - u místa vozu.
+  Uint8List? jednaFotkaVrati = jpeg();
+
+  @override
+  Future<Uint8List?> jednaFotka(BuildContext context) async => jednaFotkaVrati;
+
   @override
   Future<List<Uint8List>> zGalerie(BuildContext context) async => [
     for (var i = 0; i < zGalerieKusu; i++) jpeg(),

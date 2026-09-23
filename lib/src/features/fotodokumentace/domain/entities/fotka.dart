@@ -13,6 +13,9 @@ enum KategorieFotky {
   interier('interier', 'Interiér vozu', Icons.airline_seat_recline_normal),
   tachometr('tachometr', 'Tachometr a přístrojová deska', Icons.speed_rounded),
   vin('vin', 'VIN kód', Icons.pin_rounded),
+  // Kde vůz stojí - fotí se u zápisu dílenského stavu, ať se na velkém
+  // parkovišti pozná, kde přesně je.
+  umisteni('umisteni', 'Umístění vozu', Icons.place_outlined),
   // Ikona složky: kromě fotek sem patří PDF a všechno ze složky zakázky,
   // co neleží v ostatních kategoriích.
   ostatni('ostatni', 'Ostatní dokumentace', Icons.folder_rounded);

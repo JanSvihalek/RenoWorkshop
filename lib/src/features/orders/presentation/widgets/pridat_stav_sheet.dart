@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../fotodokumentace/presentation/ziskani_fotek.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../controllers/orders_providers.dart';
 
 /// Co uživatel vyplnil: stav z číselníku nebo vlastní text, a k tomu
 /// nepovinná poznámka.
 class VybranyStav {
-  const VybranyStav({this.kod, this.nazev, this.poznamka, this.misto});
+  const VybranyStav({
+    this.kod,
+    this.nazev,
+    this.poznamka,
+    this.misto,
+    this.fotkaMista,
+  });
 
   final String? kod;
   final String? nazev;
@@ -22,6 +30,10 @@ class VybranyStav {
   /// Kde vůz po tomhle kroku stojí. `null` = nechat, co tam je,
   /// prázdný text místo smaže.
   final String? misto;
+
+  /// Fotka místa, kam technik vůz postavil. Nahraje se do kategorie
+  /// Umístění vozu; `null` = nefotil.
+  final Uint8List? fotkaMista;
 }
 
 /// Formulář pro přidání dílenského stavu.
@@ -56,6 +68,9 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   final _poznamka = TextEditingController();
   late final _misto = TextEditingController(text: widget.misto ?? '');
 
+  /// Vyfocené místo, dokud se stav neuloží.
+  Uint8List? _fotka;
+
   /// Kód vybraného stavu, `_jiny` u vlastního, `null` dokud nic nevybral.
   String? _vybrany;
 
@@ -86,6 +101,7 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
         // Beze změny se místo neposílá - ať se u něj nepřepisuje čas
         // zápisu, když vůz zůstal stát.
         misto: misto == (widget.misto ?? '') ? null : misto,
+        fotkaMista: _fotka,
       ),
     );
   }
@@ -190,6 +206,12 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                 style: AppTextStyles.cardBody.copyWith(color: palette.text),
                 decoration: _vzhledPole(context, 'Např. stání 4, lakovna'),
               ),
+              const SizedBox(height: Insets.sm),
+              _FotkaMista(
+                fotka: _fotka,
+                onVyfotit: _vyfotMisto,
+                onSmazat: () => setState(() => _fotka = null),
+              ),
 
               const SizedBox(height: Insets.base),
               const _Popisek('POZNÁMKA (NEPOVINNÁ)'),
@@ -224,6 +246,12 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
     );
   }
 
+  /// Fotka místa - na velkém parkovišti řekne víc než „stání 4".
+  Future<void> _vyfotMisto() async {
+    final fotka = await ref.read(ziskaniFotekProvider).jednaFotka(context);
+    if (fotka != null && mounted) setState(() => _fotka = fotka);
+  }
+
   InputDecoration _vzhledPole(BuildContext context, String napoveda) {
     final palette = context.palette;
     return InputDecoration(
@@ -234,6 +262,66 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.input),
       ),
+    );
+  }
+}
+
+/// Nepovinná fotka místa: tlačítko, po vyfocení náhled s křížkem.
+class _FotkaMista extends StatelessWidget {
+  const _FotkaMista({
+    required this.fotka,
+    required this.onVyfotit,
+    required this.onSmazat,
+  });
+
+  final Uint8List? fotka;
+  final VoidCallback onVyfotit;
+  final VoidCallback onSmazat;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final vyfoceno = fotka;
+
+    if (vyfoceno == null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: const Key('vyfotit-misto'),
+          onPressed: onVyfotit,
+          icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+          label: const Text('Vyfotit místo'),
+          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(Radii.input),
+          child: Image.memory(
+            vyfoceno,
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            cacheWidth: 168,
+          ),
+        ),
+        const SizedBox(width: Insets.base),
+        Expanded(
+          child: Text(
+            'Fotka místa se nahraje po uložení stavu.',
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+          ),
+        ),
+        IconButton(
+          key: const Key('zahodit-fotku-mista'),
+          tooltip: 'Zahodit fotku',
+          onPressed: onSmazat,
+          icon: Icon(Icons.close_rounded, color: palette.muted),
+        ),
+      ],
     );
   }
 }

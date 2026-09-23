@@ -958,6 +958,14 @@ class _MiniaturaNahravana extends StatelessWidget {
   }
 }
 
+/// Otevře fotku přes celou obrazovku. Volá se i z detailu zakázky
+/// (fotka místa u řádku „Kde vůz stojí").
+Future<void> otevriProhlizeniFotky(
+  BuildContext context, {
+  required String orderId,
+  required Fotka fotka,
+}) => _ProhlizeniFotky.otevri(context, orderId: orderId, fotka: fotka);
+
 /// Fotka přes celou obrazovku - zvětšení prsty, kdo a kdy ji nahrál,
 /// smazání.
 class _ProhlizeniFotky extends ConsumerWidget {

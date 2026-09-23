@@ -123,7 +123,9 @@ class FakeServiceOrderDataSource
     final fotka = Fotka(
       id: 'fotka-${bajtyFotek.length + 1}',
       kategorie: kategorie,
-      nahranoAt: DateTime(2026, 9, 15, 10, 30),
+      // Teď, ne pevné datum - fotka místa musí vyjít novější než
+      // zápis místa u zakázky.
+      nahranoAt: DateTime.now(),
       nahralKdo: 'Jan Dvořák',
     );
     bajtyFotek[fotka.id] = jpeg;
@@ -275,7 +277,9 @@ class FakeServiceOrderDataSource
       statusCode: kod,
       statusHistory: [zaznam, ..._orders[index].statusHistory],
       bay: misto,
-      bayAt: misto == null ? null : '2026-09-23T10:00:00',
+      // Server si k místu zapíše čas zápisu - fotka staršího místa
+      // se pak u nového místa neukáže.
+      bayAt: misto == null ? null : DateTime.now().toIso8601String(),
     );
   }
 

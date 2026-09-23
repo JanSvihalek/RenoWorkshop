@@ -11,6 +11,10 @@ abstract interface class ZiskaniFotek {
   /// Vybrané fotky z galerie; prázdný seznam, když uživatel nic nevybral.
   Future<List<Uint8List>> zGalerie(BuildContext context);
 
+  /// Jedna fotka z fotoaparátu, nebo `null`, když uživatel focení zrušil.
+  /// Pro místo vozu u dílenského stavu - sériové focení by tam bylo moc.
+  Future<Uint8List?> jednaFotka(BuildContext context);
+
   /// Sériové focení. Každá pořízená fotka jde hned do [onFotka], ať se
   /// začne nahrávat, zatímco technik fotí dál.
   Future<void> foceni(
@@ -50,6 +54,33 @@ class _ZiskaniFotek implements ZiskaniFotek {
         );
       }
       return const [];
+    }
+  }
+
+  @override
+  Future<Uint8List?> jednaFotka(BuildContext context) async {
+    try {
+      final snimek = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 90,
+      );
+      return snimek == null ? null : await snimek.readAsBytes();
+    } on PlatformException catch (chyba) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              chyba.code == 'camera_access_denied'
+                  ? 'Aplikace nemá přístup k fotoaparátu. Povolte ho '
+                        'v nastavení.'
+                  : 'Fotoaparát se nepodařilo otevřít.',
+            ),
+          ),
+        );
+      }
+      return null;
     }
   }
 

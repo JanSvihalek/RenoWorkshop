@@ -7,6 +7,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../fotodokumentace/domain/entities/fotka.dart';
+import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
+import '../../../fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -116,7 +119,19 @@ class _DetailBody extends ConsumerWidget {
           misto: vybrany.misto,
         );
 
-    if (hotovo && context.mounted) {
+    if (!hotovo) return;
+
+    // Fotka až po uložení stavu - nahrává se stejnou frontou jako fotky
+    // z příjmu, takže výpadek wi-fi ji neztratí.
+    final fotka = vybrany.fotkaMista;
+    if (fotka != null) {
+      await ref.read(nahravaniFotekProvider(order.id).notifier).pridej(
+        KategorieFotky.umisteni,
+        [fotka],
+      );
+    }
+
+    if (context.mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
@@ -242,7 +257,12 @@ class _DetailBody extends ConsumerWidget {
           ),
           if (order.bay != null) ...[
             const SizedBox(height: Insets.sm),
-            _KdeStoji(misto: order.bay!, od: order.bayAt, kdo: order.bayBy),
+            _KdeStoji(
+              orderId: order.id,
+              misto: order.bay!,
+              od: order.bayAt,
+              kdo: order.bayBy,
+            ),
           ],
           const SizedBox(height: Insets.base),
           StatusTimeline(
@@ -567,16 +587,36 @@ class _HeaderChip extends StatelessWidget {
 /// Kde vůz fyzicky stojí, i s tím, odkdy a od koho - místo bez času
 /// stárne a nikdo neví, jestli mu má věřit. Zapisuje se s každým
 /// dílenským stavem.
-class _KdeStoji extends StatelessWidget {
-  const _KdeStoji({required this.misto, this.od, this.kdo});
+class _KdeStoji extends ConsumerWidget {
+  const _KdeStoji({
+    required this.orderId,
+    required this.misto,
+    this.od,
+    this.kdo,
+  });
 
+  final String orderId;
   final String misto;
   final DateTime? od;
   final String? kdo;
 
+  /// Fotka místa, ale jen ta pořízená po posledním zápisu místa - starší
+  /// by ukazovala kout haly, kde už vůz nestojí.
+  Fotka? _fotkaMista(List<Fotka> fotky) {
+    for (final fotka in fotky) {
+      if (fotka.kategorie != KategorieFotky.umisteni) continue;
+      if (od != null && fotka.nahranoAt.isBefore(od!)) continue;
+      return fotka;
+    }
+    return null;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
+    final fotka = _fotkaMista(
+      ref.watch(fotkyZakazkyProvider(orderId)).valueOrNull ?? const [],
+    );
     final popis = [
       if (od != null) 'od ${AppDateFormat.dateTime(od!)}',
       ?kdo,
@@ -585,8 +625,12 @@ class _KdeStoji extends StatelessWidget {
     return Row(
       key: const Key('kde-vuz-stoji'),
       children: [
-        Icon(Icons.place_outlined, size: 18, color: palette.muted),
-        const SizedBox(width: Insets.sm),
+        if (fotka != null) ...[
+          _MiniaturaMista(orderId: orderId, fotka: fotka),
+          const SizedBox(width: Insets.base),
+        ] else
+          Icon(Icons.place_outlined, size: 18, color: palette.muted),
+        if (fotka == null) const SizedBox(width: Insets.sm),
         Expanded(
           child: Text.rich(
             TextSpan(
@@ -610,6 +654,47 @@ class _KdeStoji extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Náhled fotky místa; klepnutím se otevře přes celou obrazovku.
+class _MiniaturaMista extends ConsumerWidget {
+  const _MiniaturaMista({required this.orderId, required this.fotka});
+
+  final String orderId;
+  final Fotka fotka;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final obrazek = ref.watch(obrazekFotkyProvider(fotka.id));
+
+    return GestureDetector(
+      key: const Key('fotka-mista'),
+      onTap: () =>
+          otevriProhlizeniFotky(context, orderId: orderId, fotka: fotka),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Radii.input),
+        child: Container(
+          width: 44,
+          height: 44,
+          color: palette.plate,
+          child: obrazek.when(
+            data: (bajty) =>
+                Image.memory(bajty, fit: BoxFit.cover, cacheWidth: 132),
+            loading: () => const Center(
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (_, _) =>
+                Icon(Icons.broken_image_outlined, color: palette.muted),
+          ),
+        ),
+      ),
     );
   }
 }
