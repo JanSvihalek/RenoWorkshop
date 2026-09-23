@@ -34,6 +34,8 @@ class ServiceOrderDto {
     required this.mechanicName,
     required this.serviceAdvisorName,
     required this.bay,
+    this.bayAt,
+    this.bayBy,
     required this.notes,
     required this.workItems,
     this.defects = const [],
@@ -89,6 +91,10 @@ class ServiceOrderDto {
   final String? mechanicName;
   final String? serviceAdvisorName;
   final String? bay;
+
+  /// Odkdy tam vůz stojí a kdo ho tam zapsal.
+  final String? bayAt;
+  final String? bayBy;
   final List<OrderNoteDto> notes;
   final List<WorkItemDto> workItems;
 
@@ -119,6 +125,8 @@ class ServiceOrderDto {
       mechanicName: json['mechanicName'] as String?,
       serviceAdvisorName: json['serviceAdvisorName'] as String?,
       bay: json['bay'] as String?,
+      bayAt: json['bayAt'] as String?,
+      bayBy: json['bayBy'] as String?,
       notes: (json['notes'] as List<dynamic>? ?? const [])
           .map((item) => OrderNoteDto.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -153,6 +161,8 @@ class ServiceOrderDto {
     'mechanicName': mechanicName,
     'serviceAdvisorName': serviceAdvisorName,
     'bay': bay,
+    'bayAt': bayAt,
+    'bayBy': bayBy,
     'notes': notes.map((note) => note.toJson()).toList(),
     'workItems': workItems.map((item) => item.toJson()).toList(),
     'defects': defects.map((zavada) => zavada.toJson()).toList(),
@@ -189,6 +199,8 @@ class ServiceOrderDto {
     mechanicName: mechanicName,
     serviceAdvisorName: serviceAdvisorName,
     bay: bay,
+    bayAt: bayAt == null ? null : DateTime.tryParse(bayAt!),
+    bayBy: bayBy,
     notes: notes.map((note) => note.toDomain()).toList(),
     workItems: workItems.map((item) => item.toDomain()).toList(),
     zavady: defects,
@@ -203,6 +215,8 @@ class ServiceOrderDto {
     String? statusCode,
     List<Map<String, dynamic>>? statusHistory,
     String? heliosStatus,
+    String? bay,
+    String? bayAt,
     List<OrderNoteDto>? notes,
     List<WorkItemDto>? workItems,
 
@@ -233,7 +247,9 @@ class ServiceOrderDto {
       vin: vin,
       mechanicName: mechanicName,
       serviceAdvisorName: serviceAdvisorName,
-      bay: bay,
+      bay: bay ?? this.bay,
+      bayAt: bayAt ?? this.bayAt,
+      bayBy: bayBy,
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       defects: defects,

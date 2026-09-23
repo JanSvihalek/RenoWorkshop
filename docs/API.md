@@ -105,9 +105,15 @@ Přidá stav do historie. Buď `code` z číselníku, nebo `label` s vlastním
 textem:
 
 ```json
-{ "code": "lakovna", "note": "stání 4" }
+{ "code": "lakovna", "note": "rozpočet schválen", "bay": "Lakovna" }
 { "label": "Čeká na díl z Německa" }
 ```
+
+`bay` je nepovinné místo, kde vůz po tomhle kroku stojí (volný text,
+nejvýš 60 znaků). Chybějící pole nechá to, co je u zakázky zapsané;
+prázdný text místo smaže. Server si k němu uloží čas a autora - zakázka
+je pak vrací jako `bay`, `bayAt` a `bayBy`. Vůz se hýbe právě tehdy, když
+se mění, co se s ním děje, proto se místo zapisuje u stavu.
 
 `note` je nepovinná poznámka ke kroku — kde vůz stojí, na kterém je
 zvedáku, na co se čeká.
@@ -201,6 +207,8 @@ stránkování.
     "mechanicCode": "1042",
     "serviceAdvisorName": "Martina Horáková",
     "bay": "Stání 4",
+    "bayAt": "2026-09-23T10:21:00",
+    "bayBy": "Jan Dvořák",
     "notes": [
       {
         "id": "N-0418-1",

@@ -33,6 +33,10 @@ abstract interface class ServiceOrderDataSource {
     String? kod,
     String? nazev,
     String? poznamka,
+
+    /// Kde vůz po tomhle kroku stojí. `null` = neměnit, prázdný text
+    /// místo smaže.
+    String? misto,
   });
 
   /// `PUT /orders/{id}/repair-subject` - přepíše předmět opravy, prázdný

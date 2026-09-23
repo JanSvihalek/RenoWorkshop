@@ -44,6 +44,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     String? kod,
     String? nazev,
     String? poznamka,
+    String? misto,
   }) async {
     if (kod == null && (nazev == null || nazev.trim().isEmpty)) return false;
 
@@ -54,6 +55,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         kod: kod,
         nazev: nazev?.trim(),
         poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
+        misto: misto?.trim(),
       );
       _zaloguj('stav_pridan', orderId, detail: kod ?? 'vlastní text');
       _obnovMimoDilnu(orderId);

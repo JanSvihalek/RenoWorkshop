@@ -34,6 +34,10 @@ abstract interface class ServiceOrderRepository {
     String? kod,
     String? nazev,
     String? poznamka,
+
+    /// Kde vůz po tomhle kroku stojí. `null` = neměnit, prázdný text
+    /// místo smaže.
+    String? misto,
   });
 
   /// Přepíše předmět opravy; prázdný text ho smaže.

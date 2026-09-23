@@ -101,7 +101,9 @@ class _DetailBody extends ConsumerWidget {
   final ValueChanged<String>? onPrijem;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
-    final vybrany = await vyberStav(context);
+    // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
+    // nepíše u každého kroku znovu.
+    final vybrany = await vyberStav(context, misto: order.bay);
     if (vybrany == null || !context.mounted) return;
 
     final hotovo = await ref
@@ -111,6 +113,7 @@ class _DetailBody extends ConsumerWidget {
           kod: vybrany.kod,
           nazev: vybrany.nazev,
           poznamka: vybrany.poznamka,
+          misto: vybrany.misto,
         );
 
     if (hotovo && context.mounted) {
@@ -237,10 +240,14 @@ class _DetailBody extends ConsumerWidget {
               ),
             ],
           ),
+          if (order.bay != null) ...[
+            const SizedBox(height: Insets.sm),
+            _KdeStoji(misto: order.bay!, od: order.bayAt, kdo: order.bayBy),
+          ],
           const SizedBox(height: Insets.base),
           StatusTimeline(
             historie: order.historieStavu,
-            bay: order.bayLabel,
+            bay: order.bay ?? '',
             onSmazat: (stav) => _smazStav(context, ref, stav),
           ),
         ],
@@ -557,6 +564,56 @@ class _HeaderChip extends StatelessWidget {
 /// Dřív to bylo velké tlačítko přes celou šířku dole. Stav se ale přidává
 /// k postupu, tak patří k němu - stejně jako Přidat u poznámek - a dole
 /// uvolnil místo, které na telefonu v hale chybí.
+/// Kde vůz fyzicky stojí, i s tím, odkdy a od koho - místo bez času
+/// stárne a nikdo neví, jestli mu má věřit. Zapisuje se s každým
+/// dílenským stavem.
+class _KdeStoji extends StatelessWidget {
+  const _KdeStoji({required this.misto, this.od, this.kdo});
+
+  final String misto;
+  final DateTime? od;
+  final String? kdo;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final popis = [
+      if (od != null) 'od ${AppDateFormat.dateTime(od!)}',
+      ?kdo,
+    ].join(' · ');
+
+    return Row(
+      key: const Key('kde-vuz-stoji'),
+      children: [
+        Icon(Icons.place_outlined, size: 18, color: palette.muted),
+        const SizedBox(width: Insets.sm),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: misto,
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (popis.isNotEmpty)
+                  TextSpan(
+                    text: '  $popis',
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PridatStavOdkaz extends StatelessWidget {
   const _PridatStavOdkaz({required this.isBusy, required this.onTap});
 

@@ -254,7 +254,9 @@ class FakeServiceOrderDataSource
     String? kod,
     String? nazev,
     String? poznamka,
+    String? misto,
   }) async {
+    posledniMisto = misto;
     final index = _indexOf(orderId);
     if (index == -1) return null;
 
@@ -272,8 +274,14 @@ class FakeServiceOrderDataSource
       status: popis,
       statusCode: kod,
       statusHistory: [zaznam, ..._orders[index].statusHistory],
+      bay: misto,
+      bayAt: misto == null ? null : '2026-09-23T10:00:00',
     );
   }
+
+  /// Místo, které přišlo s posledním zápisem stavu - `null` znamená
+  /// „neměnit".
+  String? posledniMisto;
 
   /// Nabídka stavů, kterou fake vrací. Stačí pár položek - testy neověřují
   /// číselník, ale to, co se stane po výběru.

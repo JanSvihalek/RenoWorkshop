@@ -11,13 +11,17 @@ import '../controllers/orders_providers.dart';
 /// Co uživatel vyplnil: stav z číselníku nebo vlastní text, a k tomu
 /// nepovinná poznámka.
 class VybranyStav {
-  const VybranyStav({this.kod, this.nazev, this.poznamka});
+  const VybranyStav({this.kod, this.nazev, this.poznamka, this.misto});
 
   final String? kod;
   final String? nazev;
 
-  /// Kde vůz stojí, na kterém zvedáku, na co se čeká.
+  /// Na co se čeká, co se domluvilo.
   final String? poznamka;
+
+  /// Kde vůz po tomhle kroku stojí. `null` = nechat, co tam je,
+  /// prázdný text místo smaže.
+  final String? misto;
 }
 
 /// Formulář pro přidání dílenského stavu.
@@ -25,11 +29,13 @@ class VybranyStav {
 /// Jedno okno: nahoře výběr stavu, pod ním poznámka, dole potvrzení.
 /// Dřív se stav ukládal hned po klepnutí v seznamu a poznámka se musela
 /// napsat dopředu — tedy dřív, než člověk věděl, k čemu ji píše.
-Future<VybranyStav?> vyberStav(BuildContext context) {
+/// [misto] je místo, kde vůz stojí teď - předvyplní se, ať ho technik
+/// při každém kroku nepíše znovu.
+Future<VybranyStav?> vyberStav(BuildContext context, {String? misto}) {
   return showModalBottomSheet<VybranyStav>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => const _PridatStavSheet(),
+    builder: (context) => _PridatStavSheet(misto: misto),
   );
 }
 
@@ -37,7 +43,9 @@ Future<VybranyStav?> vyberStav(BuildContext context) {
 const _jiny = '__jiny__';
 
 class _PridatStavSheet extends ConsumerStatefulWidget {
-  const _PridatStavSheet();
+  const _PridatStavSheet({this.misto});
+
+  final String? misto;
 
   @override
   ConsumerState<_PridatStavSheet> createState() => _PridatStavSheetState();
@@ -46,6 +54,7 @@ class _PridatStavSheet extends ConsumerStatefulWidget {
 class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   final _vlastni = TextEditingController();
   final _poznamka = TextEditingController();
+  late final _misto = TextEditingController(text: widget.misto ?? '');
 
   /// Kód vybraného stavu, `_jiny` u vlastního, `null` dokud nic nevybral.
   String? _vybrany;
@@ -54,6 +63,7 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   void dispose() {
     _vlastni.dispose();
     _poznamka.dispose();
+    _misto.dispose();
     super.dispose();
   }
 
@@ -66,12 +76,16 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
   void _potvrd() {
     if (!_lzePridat) return;
     final poznamka = _poznamka.text.trim();
+    final misto = _misto.text.trim();
 
     Navigator.of(context).pop(
       VybranyStav(
         kod: _jeVlastni ? null : _vybrany,
         nazev: _jeVlastni ? _vlastni.text.trim() : null,
         poznamka: poznamka.isEmpty ? null : poznamka,
+        // Beze změny se místo neposílá - ať se u něj nepřepisuje čas
+        // zápisu, když vůz zůstal stát.
+        misto: misto == (widget.misto ?? '') ? null : misto,
       ),
     );
   }
@@ -164,6 +178,20 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
               ],
 
               const SizedBox(height: Insets.base),
+              // Vůz se hýbe právě tehdy, když se mění, co se s ním děje -
+              // proto se na místo ptáme u každého kroku.
+              const _Popisek('KDE VŮZ STOJÍ'),
+              const SizedBox(height: Insets.xs),
+              TextField(
+                key: const Key('stav-misto'),
+                controller: _misto,
+                maxLength: 60,
+                textCapitalization: TextCapitalization.sentences,
+                style: AppTextStyles.cardBody.copyWith(color: palette.text),
+                decoration: _vzhledPole(context, 'Např. stání 4, lakovna'),
+              ),
+
+              const SizedBox(height: Insets.base),
               const _Popisek('POZNÁMKA (NEPOVINNÁ)'),
               const SizedBox(height: Insets.xs),
               TextField(
@@ -173,7 +201,7 @@ class _PridatStavSheetState extends ConsumerState<_PridatStavSheet> {
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
                 style: AppTextStyles.cardBody.copyWith(color: palette.text),
-                decoration: _vzhledPole(context, 'Např. stání 4'),
+                decoration: _vzhledPole(context, 'Např. čeká na díl'),
               ),
 
               const SizedBox(height: Insets.xl),

@@ -32,6 +32,8 @@ class ServiceOrder {
     this.mechanicName,
     this.serviceAdvisorName,
     this.bay,
+    this.bayAt,
+    this.bayBy,
     this.notes = const [],
     this.workItems = const [],
     this.zavady = const [],
@@ -106,6 +108,11 @@ class ServiceOrder {
 
   /// Stání / box na dílně, např. "Stání 4".
   final String? bay;
+
+  /// Odkdy tam vůz stojí a kdo ho tam zapsal - místo bez času stárne
+  /// a nikdo neví, jestli mu má věřit.
+  final DateTime? bayAt;
+  final String? bayBy;
 
   final List<OrderNote> notes;
   final List<WorkItem> workItems;
@@ -184,6 +191,8 @@ class ServiceOrder {
     List<DilenskyStav>? historieStavu,
     String? mechanicName,
     String? bay,
+    DateTime? bayAt,
+    String? bayBy,
     List<OrderNote>? notes,
     List<WorkItem>? workItems,
   }) {
@@ -208,6 +217,8 @@ class ServiceOrder {
       mechanicName: mechanicName ?? this.mechanicName,
       serviceAdvisorName: serviceAdvisorName,
       bay: bay ?? this.bay,
+      bayAt: bayAt ?? this.bayAt,
+      bayBy: bayBy ?? this.bayBy,
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       zavady: zavady,
