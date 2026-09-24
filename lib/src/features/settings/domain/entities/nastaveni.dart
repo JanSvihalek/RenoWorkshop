@@ -82,6 +82,7 @@ class Nastaveni {
     this.vychoziZodpovida,
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
+    this.skenovatPoOtevreni = true,
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
   });
 
@@ -89,6 +90,11 @@ class Nastaveni {
 
   /// Kde je spoušť na obrazovce skeneru SPZ a VINu.
   final UmisteniSpouste spoust;
+
+  /// Po klepnutí na záložku Příjem nebo Vozidla rovnou otevřít skener.
+  /// Obojí vždycky začíná SPZ, takže je to o dvě klepnutí míň; kdo píše
+  /// radši ručně, si to vypne.
+  final bool skenovatPoOtevreni;
 
   /// Kód útvaru, na který se seznam otevře. `null` = všechny.
   ///
@@ -140,6 +146,7 @@ class Nastaveni {
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
+    bool? skenovatPoOtevreni,
     ZobrazeniZakazek? zobrazeniZakazek,
   }) {
     return Nastaveni(
@@ -155,6 +162,7 @@ class Nastaveni {
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
+      skenovatPoOtevreni: skenovatPoOtevreni ?? this.skenovatPoOtevreni,
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
     );
   }

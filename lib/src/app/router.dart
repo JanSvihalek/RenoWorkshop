@@ -24,6 +24,8 @@ import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
 import '../features/vozidla/presentation/screens/rozdelene_vyhledavani_screen.dart';
 import '../features/vozidla/presentation/screens/vyhledavani_screen.dart';
 import 'log_udalosti_provider.dart';
+import '../core/navigace/pozadavek_skeneru.dart';
+import '../core/widgets/workshop_bottom_nav.dart';
 
 /// Cesty appky na jednom místě - ať se v další fázi (deep linky z DMS,
 /// notifikace) nemusí hledat po widgetech.
@@ -81,6 +83,23 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (context, ref, _) => SkenerScreen(
             onBack: () =>
                 context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+            // Z Příjmu a Vozidel, kam se skener otevírá sám, musí jít rychle
+            // přejít k psaní - skener se zavře a pole si vezme klávesnici.
+            onRucne: switch (state.uri.queryParameters['cil']) {
+              final cil? when cil == 'prijem' || cil == 'vozidla' => () {
+                ref.read(zadatRucneProvider.notifier).state = cil == 'prijem'
+                    ? WorkshopTab.prijem
+                    : WorkshopTab.vyhledavani;
+                context.canPop()
+                    ? context.pop()
+                    : context.go(
+                        cil == 'prijem'
+                            ? AppRoutes.prijem
+                            : AppRoutes.vyhledavani,
+                      );
+              },
+              _ => null,
+            },
             // Naskenovaný kód se vloží do hledání v seznamu, ne rovnou do
             // archivu: hledaný vůz obvykle stojí na dílně, takže je mezi
             // rozdělanými zakázkami. Když tam není, seznam sám nabídne

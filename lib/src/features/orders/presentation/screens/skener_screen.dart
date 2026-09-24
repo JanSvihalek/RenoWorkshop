@@ -27,11 +27,16 @@ class SkenerScreen extends ConsumerStatefulWidget {
     super.key,
     required this.onNalezeno,
     required this.onBack,
+    this.onRucne,
   });
 
   /// Vrací vybraný kód. Prázdné pole znamená, že se nic nenašlo.
   final void Function(KodVozidla kod) onNalezeno;
   final VoidCallback onBack;
+
+  /// Zavřít skener a psát do pole. `null` tlačítko schová - u seznamu
+  /// zakázek je pole hledání vidět hned po zavření.
+  final VoidCallback? onRucne;
 
   @override
   ConsumerState<SkenerScreen> createState() => _SkenerScreenState();
@@ -323,6 +328,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                 onSvetlo: _prepniSvetlo,
                 onVyfot: _vyfot,
                 onZpet: widget.onBack,
+                onRucne: widget.onRucne,
               ),
             ],
           );
@@ -510,6 +516,7 @@ class _Ovladani extends StatelessWidget {
     required this.onSvetlo,
     required this.onVyfot,
     required this.onZpet,
+    this.onRucne,
   });
 
   final UmisteniSpouste umisteni;
@@ -519,6 +526,7 @@ class _Ovladani extends StatelessWidget {
   final VoidCallback onSvetlo;
   final VoidCallback onVyfot;
   final VoidCallback onZpet;
+  final VoidCallback? onRucne;
 
   /// Šířka pruhu u kraje, který zabírá sloupec se spouští na boku - odstup
   /// od kraje, spoušť a mezera k rámečku.
@@ -547,6 +555,47 @@ class _Ovladani extends StatelessWidget {
               tooltip: 'Zavřít',
             ),
           ),
+          // Co se od technika čeká - skener se na Příjmu a Vozidlech
+          // otevírá sám, tak ať je hned jasné, proč.
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(Insets.xl, 56, Insets.xl, 0),
+              child: Container(
+                key: const Key('skener-napoveda'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Insets.base,
+                  vertical: Insets.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(Radii.chip),
+                ),
+                child: Text(
+                  'Naskenujte SPZ nebo VIN vozidla pro vyhledání záznamu',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.cardBody.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+          if (onRucne != null)
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: Insets.sm),
+                child: TextButton.icon(
+                  key: const Key('skener-rucne'),
+                  onPressed: onRucne,
+                  icon: const Icon(Icons.keyboard_outlined, size: 20),
+                  label: const Text('Zadat ručně'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.black38,
+                  ),
+                ),
+              ),
+            ),
           switch (umisteni) {
             UmisteniSpouste.dole => Align(
               alignment: Alignment.bottomCenter,

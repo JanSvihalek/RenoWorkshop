@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../layout/rozlozeni.dart';
+import '../navigace/pozadavek_skeneru.dart';
+import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'workshop_bottom_nav.dart';
 import 'workshop_side_nav.dart';
 
@@ -17,11 +19,22 @@ class WorkshopScaffold extends ConsumerWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  void _prepni(int index) => navigationShell.goBranch(
-    index,
-    // Druhé kliknutí na už otevřenou záložku ji vrátí na začátek.
-    initialLocation: index == navigationShell.currentIndex,
-  );
+  /// Přepnutí záložky. Příjem i Vozidla začínají SPZ, takže se na nich
+  /// rovnou nabídne skener - jen při klepnutí na záložku, ne při návratu
+  /// z detailu nebo ze samotného skeneru.
+  void _prepni(WidgetRef ref, int index) {
+    final tab = WorkshopTab.values[index];
+    final skenovat =
+        ref.read(nastaveniProvider).skenovatPoOtevreni &&
+        (tab == WorkshopTab.prijem || tab == WorkshopTab.vyhledavani);
+    ref.read(pozadavekSkeneruProvider.notifier).state = skenovat ? tab : null;
+
+    navigationShell.goBranch(
+      index,
+      // Druhé kliknutí na už otevřenou záložku ji vrátí na začátek.
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,7 +48,7 @@ class WorkshopScaffold extends ConsumerWidget {
           children: [
             WorkshopSideNav(
               active: aktivni,
-              onSelect: (tab) => _prepni(tab.index),
+              onSelect: (tab) => _prepni(ref, tab.index),
             ),
             Expanded(child: navigationShell),
           ],
@@ -47,7 +60,7 @@ class WorkshopScaffold extends ConsumerWidget {
       body: navigationShell,
       bottomNavigationBar: WorkshopBottomNav(
         active: aktivni,
-        onSelect: (tab) => _prepni(tab.index),
+        onSelect: (tab) => _prepni(ref, tab.index),
       ),
     );
   }

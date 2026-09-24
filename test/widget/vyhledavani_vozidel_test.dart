@@ -11,6 +11,9 @@ import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/screens/karta_vozidla_screen.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/screens/vyhledavani_screen.dart';
+import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
+import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -55,6 +58,11 @@ void main() {
   Widget buildApp({List<KartaVozidla>? vozidla}) {
     return ProviderScope(
       overrides: [
+        // Skener se tu otevírá klepnutím na lupu, ne sám po přepnutí
+        // záložky - to zkouší skener_po_otevreni_test.dart.
+        nastaveniUlozisteProvider.overrideWithValue(
+          PametoveNastaveni(const Nastaveni(skenovatPoOtevreni: false)),
+        ),
         authRepositoryProvider.overrideWithValue(
           PlaceholderAuthRepository(
             ssoDelay: Duration.zero,

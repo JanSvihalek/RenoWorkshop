@@ -14,6 +14,8 @@ import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/order_card.dart';
 import '../../../orders/presentation/widgets/order_search_field.dart';
 import '../controllers/prijem_providers.dart';
+import '../../../../core/navigace/pozadavek_skeneru.dart';
+import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// SPZ tak, jak se porovnává: velká písmena, bez mezer a pomlček.
 String kodSpz(String spz) => spz.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
@@ -52,6 +54,7 @@ class PrijemScreen extends ConsumerStatefulWidget {
 
 class _PrijemScreenState extends ConsumerState<PrijemScreen> {
   final TextEditingController _pole = TextEditingController();
+  final FocusNode _fokus = FocusNode();
   Timer? _debounce;
   bool _synchronizuje = false;
 
@@ -62,6 +65,8 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
   @override
   void initState() {
     super.initState();
+    // Záložka se staví až při prvním otevření - požadavek už čeká.
+    _vyzvedniPozadavek(ref.read(pozadavekSkeneruProvider));
     _pole.text = ref.read(dotazPrijmuProvider);
     _odeslany = _pole.text;
   }
@@ -70,6 +75,7 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
   void dispose() {
     _debounce?.cancel();
     _pole.dispose();
+    _fokus.dispose();
     super.dispose();
   }
 
@@ -111,10 +117,36 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
     });
   }
 
+  /// Skener po klepnutí na záložku - příjem vždycky začíná SPZ.
+  /// Požadavek vystaví navigace; tady se vyzvedne a hned zahodí, takže po
+  /// návratu ze skeneru ani po přepnutí zpět se znovu neotevře. Když je
+  /// v hledání něco rozdělaného, skener se nespouští.
+  void _vyzvedniPozadavek(WorkshopTab? pozadavek) {
+    if (pozadavek != WorkshopTab.prijem) return;
+    // Mimo sestavování - stav providera se během něj měnit nesmí.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(pozadavekSkeneruProvider) != WorkshopTab.prijem) return;
+      ref.read(pozadavekSkeneruProvider.notifier).state = null;
+      if (ref.read(dotazPrijmuProvider).trim().isNotEmpty) return;
+      widget.onScan();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final dotaz = ref.watch(dotazPrijmuProvider);
+    ref.listen(pozadavekSkeneruProvider, (_, novy) => _vyzvedniPozadavek(novy));
+    // Ze skeneru přes „Zadat ručně" - kurzor do pole, ať jde hned psát.
+    ref.listen(zadatRucneProvider, (_, novy) {
+      if (novy != WorkshopTab.prijem) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(zadatRucneProvider.notifier).state = null;
+        _fokus.requestFocus();
+      });
+    });
 
     ref.listen(dotazPrijmuProvider, (_, novy) {
       if (novy == _odeslany) return;
@@ -151,6 +183,7 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
                 ),
                 const SizedBox(height: Insets.lg),
                 OrderSearchField(
+                  focusNode: _fokus,
                   controller: _pole,
                   onChanged: _psani,
                   onScan: widget.onScan,

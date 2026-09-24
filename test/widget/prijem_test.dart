@@ -14,6 +14,9 @@ import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
+import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
+import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -30,6 +33,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // Skener se tu otevírá klepnutím na lupu, ne sám po přepnutí
+          // záložky - to zkouší skener_po_otevreni_test.dart.
+          nastaveniUlozisteProvider.overrideWithValue(
+            PametoveNastaveni(const Nastaveni(skenovatPoOtevreni: false)),
+          ),
           authRepositoryProvider.overrideWithValue(
             PlaceholderAuthRepository(
               ssoDelay: Duration.zero,

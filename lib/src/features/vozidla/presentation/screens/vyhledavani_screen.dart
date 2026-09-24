@@ -12,6 +12,8 @@ import '../../../orders/presentation/widgets/order_search_field.dart';
 import '../../../orders/presentation/widgets/plate_chip.dart';
 import '../../domain/entities/vozidlo.dart';
 import '../controllers/vozidla_providers.dart';
+import '../../../../core/navigace/pozadavek_skeneru.dart';
+import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// Vyhledání vozidla podle SPZ nebo VIN.
 ///
@@ -37,6 +39,7 @@ class VyhledavaniScreen extends ConsumerStatefulWidget {
 
 class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
   final TextEditingController _pole = TextEditingController();
+  final FocusNode _fokus = FocusNode();
   Timer? _debounce;
 
   /// Poslední dotaz, který do providera poslalo samo pole. Podle něj se
@@ -47,6 +50,8 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
   @override
   void initState() {
     super.initState();
+    // Záložka se staví až při prvním otevření - požadavek už čeká.
+    _vyzvedniPozadavek(ref.read(pozadavekSkeneruProvider));
     _pole.text = ref.read(dotazVozidlaProvider);
     _odeslanyDotaz = _pole.text;
   }
@@ -55,6 +60,7 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
   void dispose() {
     _debounce?.cancel();
     _pole.dispose();
+    _fokus.dispose();
     super.dispose();
   }
 
@@ -80,10 +86,37 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
     });
   }
 
+  /// Skener po klepnutí na záložku - vůz se hledá podle SPZ nebo VINu
+  /// ze štítku.
+  /// Požadavek vystaví navigace; tady se vyzvedne a hned zahodí, takže po
+  /// návratu ze skeneru ani po přepnutí zpět se znovu neotevře. Když je
+  /// v hledání něco rozdělaného, skener se nespouští.
+  void _vyzvedniPozadavek(WorkshopTab? pozadavek) {
+    if (pozadavek != WorkshopTab.vyhledavani) return;
+    // Mimo sestavování - stav providera se během něj měnit nesmí.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(pozadavekSkeneruProvider) != WorkshopTab.vyhledavani) return;
+      ref.read(pozadavekSkeneruProvider.notifier).state = null;
+      if (ref.read(dotazVozidlaProvider).trim().isNotEmpty) return;
+      widget.onScan();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final dotaz = ref.watch(dotazVozidlaProvider).trim();
+    ref.listen(pozadavekSkeneruProvider, (_, novy) => _vyzvedniPozadavek(novy));
+    // Ze skeneru přes „Zadat ručně" - kurzor do pole, ať jde hned psát.
+    ref.listen(zadatRucneProvider, (_, novy) {
+      if (novy != WorkshopTab.vyhledavani) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(zadatRucneProvider.notifier).state = null;
+        _fokus.requestFocus();
+      });
+    });
 
     // Skener dotaz vyplní zvenčí - pole se musí srovnat.
     ref.listen(dotazVozidlaProvider, (_, novy) {
@@ -107,7 +140,12 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
       backgroundColor: palette.background,
       body: Column(
         children: [
-          _Hlavicka(pole: _pole, onPsani: _psani, onScan: widget.onScan),
+          _Hlavicka(
+            pole: _pole,
+            fokus: _fokus,
+            onPsani: _psani,
+            onScan: widget.onScan,
+          ),
           Expanded(
             child: dotaz.length < nejkratsiDotazVozidla
                 ? const _Sdeleni(
@@ -164,11 +202,13 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
 class _Hlavicka extends StatelessWidget {
   const _Hlavicka({
     required this.pole,
+    required this.fokus,
     required this.onPsani,
     required this.onScan,
   });
 
   final TextEditingController pole;
+  final FocusNode fokus;
   final ValueChanged<String> onPsani;
   final VoidCallback onScan;
 
@@ -194,6 +234,7 @@ class _Hlavicka extends StatelessWidget {
           const SizedBox(height: Insets.lg),
           OrderSearchField(
             controller: pole,
+            focusNode: fokus,
             onChanged: onPsani,
             onScan: onScan,
             hintText: 'SPZ nebo VIN',

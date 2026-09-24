@@ -259,6 +259,42 @@ class _SkenerCard extends ConsumerWidget {
                   ref.read(nastaveniProvider.notifier).zmenSpoust(vyber.first),
             ),
           ),
+          const SizedBox(height: Insets.base),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Skenovat hned po otevření',
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Klepnutí na záložku Příjem nebo Vozidla rovnou otevře '
+                      'skener SPZ. Ručně psát jde pořád.',
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Insets.base),
+              Switch.adaptive(
+                key: const Key('skenovat-po-otevreni'),
+                value: ref.watch(nastaveniProvider).skenovatPoOtevreni,
+                activeTrackColor: AppColors.accent,
+                onChanged: (zapnout) => ref
+                    .read(nastaveniProvider.notifier)
+                    .zmenSkenovaniPoOtevreni(zapnout),
+              ),
+            ],
+          ),
         ],
       ),
     );
