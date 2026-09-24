@@ -107,6 +107,14 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
   }
 
+  /// Posuvník karty vozidla - ne ten uvnitř označitelných textů.
+  Finder seznamKarty() => find
+      .descendant(
+        of: find.byType(KartaVozidlaScreen),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+
   testWidgets('záložka Vozidla nabídne naskenování SPZ', (tester) async {
     await naZalozkuVozidel(tester);
 
@@ -148,16 +156,33 @@ void main() {
         find.text('${NumberFormat.decimalPattern('cs_CZ').format(123456)} km'),
         findsOneWidget,
       );
+      // Všechny údaje s popisky, jako na dřívější kartě vozidla.
+      for (final popisek in [
+        'VIN',
+        'MODEL',
+        'PALIVO',
+        'TACHOMETR',
+        'MAJITEL',
+        'NÁZEV',
+        'IČO',
+        'ADRESA',
+        'KONTAKTNÍ OSOBA',
+        'JMÉNO',
+      ]) {
+        expect(find.text(popisek), findsOneWidget, reason: popisek);
+      }
+      expect(find.text('TELEFON'), findsNWidgets(2));
       expect(find.text('Stavby Novák s.r.o.'), findsOneWidget);
-      expect(find.text('IČO 12345678'), findsOneWidget);
+      expect(find.text('12345678'), findsOneWidget);
       expect(find.text('Masarykova 123/4, 60200 Brno'), findsOneWidget);
       expect(find.text('+420 777 123 456'), findsOneWidget);
       expect(find.text('Petr Řidič'), findsOneWidget);
+      expect(find.text('+420 603 000 111'), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.text('ZAKÁZKY (2)'),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: seznamKarty(),
       );
       expect(find.text('ZAKÁZKY (2)'), findsOneWidget);
     },
@@ -173,7 +198,7 @@ void main() {
     await tester.scrollUntilVisible(
       ukoncenaKarta,
       300,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: seznamKarty(),
     );
     // Celou - scrollUntilVisible skončí u prvního kousku a klepnutí do
     // středu karty by skončilo pod okrajem obrazovky.
@@ -214,6 +239,8 @@ void main() {
     kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('neni-to-ono')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('neni-to-ono')));
     // Ne pumpAndSettle: kolečko kamery ve skeneru se v testu točí navždy.
     await tester.pump();

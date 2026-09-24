@@ -115,24 +115,6 @@ class _Karta extends StatelessWidget {
     final majitel = v.majitel;
     final kontakt = v.kontakt;
 
-    // Prázdné údaje se vynechají - karta z Heliosu bývá děravá.
-    final udaje = [
-      ('SÉRIE', v.serie),
-      ('PALIVO', v.palivo),
-      ('MOTOR', v.motor),
-      (
-        'TACHOMETR',
-        tachometr == null
-            ? null
-            : '${NumberFormat.decimalPattern('cs_CZ').format(tachometr)} km',
-      ),
-      // `prodej_datum` z Heliosu - na dílně se mu říká datum registrace.
-      (
-        'DATUM REGISTRACE',
-        registrace == null ? null : AppDateFormat.date(registrace),
-      ),
-    ].where((u) => u.$2 != null && u.$2!.trim().isNotEmpty).toList();
-
     return Container(
       decoration: BoxDecoration(
         color: palette.card,
@@ -170,167 +152,165 @@ class _Karta extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (v.vin.isNotEmpty) ...[
-                  const SizedBox(height: Insets.sm),
-                  Row(
-                    children: [
-                      Text(
-                        'VIN',
-                        style: AppTextStyles.overline.copyWith(
-                          color: palette.muted,
-                        ),
-                      ),
-                      const SizedBox(width: Insets.sm),
-                      Flexible(
-                        child: SelectableText(
-                          v.vin,
-                          style: AppTextStyles.monoLabel.copyWith(
-                            color: palette.text,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (udaje.isNotEmpty) ...[
-                  const SizedBox(height: Insets.lg),
-                  _Mrizka(
-                    children: [
-                      for (final (popisek, hodnota) in udaje)
-                        _Udaj(popisek: popisek, hodnota: hodnota!),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(Insets.xl),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: palette.hairline)),
-            ),
-            child: _Mrizka(
-              sloupcuNaSiroko: 2,
-              children: [
-                _Osoba(
-                  popisek: 'MAJITEL',
-                  jmeno: majitel?.nazev,
-                  radky: [
-                    if (majitel != null) ...[
-                      [
-                        if (majitel.cisloZakaznika case final c?) 'č. $c',
-                        if (majitel.ico case final ico?) 'IČO $ico',
-                        if (majitel.dic case final dic?) 'DIČ $dic',
-                      ].join(' · '),
-                      majitel.adresa,
-                      majitel.telefon,
-                      majitel.email,
-                    ],
+                const SizedBox(height: Insets.lg),
+                _Oddil(
+                  udaje: [
+                    ('VIN', v.vin, mono: true),
+                    ('MODEL', v.model, mono: false),
+                    ('SÉRIE', v.serie, mono: false),
+                    ('PALIVO', v.palivo, mono: false),
+                    ('MOTOR', v.motor, mono: false),
+                    (
+                      'TACHOMETR',
+                      tachometr == null
+                          ? null
+                          : '${NumberFormat.decimalPattern('cs_CZ').format(tachometr)} km',
+                      mono: false,
+                    ),
+                    // `prodej_datum` z Heliosu - na dílně se mu říká datum
+                    // registrace.
+                    (
+                      'DATUM REGISTRACE',
+                      registrace == null
+                          ? null
+                          : AppDateFormat.date(registrace),
+                      mono: false,
+                    ),
                   ],
-                  prazdne: 'Není v Heliosu uvedený',
                 ),
-                if (kontakt != null)
-                  _Osoba(
-                    popisek: 'KONTAKTNÍ OSOBA',
-                    jmeno: kontakt.jmeno,
-                    radky: [kontakt.telefon, kontakt.email],
-                  ),
               ],
             ),
           ),
+          _Sekce(
+            nadpis: 'MAJITEL',
+            child: majitel == null
+                ? Text(
+                    'Majitel není v Heliosu uvedený.',
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: palette.muted,
+                    ),
+                  )
+                : _Oddil(
+                    udaje: [
+                      ('NÁZEV', majitel.nazev, mono: false),
+                      ('ČÍSLO ZÁKAZNÍKA', majitel.cisloZakaznika, mono: false),
+                      ('IČO', majitel.ico, mono: false),
+                      ('DIČ', majitel.dic, mono: false),
+                      ('ADRESA', majitel.adresa, mono: false),
+                      ('TELEFON', majitel.telefon, mono: false),
+                      ('E-MAIL', majitel.email, mono: false),
+                    ],
+                  ),
+          ),
+          if (kontakt != null)
+            _Sekce(
+              nadpis: 'KONTAKTNÍ OSOBA',
+              child: _Oddil(
+                udaje: [
+                  ('JMÉNO', kontakt.jmeno, mono: false),
+                  ('TELEFON', kontakt.telefon, mono: false),
+                  ('E-MAIL', kontakt.email, mono: false),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-/// Údaje vedle sebe - na telefonu na výšku o sloupec míň.
-class _Mrizka extends StatelessWidget {
-  const _Mrizka({required this.children, this.sloupcuNaSiroko = 3});
+/// Oddíl karty pod čarou - majitel, kontaktní osoba.
+class _Sekce extends StatelessWidget {
+  const _Sekce({required this.nadpis, required this.child});
 
-  final List<Widget> children;
-  final int sloupcuNaSiroko;
+  final String nadpis;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(Insets.xl),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: palette.hairline)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            nadpis,
+            style: AppTextStyles.sectionTitle.copyWith(
+              color: palette.text,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: Insets.md),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// Údaje s popisky v mřížce - na telefonu na výšku dva sloupce, jinak tři.
+///
+/// Prázdný údaj se vynechá - karta z Heliosu bývá děravá a řada pomlček
+/// by jen zabírala místo.
+class _Oddil extends StatelessWidget {
+  const _Oddil({required this.udaje});
+
+  final List<(String, String?, {bool mono})> udaje;
+
+  @override
+  Widget build(BuildContext context) {
+    final vyplnene = [
+      for (final (popisek, hodnota, :mono) in udaje)
+        if (hodnota != null && hodnota.trim().isNotEmpty)
+          (popisek, hodnota.trim(), mono),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Na úzké kartě o sloupec míň - majitel s kontaktem pod sebe.
-        final sloupcu = constraints.maxWidth >= 420
-            ? sloupcuNaSiroko
-            : sloupcuNaSiroko - 1;
+        final sloupcu = constraints.maxWidth >= 420 ? 3 : 2;
         final sirka =
             (constraints.maxWidth - (sloupcu - 1) * Insets.base) / sloupcu;
         return Wrap(
           spacing: Insets.base,
           runSpacing: Insets.base,
           children: [
-            for (final dite in children) SizedBox(width: sirka, child: dite),
+            for (final (popisek, hodnota, mono) in vyplnene)
+              SizedBox(
+                // Dlouhé hodnoty (VIN, adresa, e-mail) přes celý řádek,
+                // ve sloupečku by se lámaly.
+                width: _siroky(popisek) ? constraints.maxWidth : sirka,
+                child: _Udaj(popisek: popisek, hodnota: hodnota, mono: mono),
+              ),
           ],
         );
       },
     );
   }
+
+  static bool _siroky(String popisek) =>
+      const {'VIN', 'MODEL', 'NÁZEV', 'ADRESA', 'E-MAIL'}.contains(popisek);
 }
 
+/// Hodnotu jde označit a zkopírovat: telefon nebo VIN se z karty
+/// přepisuje do jiných systémů.
 class _Udaj extends StatelessWidget {
-  const _Udaj({required this.popisek, required this.hodnota});
-
-  final String popisek;
-  final String hodnota;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          popisek,
-          style: AppTextStyles.overline.copyWith(color: palette.muted),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          hodnota,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.cardBody.copyWith(
-            color: palette.text,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Majitel nebo kontaktní osoba. Telefon a e-mail jdou označit
-/// a zkopírovat - přepisují se do jiných systémů.
-class _Osoba extends StatelessWidget {
-  const _Osoba({
+  const _Udaj({
     required this.popisek,
-    required this.jmeno,
-    required this.radky,
-    this.prazdne = '',
+    required this.hodnota,
+    required this.mono,
   });
 
   final String popisek;
-  final String? jmeno;
-  final List<String?> radky;
-
-  /// Co ukázat, když jméno chybí.
-  final String prazdne;
+  final String hodnota;
+  final bool mono;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final text = [
-      for (final r in radky)
-        if (r != null && r.trim().isNotEmpty) r.trim(),
-    ];
-    final nazev = jmeno?.trim() ?? '';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -340,20 +320,18 @@ class _Osoba extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         SelectableText(
-          nazev.isEmpty ? prazdne : nazev,
-          style: AppTextStyles.cardBody.copyWith(
-            color: nazev.isEmpty ? palette.muted : palette.text,
-            fontWeight: FontWeight.w600,
-          ),
+          hodnota,
+          style: mono
+              ? AppTextStyles.monoLabel.copyWith(
+                  color: palette.text,
+                  fontSize: 13.5,
+                  letterSpacing: 0.6,
+                )
+              : AppTextStyles.cardBody.copyWith(
+                  color: palette.text,
+                  fontWeight: FontWeight.w600,
+                ),
         ),
-        for (final radek in text)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: SelectableText(
-              radek,
-              style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-            ),
-          ),
       ],
     );
   }
