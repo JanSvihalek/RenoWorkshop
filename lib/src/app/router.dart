@@ -116,8 +116,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 context.go(AppRoutes.prijem);
                 return;
               }
-              // Ze záložky vozidel: SPZ jde do vyhledání vozidla a jediný
-              // nalezený vůz se rovnou otevře.
+              // Ze záložky vozidel: SPZ jde do vyhledání vozidla, nalezený
+              // vůz se ukáže jako karta ke kontrole.
               if (state.uri.queryParameters['cil'] == 'vozidla') {
                 ref.read(dotazVozidlaProvider.notifier).state = kod.hodnota;
                 ref.read(otevritJedineVozidloProvider.notifier).state = true;

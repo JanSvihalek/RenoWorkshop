@@ -24,10 +24,10 @@ const nejkratsiDotazVozidla = 3;
 /// a ať přepnutí záložky nezahodí rozepsanou SPZ.
 final dotazVozidlaProvider = StateProvider<String>((ref) => '');
 
-/// Dotaz přišel ze skeneru: jediný výsledek se má rovnou otevřít.
+/// Dotaz přišel ze skeneru - karta nalezeného vozu to ukáže v popisku.
 ///
-/// U psaní rukou schválně ne - při psaní `2BK` by karta vyskočila dřív,
-/// než člověk dopíše, a zase by se musel vracet.
+/// Dřív se jediný výsledek po naskenování rovnou otevřel. Karta výsledku
+/// teď ukazuje všechny údaje o voze, takže se jen potvrdí, že je to on.
 final otevritJedineVozidloProvider = StateProvider<bool>((ref) => false);
 
 /// Vozidlo otevřené v pravém sloupci na tabletu.
