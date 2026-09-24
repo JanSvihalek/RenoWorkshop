@@ -17,6 +17,8 @@ import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zak
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
+import 'package:renoworkshop/src/features/orders/presentation/screens/skener_screen.dart';
+import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -65,7 +67,8 @@ void main() {
       '2bk 94',
     );
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
-    await tester.tap(find.byType(OrderCard));
+    // Krok 1: karta s nalezenou zakázkou - potvrdit, že je to ten vůz.
+    await tester.tap(find.byKey(const Key('zahajit-prijem-ZK-26-0001')));
     await tester.pumpAndSettle();
   }
 
@@ -106,36 +109,31 @@ void main() {
     }
   }
 
-  testWidgets('příjem jde po krocích: vozidlo, fotky, kontrola, souhrn', (
-    tester,
-  ) async {
+  testWidgets('příjem jde po krocích: fotky, kontrola, souhrn', (tester) async {
     await spust(tester);
     await otevriPrijem(tester);
 
+    // Krok 1 (identifikace) byl karta na obrazovce hledání.
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
-    expect(krok(tester), 'KROK 1 Z 4 · VOZIDLO');
-    expect(find.text('WBATEST0000000001'), findsOneWidget);
-    // Na prvním kroku není kam se vracet.
+    expect(krok(tester), 'Krok 2 ze 4 · Fotodokumentace');
+    expect(find.byType(FotodokumentaceObsah), findsOneWidget);
+    // Na prvním kroku průvodce není kam se vracet.
     expect(find.byKey(const Key('prijem-zpet')), findsNothing);
 
     await pokracuj(tester);
-    expect(krok(tester), 'KROK 2 Z 4 · FOTODOKUMENTACE');
-    expect(find.byType(FotodokumentaceObsah), findsOneWidget);
-
-    await pokracuj(tester);
-    expect(krok(tester), 'KROK 3 Z 4 · KONTROLA');
+    expect(krok(tester), 'Krok 3 ze 4 · Kontrola');
     expect(postup(tester), '0 / 9');
 
     // Souhrn ukáže, co chybí, a dokončit nejde.
     await pokracuj(tester);
-    expect(krok(tester), 'KROK 4 Z 4 · SOUHRN');
+    expect(krok(tester), 'Krok 4 ze 4 · Souhrn');
     expect(find.text('Chybí zkontrolovat: 9'), findsOneWidget);
     expect(dokoncit(tester).onPressed, isNull);
 
     // Zpět na kontrolu a vyplnit.
     await tester.tap(find.byKey(const Key('prijem-zpet')));
     await tester.pumpAndSettle();
-    expect(krok(tester), 'KROK 3 Z 4 · KONTROLA');
+    expect(krok(tester), 'Krok 3 ze 4 · Kontrola');
     for (final polozka in vychoziChecklist) {
       if (polozka.typ == TypKontroly.kontrola) {
         await klepni(tester, kontrola(polozka.kod));
@@ -177,7 +175,7 @@ void main() {
     zdroj.prijmy.dokonci('ZK-26-0001');
     await otevriPrijem(tester);
 
-    expect(krok(tester), 'KROK 4 Z 4 · SOUHRN');
+    expect(krok(tester), 'Krok 4 ze 4 · Souhrn');
     expect(find.byKey(const Key('dokoncit-prijem')), findsNothing);
     await tester.tap(find.text('Znovu otevřít'));
     await tester.pumpAndSettle();
@@ -194,7 +192,7 @@ void main() {
   ) async {
     await spust(tester);
     await otevriPrijem(tester);
-    await pokracuj(tester, kolikrat: 2);
+    await pokracuj(tester);
     zdroj.ulozeniPrijmuSelze = true;
 
     await klepni(tester, kontrola('brzdy'));
@@ -208,7 +206,7 @@ void main() {
   ) async {
     await spust(tester);
     await otevriPrijem(tester);
-    await pokracuj(tester, kolikrat: 2);
+    await pokracuj(tester);
 
     await klepni(
       tester,
@@ -289,7 +287,7 @@ void main() {
     expect(find.byKey(const Key('prijem-postup')), findsOneWidget);
   });
 
-  testWidgets('po naskenování se jediná zakázka otevře rovnou do příjmu', (
+  testWidgets('po naskenování se ukáže karta k potvrzení, ne rovnou průvodce', (
     tester,
   ) async {
     await spust(tester);
@@ -303,6 +301,61 @@ void main() {
     kontejner.read(dotazPrijmuProvider.notifier).state = '2BK 9485';
     await tester.pumpAndSettle();
 
-    expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
+    // U stejných modelů nebo po přeregistraci SPZ se hodí podívat, že je
+    // to opravdu ten vůz - průvodce se neotevře sám.
+    expect(find.byType(PrijemZakazkyScreen), findsNothing);
+    expect(find.byType(IdentifikaceKarta), findsOneWidget);
+    expect(find.text('Nalezena otevřená zakázka'), findsOneWidget);
+    expect(find.text('NASKENOVÁNO · SPZ'), findsOneWidget);
+    expect(find.text('WBATEST0000000001'), findsOneWidget);
+    expect(find.text('Krok 1 ze 4 · Identifikace vozidla'), findsOneWidget);
+  });
+
+  testWidgets('rozpracovaný příjem karta řekne a nabídne pokračovat', (
+    tester,
+  ) async {
+    await spust(tester);
+    zdroj.prijmy.zmen('ZK-26-0001', 'brzdy', ZmenaPolozky.splneno(true));
+    await tester.tap(find.text('Příjem'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(PrijemScreen),
+        matching: find.byType(TextField),
+      ),
+      '2bk 94',
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+    expect(find.textContaining('Příjem rozpracovaný'), findsOneWidget);
+    expect(find.text('Pokračovat v příjmu'), findsOneWidget);
+    expect(find.text('ZADÁNO RUČNĚ'), findsOneWidget);
+  });
+
+  testWidgets('Není to ono vymaže hledání a znovu otevře skener', (
+    tester,
+  ) async {
+    await spust(tester);
+    await tester.tap(find.text('Příjem'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(PrijemScreen),
+        matching: find.byType(TextField),
+      ),
+      '2bk 94',
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('neni-to-ono')));
+    // Ne pumpAndSettle - kamera se v testu nespustí a kolečko by se točilo.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(SkenerScreen), findsOneWidget);
+    final kontejner = ProviderScope.containerOf(
+      tester.element(find.byType(SkenerScreen)),
+    );
+    expect(kontejner.read(dotazPrijmuProvider), isEmpty);
   });
 }

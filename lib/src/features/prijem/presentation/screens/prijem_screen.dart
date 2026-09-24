@@ -11,11 +11,11 @@ import '../../../../core/theme/dimens.dart';
 import '../../../orders/domain/entities/service_order.dart';
 import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
-import '../../../orders/presentation/widgets/order_card.dart';
 import '../../../orders/presentation/widgets/order_search_field.dart';
 import '../controllers/prijem_providers.dart';
 import '../../../../core/navigace/pozadavek_skeneru.dart';
 import '../../../../core/widgets/workshop_bottom_nav.dart';
+import '../widgets/identifikace_karta.dart';
 
 /// SPZ tak, jak se porovnává: velká písmena, bez mezer a pomlček.
 String kodSpz(String spz) => spz.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
@@ -108,13 +108,15 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
     }
   }
 
-  void _otevriJedinou(List<ServiceOrder> nalezene) {
-    if (!ref.read(otevritJedinyPrijemProvider)) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !ref.read(otevritJedinyPrijemProvider)) return;
-      ref.read(otevritJedinyPrijemProvider.notifier).state = false;
-      if (nalezene.length == 1) widget.onOpenZakazka(nalezene.single);
-    });
+  /// Nalezená zakázka nepatří k vozu - hledání pryč a znovu skener.
+  void _neniToOno() {
+    _debounce?.cancel();
+    _pole.clear();
+    _odeslany = '';
+    ref.read(otevritJedinyPrijemProvider.notifier).state = false;
+    ref.read(dotazPrijmuProvider.notifier).state = '';
+    setState(() {});
+    widget.onScan();
   }
 
   /// Skener po klepnutí na záložku - příjem vždycky začíná SPZ.
@@ -158,7 +160,8 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
 
     final zakazky = ref.watch(ordersStreamProvider);
     final nalezene = zakazkyPodleSpz(zakazky.valueOrNull ?? const [], dotaz);
-    if (zakazky.hasValue && kodSpz(dotaz).length >= 3) _otevriJedinou(nalezene);
+    // Hledání ze skeneru - do popisku na kartě.
+    final naskenovano = ref.watch(otevritJedinyPrijemProvider);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -180,6 +183,12 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
                   style: AppTextStyles.appBarTitle(
                     isIOS: context.isIOS,
                   ).copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: Insets.xs),
+                const UkazatelKrokuPrijmu(
+                  cislo: 1,
+                  nazev: 'Identifikace vozidla',
+                  naTmavem: true,
                 ),
                 const SizedBox(height: Insets.lg),
                 OrderSearchField(
@@ -214,25 +223,72 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
                             synchronizuje: _synchronizuje,
                             onSynchronizuj: _synchronizuj,
                           )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(
-                              Insets.xl,
-                              Insets.lg,
-                              Insets.xl,
-                              Insets.giant,
-                            ),
-                            itemCount: nalezene.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: Insets.md),
-                            itemBuilder: (_, index) => OrderCard(
-                              order: nalezene[index],
-                              onTap: () =>
-                                  widget.onOpenZakazka(nalezene[index]),
-                            ),
+                        : _Nalezene(
+                            nalezene: nalezene,
+                            naskenovano: naskenovano,
+                            onZahajit: widget.onOpenZakazka,
+                            onNeniToOno: _neniToOno,
                           ),
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Výsledek hledání: jedna zakázka jako karta k potvrzení uprostřed,
+/// víc zakázek se stejnou SPZ pod sebou k výběru.
+class _Nalezene extends StatelessWidget {
+  const _Nalezene({
+    required this.nalezene,
+    required this.naskenovano,
+    required this.onZahajit,
+    required this.onNeniToOno,
+  });
+
+  final List<ServiceOrder> nalezene;
+  final bool naskenovano;
+  final void Function(ServiceOrder zakazka) onZahajit;
+  final VoidCallback onNeniToOno;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final jedna = nalezene.length == 1;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          Insets.xl,
+          Insets.xl,
+          Insets.xl,
+          Insets.giant,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!jedna) ...[
+              // Stejná SPZ u víc otevřených zakázek - po přeregistraci
+              // nebo dvě zakázky na jeden vůz.
+              Text(
+                'Nalezeno ${nalezene.length} zakázek - vyberte tu správnou',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+              ),
+              const SizedBox(height: Insets.xl),
+            ],
+            for (final (i, zakazka) in nalezene.indexed) ...[
+              if (i > 0) const SizedBox(height: Insets.huge),
+              IdentifikaceKarta(
+                zakazka: zakazka,
+                naskenovano: naskenovano,
+                onZahajit: () => onZahajit(zakazka),
+                onNeniToOno: jedna ? onNeniToOno : null,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

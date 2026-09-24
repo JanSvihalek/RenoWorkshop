@@ -16,11 +16,14 @@ import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../domain/entities/prijem.dart';
 import '../controllers/prijem_providers.dart';
+import '../widgets/identifikace_karta.dart';
 
-/// Kroky příjmu v pořadí, jak se vůz přijímá: ověřit, že je to ten vůz,
-/// obejít ho s fotoaparátem, projít technické kontroly a dokončit.
+/// Kroky průvodce v pořadí, jak se vůz přijímá: obejít ho s fotoaparátem,
+/// projít technické kontroly a dokončit.
+///
+/// Krok 1 - že je to opravdu ten vůz - je karta Identifikace na obrazovce
+/// hledání, proto se tu čísluje od dvojky.
 enum KrokPrijmu {
-  vozidlo('Vozidlo'),
   fotky('Fotodokumentace'),
   kontrola('Kontrola'),
   souhrn('Souhrn');
@@ -28,6 +31,9 @@ enum KrokPrijmu {
   const KrokPrijmu(this.nazev);
 
   final String nazev;
+
+  /// Pořadí v celém příjmu, identifikace vozidla je jednička.
+  int get cislo => index + 2;
 }
 
 /// Příjem vozidla u zakázky jako průvodce po krocích - stejně jako
@@ -131,7 +137,6 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
   /// Hotové kroky dostanou v bočním seznamu fajfku.
   bool _hotovy(KrokPrijmu krok, Prijem prijem, int pocetFotek) =>
       switch (krok) {
-        KrokPrijmu.vozidlo => _krok!.index > 0 || prijem.jeDokoncen,
         KrokPrijmu.fotky => pocetFotek > 0,
         KrokPrijmu.kontrola => prijem.chybi == 0,
         KrokPrijmu.souhrn => prijem.jeDokoncen,
@@ -147,7 +152,7 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
 
     final prijem = prijemAsync.valueOrNull;
     if (prijem != null && _krok == null) {
-      _krok = prijem.jeDokoncen ? KrokPrijmu.souhrn : KrokPrijmu.vozidlo;
+      _krok = prijem.jeDokoncen ? KrokPrijmu.souhrn : KrokPrijmu.fotky;
     }
 
     final Widget telo;
@@ -243,10 +248,6 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
       Insets.xl,
     );
     return switch (krok) {
-      KrokPrijmu.vozidlo => ListView(
-        padding: odsazeni,
-        children: [_KrokVozidlo(zakazka: zakazka)],
-      ),
       KrokPrijmu.fotky => FotodokumentaceObsah(orderId: _orderId),
       KrokPrijmu.kontrola => ListView(
         padding: odsazeni,
@@ -282,37 +283,18 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
   }
 }
 
-/// „KROK 2 Z 4 · FOTODOKUMENTACE" a ukazatel postupu - na telefonu.
+/// „Krok 2 ze 4 · Fotodokumentace" a dílky postupu - na telefonu.
 class _PostupKroku extends StatelessWidget {
   const _PostupKroku({required this.krok});
 
   final KrokPrijmu krok;
 
   @override
-  Widget build(BuildContext context) {
-    final celkem = KrokPrijmu.values.length;
-    return Row(
-      children: [
-        Text(
-          'KROK ${krok.index + 1} Z $celkem · ${krok.nazev.toUpperCase()}',
-          key: const Key('prijem-krok'),
-          style: AppTextStyles.overline.copyWith(color: AppColors.accent),
-        ),
-        const SizedBox(width: Insets.md),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (krok.index + 1) / celkem,
-              minHeight: 4,
-              backgroundColor: context.palette.hairline,
-              valueColor: const AlwaysStoppedAnimation(AppColors.accent),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => UkazatelKrokuPrijmu(
+    cislo: krok.cislo,
+    nazev: krok.nazev,
+    textKey: const Key('prijem-krok'),
+  );
 }
 
 /// Seznam kroků vlevo na tabletu.
@@ -339,6 +321,29 @@ class _BocniKroky extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Identifikace proběhla na obrazovce hledání - tady už jen
+          // připomíná, že je to krok 1.
+          Padding(
+            key: const Key('prijem-krok-identifikace'),
+            padding: const EdgeInsets.only(bottom: Insets.xs),
+            child: Padding(
+              padding: const EdgeInsets.all(Insets.md),
+              child: Row(
+                children: [
+                  const _Odznak(poradi: 1, aktivni: false, hotovy: true),
+                  const SizedBox(width: Insets.md),
+                  Expanded(
+                    child: Text(
+                      'Identifikace vozidla',
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           for (final krok in KrokPrijmu.values)
             Padding(
               padding: const EdgeInsets.only(bottom: Insets.xs),
@@ -356,7 +361,7 @@ class _BocniKroky extends StatelessWidget {
                     child: Row(
                       children: [
                         _Odznak(
-                          poradi: krok.index + 1,
+                          poradi: krok.cislo,
                           aktivni: krok == aktivni,
                           hotovy: hotovy(krok),
                         ),
@@ -525,101 +530,6 @@ class _SpodniPanel extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-/// Krok 1: ověřit, že technik stojí u správného vozu.
-class _KrokVozidlo extends StatelessWidget {
-  const _KrokVozidlo({required this.zakazka});
-
-  final ServiceOrder? zakazka;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final z = zakazka;
-    if (z == null) {
-      return const Padding(
-        padding: EdgeInsets.all(Insets.huge),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DetailCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionLabel('VOZIDLO'),
-              const SizedBox(height: Insets.sm),
-              Text(
-                z.licensePlate,
-                style: AppTextStyles.plateLarge.copyWith(color: palette.text),
-              ),
-              const SizedBox(height: Insets.xxs),
-              Text(
-                z.model,
-                style: AppTextStyles.cardModel.copyWith(color: palette.text),
-              ),
-              const SizedBox(height: Insets.base),
-              Text(
-                'VIN',
-                style: AppTextStyles.overline.copyWith(color: palette.muted),
-              ),
-              SelectableText(
-                z.vin,
-                style: AppTextStyles.monoLabel.copyWith(
-                  fontSize: 17,
-                  color: palette.text,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: Insets.md),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    size: 18,
-                    color: AppColors.accent,
-                  ),
-                  const SizedBox(width: Insets.sm),
-                  Expanded(
-                    child: Text(
-                      'Porovnejte SPZ a VIN na voze se zakázkou, než začnete '
-                      'fotit a kontrolovat.',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: Insets.base),
-        DetailCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionLabel('ZAKÁZKA'),
-              const SizedBox(height: Insets.sm),
-              _Radek('Zákazník', z.customerName),
-              if (z.typZakazky != null) _Radek('Typ', z.typZakazky!.nazev),
-              if (z.pojisteniPopisek != null)
-                _Radek('Pojištění', z.pojisteniPopisek!),
-              if (z.mechanicName != null)
-                _Radek(ServiceOrder.rolePopisek, z.mechanicName!),
-              if ((z.predmetOpravy ?? '').isNotEmpty)
-                _Radek('Předmět opravy', z.predmetOpravy!),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -561,20 +561,46 @@ class _Ovladani extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(Insets.xl, 56, Insets.xl, 0),
-              child: Container(
-                key: const Key('skener-napoveda'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Insets.base,
-                  vertical: Insets.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(Radii.chip),
-                ),
-                child: Text(
-                  'Naskenujte SPZ nebo VIN vozidla pro vyhledání záznamu',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.cardBody.copyWith(color: Colors.white),
+              // Velká a výrazná - technik se dívá na vůz, ne na displej,
+              // a malý popisek přes obraz kamery přehlédne.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Container(
+                  key: const Key('skener-napoveda'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Insets.xl,
+                    vertical: Insets.base,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(Radii.card),
+                    border: Border.all(
+                      color: AppColors.accent.withValues(alpha: 0.7),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.document_scanner_outlined,
+                        color: AppColors.accent,
+                        size: 30,
+                      ),
+                      const SizedBox(width: Insets.base),
+                      Flexible(
+                        child: Text(
+                          'Naskenujte SPZ nebo VIN vozidla pro vyhledání '
+                          'záznamu',
+                          style: AppTextStyles.sectionTitle.copyWith(
+                            color: Colors.white,
+                            fontSize: 19,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
