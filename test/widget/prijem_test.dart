@@ -358,4 +358,9 @@ void main() {
     );
     expect(kontejner.read(dotazPrijmuProvider), isEmpty);
   });
+
+  test('počet nalezených zakázek česky', () {
+    expect(pocetOtevrenychZakazek(2), 'Nalezeny 2 otevřené zakázky');
+    expect(pocetOtevrenychZakazek(5), 'Nalezeno 5 otevřených zakázek');
+  });
 }

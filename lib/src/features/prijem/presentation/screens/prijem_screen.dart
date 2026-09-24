@@ -237,6 +237,13 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
   }
 }
 
+/// „Nalezeny 2 otevřené zakázky", „Nalezeno 5 otevřených zakázek".
+String pocetOtevrenychZakazek(int pocet) => switch (pocet) {
+  1 => 'Nalezena 1 otevřená zakázka',
+  >= 2 && <= 4 => 'Nalezeny $pocet otevřené zakázky',
+  _ => 'Nalezeno $pocet otevřených zakázek',
+};
+
 /// Výsledek hledání: jedna zakázka jako karta k potvrzení uprostřed,
 /// víc zakázek se stejnou SPZ pod sebou k výběru.
 class _Nalezene extends StatelessWidget {
@@ -272,7 +279,9 @@ class _Nalezene extends StatelessWidget {
               // Stejná SPZ u víc otevřených zakázek - po přeregistraci
               // nebo dvě zakázky na jeden vůz.
               Text(
-                'Nalezeno ${nalezene.length} zakázek - vyberte tu správnou',
+                key: const Key('vice-zakazek'),
+                '${pocetOtevrenychZakazek(nalezene.length)} - vyberte tu '
+                'správnou',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.cardBody.copyWith(color: palette.muted),
               ),
@@ -285,6 +294,17 @@ class _Nalezene extends StatelessWidget {
                 naskenovano: naskenovano,
                 onZahajit: () => onZahajit(zakazka),
                 onNeniToOno: jedna ? onNeniToOno : null,
+              ),
+            ],
+            // U víc karet „Není to ono" u každé nedává smysl - jedna
+            // cesta zpět pro všechny.
+            if (!jedna) ...[
+              const SizedBox(height: Insets.xl),
+              TextButton.icon(
+                key: const Key('nic-z-toho'),
+                onPressed: onNeniToOno,
+                icon: const Icon(Icons.document_scanner_outlined),
+                label: const Text('Žádná z nich - skenovat znovu'),
               ),
             ],
           ],
