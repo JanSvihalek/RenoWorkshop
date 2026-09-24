@@ -17,6 +17,11 @@ import '../controllers/prijem_providers.dart';
 /// Dřív aplikace po naskenování skočila rovnou do průvodce - u stejných
 /// modelů nebo po přeregistraci SPZ ale stojí za to se podívat, že je to
 /// opravdu ten vůz. Karta zároveň řekne, jestli příjem už neběží.
+///
+/// Vedle karty je „Další krok" s velkou dlaždicí na zahájení. Na straně
+/// podle nastavení spouště fotoaparátu - kdo má spoušť vpravo, drží
+/// zařízení pravou rukou a dlaždice má být pod palcem. Kde se vedle karty
+/// nevejde (telefon) nebo je spoušť dole, je pod kartou.
 class IdentifikaceKarta extends ConsumerWidget {
   const IdentifikaceKarta({
     super.key,
@@ -24,7 +29,6 @@ class IdentifikaceKarta extends ConsumerWidget {
     required this.naskenovano,
     required this.onZahajit,
     this.onNeniToOno,
-    this.sTlacitky = true,
   });
 
   final ServiceOrder zakazka;
@@ -36,15 +40,21 @@ class IdentifikaceKarta extends ConsumerWidget {
   /// `null` tlačítko schová - u výběru z víc zakázek není kam „jinam".
   final VoidCallback? onNeniToOno;
 
-  /// `false` - tlačítka jsou jinde, na tabletu u kraje pod palcem
-  /// ([TlacitkaIdentifikace]).
-  final bool sTlacitky;
+  /// Šířka samotné karty a panelu vedle ní.
+  static const sirkaKarty = 580.0;
+  static const sirkaPanelu = 300.0;
+  static const _mezera = Insets.huge;
+
+  /// Od téhle šířky se panel vejde vedle karty (karta se může trochu
+  /// zúžit).
+  static const sirkaProPanelVedle = 760.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final prijem = ref.watch(prijemZakazkyProvider(zakazka.id)).valueOrNull;
     final stav = prijem?.stav ?? StavPrijmu.nezahajen;
+    final spoust = ref.watch(nastaveniProvider).spoust;
 
     final (String titulek, IconData ikona, Color barva) = switch (stav) {
       StavPrijmu.nezahajen => (
@@ -53,117 +63,184 @@ class IdentifikaceKarta extends ConsumerWidget {
         AppColors.readyGreen,
       ),
       StavPrijmu.rozpracovany => (
-        'Příjem rozpracovaný · zkontrolováno '
-            '${prijem!.pocetVyplnenych} z ${prijem.pocetPovinnych}',
+        'Příjem rozpracovaný',
         Icons.pending_actions_rounded,
         AppColors.repairBlue,
       ),
       StavPrijmu.dokoncen => (
-        [
-          'Příjem dokončen',
-          if (prijem!.dokoncenoAt != null)
-            AppDateFormat.date(prijem.dokoncenoAt!),
-          ?prijem.dokoncilKdo,
-        ].join(' · '),
+        'Příjem dokončen',
         Icons.task_alt_rounded,
         AppColors.readyGreen,
       ),
     };
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 580),
-      child: Column(
-        key: Key('identifikace-${zakazka.id}'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
-                child: Icon(ikona, size: 16, color: Colors.white),
-              ),
-              const SizedBox(width: Insets.md),
-              Expanded(
-                child: Text(
-                  titulek,
-                  style: AppTextStyles.cardBody.copyWith(
-                    color: palette.text,
-                    fontWeight: FontWeight.w600,
-                  ),
+    final karta = Column(
+      key: Key('karta-${zakazka.id}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
+              child: Icon(ikona, size: 16, color: Colors.white),
+            ),
+            const SizedBox(width: Insets.md),
+            Expanded(
+              child: Text(
+                titulek,
+                style: AppTextStyles.cardBody.copyWith(
+                  color: palette.text,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              Text(
-                naskenovano ? 'NASKENOVÁNO · SPZ' : 'ZADÁNO RUČNĚ',
-                style: AppTextStyles.monoLabel.copyWith(
-                  color: palette.muted,
-                  fontSize: 11,
-                ),
+            ),
+            Text(
+              naskenovano ? 'NASKENOVÁNO · SPZ' : 'ZADÁNO RUČNĚ',
+              style: AppTextStyles.monoLabel.copyWith(
+                color: palette.muted,
+                fontSize: 11,
               ),
-            ],
-          ),
-          const SizedBox(height: Insets.base),
-          _Karta(zakazka: zakazka),
-          if (sTlacitky) ...[
-            const SizedBox(height: Insets.base),
-            TlacitkaIdentifikace(
-              zakazka: zakazka,
-              onZahajit: onZahajit,
-              onNeniToOno: onNeniToOno,
             ),
           ],
-        ],
+        ),
+        const SizedBox(height: Insets.base),
+        _Karta(zakazka: zakazka),
+      ],
+    );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: sirkaKarty + _mezera + sirkaPanelu,
+      ),
+      child: LayoutBuilder(
+        key: Key('identifikace-${zakazka.id}'),
+        builder: (context, constraints) {
+          final vedle =
+              spoust != UmisteniSpouste.dole &&
+              constraints.maxWidth >= sirkaProPanelVedle;
+
+          if (vedle) {
+            final panel = SizedBox(
+              key: const Key('dalsi-krok-vedle'),
+              width: sirkaPanelu,
+              child: _DalsiKrok(
+                prijem: prijem,
+                zakazka: zakazka,
+                onZahajit: onZahajit,
+                onNeniToOno: onNeniToOno,
+                svisle: true,
+              ),
+            );
+            final vlevo = spoust == UmisteniSpouste.vlevo;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (vlevo) ...[panel, const SizedBox(width: _mezera)],
+                Expanded(child: karta),
+                if (!vlevo) ...[const SizedBox(width: _mezera), panel],
+              ],
+            );
+          }
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: sirkaKarty),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  karta,
+                  const SizedBox(height: Insets.xl),
+                  _DalsiKrok(
+                    prijem: prijem,
+                    zakazka: zakazka,
+                    onZahajit: onZahajit,
+                    onNeniToOno: onNeniToOno,
+                    svisle: false,
+                    vlevo: spoust == UmisteniSpouste.vlevo,
+                    dole: spoust == UmisteniSpouste.dole,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// „Není to ono" a „Zahájit příjem" - pod kartou, nebo na tabletu svisle
-/// u kraje obrazovky.
-///
-/// Řídí se nastavením spouště fotoaparátu: kdo má spoušť vlevo, drží
-/// zařízení levou rukou, takže i hlavní tlačítko patří vlevo.
-class TlacitkaIdentifikace extends ConsumerWidget {
-  const TlacitkaIdentifikace({
-    super.key,
+/// „Další krok" - co příjem čeká, velká dlaždice na zahájení a „Není to
+/// ono".
+class _DalsiKrok extends StatelessWidget {
+  const _DalsiKrok({
+    required this.prijem,
     required this.zakazka,
     required this.onZahajit,
-    this.onNeniToOno,
-    this.svisle = false,
+    required this.onNeniToOno,
+    required this.svisle,
+    this.vlevo = false,
+    this.dole = false,
   });
 
+  final Prijem? prijem;
   final ServiceOrder zakazka;
   final VoidCallback onZahajit;
   final VoidCallback? onNeniToOno;
 
-  /// Pod sebou - v postranním sloupci u kraje obrazovky.
+  /// Panel vedle karty: popis, dlaždice a „Není to ono" pod sebou.
   final bool svisle;
 
+  /// Pod kartou: dlaždice vlevo (spoušť vlevo), nebo přes celou šířku
+  /// s „Není to ono" pod ní (spoušť dole).
+  final bool vlevo;
+  final bool dole;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final palette = context.palette;
-    final prijem = ref.watch(prijemZakazkyProvider(zakazka.id)).valueOrNull;
-    final vlevo = ref.watch(nastaveniProvider).spoust == UmisteniSpouste.vlevo;
-    final akce = switch (prijem?.stav ?? StavPrijmu.nezahajen) {
-      StavPrijmu.nezahajen => 'Zahájit příjem · fotodokumentace',
-      StavPrijmu.rozpracovany => 'Pokračovat v příjmu',
-      StavPrijmu.dokoncen => 'Zobrazit příjem',
+    final p = prijem;
+
+    final (
+      String nadpis,
+      String krok,
+      String popis,
+      IconData ikona,
+      String akce,
+    ) = switch (p?.stav ?? StavPrijmu.nezahajen) {
+      StavPrijmu.nezahajen => (
+        'DALŠÍ KROK',
+        'Fotodokumentace',
+        'Krok 2 ze 4 · exteriér, interiér, tachometr',
+        Icons.photo_camera_outlined,
+        'Zahájit příjem',
+      ),
+      StavPrijmu.rozpracovany => (
+        'ROZPRACOVANÝ PŘÍJEM',
+        'Kontrola vozidla',
+        'Zkontrolováno ${p!.pocetVyplnenych} z ${p.pocetPovinnych}',
+        Icons.play_arrow_rounded,
+        'Pokračovat v příjmu',
+      ),
+      StavPrijmu.dokoncen => (
+        'PŘÍJEM DOKONČEN',
+        'Souhrn příjmu',
+        [
+          if (p!.dokoncenoAt != null) AppDateFormat.date(p.dokoncenoAt!),
+          ?p.dokoncilKdo,
+        ].join(' · '),
+        Icons.task_alt_rounded,
+        'Zobrazit příjem',
+      ),
     };
 
-    final zahajit = FilledButton(
+    final dlazdice = _Dlazdice(
       key: Key('zahajit-prijem-${zakazka.id}'),
-      onPressed: onZahajit,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: Insets.lg),
-      ),
-      child: Text(
-        akce,
-        textAlign: TextAlign.center,
-        style: AppTextStyles.buttonLabel,
-      ),
+      ikona: ikona,
+      text: akce,
+      svisle: svisle,
+      onTap: onZahajit,
     );
     final neniToOno = onNeniToOno == null
         ? null
@@ -173,37 +250,136 @@ class TlacitkaIdentifikace extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: palette.text,
               side: BorderSide(color: palette.hairline2),
-              padding: const EdgeInsets.symmetric(horizontal: Insets.xl),
+              padding: const EdgeInsets.symmetric(horizontal: Insets.lg),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Radii.card),
+              ),
+              textStyle: AppTextStyles.buttonLabel,
             ),
-            child: const Text('Není to ono'),
+            child: const Text('Není to ono', textAlign: TextAlign.center),
           );
 
-    if (svisle) {
-      // Velká plocha pod palcem, „Není to ono" menší pod ní.
-      return Column(
-        mainAxisSize: MainAxisSize.min,
+    final Widget tlacitka;
+    if (svisle || dole || neniToOno == null) {
+      tlacitka = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: 112, child: zahajit),
+          dlazdice,
           if (neniToOno != null) ...[
             const SizedBox(height: Insets.md),
             SizedBox(height: Sizes.ctaHeight, child: neniToOno),
           ],
         ],
       );
+    } else {
+      // Na telefonu vedle sebe, dlaždice na straně palce.
+      final radek = [
+        Expanded(child: dlazdice),
+        const SizedBox(width: Insets.md),
+        SizedBox(width: 116, height: _Dlazdice.vyskaVedle, child: neniToOno),
+      ];
+      tlacitka = Row(children: vlevo ? radek : radek.reversed.toList());
     }
 
-    // Hlavní tlačítko na straně palce.
-    final radek = [
-      if (neniToOno != null) ...[
-        SizedBox(height: Sizes.ctaHeight, child: neniToOno),
-        const SizedBox(width: Insets.md),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          nadpis,
+          style: AppTextStyles.overline.copyWith(color: palette.muted),
+        ),
+        const SizedBox(height: Insets.xxs),
+        Text(
+          krok,
+          style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
+        ),
+        if (popis.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            popis,
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+          ),
+        ],
+        const SizedBox(height: Insets.base),
+        tlacitka,
       ],
-      Expanded(
-        child: SizedBox(height: Sizes.ctaHeight, child: zahajit),
+    );
+  }
+}
+
+/// Velká modrá plocha - trefí se do ní i palec v rukavici.
+///
+/// V panelu vedle karty vysoká s ikonou nahoře a popiskem dole, pod kartou
+/// nižší s ikonou vedle popisku.
+class _Dlazdice extends StatelessWidget {
+  const _Dlazdice({
+    super.key,
+    required this.ikona,
+    required this.text,
+    required this.svisle,
+    required this.onTap,
+  });
+
+  static const vyskaSvisle = 132.0;
+  static const vyskaVedle = 80.0;
+
+  final IconData ikona;
+  final String text;
+  final bool svisle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Dlouhý popisek („Pokračovat v příjmu") na úzké dlaždici se zmenší,
+    // místo aby přetekl.
+    final popisek = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        maxLines: 1,
+        style: AppTextStyles.sectionTitle.copyWith(
+          color: AppColors.primary,
+          fontSize: 18,
+        ),
       ),
-    ];
-    return Row(children: vlevo ? radek.reversed.toList() : radek);
+    );
+
+    return Semantics(
+      button: true,
+      label: text,
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.circular(Radii.card),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: svisle ? vyskaSvisle : vyskaVedle,
+            child: Padding(
+              padding: const EdgeInsets.all(Insets.xl),
+              child: svisle
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(ikona, size: 28, color: AppColors.primary),
+                        Flexible(child: popisek),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Icon(ikona, size: 28, color: AppColors.primary),
+                        const SizedBox(width: Insets.base),
+                        Expanded(child: popisek),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

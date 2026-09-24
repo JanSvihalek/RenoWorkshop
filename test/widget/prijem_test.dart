@@ -347,6 +347,8 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
+    await tester.ensureVisible(find.byKey(const Key('neni-to-ono')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('neni-to-ono')));
     // Ne pumpAndSettle - kamera se v testu nespustí a kolečko by se točilo.
     await tester.pump();

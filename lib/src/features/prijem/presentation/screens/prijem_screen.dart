@@ -13,8 +13,6 @@ import '../../../orders/domain/repositories/service_order_repository.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/order_search_field.dart';
 import '../controllers/prijem_providers.dart';
-import '../../../settings/domain/entities/nastaveni.dart';
-import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../../../core/navigace/pozadavek_skeneru.dart';
 import '../../../../core/widgets/workshop_bottom_nav.dart';
 import '../widgets/identifikace_karta.dart';
@@ -248,7 +246,7 @@ String pocetOtevrenychZakazek(int pocet) => switch (pocet) {
 
 /// Výsledek hledání: jedna zakázka jako karta k potvrzení uprostřed,
 /// víc zakázek se stejnou SPZ pod sebou k výběru.
-class _Nalezene extends ConsumerWidget {
+class _Nalezene extends StatelessWidget {
   const _Nalezene({
     required this.nalezene,
     required this.naskenovano,
@@ -261,63 +259,11 @@ class _Nalezene extends ConsumerWidget {
   final void Function(ServiceOrder zakazka) onZahajit;
   final VoidCallback onNeniToOno;
 
-  /// Od téhle šířky se vedle karty (580) vejde sloupec s tlačítky.
-  static const sirkaProBocniTlacitka = 900.0;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final palette = context.palette;
     final jedna = nalezene.length == 1;
-    final spoust = ref.watch(nastaveniProvider).spoust;
 
-    // Tablet na šířku a spoušť po straně: tlačítka k tomu kraji, kde je
-    // palec - stejně jako spoušť fotoaparátu. Uprostřed pod kartou by
-    // na ně palec nedosáhl.
-    if (jedna && spoust != UmisteniSpouste.dole) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < sirkaProBocniTlacitka) {
-            return _seznam(palette, jedna);
-          }
-          final zakazka = nalezene.single;
-          final karta = Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(Insets.xl),
-                child: IdentifikaceKarta(
-                  zakazka: zakazka,
-                  naskenovano: naskenovano,
-                  onZahajit: () => onZahajit(zakazka),
-                  sTlacitky: false,
-                ),
-              ),
-            ),
-          );
-          final tlacitka = Padding(
-            key: const Key('tlacitka-po-strane'),
-            padding: const EdgeInsets.symmetric(horizontal: Insets.xxl),
-            child: SizedBox(
-              width: 220,
-              child: TlacitkaIdentifikace(
-                zakazka: zakazka,
-                onZahajit: () => onZahajit(zakazka),
-                onNeniToOno: onNeniToOno,
-                svisle: true,
-              ),
-            ),
-          );
-          return Row(
-            children: spoust == UmisteniSpouste.vlevo
-                ? [tlacitka, karta]
-                : [karta, tlacitka],
-          );
-        },
-      );
-    }
-    return _seznam(palette, jedna);
-  }
-
-  Widget _seznam(AppPalette palette, bool jedna) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(

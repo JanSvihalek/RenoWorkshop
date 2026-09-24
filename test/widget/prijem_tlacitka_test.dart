@@ -7,15 +7,15 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Tlačítko „Zahájit příjem" se řídí nastavením spouště fotoaparátu - na
-/// tabletu na šířku je u kraje pod palcem, na telefonu na straně palce.
+/// „Další krok" s dlaždicí Zahájit příjem se řídí nastavením spouště
+/// fotoaparátu - na tabletu vedle karty na straně palce, na telefonu pod
+/// kartou s dlaždicí na straně palce.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -70,49 +70,58 @@ void main() {
   }
 
   Rect karta(WidgetTester tester) =>
-      tester.getRect(find.byKey(const Key('identifikace-ZK-26-0001')));
+      tester.getRect(find.byKey(const Key('karta-ZK-26-0001')));
 
-  testWidgets('tablet, spoušť vpravo: tlačítko u pravého kraje', (
+  testWidgets('tablet, spoušť vpravo: Další krok vpravo vedle karty', (
     tester,
   ) async {
     await najdi(tester, velikost: const Size(1280, 800), spoust: .vpravo);
 
-    expect(find.byKey(const Key('tlacitka-po-strane')), findsOneWidget);
-    expect(find.byType(TlacitkaIdentifikace), findsOneWidget);
-    final tlacitko = tester.getRect(find.byKey(zahajit));
-    expect(tlacitko.left, greaterThan(karta(tester).right));
-    // U kraje, kam dosáhne palec.
-    expect(1280 - tlacitko.right, lessThan(40));
+    expect(find.byKey(const Key('dalsi-krok-vedle')), findsOneWidget);
+    expect(find.text('DALŠÍ KROK'), findsOneWidget);
+    expect(find.text('Fotodokumentace'), findsOneWidget);
+    expect(find.text('Zahájit příjem'), findsOneWidget);
+    final dlazdice = tester.getRect(find.byKey(zahajit));
+    expect(dlazdice.left, greaterThan(karta(tester).right));
+    // Velká plocha pro palec, ne běžné tlačítko.
+    expect(dlazdice.height, greaterThan(100));
+    // „Není to ono" pod dlaždicí.
+    expect(
+      tester.getRect(find.byKey(const Key('neni-to-ono'))).top,
+      greaterThan(dlazdice.bottom),
+    );
   });
 
-  testWidgets('tablet, spoušť vlevo: tlačítko u levého kraje', (tester) async {
+  testWidgets('tablet, spoušť vlevo: Další krok vlevo od karty', (
+    tester,
+  ) async {
     await najdi(tester, velikost: const Size(1280, 800), spoust: .vlevo);
 
-    final tlacitko = tester.getRect(find.byKey(zahajit));
-    expect(tlacitko.right, lessThan(karta(tester).left));
+    final dlazdice = tester.getRect(find.byKey(zahajit));
+    expect(dlazdice.right, lessThan(karta(tester).left));
   });
 
-  testWidgets('spoušť dole: tlačítka pod kartou', (tester) async {
+  testWidgets('spoušť dole: Další krok pod kartou', (tester) async {
     await najdi(tester, velikost: const Size(1280, 800), spoust: .dole);
 
-    expect(find.byKey(const Key('tlacitka-po-strane')), findsNothing);
-    final tlacitko = tester.getRect(find.byKey(zahajit));
-    expect(tlacitko.top, greaterThan(karta(tester).top + 100));
+    expect(find.byKey(const Key('dalsi-krok-vedle')), findsNothing);
+    final dlazdice = tester.getRect(find.byKey(zahajit));
+    expect(dlazdice.top, greaterThan(karta(tester).bottom));
   });
 
-  testWidgets('telefon, spoušť vlevo: Zahájit vlevo od Není to ono', (
+  testWidgets('telefon, spoušť vlevo: dlaždice vlevo od Není to ono', (
     tester,
   ) async {
     await najdi(tester, velikost: const Size(400, 900), spoust: .vlevo);
 
-    expect(find.byKey(const Key('tlacitka-po-strane')), findsNothing);
+    expect(find.byKey(const Key('dalsi-krok-vedle')), findsNothing);
     expect(
       tester.getRect(find.byKey(zahajit)).right,
       lessThan(tester.getRect(find.byKey(const Key('neni-to-ono'))).left),
     );
   });
 
-  testWidgets('telefon, spoušť vpravo: Zahájit vpravo', (tester) async {
+  testWidgets('telefon, spoušť vpravo: dlaždice vpravo', (tester) async {
     await najdi(tester, velikost: const Size(400, 900), spoust: .vpravo);
 
     expect(
