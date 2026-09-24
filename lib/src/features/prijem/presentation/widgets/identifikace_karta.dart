@@ -7,6 +7,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../orders/domain/entities/service_order.dart';
+import '../../../settings/domain/entities/nastaveni.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../domain/entities/prijem.dart';
 import '../controllers/prijem_providers.dart';
 
@@ -22,6 +24,7 @@ class IdentifikaceKarta extends ConsumerWidget {
     required this.naskenovano,
     required this.onZahajit,
     this.onNeniToOno,
+    this.sTlacitky = true,
   });
 
   final ServiceOrder zakazka;
@@ -33,30 +36,27 @@ class IdentifikaceKarta extends ConsumerWidget {
   /// `null` tlačítko schová - u výběru z víc zakázek není kam „jinam".
   final VoidCallback? onNeniToOno;
 
+  /// `false` - tlačítka jsou jinde, na tabletu u kraje pod palcem
+  /// ([TlacitkaIdentifikace]).
+  final bool sTlacitky;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final prijem = ref.watch(prijemZakazkyProvider(zakazka.id)).valueOrNull;
     final stav = prijem?.stav ?? StavPrijmu.nezahajen;
 
-    final (
-      String titulek,
-      IconData ikona,
-      Color barva,
-      String akce,
-    ) = switch (stav) {
+    final (String titulek, IconData ikona, Color barva) = switch (stav) {
       StavPrijmu.nezahajen => (
         'Nalezena otevřená zakázka',
         Icons.check_rounded,
         AppColors.readyGreen,
-        'Zahájit příjem · fotodokumentace',
       ),
       StavPrijmu.rozpracovany => (
         'Příjem rozpracovaný · zkontrolováno '
             '${prijem!.pocetVyplnenych} z ${prijem.pocetPovinnych}',
         Icons.pending_actions_rounded,
         AppColors.repairBlue,
-        'Pokračovat v příjmu',
       ),
       StavPrijmu.dokoncen => (
         [
@@ -67,7 +67,6 @@ class IdentifikaceKarta extends ConsumerWidget {
         ].join(' · '),
         Icons.task_alt_rounded,
         AppColors.readyGreen,
-        'Zobrazit příjem',
       ),
     };
 
@@ -106,50 +105,105 @@ class IdentifikaceKarta extends ConsumerWidget {
           ),
           const SizedBox(height: Insets.base),
           _Karta(zakazka: zakazka),
-          const SizedBox(height: Insets.base),
-          Row(
-            children: [
-              if (onNeniToOno != null) ...[
-                SizedBox(
-                  height: Sizes.ctaHeight,
-                  child: OutlinedButton(
-                    key: const Key('neni-to-ono'),
-                    onPressed: onNeniToOno,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: palette.text,
-                      side: BorderSide(color: palette.hairline2),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Insets.xl,
-                      ),
-                    ),
-                    child: const Text('Není to ono'),
-                  ),
-                ),
-                const SizedBox(width: Insets.md),
-              ],
-              Expanded(
-                child: SizedBox(
-                  height: Sizes.ctaHeight,
-                  child: FilledButton(
-                    key: Key('zahajit-prijem-${zakazka.id}'),
-                    onPressed: onZahajit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      akce,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.buttonLabel,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          if (sTlacitky) ...[
+            const SizedBox(height: Insets.base),
+            TlacitkaIdentifikace(
+              zakazka: zakazka,
+              onZahajit: onZahajit,
+              onNeniToOno: onNeniToOno,
+            ),
+          ],
         ],
       ),
     );
+  }
+}
+
+/// „Není to ono" a „Zahájit příjem" - pod kartou, nebo na tabletu svisle
+/// u kraje obrazovky.
+///
+/// Řídí se nastavením spouště fotoaparátu: kdo má spoušť vlevo, drží
+/// zařízení levou rukou, takže i hlavní tlačítko patří vlevo.
+class TlacitkaIdentifikace extends ConsumerWidget {
+  const TlacitkaIdentifikace({
+    super.key,
+    required this.zakazka,
+    required this.onZahajit,
+    this.onNeniToOno,
+    this.svisle = false,
+  });
+
+  final ServiceOrder zakazka;
+  final VoidCallback onZahajit;
+  final VoidCallback? onNeniToOno;
+
+  /// Pod sebou - v postranním sloupci u kraje obrazovky.
+  final bool svisle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final prijem = ref.watch(prijemZakazkyProvider(zakazka.id)).valueOrNull;
+    final vlevo = ref.watch(nastaveniProvider).spoust == UmisteniSpouste.vlevo;
+    final akce = switch (prijem?.stav ?? StavPrijmu.nezahajen) {
+      StavPrijmu.nezahajen => 'Zahájit příjem · fotodokumentace',
+      StavPrijmu.rozpracovany => 'Pokračovat v příjmu',
+      StavPrijmu.dokoncen => 'Zobrazit příjem',
+    };
+
+    final zahajit = FilledButton(
+      key: Key('zahajit-prijem-${zakazka.id}'),
+      onPressed: onZahajit,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: Insets.lg),
+      ),
+      child: Text(
+        akce,
+        textAlign: TextAlign.center,
+        style: AppTextStyles.buttonLabel,
+      ),
+    );
+    final neniToOno = onNeniToOno == null
+        ? null
+        : OutlinedButton(
+            key: const Key('neni-to-ono'),
+            onPressed: onNeniToOno,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: palette.text,
+              side: BorderSide(color: palette.hairline2),
+              padding: const EdgeInsets.symmetric(horizontal: Insets.xl),
+            ),
+            child: const Text('Není to ono'),
+          );
+
+    if (svisle) {
+      // Velká plocha pod palcem, „Není to ono" menší pod ní.
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: 112, child: zahajit),
+          if (neniToOno != null) ...[
+            const SizedBox(height: Insets.md),
+            SizedBox(height: Sizes.ctaHeight, child: neniToOno),
+          ],
+        ],
+      );
+    }
+
+    // Hlavní tlačítko na straně palce.
+    final radek = [
+      if (neniToOno != null) ...[
+        SizedBox(height: Sizes.ctaHeight, child: neniToOno),
+        const SizedBox(width: Insets.md),
+      ],
+      Expanded(
+        child: SizedBox(height: Sizes.ctaHeight, child: zahajit),
+      ),
+    ];
+    return Row(children: vlevo ? radek.reversed.toList() : radek);
   }
 }
 

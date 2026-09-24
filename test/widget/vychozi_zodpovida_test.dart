@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
@@ -49,6 +50,19 @@ void main() {
 
   Future<void> vyberZodpovednou(WidgetTester tester, String jmeno) async {
     await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+    // Nastavení je delší než obrazovka a seznam je líný - výchozí filtr
+    // se mimo obrazovku vůbec nepostaví.
+    await tester.scrollUntilVisible(
+      find.text('Zodpovídá'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SettingsScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
 
     final vyber = find

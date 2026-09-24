@@ -236,8 +236,9 @@ class _SkenerCard extends ConsumerWidget {
           ),
           const SizedBox(height: Insets.xxs),
           Text(
-            'Kde je spoušť při focení fotodokumentace a načítání SPZ a VINu. '
-            'Na tabletu na šířku je po straně blíž palci.',
+            'Kde je spoušť při focení fotodokumentace a načítání SPZ a VINu '
+            'a tlačítko Zahájit příjem. Na tabletu na šířku je po straně '
+            'blíž palci.',
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
           ),
           const SizedBox(height: Insets.base),

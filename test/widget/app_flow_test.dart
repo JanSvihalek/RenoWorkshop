@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
@@ -188,6 +189,16 @@ void main() {
     expect(find.text('jan.dvorak@renocar.cz'), findsOneWidget);
     // Volby vzhledu a výchozího filtru jsou nad odhlášením.
     expect(find.text('VZHLED'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('VÝCHOZÍ FILTR'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SettingsScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.text('VÝCHOZÍ FILTR'), findsOneWidget);
 
     // Tlačítko je až pod kartami. V líném seznamu se mimo obrazovku
