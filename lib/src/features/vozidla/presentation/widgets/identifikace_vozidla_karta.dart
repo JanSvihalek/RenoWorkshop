@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -8,42 +7,29 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/vozidlo.dart';
-import '../controllers/vozidla_providers.dart';
 
 /// Nalezený vůz se vším, co o něm víme z Heliosu - stejná karta jako
-/// identifikace v příjmu, ať technik nemusí kvůli motoru nebo telefonu
-/// na majitele otevírat další obrazovku.
-///
-/// Hledání vrací jen SPZ, VIN, model a majitele. Zbytek se dočte z karty
-/// vozidla; do té doby je vidět aspoň to, co přišlo z hledání.
-class IdentifikaceVozidlaKarta extends ConsumerWidget {
+/// identifikace v příjmu, ať technik hned vidí, že je to ten vůz, a nemusí
+/// kvůli motoru nebo telefonu na majitele nic dalšího otevírat.
+class IdentifikaceVozidlaKarta extends StatelessWidget {
   const IdentifikaceVozidlaKarta({
     super.key,
     required this.vozidlo,
     required this.naskenovano,
-    required this.onOtevrit,
     this.onNeniToOno,
-    this.jeVybrane = false,
   });
 
-  final NalezeneVozidlo vozidlo;
+  final KartaVozidla vozidlo;
 
   /// Hledání přišlo ze skeneru, ne z klávesnice - jen do popisku.
   final bool naskenovano;
-  final VoidCallback onOtevrit;
 
-  /// `null` tlačítko schová - u výběru z víc vozidel není kam „jinam".
+  /// `null` tlačítko schová.
   final VoidCallback? onNeniToOno;
 
-  /// Na tabletu je karta vozidla se zakázkami vpravo - otevřený vůz musí
-  /// být poznat.
-  final bool jeVybrane;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final palette = context.palette;
-    final karta = ref.watch(kartaVozidlaProvider(vozidlo.id));
-    final pocet = vozidlo.pocetZakazek;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 580),
@@ -69,7 +55,7 @@ class IdentifikaceVozidlaKarta extends ConsumerWidget {
               const SizedBox(width: Insets.md),
               Expanded(
                 child: Text(
-                  'Nalezeno vozidlo · ${_zakazek(pocet)}',
+                  'Nalezeno vozidlo · ${_zakazek(vozidlo.zakazky.length)}',
                   style: AppTextStyles.cardBody.copyWith(
                     color: palette.text,
                     fontWeight: FontWeight.w600,
@@ -86,50 +72,22 @@ class IdentifikaceVozidlaKarta extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Insets.base),
-          _Karta(vozidlo: vozidlo, karta: karta, jeVybrane: jeVybrane),
-          const SizedBox(height: Insets.base),
-          Row(
-            children: [
-              if (onNeniToOno != null) ...[
-                SizedBox(
-                  height: Sizes.ctaHeight,
-                  child: OutlinedButton(
-                    key: const Key('neni-to-ono'),
-                    onPressed: onNeniToOno,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: palette.text,
-                      side: BorderSide(color: palette.hairline2),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Insets.xl,
-                      ),
-                    ),
-                    child: const Text('Není to ono'),
-                  ),
+          _Karta(vozidlo: vozidlo),
+          if (onNeniToOno != null) ...[
+            const SizedBox(height: Insets.base),
+            SizedBox(
+              height: Sizes.ctaHeight,
+              child: OutlinedButton(
+                key: const Key('neni-to-ono'),
+                onPressed: onNeniToOno,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: palette.text,
+                  side: BorderSide(color: palette.hairline2),
                 ),
-                const SizedBox(width: Insets.md),
-              ],
-              Expanded(
-                child: SizedBox(
-                  height: Sizes.ctaHeight,
-                  child: FilledButton(
-                    key: Key('otevrit-vozidlo-${vozidlo.id}'),
-                    onPressed: onOtevrit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      pocet == 0
-                          ? 'Otevřít kartu vozidla'
-                          : 'Zakázky vozidla ($pocet)',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.buttonLabel,
-                    ),
-                  ),
-                ),
+                child: const Text('Není to ono - skenovat znovu'),
               ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -144,29 +102,24 @@ class IdentifikaceVozidlaKarta extends ConsumerWidget {
 }
 
 class _Karta extends StatelessWidget {
-  const _Karta({
-    required this.vozidlo,
-    required this.karta,
-    required this.jeVybrane,
-  });
+  const _Karta({required this.vozidlo});
 
-  final NalezeneVozidlo vozidlo;
-  final AsyncValue<KartaVozidla?> karta;
-  final bool jeVybrane;
+  final KartaVozidla vozidlo;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final detail = karta.valueOrNull;
-    final model = (detail?.model ?? vozidlo.model).trim();
-    final vin = (detail?.vin ?? vozidlo.vin).trim();
-    final tachometr = detail?.tachometr;
-    final registrace = detail?.prodano;
+    final v = vozidlo;
+    final tachometr = v.tachometr;
+    final registrace = v.prodano;
+    final majitel = v.majitel;
+    final kontakt = v.kontakt;
 
+    // Prázdné údaje se vynechají - karta z Heliosu bývá děravá.
     final udaje = [
-      ('SÉRIE', detail?.serie),
-      ('PALIVO', detail?.palivo),
-      ('MOTOR', detail?.motor),
+      ('SÉRIE', v.serie),
+      ('PALIVO', v.palivo),
+      ('MOTOR', v.motor),
       (
         'TACHOMETR',
         tachometr == null
@@ -184,10 +137,7 @@ class _Karta extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.card,
         borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(
-          color: jeVybrane ? AppColors.accent : palette.hairline,
-          width: jeVybrane ? 2 : 1,
-        ),
+        border: Border.all(color: palette.hairline),
         boxShadow: palette.cardShadow,
       ),
       child: Column(
@@ -204,7 +154,7 @@ class _Karta extends StatelessWidget {
                   runSpacing: Insets.xxs,
                   children: [
                     Text(
-                      vozidlo.spz.isEmpty ? 'Bez SPZ' : vozidlo.spz,
+                      v.spz.isEmpty ? 'Bez SPZ' : v.spz,
                       style: AppTextStyles.plateLarge.copyWith(
                         color: palette.text,
                       ),
@@ -212,7 +162,7 @@ class _Karta extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Text(
-                        model.isEmpty ? 'Neznámý model' : model,
+                        v.model.isEmpty ? 'Neznámý model' : v.model,
                         style: AppTextStyles.cardModel.copyWith(
                           color: palette.muted,
                         ),
@@ -220,7 +170,7 @@ class _Karta extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (vin.isNotEmpty) ...[
+                if (v.vin.isNotEmpty) ...[
                   const SizedBox(height: Insets.sm),
                   Row(
                     children: [
@@ -233,7 +183,7 @@ class _Karta extends StatelessWidget {
                       const SizedBox(width: Insets.sm),
                       Flexible(
                         child: SelectableText(
-                          vin,
+                          v.vin,
                           style: AppTextStyles.monoLabel.copyWith(
                             color: palette.text,
                             letterSpacing: 0.6,
@@ -252,36 +202,6 @@ class _Karta extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (karta.isLoading) ...[
-                  const SizedBox(height: Insets.lg),
-                  Row(
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: Insets.sm),
-                      Flexible(
-                        child: Text(
-                          'Načítám údaje o voze…',
-                          style: AppTextStyles.metaSmall.copyWith(
-                            color: palette.muted,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else if (karta.hasError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: Insets.lg),
-                    child: Text(
-                      'Podrobnosti o voze se nepodařilo načíst.',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -295,26 +215,26 @@ class _Karta extends StatelessWidget {
               children: [
                 _Osoba(
                   popisek: 'MAJITEL',
-                  jmeno: detail?.majitel?.nazev ?? vozidlo.majitel,
+                  jmeno: majitel?.nazev,
                   radky: [
-                    if (detail?.majitel case final m?) ...[
+                    if (majitel != null) ...[
                       [
-                        if (m.cisloZakaznika case final c?) 'č. $c',
-                        if (m.ico case final ico?) 'IČO $ico',
-                        if (m.dic case final dic?) 'DIČ $dic',
+                        if (majitel.cisloZakaznika case final c?) 'č. $c',
+                        if (majitel.ico case final ico?) 'IČO $ico',
+                        if (majitel.dic case final dic?) 'DIČ $dic',
                       ].join(' · '),
-                      m.adresa,
-                      m.telefon,
-                      m.email,
+                      majitel.adresa,
+                      majitel.telefon,
+                      majitel.email,
                     ],
                   ],
-                  prazdne: 'Neuveden',
+                  prazdne: 'Není v Heliosu uvedený',
                 ),
-                if (detail?.kontakt case final k?)
+                if (kontakt != null)
                   _Osoba(
                     popisek: 'KONTAKTNÍ OSOBA',
-                    jmeno: k.jmeno,
-                    radky: [k.telefon, k.email],
+                    jmeno: kontakt.jmeno,
+                    radky: [kontakt.telefon, kontakt.email],
                   ),
               ],
             ),
@@ -392,15 +312,15 @@ class _Osoba extends StatelessWidget {
     required this.popisek,
     required this.jmeno,
     required this.radky,
-    this.prazdne,
+    this.prazdne = '',
   });
 
   final String popisek;
   final String? jmeno;
   final List<String?> radky;
 
-  /// Co ukázat, když jméno chybí. `null` - ani popisek.
-  final String? prazdne;
+  /// Co ukázat, když jméno chybí.
+  final String prazdne;
 
   @override
   Widget build(BuildContext context) {
@@ -419,8 +339,8 @@ class _Osoba extends StatelessWidget {
           style: AppTextStyles.overline.copyWith(color: palette.muted),
         ),
         const SizedBox(height: 2),
-        Text(
-          nazev.isEmpty ? (prazdne ?? '') : nazev,
+        SelectableText(
+          nazev.isEmpty ? prazdne : nazev,
           style: AppTextStyles.cardBody.copyWith(
             color: nazev.isEmpty ? palette.muted : palette.text,
             fontWeight: FontWeight.w600,

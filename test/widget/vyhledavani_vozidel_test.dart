@@ -114,32 +114,19 @@ void main() {
     expect(find.text('Najděte vozidlo'), findsOneWidget);
   });
 
-  testWidgets('najde vůz bez ohledu na mezery a ukáže všechny jeho údaje', (
+  testWidgets('najde vůz bez ohledu na mezery a psaní rukou kartu neotevře', (
     tester,
   ) async {
     await naZalozkuVozidel(tester);
 
     await napis(tester, '2bk9485');
 
-    expect(find.byType(IdentifikaceVozidlaKarta), findsOneWidget);
     expect(find.text('2BK 9485'), findsOneWidget);
-    expect(find.text('Nalezeno vozidlo · 2 zakázky'), findsOneWidget);
-    expect(find.text('ZADÁNO RUČNĚ'), findsOneWidget);
-    // Údaje z karty vozidla, ne jen to, co vrátí hledání.
-    expect(find.text('WBA8E9C50GK123456'), findsOneWidget);
-    expect(find.text('Nafta'), findsOneWidget);
-    expect(
-      find.text('${NumberFormat.decimalPattern('cs_CZ').format(123456)} km'),
-      findsOneWidget,
-    );
     expect(find.text('Stavby Novák s.r.o.'), findsOneWidget);
-    expect(find.text('IČO 12345678'), findsOneWidget);
-    expect(find.text('Masarykova 123/4, 60200 Brno'), findsOneWidget);
-    expect(find.text('+420 777 123 456'), findsOneWidget);
-    expect(find.text('Petr Řidič'), findsOneWidget);
-    // Zakázky až na klepnutí - karta vozidla se sama neotevře.
+    expect(find.text('2 zakázky'), findsOneWidget);
+    // I jediný výsledek zůstane v seznamu - při psaní by karta vyskočila
+    // dřív, než člověk dopíše.
     expect(find.byType(KartaVozidlaScreen), findsNothing);
-    expect(find.byKey(const Key('neni-to-ono')), findsOneWidget);
   });
 
   testWidgets(
@@ -147,13 +134,24 @@ void main() {
     (tester) async {
       await naZalozkuVozidel(tester);
       await napis(tester, '2BK');
-      await tester.tap(find.byKey(const Key('otevrit-vozidlo-51234')));
+      await tester.tap(find.text('BMW 320d Touring'));
       await tester.pumpAndSettle();
 
       expect(find.byType(KartaVozidlaScreen), findsOneWidget);
+      // Karta jako identifikace v příjmu, se všemi údaji o voze.
+      expect(find.byType(IdentifikaceVozidlaKarta), findsOneWidget);
+      expect(find.text('Nalezeno vozidlo · 2 zakázky'), findsOneWidget);
+      expect(find.text('ZADÁNO RUČNĚ'), findsOneWidget);
       expect(find.text('WBA8E9C50GK123456'), findsOneWidget);
+      expect(find.text('Nafta'), findsOneWidget);
+      expect(
+        find.text('${NumberFormat.decimalPattern('cs_CZ').format(123456)} km'),
+        findsOneWidget,
+      );
       expect(find.text('Stavby Novák s.r.o.'), findsOneWidget);
+      expect(find.text('IČO 12345678'), findsOneWidget);
       expect(find.text('Masarykova 123/4, 60200 Brno'), findsOneWidget);
+      expect(find.text('+420 777 123 456'), findsOneWidget);
       expect(find.text('Petr Řidič'), findsOneWidget);
 
       await tester.scrollUntilVisible(
@@ -168,7 +166,7 @@ void main() {
   testWidgets('ukončená zakázka z karty vozidla se otevře', (tester) async {
     await naZalozkuVozidel(tester);
     await napis(tester, '2BK');
-    await tester.tap(find.byKey(const Key('otevrit-vozidlo-51234')));
+    await tester.tap(find.text('BMW 320d Touring'));
     await tester.pumpAndSettle();
 
     final ukoncenaKarta = find.widgetWithText(OrderCard, 'Ukončeno');
@@ -190,9 +188,7 @@ void main() {
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
   });
 
-  testWidgets('po naskenování se vůz ukáže jako karta ke kontrole', (
-    tester,
-  ) async {
+  testWidgets('po naskenování se jediný vůz otevře rovnou', (tester) async {
     await naZalozkuVozidel(tester);
 
     // Totéž, co udělá skener: vyplní dotaz a řekne, že přišel z fotoaparátu.
@@ -203,16 +199,20 @@ void main() {
     kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
     await tester.pumpAndSettle();
 
-    expect(find.byType(KartaVozidlaScreen), findsNothing);
-    expect(find.byType(IdentifikaceVozidlaKarta), findsOneWidget);
+    expect(find.byType(KartaVozidlaScreen), findsOneWidget);
     expect(find.text('NASKENOVÁNO'), findsOneWidget);
-    // Pole převzalo naskenovanou SPZ - je vidět, co se hledalo.
-    expect(find.widgetWithText(TextField, '2BK 9485'), findsOneWidget);
+    // Pole převzalo naskenovanou SPZ - po návratu je vidět, co se hledalo.
+    expect(find.text('2BK 9485', skipOffstage: false), findsWidgets);
   });
 
-  testWidgets('Není to ono vymaže hledání a otevře skener', (tester) async {
+  testWidgets('Není to ono vrátí k hledání a otevře skener', (tester) async {
     await naZalozkuVozidel(tester);
-    await napis(tester, '2BK 9485');
+    final kontejner = ProviderScope.containerOf(
+      tester.element(find.byType(VyhledavaniScreen)),
+    );
+    kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
+    kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('neni-to-ono')));
     // Ne pumpAndSettle: kolečko kamery ve skeneru se v testu točí navždy.
@@ -220,9 +220,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.byType(SkenerScreen), findsOneWidget);
-    final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(SkenerScreen)),
-    );
+    expect(find.byType(KartaVozidlaScreen, skipOffstage: false), findsNothing);
     expect(kontejner.read(dotazVozidlaProvider), isEmpty);
   });
 
@@ -240,57 +238,26 @@ void main() {
 
     // Přeregistrovaná SPZ: který vůz to je, musí rozhodnout člověk.
     expect(find.byType(KartaVozidlaScreen), findsNothing);
-    expect(
-      find.text('Nalezena 2 vozidla - vyberte to správné'),
-      findsOneWidget,
-    );
-    expect(find.byKey(const Key('identifikace-vozidla-1')), findsOneWidget);
-    // Jedna společná cesta zpět místo „Není to ono" u každé karty.
-    expect(find.byKey(const Key('neni-to-ono')), findsNothing);
-
-    // Seznam výsledků, ne posuvník uvnitř označitelného textu (VIN).
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('otevrit-vozidlo-2')),
-      300,
-      scrollable: find
-          .ancestor(
-            of: find.byKey(const Key('identifikace-vozidla-1')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('otevrit-vozidlo-2')));
-    await tester.pumpAndSettle();
-
-    final karta = tester.widget<KartaVozidlaScreen>(
-      find.byType(KartaVozidlaScreen),
-    );
-    expect(karta.vozidloId, 2);
+    expect(find.text('BMW 320d Touring'), findsNWidgets(2));
   });
 
-  test('počet nalezených vozidel se skloňuje', () {
-    expect(pocetNalezenychVozidel(1), 'Nalezeno 1 vozidlo');
-    expect(pocetNalezenychVozidel(3), 'Nalezena 3 vozidla');
-    expect(pocetNalezenychVozidel(5), 'Nalezeno 5 vozidel');
-  });
-
-  testWidgets('na tabletu je karta vedle výsledků, ne přes ně', (tester) async {
+  testWidgets('na tabletu se vůz otevře přes celou obrazovku', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await naZalozkuVozidel(tester);
-    expect(find.text('Vyberte vozidlo'), findsOneWidget);
-
     await napis(tester, '2BK');
-    await tester.tap(find.byKey(const Key('otevrit-vozidlo-51234')));
+    await tester.tap(find.text('BMW 320d Touring'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(KartaVozidlaScreen), findsOneWidget);
-    // Výsledky hledání zůstaly vidět vedle karty.
+    // Stejně jako identifikace v příjmu - žádný sloupec s výsledky vedle.
+    expect(find.byType(IdentifikaceVozidlaKarta), findsOneWidget);
+    expect(find.byType(VyhledavaniScreen), findsNothing);
+
+    await tester.tap(find.byTooltip('Zpět'));
+    await tester.pumpAndSettle();
     expect(find.byType(VyhledavaniScreen), findsOneWidget);
-    expect(find.text('Vyberte vozidlo'), findsNothing);
   });
 }

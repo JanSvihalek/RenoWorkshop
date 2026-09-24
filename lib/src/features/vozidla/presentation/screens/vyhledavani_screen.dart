@@ -9,30 +9,28 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../orders/presentation/widgets/order_search_field.dart';
+import '../../../orders/presentation/widgets/plate_chip.dart';
 import '../../domain/entities/vozidlo.dart';
 import '../controllers/vozidla_providers.dart';
-import '../widgets/identifikace_vozidla_karta.dart';
 import '../../../../core/navigace/pozadavek_skeneru.dart';
 import '../../../../core/widgets/workshop_bottom_nav.dart';
 
 /// Vyhledání vozidla podle SPZ nebo VIN.
 ///
-/// Typicky se SPZ naskenuje. Nalezený vůz se ukáže jako karta se všemi
-/// údaji - technik ověří, že je to on, a odtud otevře jeho zakázky.
+/// Typicky se SPZ naskenuje - jediný výsledek se pak otevře rovnou přes
+/// celou obrazovku jako karta vozu, stejně jako identifikace v příjmu.
 /// Hledá se v celé evidenci vozidel z Heliosu, ne jen mezi auty na dílně.
 class VyhledavaniScreen extends ConsumerStatefulWidget {
   const VyhledavaniScreen({
     super.key,
     required this.onOpenVozidlo,
     required this.onScan,
-    this.vybraneId,
   });
 
-  final void Function(NalezeneVozidlo vozidlo) onOpenVozidlo;
+  /// `naskenovano` - hledání vyplnil skener, ne klávesnice. Karta vozu to
+  /// ukáže v popisku.
+  final void Function(NalezeneVozidlo vozidlo, bool naskenovano) onOpenVozidlo;
   final VoidCallback onScan;
-
-  /// Na tabletu je karta vozidla vedle - vybraný řádek musí být poznat.
-  final int? vybraneId;
 
   @override
   ConsumerState<VyhledavaniScreen> createState() => _VyhledavaniScreenState();
@@ -47,6 +45,9 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
   /// pozná změna zvenčí (skener) od vlastního psaní - to se do pole
   /// vracet nesmí, jinak by přepsalo znaky napsané během zpoždění.
   String _odeslanyDotaz = '';
+
+  /// Poslední dotaz vyplnil skener - platí, dokud člověk nezačne psát.
+  bool _zeSkeneru = false;
 
   @override
   void initState() {
@@ -69,23 +70,23 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      // Psaní rukou - popisek karty už nemá říkat „naskenováno".
+      // Psaní rukou nikdy neotvírá kartu samo - viz otevritJedineVozidlo.
       ref.read(otevritJedineVozidloProvider.notifier).state = false;
+      _zeSkeneru = false;
       _odeslanyDotaz = text;
       ref.read(dotazVozidlaProvider.notifier).state = text;
     });
     setState(() {});
   }
 
-  /// Nalezený vůz to není - hledání pryč a znovu skener.
-  void _neniToOno() {
-    _debounce?.cancel();
-    _pole.clear();
-    _odeslanyDotaz = '';
-    ref.read(otevritJedineVozidloProvider.notifier).state = false;
-    ref.read(dotazVozidlaProvider.notifier).state = '';
-    setState(() {});
-    widget.onScan();
+  void _otevriJedine(List<NalezeneVozidlo>? vozidla) {
+    if (vozidla == null || !ref.read(otevritJedineVozidloProvider)) return;
+    // Navigace nesmí proběhnout uprostřed sestavování obrazovky.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !ref.read(otevritJedineVozidloProvider)) return;
+      ref.read(otevritJedineVozidloProvider.notifier).state = false;
+      if (vozidla.length == 1) widget.onOpenVozidlo(vozidla.single, true);
+    });
   }
 
   /// Skener po klepnutí na záložku - vůz se hledá podle SPZ nebo VINu
@@ -124,13 +125,23 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
     ref.listen(dotazVozidlaProvider, (_, novy) {
       if (novy == _odeslanyDotaz) return;
       _odeslanyDotaz = novy;
+      _zeSkeneru = novy.trim().isNotEmpty;
       _debounce?.cancel();
       _pole.text = novy;
       setState(() {});
     });
 
-    // Hledání ze skeneru - do popisku na kartě.
-    final naskenovano = ref.watch(otevritJedineVozidloProvider);
+    // Po naskenování: jediný výsledek rovnou otevřít. Jednak až výsledek
+    // dorazí, jednak hned, když už je načtený - při opakovaném naskenování
+    // téže SPZ by žádná změna nepřišla.
+    if (dotaz.length >= nejkratsiDotazVozidla) {
+      final hledani = hledaniVozidelProvider(dotaz);
+      ref.listen(hledani, (_, vysledek) => _otevriJedine(vysledek.valueOrNull));
+      _otevriJedine(ref.read(hledani).valueOrNull);
+    }
+
+    final sirka = MediaQuery.sizeOf(context).width;
+    final odsazeni = sirka > 700 ? (sirka - 620) / 2 : Insets.xl;
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -169,12 +180,24 @@ class _VyhledavaniScreenState extends ConsumerState<VyhledavaniScreen> {
                                     'Zkontrolujte SPZ nebo zkuste VIN - '
                                     'SPZ se při přeregistraci mění.',
                               )
-                            : _Nalezena(
-                                vozidla: vozidla,
-                                naskenovano: naskenovano,
-                                vybraneId: widget.vybraneId,
-                                onOtevrit: widget.onOpenVozidlo,
-                                onNeniToOno: _neniToOno,
+                            : ListView.separated(
+                                // Na tabletu uprostřed, ne přes celou šířku.
+                                padding: EdgeInsets.fromLTRB(
+                                  odsazeni,
+                                  Insets.lg,
+                                  odsazeni,
+                                  Insets.giant,
+                                ),
+                                itemCount: vozidla.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: Insets.md),
+                                itemBuilder: (_, index) => _RadekVozidla(
+                                  vozidlo: vozidla[index],
+                                  onTap: () => widget.onOpenVozidlo(
+                                    vozidla[index],
+                                    _zeSkeneru,
+                                  ),
+                                ),
                               ),
                       ),
           ),
@@ -230,95 +253,94 @@ class _Hlavicka extends StatelessWidget {
   }
 }
 
-/// Výsledek hledání: jeden vůz jako karta se všemi údaji uprostřed,
-/// víc vozů (přeregistrovaná SPZ, část značky napsaná rukou) pod sebou
-/// k výběru.
-class _Nalezena extends StatelessWidget {
-  const _Nalezena({
-    required this.vozidla,
-    required this.naskenovano,
-    required this.vybraneId,
-    required this.onOtevrit,
-    required this.onNeniToOno,
-  });
+class _RadekVozidla extends StatelessWidget {
+  const _RadekVozidla({required this.vozidlo, required this.onTap});
 
-  final List<NalezeneVozidlo> vozidla;
-  final bool naskenovano;
-  final int? vybraneId;
-  final void Function(NalezeneVozidlo vozidlo) onOtevrit;
-  final VoidCallback onNeniToOno;
-
-  static const _odsazeni = EdgeInsets.fromLTRB(
-    Insets.xl,
-    Insets.xl,
-    Insets.xl,
-    Insets.giant,
-  );
+  final NalezeneVozidlo vozidlo;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    Widget karta(NalezeneVozidlo vozidlo, {required bool jedno}) =>
-        IdentifikaceVozidlaKarta(
-          vozidlo: vozidlo,
-          naskenovano: naskenovano,
-          jeVybrane: vybraneId == vozidlo.id,
-          onOtevrit: () => onOtevrit(vozidlo),
-          onNeniToOno: jedno ? onNeniToOno : null,
-        );
-
-    if (vozidla.length == 1) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: _odsazeni,
-          child: karta(vozidla.single, jedno: true),
+    return Semantics(
+      button: true,
+      label: 'Vozidlo ${vozidlo.spz}',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(Insets.lg),
+          decoration: BoxDecoration(
+            color: palette.card,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: palette.hairline),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (vozidlo.spz.isNotEmpty)
+                      PlateChip(licensePlate: vozidlo.spz),
+                    const SizedBox(height: Insets.sm),
+                    Text(
+                      vozidlo.model.isEmpty ? 'Neznámý model' : vozidlo.model,
+                      style: AppTextStyles.cardModel.copyWith(
+                        color: palette.text,
+                      ),
+                    ),
+                    if (vozidlo.majitel != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        vozidlo.majitel!,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.cardBody.copyWith(
+                          color: palette.muted,
+                        ),
+                      ),
+                    ],
+                    if (vozidlo.vin.isNotEmpty) ...[
+                      const SizedBox(height: Insets.xxs),
+                      Text(
+                        vozidlo.vin,
+                        style: AppTextStyles.monoLabel.copyWith(
+                          color: palette.muted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: Insets.base),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _zakazek(vozidlo.pocetZakazek),
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
+                    ),
+                  ),
+                  const SizedBox(height: Insets.xs),
+                  Icon(Icons.chevron_right_rounded, color: palette.muted),
+                ],
+              ),
+            ],
+          ),
         ),
-      );
-    }
-
-    // Líně po jednom - každá karta si dočítá podrobnosti ze serveru
-    // a hledání jich vrátí až dvacet.
-    return ListView.builder(
-      padding: _odsazeni,
-      itemCount: vozidla.length + 2,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: Insets.xl),
-            child: Text(
-              '${pocetNalezenychVozidel(vozidla.length)} - vyberte to správné',
-              key: const Key('vice-vozidel'),
-              textAlign: TextAlign.center,
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-            ),
-          );
-        }
-        if (index == vozidla.length + 1) {
-          return Center(
-            child: TextButton(
-              key: const Key('nic-z-toho'),
-              onPressed: onNeniToOno,
-              child: const Text('Žádné z nich - skenovat znovu'),
-            ),
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.only(bottom: Insets.huge),
-          child: Center(child: karta(vozidla[index - 1], jedno: false)),
-        );
-      },
+      ),
     );
   }
-}
 
-/// „Nalezena 2 vozidla", „Nalezeno 5 vozidel" - čeština skloňuje podle
-/// počtu.
-String pocetNalezenychVozidel(int pocet) => switch (pocet) {
-  1 => 'Nalezeno 1 vozidlo',
-  >= 2 && <= 4 => 'Nalezena $pocet vozidla',
-  _ => 'Nalezeno $pocet vozidel',
-};
+  static String _zakazek(int pocet) => switch (pocet) {
+    0 => 'bez zakázek',
+    1 => '1 zakázka',
+    >= 2 && <= 4 => '$pocet zakázky',
+    _ => '$pocet zakázek',
+  };
+}
 
 class _Sdeleni extends StatelessWidget {
   const _Sdeleni({
