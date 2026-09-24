@@ -2,10 +2,9 @@ import 'service_order.dart';
 
 /// Řazení seznamu zakázek.
 enum OrderSort {
-  dueDate('Termín dokončení'),
   receivedDate('Datum přijetí'),
-  status('Stav zakázky'),
-  licensePlate('SPZ');
+  orderNumber('Zakázka'),
+  dueDate('Datum ukončení');
 
   const OrderSort(this.label);
 
@@ -147,12 +146,11 @@ class OrderFilter {
 
   int _comparator(ServiceOrder a, ServiceOrder b) {
     return switch (sort) {
-      OrderSort.dueDate => _porovnejData(a.dueAt, b.dueAt),
       OrderSort.receivedDate => _porovnejData(b.receivedAt, a.receivedAt),
-      // Podle stavu se řadí abecedně: pořadí z číselníku appka nezná
-      // a odhadovat sled prací z názvu by bylo horší než nic.
-      OrderSort.status => (a.stav?.nazev ?? '').compareTo(b.stav?.nazev ?? ''),
-      OrderSort.licensePlate => a.licensePlate.compareTo(b.licensePlate),
+      // Číslo zakázky roste v čase, takže od nejnovější - stejně jako
+      // u data přijetí.
+      OrderSort.orderNumber => b.id.compareTo(a.id),
+      OrderSort.dueDate => _porovnejData(a.dueAt, b.dueAt),
     };
   }
 

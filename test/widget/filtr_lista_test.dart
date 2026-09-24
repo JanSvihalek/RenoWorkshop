@@ -94,9 +94,9 @@ void main() {
     expect(vListe(find.text('Řadit: Datum přijetí')), findsOneWidget);
 
     await klepni(tester, vListe(find.byType(DropdownButton<OrderSort?>)));
-    await tester.tap(find.text('SPZ').last);
+    await tester.tap(find.text('Datum ukončení').last);
     await tester.pumpAndSettle();
 
-    expect(vListe(find.text('Řadit: SPZ')), findsOneWidget);
+    expect(vListe(find.text('Řadit: Datum ukončení')), findsOneWidget);
   });
 }

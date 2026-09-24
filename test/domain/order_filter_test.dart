@@ -95,10 +95,10 @@ void main() {
       expect(filter.apply(orders).map((o) => o.id), ['C']);
     });
 
-    test('řazení podle stavu respektuje pořadí kroků na dílně', () {
-      const filter = OrderFilter(sort: OrderSort.status);
+    test('řazení podle čísla zakázky jde od nejnovější', () {
+      const filter = OrderFilter(sort: OrderSort.orderNumber);
 
-      expect(filter.apply(orders).map((o) => o.id), ['A', 'C', 'B']);
+      expect(filter.apply(orders).map((o) => o.id), ['C', 'B', 'A']);
     });
 
     test('stav z Heliosu a dílenský stav se filtrují zvlášť', () {
