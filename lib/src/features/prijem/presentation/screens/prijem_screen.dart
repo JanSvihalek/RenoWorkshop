@@ -327,7 +327,7 @@ class _Nenalezeno extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Sdeleni(
       ikona: Icons.search_off_rounded,
-      titulek: 'Zakázka na dílně nenalezena',
+      titulek: 'Zakázka nenalezena',
       text:
           'Pokud ji poradce v Heliosu založil před chvílí, '
           'načtěte nové zakázky.',
