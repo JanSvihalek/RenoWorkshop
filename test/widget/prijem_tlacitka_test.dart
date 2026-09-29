@@ -83,6 +83,9 @@ void main() {
     expect(find.text('Zahájit příjem'), findsOneWidget);
     final dlazdice = tester.getRect(find.byKey(zahajit));
     expect(dlazdice.left, greaterThan(karta(tester).right));
+    // Dlaždice začíná spolu s kartou, i když je nad ní víc řádků popisu
+    // než nad kartou.
+    expect(dlazdice.top, closeTo(karta(tester).top, 0.5));
     // Velká plocha pro palec, ne běžné tlačítko.
     expect(dlazdice.height, greaterThan(100));
     // „Není to ono" pod dlaždicí.
@@ -99,6 +102,7 @@ void main() {
 
     final dlazdice = tester.getRect(find.byKey(zahajit));
     expect(dlazdice.right, lessThan(karta(tester).left));
+    expect(dlazdice.top, closeTo(karta(tester).top, 0.5));
   });
 
   testWidgets('spoušť dole: Další krok pod kartou', (tester) async {

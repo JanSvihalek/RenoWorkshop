@@ -74,40 +74,36 @@ class IdentifikaceKarta extends ConsumerWidget {
       ),
     };
 
-    final karta = Column(
-      key: Key('karta-${zakazka.id}'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final radekStavu = Row(
       children: [
-        Row(
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
-              child: Icon(ikona, size: 16, color: Colors.white),
-            ),
-            const SizedBox(width: Insets.md),
-            Expanded(
-              child: Text(
-                titulek,
-                style: AppTextStyles.cardBody.copyWith(
-                  color: palette.text,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Text(
-              naskenovano ? 'NASKENOVÁNO · SPZ' : 'ZADÁNO RUČNĚ',
-              style: AppTextStyles.monoLabel.copyWith(
-                color: palette.muted,
-                fontSize: 11,
-              ),
-            ),
-          ],
+        Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
+          child: Icon(ikona, size: 16, color: Colors.white),
         ),
-        const SizedBox(height: Insets.base),
-        _Karta(zakazka: zakazka),
+        const SizedBox(width: Insets.md),
+        Expanded(
+          child: Text(
+            titulek,
+            style: AppTextStyles.cardBody.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Text(
+          naskenovano ? 'NASKENOVÁNO · SPZ' : 'ZADÁNO RUČNĚ',
+          style: AppTextStyles.monoLabel.copyWith(
+            color: palette.muted,
+            fontSize: 11,
+          ),
+        ),
       ],
+    );
+    final karta = KeyedSubtree(
+      key: Key('karta-${zakazka.id}'),
+      child: _Karta(zakazka: zakazka),
     );
 
     return ConstrainedBox(
@@ -122,24 +118,61 @@ class IdentifikaceKarta extends ConsumerWidget {
               constraints.maxWidth >= sirkaProPanelVedle;
 
           if (vedle) {
-            final panel = SizedBox(
-              key: const Key('dalsi-krok-vedle'),
-              width: sirkaPanelu,
-              child: _DalsiKrok(
-                prijem: prijem,
-                zakazka: zakazka,
-                onZahajit: onZahajit,
-                onNeniToOno: onNeniToOno,
-                svisle: true,
-              ),
-            );
             final vlevo = spoust == UmisteniSpouste.vlevo;
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Karta vlevo, panel na straně palce.
+            Widget dvojice(
+              Widget kartova,
+              Widget panelova, {
+              required CrossAxisAlignment zarovnani,
+              Key? klicPanelu,
+            }) {
+              final panel = SizedBox(
+                key: klicPanelu,
+                width: sirkaPanelu,
+                child: panelova,
+              );
+              return Row(
+                crossAxisAlignment: zarovnani,
+                children: [
+                  if (vlevo) ...[panel, const SizedBox(width: _mezera)],
+                  Expanded(child: kartova),
+                  if (!vlevo) ...[const SizedBox(width: _mezera), panel],
+                ],
+              );
+            }
+
+            // Dva řádky: nahoře stav a popis dalšího kroku (zarovnané
+            // dole), pod nimi karta a dlaždice - ty tak začínají ve stejné
+            // výšce, i když je popis kroku víceřádkový.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (vlevo) ...[panel, const SizedBox(width: _mezera)],
-                Expanded(child: karta),
-                if (!vlevo) ...[const SizedBox(width: _mezera), panel],
+                dvojice(
+                  radekStavu,
+                  _DalsiKrok(
+                    prijem: prijem,
+                    zakazka: zakazka,
+                    onZahajit: onZahajit,
+                    onNeniToOno: onNeniToOno,
+                    svisle: true,
+                    sTlacitky: false,
+                  ),
+                  zarovnani: CrossAxisAlignment.end,
+                ),
+                const SizedBox(height: Insets.base),
+                dvojice(
+                  karta,
+                  _DalsiKrok(
+                    prijem: prijem,
+                    zakazka: zakazka,
+                    onZahajit: onZahajit,
+                    onNeniToOno: onNeniToOno,
+                    svisle: true,
+                    sPopisem: false,
+                  ),
+                  zarovnani: CrossAxisAlignment.start,
+                  klicPanelu: const Key('dalsi-krok-vedle'),
+                ),
               ],
             );
           }
@@ -150,6 +183,8 @@ class IdentifikaceKarta extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  radekStavu,
+                  const SizedBox(height: Insets.base),
                   karta,
                   const SizedBox(height: Insets.xl),
                   _DalsiKrok(
@@ -182,6 +217,8 @@ class _DalsiKrok extends StatelessWidget {
     required this.svisle,
     this.vlevo = false,
     this.dole = false,
+    this.sPopisem = true,
+    this.sTlacitky = true,
   });
 
   final Prijem? prijem;
@@ -196,6 +233,11 @@ class _DalsiKrok extends StatelessWidget {
   /// s „Není to ono" pod ní (spoušť dole).
   final bool vlevo;
   final bool dole;
+
+  /// Vedle karty jsou popis a tlačítka ve dvou řádcích - popis nad
+  /// dlaždicí zvlášť, aby dlaždice začínala spolu s kartou.
+  final bool sPopisem;
+  final bool sTlacitky;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +323,7 @@ class _DalsiKrok extends StatelessWidget {
       tlacitka = Row(children: vlevo ? radek : radek.reversed.toList());
     }
 
+    if (!sPopisem) return tlacitka;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -300,8 +343,7 @@ class _DalsiKrok extends StatelessWidget {
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
           ),
         ],
-        const SizedBox(height: Insets.base),
-        tlacitka,
+        if (sTlacitky) ...[const SizedBox(height: Insets.base), tlacitka],
       ],
     );
   }
