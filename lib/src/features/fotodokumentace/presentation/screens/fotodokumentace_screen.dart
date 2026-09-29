@@ -16,6 +16,7 @@ import '../../domain/entities/fotka.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../controllers/fotky_providers.dart';
 import '../prace_s_dokumenty.dart';
+import '../widgets/prohlizeni_fotek.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 import '../../../../app/log_udalosti_provider.dart';
@@ -241,7 +242,19 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
   /// Klepnutí na fotku: v běžném režimu otevře, ve výběru přidá a ubere.
   void _klepnuti(Fotka fotka) {
     if (_vybrane.isEmpty) {
-      _ProhlizeniFotky.otevri(context, orderId: orderId, fotka: fotka);
+      // Listuje se v rámci sekce, ve stejném pořadí jako v mřížce.
+      final sekce = [
+        for (final f
+            in ref.read(fotkyZakazkyProvider(orderId)).valueOrNull ??
+                const <Fotka>[])
+          if (f.kategorie == fotka.kategorie) f,
+      ];
+      otevriProhlizeniFotky(
+        context,
+        orderId: orderId,
+        fotka: fotka,
+        fotky: sekce,
+      );
       return;
     }
     _prepni(fotka);
@@ -951,113 +964,6 @@ class _MiniaturaNahravana extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Otevře fotku přes celou obrazovku. Volá se i z detailu zakázky
-/// (fotka místa u řádku „Kde vůz stojí").
-Future<void> otevriProhlizeniFotky(
-  BuildContext context, {
-  required String orderId,
-  required Fotka fotka,
-}) => _ProhlizeniFotky.otevri(context, orderId: orderId, fotka: fotka);
-
-/// Fotka přes celou obrazovku - zvětšení prsty, kdo a kdy ji nahrál,
-/// smazání.
-class _ProhlizeniFotky extends ConsumerWidget {
-  const _ProhlizeniFotky({required this.orderId, required this.fotka});
-
-  final String orderId;
-  final Fotka fotka;
-
-  static Future<void> otevri(
-    BuildContext context, {
-    required String orderId,
-    required Fotka fotka,
-  }) {
-    return Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => _ProhlizeniFotky(orderId: orderId, fotka: fotka),
-      ),
-    );
-  }
-
-  Future<void> _smaz(BuildContext context, WidgetRef ref) async {
-    final potvrzeno = await showDialog<bool>(
-      context: context,
-      builder: (dialog) => AlertDialog.adaptive(
-        title: const Text('Smazat fotku?'),
-        content: const Text(
-          'Fotka zmizí z aplikace i ze sdílené složky na serveru.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(false),
-            child: const Text('Zrušit'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(true),
-            child: const Text('Smazat'),
-          ),
-        ],
-      ),
-    );
-    if (potvrzeno != true || !context.mounted) return;
-
-    try {
-      await ref.read(fotkyDataSourceProvider).smazFotku(fotka.id);
-      ref.invalidate(fotkyZakazkyProvider(orderId));
-      if (context.mounted) Navigator.of(context).pop();
-    } on ServiceOrderException catch (chyba) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(chyba.message)));
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final obrazek = ref.watch(obrazekFotkyProvider(fotka.id));
-    final popis = [
-      fotka.kategorie.nazev,
-      AppDateFormat.dateTime(fotka.nahranoAt),
-      if (fotka.nahralKdo != null) fotka.nahralKdo!,
-    ].join(' · ');
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(
-          popis,
-          style: AppTextStyles.metaSmall.copyWith(color: Colors.white70),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Smazat fotku',
-            onPressed: () => _smaz(context, ref),
-            icon: const Icon(Icons.delete_outline_rounded),
-          ),
-        ],
-      ),
-      body: Center(
-        child: obrazek.when(
-          data: (bajty) => InteractiveViewer(
-            maxScale: 6,
-            child: Image.memory(bajty, fit: BoxFit.contain),
-          ),
-          loading: () => const CircularProgressIndicator(color: Colors.white),
-          error: (_, _) => const Text(
-            'Fotku se nepodařilo načíst.',
-            style: TextStyle(color: Colors.white70),
           ),
         ),
       ),

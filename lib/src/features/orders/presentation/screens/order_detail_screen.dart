@@ -9,7 +9,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
-import '../../../fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
+import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';

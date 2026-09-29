@@ -16,6 +16,7 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/presentation/ziskani_fotek.dart';
+import 'package:renoworkshop/src/features/fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -78,9 +79,11 @@ void main() {
 
   late FakeServiceOrderDataSource zdroj;
   late _FalesneUlozeni ulozeni;
+  late _FalesneZiskani ziskani;
 
   Widget buildApp({Nastaveni nastaveni = const Nastaveni()}) {
     ulozeni = _FalesneUlozeni();
+    ziskani = _FalesneZiskani();
     zdroj = FakeServiceOrderDataSource([
       buildOrderDto(id: 'ZK-26-0001', licensePlate: '2BK 9485'),
       buildOrderDto(id: 'ZK-26-0002', licensePlate: '8AB 4721'),
@@ -94,7 +97,7 @@ void main() {
           ),
         ),
         serviceOrderDataSourceProvider.overrideWithValue(zdroj),
-        ziskaniFotekProvider.overrideWithValue(_FalesneZiskani()),
+        ziskaniFotekProvider.overrideWithValue(ziskani),
         pripravaFotkyProvider.overrideWithValue((data) async => data),
         ulozeniDoZarizeniProvider.overrideWithValue(ulozeni),
         nastaveniUlozisteProvider.overrideWithValue(
@@ -272,6 +275,76 @@ void main() {
 
     expect(zdroj.fotky['ZK-26-0001'], hasLength(2));
     expect(find.byKey(const Key('vyber-fotek')), findsNothing);
+  });
+
+  /// Tři fotky exteriéru a dvě poškození - listovat se má jen v sekci.
+  Future<void> otevriPrvniExterier(WidgetTester tester) async {
+    await otevriZakazku(tester);
+    ziskani.zGalerieKusu = 2;
+    await klepni(
+      tester,
+      vKarte('poskozeni', find.byTooltip('Přidat z galerie')),
+    );
+    ziskani.zGalerieKusu = 3;
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('kategorie-exterier')),
+      -300,
+      scrollable: find
+          .descendant(
+            of: find.byType(FotodokumentaceObsah),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await klepni(
+      tester,
+      vKarte('exterier', find.byTooltip('Přidat z galerie')),
+    );
+    await klepni(tester, vKarte('exterier', find.byType(Image)).first);
+  }
+
+  testWidgets('otevřenou fotkou jde listovat v rámci sekce', (tester) async {
+    await otevriPrvniExterier(tester);
+
+    expect(find.byType(ProhlizeniFotek), findsOneWidget);
+    // Jen tři fotky exteriéru, ne i dvě poškození.
+    expect(find.text('1 / 3'), findsOneWidget);
+    expect(find.byKey(const Key('fotka-predchozi')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('fotka-dalsi')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 3'), findsOneWidget);
+
+    // Prstem doleva na další.
+    await tester.fling(
+      find.byKey(const Key('fotky-stranky')),
+      const Offset(-400, 0),
+      1500,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.byKey(const Key('fotka-dalsi')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('fotka-predchozi')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 3'), findsOneWidget);
+  });
+
+  testWidgets('po smazání v prohlížeči zůstane další fotka sekce', (
+    tester,
+  ) async {
+    await otevriPrvniExterier(tester);
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(5));
+
+    await tester.tap(find.byTooltip('Smazat fotku'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Smazat').last);
+    await tester.pumpAndSettle();
+
+    expect(zdroj.fotky['ZK-26-0001'], hasLength(4));
+    expect(find.byType(ProhlizeniFotek), findsOneWidget);
+    expect(find.text('1 / 2'), findsOneWidget);
   });
 
   testWidgets('karta v detailu hlásí fotky, které se nenahrály', (
