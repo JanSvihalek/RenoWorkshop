@@ -44,18 +44,29 @@ void main() {
             ),
           ),
           serviceOrderDataSourceProvider.overrideWithValue(
-            zdroj = FakeServiceOrderDataSource([
-              buildOrderDto(
-                id: 'ZK-26-0001',
-                licensePlate: '2BK 9485',
-                customerName: 'Petr Novák',
-              ),
-              buildOrderDto(
-                id: 'ZK-26-0002',
-                licensePlate: '8AB 4721',
-                customerName: 'MIFAL SE',
-              ),
-            ]),
+            zdroj = FakeServiceOrderDataSource(
+              [
+                buildOrderDto(
+                  id: 'ZK-26-0001',
+                  licensePlate: '2BK 9485',
+                  customerName: 'Petr Novák',
+                ),
+                buildOrderDto(
+                  id: 'ZK-26-0002',
+                  licensePlate: '8AB 4721',
+                  customerName: 'MIFAL SE',
+                ),
+              ],
+              archiv: [
+                // Ukončená zakázka stejného vozu - najde ji hledání v archivu.
+                buildOrderDto(
+                  id: 'ZK-23-0777',
+                  licensePlate: '8AB 4721',
+                  customerName: 'MIFAL SE',
+                  heliosStatus: 'Ukončeno',
+                ),
+              ],
+            ),
           ),
           nastaveniUlozisteProvider.overrideWithValue(uloziste),
         ],
@@ -140,6 +151,52 @@ void main() {
 
     expect(find.text('ZK-26-0002'), findsOneWidget);
     expect(find.text('ZK-26-0001'), findsNothing);
+  });
+
+  testWidgets('hledání v tabulce zůstane tabulkou i s ukončenými', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      nastaveni: const Nastaveni(zobrazeniZakazek: ZobrazeniZakazek.tabulka),
+    );
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(OrdersListScreen),
+        matching: find.byType(TextField),
+      ),
+      '8AB 4721',
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+    // Dřív se při hledání přepnulo na karty.
+    expect(find.byKey(const Key('tabulka-hledani')), findsOneWidget);
+    expect(find.byType(OrderCard), findsNothing);
+    expect(find.text('OTEVŘENÉ · 1'), findsOneWidget);
+    expect(find.text('UKONČENÉ · 1'), findsOneWidget);
+    expect(find.text('ZK-26-0002'), findsOneWidget);
+
+    // Ukončená zakázka je řádek tabulky a otevře se stejně.
+    await tester.tap(find.text('ZK-23-0777'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OrderDetailScreen), findsOneWidget);
+  });
+
+  testWidgets('hledání v kartách zůstává v kartách', (tester) async {
+    await spust(tester);
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(OrdersListScreen),
+        matching: find.byType(TextField),
+      ),
+      '8AB 4721',
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('tabulka-hledani')), findsNothing);
+    expect(find.byType(OrderCard), findsNWidgets(2));
   });
 
   testWidgets('klepnutí na řádek otevře detail přes celou obrazovku', (

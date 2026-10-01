@@ -186,13 +186,17 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
               // Stažení prstem funguje i nad prázdným a krátkým seznamem:
               // dílenský stav je sdílený a člověk chce vidět, co mezitím
               // udělali ostatní, i když se nemá kam posouvat.
-              // Při hledání výsledky ve dvou částech - na dílně a v archivu.
-              // Karty i v režimu tabulky: nalezených je pár a archiv je
-              // pod dílnou jako druhá část, kterou tabulka neumí.
+              // Při hledání výsledky ve dvou částech - na dílně a v archivu,
+              // v kartách i v tabulce podle zvoleného zobrazení.
               data: (data) => hledaVArchivu
                   ? RefreshIndicator.adaptive(
                       onRefresh: _obnovit,
+                      // Tabulka se posouvá i do strany - stažení prstem
+                      // poslouchá jen svislý posun.
+                      notificationPredicate: (oznameni) =>
+                          oznameni.metrics.axis == Axis.vertical,
                       child: _VysledkyHledani(
+                        tabulka: zobrazeni == ZobrazeniZakazek.tabulka,
                         naDilne: data,
                         archiv: ref.watch(archivKHledaniProvider),
                         vybranaId: widget.vybranaId,
@@ -356,6 +360,7 @@ class _ListHeader extends ConsumerWidget {
 /// neví, jestli je zakázka ještě na dílně.
 class _VysledkyHledani extends StatelessWidget {
   const _VysledkyHledani({
+    required this.tabulka,
     required this.naDilne,
     required this.archiv,
     required this.vybranaId,
@@ -366,6 +371,9 @@ class _VysledkyHledani extends StatelessWidget {
     required this.onNacistZHeliosu,
     required this.onZnovuArchiv,
   });
+
+  /// Řádková tabulka místo karet - podle zobrazení zvoleného v hlavičce.
+  final bool tabulka;
 
   final List<ServiceOrder> naDilne;
 
@@ -388,6 +396,69 @@ class _VysledkyHledani extends StatelessWidget {
     final zArchivu = archiv.valueOrNull;
     final hleda = archiv.isLoading || (archiv.hasValue && zArchivu == null);
 
+    // Obě zobrazení mají stejné části a hlášky; liší se jen tím, jestli
+    // je zakázka karta, nebo řádek tabulky.
+    final dilna = <Object>[
+      _NadpisSekce(
+        key: const Key('sekce-dilna'),
+        ikona: Icons.garage_rounded,
+        text: 'Otevřené',
+        pocet: naDilne.length,
+      ),
+      if (naDilne.isEmpty)
+        _NicNaDilne(
+          jineFiltry: jineFiltry,
+          onZrusitFiltry: onZrusitFiltry,
+          nacitaZHeliosu: nacitaZHeliosu,
+          onNacistZHeliosu: onNacistZHeliosu,
+        )
+      else
+        ...naDilne,
+    ];
+    final ukoncene = <Object>[
+      _NadpisSekce(
+        key: const Key('sekce-archiv'),
+        ikona: Icons.inventory_2_outlined,
+        text: 'Ukončené',
+        pocet: hleda || archiv.hasError ? null : zArchivu?.length,
+      ),
+      if (archiv.hasError && !hleda)
+        _RadekArchivu(
+          key: const Key('archiv-chyba'),
+          text: archiv.error is ServiceOrderException
+              ? (archiv.error! as ServiceOrderException).message
+              : 'V archivu se nepodařilo hledat.',
+          barva: AppColors.danger,
+          akce: TextButton(
+            onPressed: onZnovuArchiv,
+            child: const Text('Zkusit znovu'),
+          ),
+        )
+      else if (hleda)
+        const _RadekArchivu(
+          key: Key('archiv-hleda'),
+          text: 'Hledám i mezi ukončenými zakázkami…',
+          nacita: true,
+        )
+      else if (zArchivu!.isEmpty)
+        _RadekArchivu(text: 'Žádná ukončená zakázka.', barva: palette.muted)
+      else
+        ...zArchivu,
+    ];
+
+    if (tabulka) {
+      return TabulkaZakazek.sPolozkami(
+        key: const Key('tabulka-hledani'),
+        onOpenOrder: onOpenOrder,
+        polozky: [
+          for (final polozka in [...dilna, ...ukoncene])
+            polozka is ServiceOrder
+                ? RadekTabulky(polozka)
+                : VlozkaTabulky(polozka as Widget),
+        ],
+      );
+    }
+
     Widget karta(ServiceOrder zakazka) => Padding(
       padding: const EdgeInsets.only(bottom: Insets.md),
       child: OrderCard(
@@ -396,6 +467,8 @@ class _VysledkyHledani extends StatelessWidget {
         jeVybrana: vybranaId == zakazka.id,
       ),
     );
+    Widget prvek(Object polozka) =>
+        polozka is ServiceOrder ? karta(polozka) : polozka as Widget;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -406,50 +479,9 @@ class _VysledkyHledani extends StatelessWidget {
         Insets.huge,
       ),
       children: [
-        _NadpisSekce(
-          key: const Key('sekce-dilna'),
-          ikona: Icons.garage_rounded,
-          text: 'Otevřené',
-          pocet: naDilne.length,
-        ),
-        if (naDilne.isEmpty)
-          _NicNaDilne(
-            jineFiltry: jineFiltry,
-            onZrusitFiltry: onZrusitFiltry,
-            nacitaZHeliosu: nacitaZHeliosu,
-            onNacistZHeliosu: onNacistZHeliosu,
-          )
-        else
-          for (final zakazka in naDilne) karta(zakazka),
+        for (final polozka in dilna) prvek(polozka),
         const SizedBox(height: Insets.lg),
-        _NadpisSekce(
-          key: const Key('sekce-archiv'),
-          ikona: Icons.inventory_2_outlined,
-          text: 'Ukončené',
-          pocet: hleda || archiv.hasError ? null : zArchivu?.length,
-        ),
-        if (archiv.hasError && !hleda)
-          _RadekArchivu(
-            key: const Key('archiv-chyba'),
-            text: archiv.error is ServiceOrderException
-                ? (archiv.error! as ServiceOrderException).message
-                : 'V archivu se nepodařilo hledat.',
-            barva: AppColors.danger,
-            akce: TextButton(
-              onPressed: onZnovuArchiv,
-              child: const Text('Zkusit znovu'),
-            ),
-          )
-        else if (hleda)
-          const _RadekArchivu(
-            key: Key('archiv-hleda'),
-            text: 'Hledám i mezi ukončenými zakázkami…',
-            nacita: true,
-          )
-        else if (zArchivu!.isEmpty)
-          _RadekArchivu(text: 'Žádná ukončená zakázka.', barva: palette.muted)
-        else
-          for (final zakazka in zArchivu) karta(zakazka),
+        for (final polozka in ukoncene) prvek(polozka),
       ],
     );
   }

@@ -103,50 +103,116 @@ double get _sirkaTabulky =>
     sloupceZakazek.fold<double>(0, (soucet, s) => soucet + s.sirka) +
     2 * Insets.base;
 
+/// Co tabulka ukazuje pod hlavičkou sloupců: řádek zakázky, nebo vložka
+/// přes šířku obrazovky - nadpis části nebo hláška (výsledky hledání mají
+/// část Otevřené a Ukončené).
+sealed class PolozkaTabulky {
+  const PolozkaTabulky();
+}
+
+class RadekTabulky extends PolozkaTabulky {
+  const RadekTabulky(this.zakazka);
+
+  final ServiceOrder zakazka;
+}
+
+class VlozkaTabulky extends PolozkaTabulky {
+  const VlozkaTabulky(this.child);
+
+  final Widget child;
+}
+
 /// Řádkový přehled zakázek podobný Heliosu - hodně zakázek naráz a údaje
 /// pod sebou ve sloupcích.
 ///
 /// Karty jsou lepší na dílně v ruce, tabulka u stolu na tabletu, když se
 /// prochází celý den práce. Proto jsou obě a přepínají se v hlavičce.
 class TabulkaZakazek extends StatelessWidget {
-  const TabulkaZakazek({
+  TabulkaZakazek({
     super.key,
-    required this.zakazky,
+    required List<ServiceOrder> zakazky,
+    required this.onOpenOrder,
+  }) : polozky = [for (final z in zakazky) RadekTabulky(z)];
+
+  /// Řádky prokládané nadpisy a hláškami - výsledky hledání.
+  const TabulkaZakazek.sPolozkami({
+    super.key,
+    required this.polozky,
     required this.onOpenOrder,
   });
 
-  final List<ServiceOrder> zakazky;
+  final List<PolozkaTabulky> polozky;
   final void Function(ServiceOrder zakazka) onOpenOrder;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Scrollbar(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: _sirkaTabulky,
-          child: Column(
-            children: [
-              _Hlavicka(),
-              Expanded(
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: zakazky.length,
-                  itemBuilder: (context, index) => _Radek(
-                    zakazka: zakazky[index],
-                    // Střídavé pozadí - oko pak neuteče o řádek vedle.
-                    sudy: index.isEven,
-                    onTap: () => onOpenOrder(zakazky[index]),
+    // Pořadí řádku v jeho části - střídání barev začíná po každé vložce
+    // znovu, ať první řádek části vypadá vždycky stejně.
+    final poradi = <int>[];
+    var vCasti = 0;
+    for (final polozka in polozky) {
+      if (polozka is RadekTabulky) {
+        poradi.add(vCasti++);
+      } else {
+        poradi.add(-1);
+        vCasti = 0;
+      }
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Vložka jen přes viditelnou šířku: hláška přes celou tabulku by
+        // se na telefonu musela číst posouváním do strany.
+        final sirkaVlozky = constraints.maxWidth < _sirkaTabulky
+            ? constraints.maxWidth
+            : _sirkaTabulky;
+
+        return Scrollbar(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: _sirkaTabulky,
+              child: Column(
+                children: [
+                  _Hlavicka(),
+                  Expanded(
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: polozky.length,
+                      itemBuilder: (context, index) => switch (polozky[index]) {
+                        RadekTabulky(:final zakazka) => _Radek(
+                          zakazka: zakazka,
+                          // Střídavé pozadí - oko pak neuteče o řádek vedle.
+                          sudy: poradi[index].isEven,
+                          onTap: () => onOpenOrder(zakazka),
+                        ),
+                        VlozkaTabulky(:final child) => Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            width: sirkaVlozky,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                Insets.base,
+                                Insets.base,
+                                Insets.base,
+                                Insets.xxs,
+                              ),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                      },
+                    ),
                   ),
-                ),
+                  Container(height: 1, color: palette.hairline),
+                ],
               ),
-              Container(height: 1, color: palette.hairline),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
