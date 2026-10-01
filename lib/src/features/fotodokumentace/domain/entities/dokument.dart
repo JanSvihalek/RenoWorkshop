@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 /// Dokument zakázky v Ostatní dokumentaci - PDF, sken, tabulka, ale
 /// i fotka uložená mimo složky kategorií. Cokoli ve složce zakázky ve
 /// Foto-doc mimo složky kategorií fotek; nahrané z aplikace i vložené ručně.
+///
+/// K tomu dokumenty z EDM Heliosu (zakázkový list...) - jen ke čtení,
+/// bez velikosti a někdy i bez data.
 @immutable
 class Dokument {
   const Dokument({
@@ -11,13 +14,21 @@ class Dokument {
     required this.velikost,
     required this.zmenenoAt,
     this.slozka,
+    this.zHeliosu = false,
   });
 
   /// Umístění souboru zakódované serverem - posílá se zpět při stažení.
   final String id;
   final String nazev;
-  final int velikost;
-  final DateTime zmenenoAt;
+
+  /// U dokumentu z Heliosu neznámá.
+  final int? velikost;
+
+  /// U dokumentu z Heliosu jen pokud je ve jméně souboru.
+  final DateTime? zmenenoAt;
+
+  /// Dokument z EDM Heliosu, ne soubor ze složky zakázky.
+  final bool zHeliosu;
 
   /// Podsložka ve složce zakázky (`Ostatni`, `Faktury/2026`); `null`
   /// = přímo ve složce zakázky.
@@ -26,16 +37,16 @@ class Dokument {
   factory Dokument.fromJson(Map<String, dynamic> json) => Dokument(
     id: json['id'] as String,
     nazev: json['name'] as String,
-    velikost: (json['size'] as num?)?.toInt() ?? 0,
-    zmenenoAt:
-        DateTime.tryParse(json['modifiedAt'] as String? ?? '') ??
-        DateTime.now(),
+    velikost: (json['size'] as num?)?.toInt(),
+    zmenenoAt: DateTime.tryParse(json['modifiedAt'] as String? ?? ''),
     slozka: json['folder'] as String?,
+    zHeliosu: json['source'] == 'helios',
   );
 
   /// Kde soubor leží, když ne tam, kam nahrává aplikace - kolega ho pak
-  /// na serveru najde. `null` pro složku Ostatni.
+  /// na serveru najde. `null` pro složku Ostatni a pro dokument z Heliosu.
   String? get umisteni => switch (slozka) {
+    _ when zHeliosu => null,
     null || '' => 've složce zakázky',
     final s when s.toLowerCase() == 'ostatni' => null,
     final s => 've složce $s',

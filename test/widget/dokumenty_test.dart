@@ -132,6 +132,72 @@ void main() {
     expect(prace.otevrene.single.$2, [9, 9]);
   });
 
+  testWidgets('zakázkový list z Heliosu je vidět s označením a otevře se', (
+    tester,
+  ) async {
+    await otevri(tester);
+    zdroj.dokumenty['ZK-26-0001'] = [
+      Dokument.fromJson({
+        'id': 'helios-150938',
+        'name': 'ZL_014010_20231208_123257.PDF',
+        'folder': null,
+        'size': null,
+        'modifiedAt': '2023-12-08T12:32:57',
+        'source': 'helios',
+      }),
+    ];
+    zdroj.bajtyDokumentu['helios-150938'] = Uint8List.fromList([7]);
+
+    await tester.fling(
+      find.byType(Scrollable).first,
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    await dolu(tester);
+
+    expect(find.text('ZL_014010_20231208_123257.PDF'), findsOneWidget);
+    final popis = tester
+        .widget<Text>(find.byKey(const Key('dokument-popis-helios-150938')))
+        .textSpan!
+        .toPlainText();
+    // Bez velikosti (z Heliosu ji neznáme) a bez „ve složce zakázky".
+    expect(popis, startsWith('Helios · '));
+    expect(popis, contains('8. 12. 2023'));
+    expect(popis, isNot(contains('kB')));
+    expect(popis, isNot(contains('ve složce')));
+
+    await tester.tap(find.byKey(const Key('dokument-helios-150938')));
+    await tester.pumpAndSettle();
+    expect(prace.otevrene.single.$1, 'ZL_014010_20231208_123257.PDF');
+  });
+
+  test('dokument z Heliosu bez data a velikosti', () {
+    final dokument = Dokument.fromJson({
+      'id': 'helios-1',
+      'name': '73467361.pdf',
+      'folder': null,
+      'size': null,
+      'modifiedAt': null,
+      'source': 'helios',
+    });
+    expect(dokument.zHeliosu, isTrue);
+    expect(dokument.velikost, isNull);
+    expect(dokument.zmenenoAt, isNull);
+    expect(dokument.umisteni, isNull);
+
+    // Soubor ze složky zůstává jako dřív.
+    final zeSlozky = Dokument.fromJson({
+      'id': 'abc',
+      'name': 'Protokol.pdf',
+      'folder': null,
+      'size': 1024,
+      'modifiedAt': '2026-09-21T09:15:00',
+    });
+    expect(zeSlozky.zHeliosu, isFalse);
+    expect(zeSlozky.umisteni, 've složce zakázky');
+  });
+
   testWidgets('příliš velký soubor se nenahraje, ostatní ano', (tester) async {
     await otevri(tester);
     await dolu(tester);

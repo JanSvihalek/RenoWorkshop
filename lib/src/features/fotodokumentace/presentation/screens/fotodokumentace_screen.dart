@@ -716,9 +716,11 @@ class _RadekDokumentu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final velikost = dokument.velikost;
+    final zmeneno = dokument.zmenenoAt;
     final popis = [
-      velikostSouboru(dokument.velikost),
-      AppDateFormat.dateTime(dokument.zmenenoAt),
+      if (velikost != null) velikostSouboru(velikost),
+      if (zmeneno != null) AppDateFormat.dateTime(zmeneno),
       // Soubor mimo složku Ostatni - ať ho kolega na serveru najde.
       ?dokument.umisteni,
     ].join(' · ');
@@ -746,8 +748,23 @@ class _RadekDokumentu extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Text(
-                    popis,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        // Z EDM Heliosu - ve složce zakázky ho nikdo nenajde
+                        // a z aplikace se nemění.
+                        if (dokument.zHeliosu)
+                          TextSpan(
+                            text: popis.isEmpty ? 'Helios' : 'Helios · ',
+                            style: const TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        TextSpan(text: popis),
+                      ],
+                    ),
+                    key: Key('dokument-popis-${dokument.id}'),
                     style: AppTextStyles.metaSmall.copyWith(
                       color: palette.muted,
                     ),
