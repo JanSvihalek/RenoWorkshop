@@ -146,6 +146,29 @@ void main() {
       );
     });
 
+    test('úvodní záložka přežije restart, neznámá jsou Zakázky', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await SharedPreferencesNastaveni(
+        prefs,
+      ).uloz(const Nastaveni(uvodniZalozka: UvodniZalozka.prijem));
+
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().uvodniZalozka,
+        UvodniZalozka.prijem,
+      );
+
+      SharedPreferences.setMockInitialValues({
+        'nastaveni.uvodniZalozka': 'nastaveni',
+      });
+      expect(
+        SharedPreferencesNastaveni(
+          await SharedPreferences.getInstance(),
+        ).nacti().uvodniZalozka,
+        UvodniZalozka.zakazky,
+      );
+    });
+
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

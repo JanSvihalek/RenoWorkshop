@@ -340,7 +340,13 @@ void main() {
     final po = tester.element(find.byType(WorkshopBottomNav));
     expect(identical(pred, po), isTrue);
 
-    await tester.tap(find.text('Zakázky'));
+    // V liště - „Zakázky" je v nastavení i ve volbě úvodní záložky.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(WorkshopBottomNav),
+        matching: find.text('Zakázky'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(

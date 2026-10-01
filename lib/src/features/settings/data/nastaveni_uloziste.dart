@@ -31,6 +31,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicUkladatDoZarizeni = 'nastaveni.ukladatFotkyDoZarizeni';
   static const _klicZobrazeni = 'nastaveni.zobrazeniZakazek';
   static const _klicSkenovatPoOtevreni = 'nastaveni.skenovatPoOtevreni';
+  static const _klicUvodniZalozka = 'nastaveni.uvodniZalozka';
 
   @override
   Nastaveni nacti() {
@@ -46,6 +47,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       zobrazeniZakazek: ZobrazeniZakazek.zNazvu(
         _prefs.getString(_klicZobrazeni),
       ),
+      uvodniZalozka: UvodniZalozka.zNazvu(_prefs.getString(_klicUvodniZalozka)),
     );
   }
 
@@ -63,6 +65,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
     );
     await _prefs.setString(_klicZobrazeni, nastaveni.zobrazeniZakazek.name);
     await _prefs.setBool(_klicSkenovatPoOtevreni, nastaveni.skenovatPoOtevreni);
+    await _prefs.setString(_klicUvodniZalozka, nastaveni.uvodniZalozka.name);
   }
 
   Future<void> _ulozNeboSmaz(String klic, String? hodnota) {

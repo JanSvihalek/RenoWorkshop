@@ -46,6 +46,8 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: Insets.base),
                 const _VzhledCard(),
                 const SizedBox(height: Insets.base),
+                const _UvodniZalozkaCard(),
+                const SizedBox(height: Insets.base),
                 const _SkenerCard(),
                 const SizedBox(height: Insets.base),
                 const _VychoziFiltrCard(),
@@ -209,6 +211,57 @@ class _VzhledCard extends ConsumerWidget {
               ),
               onSelectionChanged: (vyber) =>
                   ref.read(nastaveniProvider.notifier).zmenVzhled(vyber.first),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Na které záložce se aplikace otevře po spuštění.
+class _UvodniZalozkaCard extends ConsumerWidget {
+  const _UvodniZalozkaCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final vybrana = ref.watch(nastaveniProvider).uvodniZalozka;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PO SPUŠTĚNÍ OTEVŘÍT',
+            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          ),
+          const SizedBox(height: Insets.xxs),
+          Text(
+            'Záložka, na které se aplikace otevře po spuštění a po '
+            'přihlášení. U Příjmu a Vozidel se rovnou spustí skener, '
+            'pokud je zapnuté skenování hned po otevření.',
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+          ),
+          const SizedBox(height: Insets.base),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<UvodniZalozka>(
+              key: const Key('uvodni-zalozka'),
+              segments: [
+                for (final zalozka in UvodniZalozka.values)
+                  ButtonSegment(value: zalozka, label: Text(zalozka.label)),
+              ],
+              selected: {vybrana},
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                textStyle: AppTextStyles.cardBody,
+                selectedBackgroundColor: AppColors.accent,
+                selectedForegroundColor: Colors.white,
+              ),
+              onSelectionChanged: (vyber) => ref
+                  .read(nastaveniProvider.notifier)
+                  .zmenUvodniZalozku(vyber.first),
             ),
           ),
         ],

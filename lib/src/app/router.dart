@@ -61,8 +61,16 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _AuthRefreshNotifier(ref);
   ref.onDispose(refresh.dispose);
 
+  // Úvodní záložka podle nastavení - čte se pokaždé znovu, ať po změně
+  // v nastavení platí už pro příští přihlášení.
+  String uvodni() => switch (ref.read(nastaveniProvider).uvodniZalozka) {
+    UvodniZalozka.zakazky => AppRoutes.orders,
+    UvodniZalozka.prijem => AppRoutes.prijem,
+    UvodniZalozka.vozidla => AppRoutes.vyhledavani,
+  };
+
   final router = GoRouter(
-    initialLocation: AppRoutes.orders,
+    initialLocation: uvodni(),
     refreshListenable: refresh,
     // Auth guard: bez přihlášení se do zakázek nedostaneme.
     // Ve fázi 2 tady přibude kontrola rolí z Entra ID.
@@ -71,7 +79,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnLogin = state.matchedLocation == AppRoutes.login;
 
       if (!isSignedIn) return isOnLogin ? null : AppRoutes.login;
-      if (isOnLogin) return AppRoutes.orders;
+      if (isOnLogin) return uvodni();
       return null;
     },
     routes: [

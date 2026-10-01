@@ -46,6 +46,27 @@ enum UmisteniSpouste {
   }
 }
 
+/// Záložka, na které se aplikace otevře po spuštění.
+///
+/// Kdo dělá hlavně příjem, nechce pokaždé začínat seznamem zakázek.
+/// Nastavení mezi nabídkou není - po startu ho nikdo nepotřebuje.
+enum UvodniZalozka {
+  zakazky('Zakázky'),
+  prijem('Příjem'),
+  vozidla('Vozidla');
+
+  const UvodniZalozka(this.label);
+
+  final String label;
+
+  static UvodniZalozka zNazvu(String? nazev) {
+    for (final zalozka in values) {
+      if (zalozka.name == nazev) return zalozka;
+    }
+    return UvodniZalozka.zakazky;
+  }
+}
+
 /// Jak se ukazuje seznam zakázek.
 ///
 /// Karty jsou na dílně v ruce čitelnější, tabulka ukáže víc zakázek naráz
@@ -84,6 +105,7 @@ class Nastaveni {
     this.ukladatFotkyDoZarizeni = false,
     this.skenovatPoOtevreni = true,
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
+    this.uvodniZalozka = UvodniZalozka.zakazky,
   });
 
   final RezimVzhledu vzhled;
@@ -129,6 +151,9 @@ class Nastaveni {
   /// obrazovku i na tabletu - vedle tabulky by se nevešel.
   final ZobrazeniZakazek zobrazeniZakazek;
 
+  /// Kam se aplikace otevře po spuštění a po přihlášení.
+  final UvodniZalozka uvodniZalozka;
+
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
@@ -148,6 +173,7 @@ class Nastaveni {
     bool? ukladatFotkyDoZarizeni,
     bool? skenovatPoOtevreni,
     ZobrazeniZakazek? zobrazeniZakazek,
+    UvodniZalozka? uvodniZalozka,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -164,6 +190,7 @@ class Nastaveni {
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
       skenovatPoOtevreni: skenovatPoOtevreni ?? this.skenovatPoOtevreni,
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
+      uvodniZalozka: uvodniZalozka ?? this.uvodniZalozka,
     );
   }
 
@@ -178,7 +205,9 @@ class Nastaveni {
           other.vychoziZodpovida == vychoziZodpovida &&
           other.slozkaFotek == slozkaFotek &&
           other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
-          other.zobrazeniZakazek == zobrazeniZakazek);
+          other.skenovatPoOtevreni == skenovatPoOtevreni &&
+          other.zobrazeniZakazek == zobrazeniZakazek &&
+          other.uvodniZalozka == uvodniZalozka);
 
   @override
   int get hashCode => Object.hash(
@@ -189,6 +218,8 @@ class Nastaveni {
     vychoziZodpovida,
     slozkaFotek,
     ukladatFotkyDoZarizeni,
+    skenovatPoOtevreni,
     zobrazeniZakazek,
+    uvodniZalozka,
   );
 }
