@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
@@ -512,7 +513,13 @@ void main() {
     await tester.tap(find.text('Cestlice').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Zakázky'));
+    // V liště - „Zakázky" je v nastavení i ve volbě úvodní záložky.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(WorkshopBottomNav),
+        matching: find.text('Zakázky'),
+      ),
+    );
     await tester.pumpAndSettle();
     await napis(tester, '2BK 9485');
     await tester.tap(find.byType(OrderCard));

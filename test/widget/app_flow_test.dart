@@ -186,11 +186,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Jan Dvořák'), findsOneWidget);
-    expect(find.text('jan.dvorak@renocar.cz'), findsOneWidget);
-    // Volby vzhledu a výchozího filtru jsou nad odhlášením.
-    expect(find.text('VZHLED'), findsOneWidget);
+    expect(find.text('jan.dvorak@renocar.cz · Microsoft SSO'), findsOneWidget);
+    expect(find.text('VZHLED A SPUŠTĚNÍ'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('VÝCHOZÍ FILTR'),
+      find.text('VÝCHOZÍ FILTR ZÁKAZEK'),
       200,
       scrollable: find
           .descendant(
@@ -199,22 +198,15 @@ void main() {
           )
           .first,
     );
-    expect(find.text('VÝCHOZÍ FILTR'), findsOneWidget);
+    expect(find.text('VÝCHOZÍ FILTR ZÁKAZEK'), findsOneWidget);
 
-    // Tlačítko je až pod kartami. V líném seznamu se mimo obrazovku
-    // vůbec nepostaví, takže se k němu musí odrolovat.
-    await tester.scrollUntilVisible(
-      find.text('Odhlásit se'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Odhlásit se'));
+    // Odhlášení je v hlavičce u jména, ne na konci seznamu.
+    await tester.tap(find.byKey(const Key('odhlasit')));
     await tester.pumpAndSettle();
 
     // Odhlášení se ptá, ať se nestane omylem.
     expect(find.text('Odhlásit se?'), findsOneWidget);
-    await tester.tap(find.text('Odhlásit'));
+    await tester.tap(find.byKey(const Key('potvrdit-odhlaseni')));
     await tester.pumpAndSettle();
 
     expect(find.text('Přihlásit se přes Microsoft'), findsOneWidget);
@@ -335,7 +327,7 @@ void main() {
 
     await tester.tap(find.text('Nastavení'));
     await tester.pumpAndSettle();
-    expect(find.text('VZHLED'), findsOneWidget);
+    expect(find.text('VZHLED A SPUŠTĚNÍ'), findsOneWidget);
 
     final po = tester.element(find.byType(WorkshopBottomNav));
     expect(identical(pred, po), isTrue);

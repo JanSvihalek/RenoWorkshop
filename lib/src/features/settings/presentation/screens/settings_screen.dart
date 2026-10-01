@@ -15,49 +15,57 @@ import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import '../../domain/entities/nastaveni.dart';
 import '../controllers/nastaveni_controller.dart';
 
-/// Nastavení: přihlášený zaměstnanec, vzhled, výchozí filtr seznamu
-/// a odhlášení.
+/// Nastavení: přihlášený zaměstnanec a odhlášení v hlavičce, pod ní volby
+/// po skupinách - vzhled a spuštění, skener, výchozí filtr, fotodokumentace
+/// a údaje o aplikaci. Na tabletu ve dvou sloupcích.
 ///
 /// Volby se ukládají do telefonu, ne k účtu - na sdíleném dílenském
 /// přístroji jde o pohodlí toho, kdo ho drží v ruce.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  /// Od téhle šířky obsahu jsou skupiny ve dvou sloupcích.
+  static const sirkaProDvaSloupce = 720.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final employee = ref.watch(currentEmployeeProvider);
+
+    const vlevo = [_VzhledASpusteni(), _SkenerAFotoaparat()];
+    const vpravo = [_VychoziFiltr(), _Fotodokumentace(), _OAplikaci()];
 
     return Scaffold(
       backgroundColor: palette.background,
       body: Column(
         children: [
-          const _Header(),
+          _Hlavicka(onOdhlasit: () => _potvrdOdhlaseni(context, ref)),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                Insets.xl,
-                Insets.xl,
-                Insets.xl,
-                Insets.giant,
-              ),
-              children: [
-                if (employee != null) _EmployeeCard(employee: employee),
-                const SizedBox(height: Insets.base),
-                const _VzhledCard(),
-                const SizedBox(height: Insets.base),
-                const _UvodniZalozkaCard(),
-                const SizedBox(height: Insets.base),
-                const _SkenerCard(),
-                const SizedBox(height: Insets.base),
-                const _VychoziFiltrCard(),
-                const SizedBox(height: Insets.base),
-                const _FotodokumentaceCard(),
-                const SizedBox(height: Insets.base),
-                const _AboutCard(),
-                const SizedBox(height: Insets.huge),
-                _SignOutButton(onSignOut: () => _confirmSignOut(context, ref)),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const odsazeni = EdgeInsets.fromLTRB(
+                  Insets.xl,
+                  Insets.xl,
+                  Insets.xl,
+                  Insets.giant,
+                );
+                if (constraints.maxWidth < sirkaProDvaSloupce) {
+                  return ListView(
+                    padding: odsazeni,
+                    children: const [...vlevo, ...vpravo],
+                  );
+                }
+                return SingleChildScrollView(
+                  padding: odsazeni,
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: Column(children: vlevo)),
+                      SizedBox(width: Insets.xl),
+                      Expanded(child: Column(children: vpravo)),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -67,7 +75,7 @@ class SettingsScreen extends ConsumerWidget {
 
   /// Odhlášení se ptá schválně: dílenský telefon se drží v rukavicích
   /// a omylem odhlášený kolega se pak musí znovu prokazovat.
-  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+  Future<void> _potvrdOdhlaseni(BuildContext context, WidgetRef ref) async {
     final potvrzeno = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog.adaptive(
@@ -81,6 +89,7 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Zrušit'),
           ),
           TextButton(
+            key: const Key('potvrdit-odhlaseni'),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Odhlásit'),
           ),
@@ -94,47 +103,69 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header();
+/// Tmavá hlavička s názvem a kartou přihlášeného - odhlášení je u jména,
+/// ne na konci dlouhého seznamu.
+class _Hlavicka extends ConsumerWidget {
+  const _Hlavicka({required this.onOdhlasit});
+
+  final VoidCallback onOdhlasit;
 
   @override
-  Widget build(BuildContext context) {
-    final topInset = MediaQuery.paddingOf(context).top;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employee = ref.watch(currentEmployeeProvider);
 
     return Container(
       width: double.infinity,
       color: AppColors.primary,
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
-        topInset + Insets.xl,
+        MediaQuery.paddingOf(context).top + Insets.xl,
         Insets.xxl,
         Insets.xl,
       ),
-      child: Text(
-        'Nastavení',
-        style: AppTextStyles.appBarTitle(
-          isIOS: context.isIOS,
-        ).copyWith(color: Colors.white),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nastavení',
+            style: AppTextStyles.appBarTitle(
+              isIOS: context.isIOS,
+            ).copyWith(color: Colors.white),
+          ),
+          if (employee != null) ...[
+            const SizedBox(height: Insets.lg),
+            _KartaUzivatele(employee: employee, onOdhlasit: onOdhlasit),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _EmployeeCard extends StatelessWidget {
-  const _EmployeeCard({required this.employee});
+class _KartaUzivatele extends StatelessWidget {
+  const _KartaUzivatele({required this.employee, required this.onOdhlasit});
 
   final Employee employee;
+  final VoidCallback onOdhlasit;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
+    // Pobočku zatím zná jen ukázkový účet - u Microsoft účtu se štítek
+    // ukáže, až se pobočky namapují na skupiny v Entra ID.
+    final pobocka = employee.homeBranch?.label;
 
-    return _Card(
+    return Container(
+      padding: const EdgeInsets.all(Insets.lg),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 46,
+            height: 46,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
               color: AppColors.accent,
@@ -144,73 +175,79 @@ class _EmployeeCard extends StatelessWidget {
               employee.initials,
               style: const TextStyle(
                 fontFamily: AppFonts.sans,
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
           ),
-          const SizedBox(width: Insets.lg),
+          const SizedBox(width: Insets.base),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  employee.displayName,
-                  style: AppTextStyles.sectionTitle.copyWith(
-                    color: palette.text,
-                  ),
+                Wrap(
+                  spacing: Insets.sm,
+                  runSpacing: Insets.xxs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      employee.displayName,
+                      style: AppTextStyles.sectionTitle.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (pobocka != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Insets.xs,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(Radii.badge),
+                        ),
+                        child: Text(
+                          pobocka.toUpperCase(),
+                          style: AppTextStyles.overline.copyWith(
+                            color: const Color(0xFF9CC8FF),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  employee.email,
-                  style: AppTextStyles.meta.copyWith(color: palette.muted),
+                  '${employee.email} · Microsoft SSO',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.metaSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Volba světlého a tmavého vzhledu.
-class _VzhledCard extends ConsumerWidget {
-  const _VzhledCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final vybrany = ref.watch(nastaveniProvider).vzhled;
-
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'VZHLED',
-            style: AppTextStyles.overline.copyWith(color: palette.muted),
-          ),
-          const SizedBox(height: Insets.base),
-          // Přepínač přes celou šířku - tři velké terče se trefují líp
-          // než položky v rozbalovacím seznamu.
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<RezimVzhledu>(
-              segments: [
-                for (final rezim in RezimVzhledu.values)
-                  ButtonSegment(value: rezim, label: Text(rezim.label)),
-              ],
-              selected: {vybrany},
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                textStyle: AppTextStyles.cardBody,
-                selectedBackgroundColor: AppColors.accent,
-                selectedForegroundColor: Colors.white,
+          const SizedBox(width: Insets.base),
+          OutlinedButton.icon(
+            key: const Key('odhlasit'),
+            onPressed: onOdhlasit,
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Odhlásit'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Insets.lg,
+                vertical: Insets.base,
               ),
-              onSelectionChanged: (vyber) =>
-                  ref.read(nastaveniProvider.notifier).zmenVzhled(vyber.first),
+              textStyle: AppTextStyles.cardBody.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Radii.button),
+              ),
             ),
           ),
         ],
@@ -219,303 +256,200 @@ class _VzhledCard extends ConsumerWidget {
   }
 }
 
-/// Na které záložce se aplikace otevře po spuštění.
-class _UvodniZalozkaCard extends ConsumerWidget {
-  const _UvodniZalozkaCard();
+// ---------------------------------------------------------------------------
+// Skupiny
+
+/// Režim vzhledu a záložka po spuštění.
+class _VzhledASpusteni extends ConsumerWidget {
+  const _VzhledASpusteni();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final vybrana = ref.watch(nastaveniProvider).uvodniZalozka;
+    final nastaveni = ref.watch(nastaveniProvider);
+    final ovladani = ref.read(nastaveniProvider.notifier);
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'PO SPUŠTĚNÍ OTEVŘÍT',
-            style: AppTextStyles.overline.copyWith(color: palette.muted),
+    return _Skupina(
+      nadpis: 'VZHLED A SPUŠTĚNÍ',
+      radky: [
+        _Radek(
+          titul: 'Režim',
+          dole: _Prepinac<RezimVzhledu>(
+            hodnoty: RezimVzhledu.values,
+            vybrana: nastaveni.vzhled,
+            popisek: (rezim) => rezim.label,
+            onZmena: ovladani.zmenVzhled,
           ),
-          const SizedBox(height: Insets.xxs),
-          Text(
-            'Záložka, na které se aplikace otevře po spuštění a po '
-            'přihlášení. U Příjmu a Vozidel se rovnou spustí skener, '
-            'pokud je zapnuté skenování hned po otevření.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+        ),
+        _Radek(
+          titul: 'Úvodní záložka',
+          popis: 'Po spuštění a po přihlášení.',
+          dole: _Prepinac<UvodniZalozka>(
+            key: const Key('uvodni-zalozka'),
+            hodnoty: UvodniZalozka.values,
+            vybrana: nastaveni.uvodniZalozka,
+            popisek: (zalozka) => zalozka.label,
+            onZmena: ovladani.zmenUvodniZalozku,
           ),
-          const SizedBox(height: Insets.base),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<UvodniZalozka>(
-              key: const Key('uvodni-zalozka'),
-              segments: [
-                for (final zalozka in UvodniZalozka.values)
-                  ButtonSegment(value: zalozka, label: Text(zalozka.label)),
-              ],
-              selected: {vybrana},
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                textStyle: AppTextStyles.cardBody,
-                selectedBackgroundColor: AppColors.accent,
-                selectedForegroundColor: Colors.white,
-              ),
-              onSelectionChanged: (vyber) => ref
-                  .read(nastaveniProvider.notifier)
-                  .zmenUvodniZalozku(vyber.first),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// Kde je spoušť na obrazovce skeneru.
-class _SkenerCard extends ConsumerWidget {
-  const _SkenerCard();
+/// Kde je spoušť a jestli se skener otevírá sám.
+class _SkenerAFotoaparat extends ConsumerWidget {
+  const _SkenerAFotoaparat();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final vybrane = ref.watch(nastaveniProvider).spoust;
+    final nastaveni = ref.watch(nastaveniProvider);
+    final ovladani = ref.read(nastaveniProvider.notifier);
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'SPOUŠŤ FOTOAPARÁTU/SKENERU',
-            style: AppTextStyles.overline.copyWith(color: palette.muted),
+    return _Skupina(
+      nadpis: 'SKENER A FOTOAPARÁT',
+      radky: [
+        _Radek(
+          titul: 'Poloha spouště',
+          popis: 'Platí pro focení, sken SPZ/VIN a tlačítko Zahájit příjem.',
+          dole: _VolbaSpouste(
+            vybrana: nastaveni.spoust,
+            onZmena: ovladani.zmenSpoust,
           ),
-          const SizedBox(height: Insets.xxs),
-          Text(
-            'Kde je spoušť při focení fotodokumentace a načítání SPZ a VINu '
-            'a tlačítko Zahájit příjem. Na tabletu na šířku je po straně '
-            'blíž palci.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
+        ),
+        _Radek(
+          titul: 'Skenovat hned po otevření',
+          popis: 'Příjem a Vozidla otevřou rovnou skener SPZ.',
+          vpravo: Switch.adaptive(
+            key: const Key('skenovat-po-otevreni'),
+            value: nastaveni.skenovatPoOtevreni,
+            activeTrackColor: AppColors.accent,
+            onChanged: ovladani.zmenSkenovaniPoOtevreni,
           ),
-          const SizedBox(height: Insets.base),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<UmisteniSpouste>(
-              segments: [
-                for (final umisteni in UmisteniSpouste.values)
-                  ButtonSegment(value: umisteni, label: Text(umisteni.label)),
-              ],
-              selected: {vybrane},
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                textStyle: AppTextStyles.cardBody,
-                selectedBackgroundColor: AppColors.accent,
-                selectedForegroundColor: Colors.white,
-              ),
-              onSelectionChanged: (vyber) =>
-                  ref.read(nastaveniProvider.notifier).zmenSpoust(vyber.first),
-            ),
-          ),
-          const SizedBox(height: Insets.base),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Skenovat hned po otevření',
-                      style: AppTextStyles.cardBody.copyWith(
-                        color: palette.text,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Klepnutí na záložku Příjem nebo Vozidla rovnou otevře '
-                      'skener SPZ. Ručně psát jde pořád.',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: Insets.base),
-              Switch.adaptive(
-                key: const Key('skenovat-po-otevreni'),
-                value: ref.watch(nastaveniProvider).skenovatPoOtevreni,
-                activeTrackColor: AppColors.accent,
-                onChanged: (zapnout) => ref
-                    .read(nastaveniProvider.notifier)
-                    .zmenSkenovaniPoOtevreni(zapnout),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// Útvar, na který se seznam zakázek otevře.
-class _VychoziFiltrCard extends ConsumerWidget {
-  const _VychoziFiltrCard();
+/// Útvar, pořadač a zodpovědná osoba, na které se seznam zakázek otevře.
+class _VychoziFiltr extends ConsumerWidget {
+  const _VychoziFiltr();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final nastaveni = ref.watch(nastaveniProvider);
+    final ovladani = ref.read(nastaveniProvider.notifier);
     final utvary = ref.watch(availableDepartmentsProvider);
     final zodpovedni = ref.watch(mechanicsProvider);
     final poradace = ref.watch(pouzitePoradaceProvider);
+    final aktivnich = [
+      nastaveni.vychoziUtvar,
+      nastaveni.vychoziPoradac,
+      nastaveni.vychoziZodpovida,
+    ].whereType<String>().length;
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'VÝCHOZÍ FILTR',
-                style: AppTextStyles.overline.copyWith(color: palette.muted),
+    return _Skupina(
+      nadpis: 'VÝCHOZÍ FILTR ZÁKAZEK',
+      vedleNadpisu: aktivnich == 0
+          ? null
+          : Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.accent,
+                shape: BoxShape.circle,
               ),
-              if (nastaveni.maVychoziFiltr)
-                GestureDetector(
-                  onTap: () =>
-                      ref.read(nastaveniProvider.notifier).zrusVychoziFiltr(),
-                  child: Text(
-                    'Zrušit',
-                    style: AppTextStyles.metaSmall.copyWith(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              child: Text(
+                '$aktivnich',
+                style: AppTextStyles.metaSmall.copyWith(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
                 ),
-            ],
-          ),
-          const SizedBox(height: Insets.xxs),
-          Text(
-            'Seznam zakázek se otevře rovnou takto vyfiltrovaný.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
-          ),
-          const SizedBox(height: Insets.base),
-          if (utvary.isEmpty && poradace.isEmpty && zodpovedni.isEmpty)
-            Text(
-              'Útvary a lidé se nabídnou, jakmile se načtou zakázky.',
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+              ),
+            ),
+      akce: nastaveni.maVychoziFiltr
+          ? _Odkaz(
+              key: const Key('zrusit-vychozi-filtr'),
+              text: 'Vymazat',
+              onTap: ovladani.zrusVychoziFiltr,
             )
-          else ...[
-            _Vyber(
-              popisek: 'Útvar',
-              hodnota: nastaveni.vychoziUtvar,
-              moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
-              onZmena: (kod) =>
-                  ref.read(nastaveniProvider.notifier).zmenVychoziUtvar(kod),
-            ),
-            const SizedBox(height: Insets.base),
-            _Vyber(
-              popisek: 'Pořadač',
-              hodnota: nastaveni.vychoziPoradac,
-              moznosti: {for (final p in poradace) p.kod: p.nazev},
-              onZmena: (kod) =>
-                  ref.read(nastaveniProvider.notifier).zmenVychoziPoradac(kod),
-            ),
-            const SizedBox(height: Insets.base),
-            _Vyber(
-              popisek: 'Zodpovídá',
-              hodnota: nastaveni.vychoziZodpovida,
-              moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
-              onZmena: (jmeno) => ref
-                  .read(nastaveniProvider.notifier)
-                  .zmenVychoziZodpovida(jmeno),
-            ),
-          ],
-        ],
-      ),
+          : null,
+      poznamka: 'Seznam zakázek se otevře rovnou takto vyfiltrovaný.',
+      radky: utvary.isEmpty && poradace.isEmpty && zodpovedni.isEmpty
+          ? [
+              _Radek(
+                obsah: Text(
+                  'Útvary a lidé se nabídnou, jakmile se načtou zakázky.',
+                  style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+                ),
+              ),
+            ]
+          : [
+              _Vyber(
+                popisek: 'Útvar',
+                hodnota: nastaveni.vychoziUtvar,
+                moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
+                onZmena: ovladani.zmenVychoziUtvar,
+              ),
+              _Vyber(
+                popisek: 'Pořadač',
+                hodnota: nastaveni.vychoziPoradac,
+                moznosti: {for (final p in poradace) p.kod: p.nazev},
+                onZmena: ovladani.zmenVychoziPoradac,
+              ),
+              _Vyber(
+                popisek: 'Zodpovídá',
+                hodnota: nastaveni.vychoziZodpovida,
+                moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
+                onZmena: ovladani.zmenVychoziZodpovida,
+              ),
+            ],
     );
   }
 }
 
-/// Složka pobočky, kam se ukládají fotky z příjmu.
-class _FotodokumentaceCard extends ConsumerWidget {
-  const _FotodokumentaceCard();
+/// Složka pobočky pro fotky z příjmu a kopie fotek do zařízení.
+class _Fotodokumentace extends ConsumerWidget {
+  const _Fotodokumentace();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
     final nastaveni = ref.watch(nastaveniProvider);
-    final slozka = nastaveni.slozkaFotek;
     final pobocky = ref.watch(slozkyPobocekProvider);
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'FOTODOKUMENTACE',
-            style: AppTextStyles.overline.copyWith(color: palette.muted),
+    return _Skupina(
+      nadpis: 'FOTODOKUMENTACE',
+      radky: [
+        _Vyber(
+          key: const Key('slozka-fotek'),
+          popisek: 'Pobočka',
+          popis: pobocky.hasError
+              ? 'Seznam poboček se nepodařilo načíst.'
+              : 'Složka pobočky pro fotky z příjmu.',
+          chybaVPopisu: pobocky.hasError,
+          prazdnaVolba: 'Podle pořadače',
+          hodnota: nastaveni.slozkaFotek,
+          // Nabízí se jen složky, které ve Foto-doc opravdu jsou - server
+          // jinou pobočku stejně odmítne.
+          moznosti: {for (final p in pobocky.valueOrNull ?? const []) p: p},
+          onZmena: (slozka) =>
+              ref.read(nastaveniProvider.notifier).zmenSlozkuFotek(slozka),
+        ),
+        _Radek(
+          titul: 'Ukládat i do zařízení',
+          popis: 'Kopie v albu $albumFotek, i když se nenahrají.',
+          vpravo: Switch.adaptive(
+            key: const Key('ukladat-do-zarizeni'),
+            value: nastaveni.ukladatFotkyDoZarizeni,
+            activeTrackColor: AppColors.accent,
+            onChanged: (zapnout) =>
+                _zmenUkladaniDoZarizeni(context, ref, zapnout),
           ),
-          const SizedBox(height: Insets.xxs),
-          Text(
-            'Do které složky pobočky se ukládají fotky z příjmu. Bez volby '
-            'rozhodne pořadač zakázky.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted2),
-          ),
-          const SizedBox(height: Insets.base),
-          _Vyber(
-            key: const Key('slozka-fotek'),
-            popisek: 'Pobočka',
-            prazdnaVolba: 'Podle pořadače',
-            hodnota: slozka,
-            // Nabízí se jen složky, které ve Foto-doc opravdu jsou - server
-            // jinou pobočku stejně odmítne.
-            moznosti: {for (final p in pobocky.valueOrNull ?? const []) p: p},
-            onZmena: (slozka) =>
-                ref.read(nastaveniProvider.notifier).zmenSlozkuFotek(slozka),
-          ),
-          if (pobocky.hasError) ...[
-            const SizedBox(height: Insets.sm),
-            Text(
-              'Seznam poboček se nepodařilo načíst.',
-              style: AppTextStyles.metaSmall.copyWith(color: AppColors.danger),
-            ),
-          ],
-          const SizedBox(height: Insets.base),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ukládat i do zařízení',
-                      style: AppTextStyles.cardBody.copyWith(
-                        color: palette.text,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Fotky z fotoaparátu se hned uloží i do galerie, album '
-                      '$albumFotek. Nepřijdete o ně, ani když se nenahrají.',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: Insets.base),
-              Switch.adaptive(
-                key: const Key('ukladat-do-zarizeni'),
-                value: nastaveni.ukladatFotkyDoZarizeni,
-                activeTrackColor: AppColors.accent,
-                onChanged: (zapnout) =>
-                    _zmenUkladaniDoZarizeni(context, ref, zapnout),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -549,6 +483,431 @@ class _FotodokumentaceCard extends ConsumerWidget {
   }
 }
 
+/// Verze, spojení se serverem a zdroj dat - hodí se při hlášení chyby.
+class _OAplikaci extends ConsumerWidget {
+  const _OAplikaci();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final verze = ref.watch(verzeAplikaceProvider).valueOrNull;
+
+    return _Skupina(
+      nadpis: 'O APLIKACI',
+      radky: [
+        if (verze != null)
+          _Radek(
+            titul: 'Verze',
+            vpravo: Text(
+              verze,
+              style: AppTextStyles.monoLabel.copyWith(color: palette.text),
+            ),
+          ),
+        const _RadekServeru(),
+        _Radek(
+          titul: 'Zdroj dat',
+          // Ukázková data vypadají stejně jako ostrá, ale znamenají něco
+          // jiného - při hlášení chyby je to první otázka.
+          vpravo: Text(
+            ref.watch(pouzivaApiProvider) ? 'Helios Data' : 'Ukázková data',
+            style: AppTextStyles.cardBody.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Jestli se zařízení teď dostane na server - stejný údaj jako pod
+/// přihlášením. Dokud server neodpovídá, zkouší se každých pár vteřin
+/// znovu; klepnutí zkusí hned.
+class _RadekServeru extends ConsumerWidget {
+  const _RadekServeru();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    // Záložka nastavení zůstává postavená i na pozadí. Na server se ale
+    // ptá, jen když je vidět - skrytá záložka má vypnutý TickerMode.
+    final viditelne = TickerMode.valuesOf(context).enabled;
+    final stav = viditelne
+        ? ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje
+        : StavServeru.zjistuje;
+    final barva = switch (stav) {
+      StavServeru.online => AppColors.readyGreen,
+      StavServeru.nedostupny => AppColors.danger,
+      StavServeru.ukazka || StavServeru.zjistuje => palette.muted,
+    };
+
+    return InkWell(
+      key: const Key('nastaveni-stav-serveru'),
+      onTap: () => ref.invalidate(stavServeruProvider),
+      child: _Radek(
+        titul: 'Server',
+        // Nejčastější příčina je špatná wi-fi, ne vypnutá služba.
+        popis: stav == StavServeru.nedostupny
+            ? 'Zkontrolujte, že jste připojeni k firemní wi-fi '
+                  '(RenPriv, ISPA nebo ISPI). Klepnutím zkusíte znovu.'
+            : null,
+        vpravo: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: Insets.sm),
+            Text(
+              stav.popisek,
+              style: AppTextStyles.cardBody.copyWith(
+                color: stav == StavServeru.nedostupny
+                    ? AppColors.danger
+                    : palette.text,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stavební kameny
+
+/// Nadpis skupiny nad kartou, karta s řádky oddělenými čarou a případně
+/// vysvětlivka pod ní.
+class _Skupina extends StatelessWidget {
+  const _Skupina({
+    required this.nadpis,
+    required this.radky,
+    this.vedleNadpisu,
+    this.akce,
+    this.poznamka,
+  });
+
+  final String nadpis;
+  final List<Widget> radky;
+
+  /// Hned za nadpisem - počet aktivních filtrů.
+  final Widget? vedleNadpisu;
+
+  /// Na konci řádku s nadpisem - „Vymazat".
+  final Widget? akce;
+  final String? poznamka;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: Insets.xxs, bottom: Insets.sm),
+            child: Row(
+              children: [
+                Text(
+                  nadpis,
+                  style: AppTextStyles.overline.copyWith(color: palette.muted),
+                ),
+                if (vedleNadpisu != null) ...[
+                  const SizedBox(width: Insets.sm),
+                  vedleNadpisu!,
+                ],
+                const Spacer(),
+                ?akce,
+              ],
+            ),
+          ),
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: palette.card,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: palette.hairline),
+              boxShadow: palette.cardShadow,
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, radek) in radky.indexed) ...[
+                    if (i > 0) Divider(height: 1, color: palette.hairline),
+                    radek,
+                  ],
+                ],
+              ),
+            ),
+          ),
+          if (poznamka != null)
+            Padding(
+              padding: const EdgeInsets.only(left: Insets.xxs, top: Insets.sm),
+              child: Text(
+                poznamka!,
+                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Řádek v kartě: název a vysvětlivka vlevo, ovladač vpravo nebo pod nimi.
+class _Radek extends StatelessWidget {
+  const _Radek({this.titul, this.popis, this.vpravo, this.dole, this.obsah});
+
+  final String? titul;
+  final String? popis;
+  final Widget? vpravo;
+  final Widget? dole;
+
+  /// Místo názvu a popisu vlastní obsah (prázdný stav).
+  final Widget? obsah;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    final texty =
+        obsah ??
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (titul != null)
+              Text(
+                titul!,
+                style: AppTextStyles.cardBody.copyWith(
+                  color: palette.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            if (popis != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                popis!,
+                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              ),
+            ],
+          ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.lg,
+        vertical: Insets.base,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: texty),
+              if (vpravo != null) ...[
+                const SizedBox(width: Insets.base),
+                vpravo!,
+              ],
+            ],
+          ),
+          if (dole != null) ...[const SizedBox(height: Insets.md), dole!],
+        ],
+      ),
+    );
+  }
+}
+
+/// Přepínač z několika voleb - vybraná je „vystouplá" z podkladu. Velké
+/// terče se v rukavicích trefují líp než položky rozbalovacího seznamu.
+class _Prepinac<T> extends StatelessWidget {
+  const _Prepinac({
+    super.key,
+    required this.hodnoty,
+    required this.vybrana,
+    required this.popisek,
+    required this.onZmena,
+  });
+
+  final List<T> hodnoty;
+  final T vybrana;
+  final String Function(T hodnota) popisek;
+  final ValueChanged<T> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: BorderRadius.circular(Radii.button),
+        border: Border.all(color: palette.hairline),
+      ),
+      child: Row(
+        children: [
+          for (final hodnota in hodnoty)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: hodnota == vybrana,
+                child: GestureDetector(
+                  onTap: () => onZmena(hodnota),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: hodnota == vybrana
+                          ? palette.card
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(Radii.button - 3),
+                      border: hodnota == vybrana
+                          ? Border.all(color: palette.hairline2)
+                          : null,
+                      boxShadow: hodnota == vybrana ? palette.cardShadow : null,
+                    ),
+                    child: Text(
+                      popisek(hodnota),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: hodnota == vybrana
+                            ? palette.text
+                            : palette.muted,
+                        fontWeight: hodnota == vybrana
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tři dlaždice s obrázkem tabletu a tečkou, kde je spoušť.
+class _VolbaSpouste extends StatelessWidget {
+  const _VolbaSpouste({required this.vybrana, required this.onZmena});
+
+  final UmisteniSpouste vybrana;
+  final ValueChanged<UmisteniSpouste> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Row(
+      children: [
+        for (final (i, umisteni) in UmisteniSpouste.values.indexed) ...[
+          if (i > 0) const SizedBox(width: Insets.md),
+          Expanded(
+            child: Semantics(
+              button: true,
+              selected: umisteni == vybrana,
+              label: 'Spoušť ${umisteni.label.toLowerCase()}',
+              child: GestureDetector(
+                key: Key('spoust-${umisteni.name}'),
+                onTap: () => onZmena(umisteni),
+                behavior: HitTestBehavior.opaque,
+                child: _DlazdiceSpouste(
+                  umisteni: umisteni,
+                  vybrana: umisteni == vybrana,
+                  palette: palette,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DlazdiceSpouste extends StatelessWidget {
+  const _DlazdiceSpouste({
+    required this.umisteni,
+    required this.vybrana,
+    required this.palette,
+  });
+
+  final UmisteniSpouste umisteni;
+  final bool vybrana;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final barva = vybrana ? AppColors.accent : palette.muted;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.fromLTRB(
+        Insets.sm,
+        Insets.base,
+        Insets.sm,
+        Insets.md,
+      ),
+      decoration: BoxDecoration(
+        color: vybrana
+            ? AppColors.accent.withValues(alpha: 0.08)
+            : palette.background,
+        borderRadius: BorderRadius.circular(Radii.button),
+        border: Border.all(
+          color: vybrana ? AppColors.accent : palette.hairline,
+          width: vybrana ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Tablet na šířku s tečkou tam, kde bude spoušť.
+          Container(
+            width: 58,
+            height: 38,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: barva.withValues(alpha: 0.7)),
+            ),
+            child: Align(
+              alignment: switch (umisteni) {
+                UmisteniSpouste.vlevo => Alignment.centerLeft,
+                UmisteniSpouste.dole => Alignment.bottomCenter,
+                UmisteniSpouste.vpravo => Alignment.centerRight,
+              },
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
+              ),
+            ),
+          ),
+          const SizedBox(height: Insets.sm),
+          Text(
+            umisteni.label,
+            style: AppTextStyles.cardBody.copyWith(
+              color: vybrana ? palette.text : palette.muted,
+              fontWeight: vybrana ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Řádek s rozbalovacím výběrem. `null` znamená „vše" ([prazdnaVolba]).
 class _Vyber extends StatelessWidget {
   const _Vyber({
@@ -557,10 +916,14 @@ class _Vyber extends StatelessWidget {
     required this.hodnota,
     required this.moznosti,
     required this.onZmena,
+    this.popis,
+    this.chybaVPopisu = false,
     this.prazdnaVolba = 'Vše',
   });
 
   final String popisek;
+  final String? popis;
+  final bool chybaVPopisu;
   final String? hodnota;
   final Map<String, String> moznosti;
   final ValueChanged<String?> onZmena;
@@ -581,242 +944,113 @@ class _Vyber extends StatelessWidget {
 
     final popisky = [prazdnaVolba, ...vsechny.values];
 
-    return Row(
-      children: [
-        Text(
-          popisek,
-          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-        ),
-        const SizedBox(width: Insets.base),
-        // Výběr vyplní zbytek řádku a dlouhé jméno zkrátí třemi tečkami -
-        // jinak by „Bc. Jaroslava Nováková-Dvořáčková" vytlačila šipku
-        // za okraj karty.
-        Expanded(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              value: vybrana,
-              isDense: true,
-              isExpanded: true,
-              borderRadius: BorderRadius.circular(Radii.input),
-              style: AppTextStyles.cardBody.copyWith(
-                color: palette.text,
-                fontWeight: FontWeight.w600,
-              ),
-              selectedItemBuilder: (_) => [
-                for (final text in popisky)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.lg,
+        vertical: Insets.base,
+      ),
+      child: Row(
+        // Výběr k pravému okraji, i když název vlevo zabere míň než půlku.
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Nejvýš polovina řádku - delší vysvětlivka se zalomí, výběr
+          // vpravo zůstane celý.
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  popisek,
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (popis != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    popis!,
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: chybaVPopisu ? AppColors.danger : palette.muted,
                     ),
                   ),
+                ],
               ],
-              items: [
-                DropdownMenuItem(value: null, child: Text(prazdnaVolba)),
-                for (final polozka in vsechny.entries)
-                  DropdownMenuItem(
-                    value: polozka.key,
-                    child: Text(
-                      polozka.value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-              onChanged: onZmena,
             ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AboutCard extends ConsumerWidget {
-  const _AboutCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final verze = ref.watch(verzeAplikaceProvider).valueOrNull;
-
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'O APLIKACI',
-            style: AppTextStyles.overline.copyWith(color: palette.muted),
+          const SizedBox(width: Insets.base),
+          // Výběr vyplní zbytek řádku a dlouhé jméno zkrátí třemi tečkami -
+          // jinak by „Bc. Jaroslava Nováková-Dvořáčková" vytlačila šipku
+          // za okraj karty.
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                value: vybrana,
+                isDense: true,
+                isExpanded: true,
+                borderRadius: BorderRadius.circular(Radii.input),
+                icon: Icon(Icons.expand_more_rounded, color: palette.muted),
+                style: AppTextStyles.cardBody.copyWith(color: palette.text),
+                // Zvolená hodnota tučně, „Vše" obyčejně - na první pohled je
+                // vidět, co filtr opravdu omezuje.
+                selectedItemBuilder: (_) => [
+                  for (final (i, text) in popisky.indexed)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.cardBody.copyWith(
+                          color: palette.text,
+                          fontWeight: i == 0
+                              ? FontWeight.w400
+                              : FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+                items: [
+                  DropdownMenuItem(value: null, child: Text(prazdnaVolba)),
+                  for (final polozka in vsechny.entries)
+                    DropdownMenuItem(
+                      value: polozka.key,
+                      child: Text(
+                        polozka.value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: onZmena,
+              ),
+            ),
           ),
-          const SizedBox(height: Insets.md),
-          _Row(
-            label: 'Zdroj dat',
-            // Užitečné při hlášení chyby: ukázková data vypadají stejně
-            // jako ostrá, ale znamenají něco jiného.
-            value: ref.watch(pouzivaApiProvider)
-                ? 'Helios Data'
-                : 'Ukázková data',
-          ),
-          const SizedBox(height: Insets.sm),
-          const _RadekServeru(),
-          const SizedBox(height: Insets.sm),
-          const _Row(label: 'Přihlášení', value: 'Firemní účet Microsoft'),
-          if (verze != null) ...[
-            const SizedBox(height: Insets.sm),
-            _Row(label: 'Verze aplikace', value: verze),
-          ],
         ],
       ),
     );
   }
 }
 
-/// Jestli se zařízení teď dostane na server - stejný údaj jako pod
-/// přihlášením. Dokud server neodpovídá, zkouší se každých pár vteřin
-/// znovu; klepnutí zkusí hned.
-class _RadekServeru extends ConsumerWidget {
-  const _RadekServeru();
+/// Modrý textový odkaz v záhlaví skupiny.
+class _Odkaz extends StatelessWidget {
+  const _Odkaz({super.key, required this.text, required this.onTap});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    // Záložka nastavení zůstává postavená i na pozadí. Na server se ale
-    // ptá, jen když je vidět - skrytá záložka má vypnutý TickerMode.
-    final viditelne = TickerMode.valuesOf(context).enabled;
-    final stav = viditelne
-        ? ref.watch(stavServeruProvider).valueOrNull ?? StavServeru.zjistuje
-        : StavServeru.zjistuje;
-    final text = stav.popisek;
-    final barva = switch (stav) {
-      StavServeru.online => AppColors.readyGreen,
-      StavServeru.nedostupny => AppColors.danger,
-      StavServeru.ukazka || StavServeru.zjistuje => palette.muted,
-    };
-
-    return InkWell(
-      key: const Key('nastaveni-stav-serveru'),
-      onTap: () => ref.invalidate(stavServeruProvider),
-      borderRadius: BorderRadius.circular(Radii.input),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Server',
-                  style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-                ),
-              ),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: barva, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: Insets.sm),
-              Text(
-                text,
-                style: AppTextStyles.cardBody.copyWith(
-                  color: stav == StavServeru.nedostupny
-                      ? AppColors.danger
-                      : palette.text,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          // Nejčastější příčina je špatná wi-fi, ne vypnutá služba.
-          if (stav == StavServeru.nedostupny)
-            Padding(
-              padding: const EdgeInsets.only(top: Insets.xxs),
-              child: Text(
-                'Zkontrolujte, že jste připojeni k firemní wi-fi '
-                '(RenPriv, ISPA nebo ISPI). Klepnutím zkusíte znovu.',
-                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value});
-
-  final String label;
-  final String value;
+  final String text;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.cardBody.copyWith(
-            color: palette.text,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Insets.xxs),
+        child: Text(
+          text,
+          style: AppTextStyles.metaSmall.copyWith(
+            color: AppColors.accent,
             fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(Insets.xl),
-      decoration: BoxDecoration(
-        color: palette.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: palette.hairline),
-        boxShadow: palette.cardShadow,
-      ),
-      child: child,
-    );
-  }
-}
-
-class _SignOutButton extends StatelessWidget {
-  const _SignOutButton({required this.onSignOut});
-
-  final VoidCallback onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return SizedBox(
-      height: Sizes.ctaHeight,
-      child: OutlinedButton.icon(
-        onPressed: onSignOut,
-        icon: const Icon(Icons.logout_rounded, size: 20),
-        label: const Text('Odhlásit se'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.danger,
-          side: BorderSide(color: palette.hairline2),
-          textStyle: AppTextStyles.buttonLabel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              context.isIOS ? Radii.ctaIos : Radii.ctaAndroid,
-            ),
           ),
         ),
       ),

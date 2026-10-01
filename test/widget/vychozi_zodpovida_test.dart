@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
 import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
@@ -92,7 +93,13 @@ void main() {
     expect(find.text('8AB 4721'), findsOneWidget);
 
     await vyberZodpovednou(tester, 'Eva Malá');
-    await tester.tap(find.text('Zakázky'));
+    // V liště - „Zakázky" je v nastavení i ve volbě úvodní záložky.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(WorkshopBottomNav),
+        matching: find.text('Zakázky'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('2SC 9014'), findsOneWidget);
