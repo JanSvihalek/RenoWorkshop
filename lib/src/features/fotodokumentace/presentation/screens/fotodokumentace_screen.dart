@@ -748,23 +748,8 @@ class _RadekDokumentu extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        // Z EDM Heliosu - ve složce zakázky ho nikdo nenajde
-                        // a z aplikace se nemění.
-                        if (dokument.zHeliosu)
-                          TextSpan(
-                            text: popis.isEmpty ? 'Helios' : 'Helios · ',
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        TextSpan(text: popis),
-                      ],
-                    ),
-                    key: Key('dokument-popis-${dokument.id}'),
+                  Text(
+                    popis,
                     style: AppTextStyles.metaSmall.copyWith(
                       color: palette.muted,
                     ),

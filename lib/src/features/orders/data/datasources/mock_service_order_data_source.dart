@@ -396,6 +396,13 @@ class MockServiceOrderDataSource
     return List.of(_dokumenty[orderId] ?? const []);
   }
 
+  /// Ukázková data Helios nemají - karta ukáže, že dokumenty nejsou.
+  @override
+  Future<List<Dokument>> dokumentyHeliosu(String orderId) async {
+    await _simulateLatency();
+    return const [];
+  }
+
   @override
   Future<Dokument> nahrajDokument(
     String orderId,

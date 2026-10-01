@@ -182,6 +182,19 @@ class FakeServiceOrderDataSource
   Future<Uint8List> stahniDokument(String orderId, String id) async =>
       bajtyDokumentu[id]!;
 
+  /// Dokumenty z EDM Heliosu podle zakázky; bajty v [bajtyDokumentu].
+  final Map<String, List<Dokument>> dokumentyHeliosuZakazek = {};
+
+  /// Simuluje nedostupný seznam z Heliosu (nespuštěný skript na serveru).
+  String? dokumentyHeliosuSelzou;
+
+  @override
+  Future<List<Dokument>> dokumentyHeliosu(String orderId) async {
+    final chyba = dokumentyHeliosuSelzou;
+    if (chyba != null) throw ServiceOrderException(chyba);
+    return List.of(dokumentyHeliosuZakazek[orderId] ?? const []);
+  }
+
   /// Poslední dotaz na vozidla - test pozná, co šlo na server.
   String? posledniHledaniVozidla;
 

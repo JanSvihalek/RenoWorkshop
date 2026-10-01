@@ -10,6 +10,7 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
+import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -301,6 +302,9 @@ class _DetailBody extends ConsumerWidget {
     // s odškrtáváním, do které ale nikdy nic neteklo.
     final zavady = ZavadyCard(zavady: order.zavady);
 
+    // Zakázkový list a další dokumenty z EDM Heliosu, jen ke čtení.
+    final dokumentyHeliosu = DokumentyHeliosuKarta(orderId: order.id);
+
     // Na širokém tabletu dva sloupce: vlevo údaje o voze a příjmu (kdy
     // přišel, pojištění, příjem, fotky), vpravo práce na něm (postup,
     // poznámky, závady). Přes celou šířku by karty byly nepřehledně
@@ -310,6 +314,7 @@ class _DetailBody extends ConsumerWidget {
       if (order.pojisteniPopisek != null) pojisteni,
       ?prijem,
       ?fotky,
+      dokumentyHeliosu,
     ];
     // Závady pod poznámkami - k práci na voze patří vedle postupu.
     final zapisovaci = <Widget>[postup, ?predmet, poznamky, zavady];
@@ -322,6 +327,7 @@ class _DetailBody extends ConsumerWidget {
       postup,
       ?prijem,
       ?fotky,
+      dokumentyHeliosu,
       poznamky,
       zavady,
     ];

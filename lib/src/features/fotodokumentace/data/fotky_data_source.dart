@@ -45,8 +45,13 @@ abstract interface class FotkyDataSource {
     String? pobocka,
   });
 
-  /// `GET /orders/{id}/documents/{docId}` - bajty dokumentu.
+  /// `GET /orders/{id}/documents/{docId}` - bajty dokumentu. I dokumentu
+  /// z Heliosu (id `helios-…`).
   Future<Uint8List> stahniDokument(String orderId, String id);
+
+  /// `GET /orders/{id}/helios-documents` - dokumenty zakázky z EDM Heliosu
+  /// (zakázkový list...), nejnovější první. Jen ke čtení.
+  Future<List<Dokument>> dokumentyHeliosu(String orderId);
 }
 
 /// Nejdelší strana fotky po zmenšení. Na přečtení VINu i posouzení

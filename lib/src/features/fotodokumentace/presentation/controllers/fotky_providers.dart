@@ -35,6 +35,22 @@ final fotkyZakazkyProvider = FutureProvider.autoDispose
 
 /// Dokumenty ze složky zakázky, nejnovější první. Čtou se pokaždé znovu -
 /// kolega mohl mezitím soubor vložit z počítače.
+/// Dokumenty zakázky z EDM Heliosu - karta Dokumenty Helios v detailu.
+final dokumentyHeliosuProvider = FutureProvider.autoDispose
+    .family<List<Dokument>, String>((ref, orderId) async {
+      try {
+        return await ref
+            .watch(fotkyDataSourceProvider)
+            .dokumentyHeliosu(orderId);
+      } on ServiceOrderException {
+        rethrow;
+      } catch (chyba) {
+        throw ServiceOrderException(
+          'Dokumenty z Heliosu se nepodařilo načíst: $chyba',
+        );
+      }
+    });
+
 final dokumentyZakazkyProvider = FutureProvider.autoDispose
     .family<List<Dokument>, String>((ref, orderId) async {
       try {

@@ -280,6 +280,18 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<List<Dokument>> dokumentyHeliosu(String orderId) async {
+    final data = await _send(
+      'GET',
+      'orders/${Uri.encodeComponent(orderId)}/helios-documents',
+    );
+    if (data is! List) return const [];
+    return data
+        .map((item) => Dokument.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<Dokument> nahrajDokument(
     String orderId,
     String nazev,
