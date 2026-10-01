@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../platform/platform_info.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 
@@ -27,6 +28,7 @@ class HlavickaZakazky extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIOS = context.isIOS;
+    final palette = context.palette;
     final podtitulek = [
       if (spz != null && spz!.isNotEmpty) spz!,
       if (model != null && model!.isNotEmpty) model!,
@@ -35,7 +37,7 @@ class HlavickaZakazky extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.primary,
+      decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.base,
         MediaQuery.paddingOf(context).top + Insets.base,
@@ -51,7 +53,7 @@ class HlavickaZakazky extends StatelessWidget {
               isIOS
                   ? Icons.arrow_back_ios_new_rounded
                   : Icons.arrow_back_rounded,
-              color: Colors.white,
+              color: palette.naHlavicce,
             ),
           ),
           const SizedBox(width: Insets.xxs),
@@ -63,14 +65,14 @@ class HlavickaZakazky extends StatelessWidget {
                   nadpis,
                   style: AppTextStyles.appBarTitle(
                     isIOS: isIOS,
-                  ).copyWith(color: Colors.white),
+                  ).copyWith(color: palette.naHlavicce),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   podtitulek,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.appBarMeta.copyWith(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: palette.naHlavicceTlumene,
                   ),
                 ),
               ],

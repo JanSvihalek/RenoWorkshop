@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../layout/rozlozeni.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 import 'workshop_bottom_nav.dart';
@@ -48,9 +49,16 @@ class WorkshopSideNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final tmava = context.isDarkMode;
     return Container(
       width: Rozlozeni.sirkaNavigace,
-      color: AppColors.primary,
+      decoration: BoxDecoration(
+        color: palette.hlavicka,
+        border: tmava
+            ? null
+            : Border(right: BorderSide(color: palette.hairline2)),
+      ),
       child: SafeArea(
         right: false,
         child: Column(
@@ -58,11 +66,23 @@ class WorkshopSideNav extends StatelessWidget {
             const SizedBox(height: Insets.xl),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Insets.base),
-              child: Image.asset(
-                'assets/icon/png/adaptive/renoworkshop-foreground-432.png',
-                height: 34,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
+              // Bílý klíč - na bílé liště na navy dlaždici jako ikona aplikace.
+              // Pevný rozměr - dokud se obrázek nenačte, dlaždice nesmí
+              // splasknout do čárky.
+              child: Container(
+                width: tmava ? null : 40,
+                height: tmava ? null : 40,
+                padding: EdgeInsets.all(tmava ? 0 : 4),
+                decoration: BoxDecoration(
+                  color: tmava ? null : AppColors.primary,
+                  borderRadius: BorderRadius.circular(Radii.button),
+                ),
+                child: Image.asset(
+                  'assets/icon/png/adaptive/renoworkshop-foreground-432.png',
+                  height: tmava ? 34 : 32,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                ),
               ),
             ),
             const SizedBox(height: Insets.xxl),
@@ -99,6 +119,7 @@ class _Polozka extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Semantics(
       button: true,
       selected: jeAktivni,
@@ -113,9 +134,7 @@ class _Polozka extends StatelessWidget {
             horizontal: Insets.xs,
           ),
           decoration: BoxDecoration(
-            color: jeAktivni
-                ? Colors.white.withValues(alpha: 0.14)
-                : Colors.transparent,
+            color: jeAktivni ? palette.hlavickaPrvek : Colors.transparent,
             borderRadius: BorderRadius.circular(Radii.card),
           ),
           child: Column(
@@ -124,8 +143,8 @@ class _Polozka extends StatelessWidget {
                 ikona,
                 size: 22,
                 color: jeAktivni
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.6),
+                    ? palette.naHlavicce
+                    : palette.naHlavicceTlumene,
               ),
               const SizedBox(height: 4),
               // Delší popisek („Nastavení") se radši zmenší, než aby se
@@ -139,8 +158,8 @@ class _Polozka extends StatelessWidget {
                   style: AppTextStyles.metaSmall.copyWith(
                     fontSize: 10.5,
                     color: jeAktivni
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.6),
+                        ? palette.naHlavicce
+                        : palette.naHlavicceTlumene,
                   ),
                 ),
               ),

@@ -168,7 +168,7 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
       body: Column(
         children: [
           Container(
-            color: AppColors.primary,
+            decoration: dekoraceHlavicky(palette),
             padding: EdgeInsets.fromLTRB(
               Insets.xxl,
               MediaQuery.paddingOf(context).top + Insets.base,
@@ -182,13 +182,13 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
                   'Příjem vozidla',
                   style: AppTextStyles.appBarTitle(
                     isIOS: context.isIOS,
-                  ).copyWith(color: Colors.white),
+                  ).copyWith(color: palette.naHlavicce),
                 ),
                 const SizedBox(height: Insets.xs),
-                const UkazatelKrokuPrijmu(
+                UkazatelKrokuPrijmu(
                   cislo: 1,
                   nazev: 'Identifikace vozidla',
-                  naTmavem: true,
+                  naTmavem: context.isDarkMode,
                 ),
                 const SizedBox(height: Insets.lg),
                 OrderSearchField(
@@ -197,6 +197,7 @@ class _PrijemScreenState extends ConsumerState<PrijemScreen> {
                   onChanged: _psani,
                   onScan: widget.onScan,
                   hintText: 'SPZ vozidla',
+                  naTmavem: context.isDarkMode,
                 ),
               ],
             ),

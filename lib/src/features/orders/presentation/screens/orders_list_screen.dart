@@ -291,10 +291,15 @@ class _ListHeader extends ConsumerWidget {
     final isIOS = context.isIOS;
     final palette = context.palette;
     final employee = ref.watch(currentEmployeeProvider);
-    final text = naTablet ? palette.text : Colors.white;
+    final text = naTablet ? palette.text : palette.naHlavicce;
+    // Tmavé prvky (průsvitné pole, bílé ikony) jen na opravdu tmavé
+    // hlavičce - ve světlém vzhledu je hlavička bílá.
+    final naTmavem = !naTablet && context.isDarkMode;
 
     return Container(
-      color: naTablet ? palette.background : AppColors.primary,
+      decoration: naTablet
+          ? BoxDecoration(color: palette.background)
+          : dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
         MediaQuery.paddingOf(context).top + Insets.base,
@@ -316,12 +321,12 @@ class _ListHeader extends ConsumerWidget {
                 ),
               ),
               _TlacitkoHeliosu(
-                naTmavem: !naTablet,
+                naTmavem: naTmavem,
                 nacita: nacitaZHeliosu,
                 onPressed: onNacistZHeliosu,
               ),
               const SizedBox(width: Insets.sm),
-              _PrepinacZobrazeni(naTmavem: !naTablet),
+              _PrepinacZobrazeni(naTmavem: naTmavem),
               const SizedBox(width: Insets.sm),
               _MenuUzivatele(
                 jmeno: employee?.displayName,
@@ -335,7 +340,7 @@ class _ListHeader extends ConsumerWidget {
             controller: searchController,
             onChanged: onQueryChanged,
             onScan: onScan,
-            naTmavem: !naTablet,
+            naTmavem: naTmavem,
             // Hledá se i mezi uzavřenými - ať to je vidět dřív, než
             // člověk začne psát.
             hintText: 'SPZ, VIN, zakázka – i ukončené',

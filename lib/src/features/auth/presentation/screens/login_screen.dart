@@ -9,6 +9,7 @@ import '../../domain/entities/auth_state.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/stav_serveru.dart';
 import '../widgets/microsoft_logo.dart';
+import 'package:flutter/services.dart';
 
 /// PLACEHOLDER přihlášení - UI kostra bez reálného ověřování.
 ///
@@ -34,55 +35,60 @@ class LoginScreen extends ConsumerWidget {
 
     // Na tabletu vedle sebe: vlevo, kdo jsme, vpravo, jak se přihlásit.
     // Na výšku telefonu by se dva sloupce nevešly, tam zůstává pod sebou.
-    return Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
-      body: context.jeTablet
-          ? Row(
-              children: [
-                const Expanded(flex: 5, child: _ZnackovyPanel()),
-                Expanded(
-                  flex: 4,
-                  child: SafeArea(
-                    child: Center(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Insets.giant,
-                          vertical: Insets.xxl,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 360),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Přihlášení',
-                                style: AppTextStyles.sectionTitle.copyWith(
-                                  fontSize: 20,
-                                  color: AppColors.ink,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Obrazovka zůstává tmavá i ve světlém vzhledu - bílé hodiny
+      // a baterie, jinak by na tmavém pozadí zmizely.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.surfaceWhite,
+        body: context.jeTablet
+            ? Row(
+                children: [
+                  const Expanded(flex: 5, child: _ZnackovyPanel()),
+                  Expanded(
+                    flex: 4,
+                    child: SafeArea(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Insets.giant,
+                            vertical: Insets.xxl,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 360),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'Přihlášení',
+                                  style: AppTextStyles.sectionTitle.copyWith(
+                                    fontSize: 20,
+                                    color: AppColors.ink,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: Insets.xxs),
-                              Text(
-                                'Firemním účtem RENOCAR. '
-                                'Účty spravuje IT oddělení.',
-                                style: AppTextStyles.metaSmall.copyWith(
-                                  fontSize: 12.5,
-                                  color: AppColors.mutedLight,
+                                const SizedBox(height: Insets.xxs),
+                                Text(
+                                  'Firemním účtem RENOCAR. '
+                                  'Účty spravuje IT oddělení.',
+                                  style: AppTextStyles.metaSmall.copyWith(
+                                    fontSize: 12.5,
+                                    color: AppColors.mutedLight,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: Insets.xxl),
-                              prihlaseni,
-                            ],
+                                const SizedBox(height: Insets.xxl),
+                                prihlaseni,
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            )
-          : _ZnackovyPanel(prihlaseni: prihlaseni),
+                ],
+              )
+            : _ZnackovyPanel(prihlaseni: prihlaseni),
+      ),
     );
   }
 }

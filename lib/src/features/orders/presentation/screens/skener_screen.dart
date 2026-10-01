@@ -11,6 +11,7 @@ import '../../domain/entities/kod_vozidla.dart';
 import '../controllers/orders_providers.dart';
 import '../../domain/entities/vyrez_snimku.dart';
 import '../controllers/ramecek_skeneru.dart';
+import 'package:flutter/services.dart';
 
 /// Načtení VINu nebo SPZ fotoaparátem.
 ///
@@ -271,68 +272,73 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     final spoust = ref.watch(nastaveniProvider).spoust;
     final bezpecne = MediaQuery.paddingOf(context);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // Spoušť na boku: rámeček se vyhne pruhu s tlačítky, jinak by je
-          // na úzkém telefonu překrýval a za okraj pod nimi by nešlo vzít.
-          final ramecek = _ramecekPro(
-            constraints.biggest,
-            vlevo: spoust == UmisteniSpouste.vlevo
-                ? bezpecne.left + _Ovladani.sirkaPruhu
-                : RamecekSkeneru.okraj,
-            vpravo: spoust == UmisteniSpouste.vpravo
-                ? bezpecne.right + _Ovladani.sirkaPruhu
-                : RamecekSkeneru.okraj,
-          );
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Obrazovka zůstává tmavá i ve světlém vzhledu - bílé hodiny
+      // a baterie, jinak by na tmavém pozadí zmizely.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // Spoušť na boku: rámeček se vyhne pruhu s tlačítky, jinak by je
+            // na úzkém telefonu překrýval a za okraj pod nimi by nešlo vzít.
+            final ramecek = _ramecekPro(
+              constraints.biggest,
+              vlevo: spoust == UmisteniSpouste.vlevo
+                  ? bezpecne.left + _Ovladani.sirkaPruhu
+                  : RamecekSkeneru.okraj,
+              vpravo: spoust == UmisteniSpouste.vpravo
+                  ? bezpecne.right + _Ovladani.sirkaPruhu
+                  : RamecekSkeneru.okraj,
+            );
 
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              if (kamera != null)
-                FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox.fromSize(
-                    size: VyrezSnimku.velikostNahledu(
-                      nahledKamery:
-                          kamera.value.previewSize ?? const Size(16, 9),
-                      plocha: constraints.biggest,
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (kamera != null)
+                  FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox.fromSize(
+                      size: VyrezSnimku.velikostNahledu(
+                        nahledKamery:
+                            kamera.value.previewSize ?? const Size(16, 9),
+                        plocha: constraints.biggest,
+                      ),
+                      child: CameraPreview(kamera),
                     ),
-                    child: CameraPreview(kamera),
                   ),
-                ),
-              if (_pripravuje)
-                const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                ),
-              if (_chyba != null) _Chyba(text: _chyba!),
-              if (kamera != null)
-                GestureDetector(
-                  // Celá plocha náhledu, ať se nemusí trefovat do rámečku.
-                  behavior: HitTestBehavior.opaque,
-                  onScaleUpdate: _menRamecek,
-                  onDoubleTap: _vratRamecek,
-                  child: _Ramecek(
-                    ramecek: ramecek.obdelnik,
-                    ukazNapovedu: !_menilRamecek,
-                    onTahni: _tahniStranu,
+                if (_pripravuje)
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
+                if (_chyba != null) _Chyba(text: _chyba!),
+                if (kamera != null)
+                  GestureDetector(
+                    // Celá plocha náhledu, ať se nemusí trefovat do rámečku.
+                    behavior: HitTestBehavior.opaque,
+                    onScaleUpdate: _menRamecek,
+                    onDoubleTap: _vratRamecek,
+                    child: _Ramecek(
+                      ramecek: ramecek.obdelnik,
+                      ukazNapovedu: !_menilRamecek,
+                      onTahni: _tahniStranu,
+                    ),
+                  ),
+                // Až za rámečkem, aby tlačítka dostala doteky přednostně.
+                _Ovladani(
+                  umisteni: spoust,
+                  svetlo: _svetlo,
+                  pracuje: _pracuje,
+                  muzeFotit: kamera != null && _chyba == null,
+                  onSvetlo: _prepniSvetlo,
+                  onVyfot: _vyfot,
+                  onZpet: widget.onBack,
+                  onRucne: widget.onRucne,
                 ),
-              // Až za rámečkem, aby tlačítka dostala doteky přednostně.
-              _Ovladani(
-                umisteni: spoust,
-                svetlo: _svetlo,
-                pracuje: _pracuje,
-                muzeFotit: kamera != null && _chyba == null,
-                onSvetlo: _prepniSvetlo,
-                onVyfot: _vyfot,
-                onZpet: widget.onBack,
-                onRucne: widget.onRucne,
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

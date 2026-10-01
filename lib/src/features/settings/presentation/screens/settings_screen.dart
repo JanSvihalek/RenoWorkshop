@@ -113,10 +113,11 @@ class _Hlavicka extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final employee = ref.watch(currentEmployeeProvider);
+    final palette = context.palette;
 
     return Container(
       width: double.infinity,
-      color: AppColors.primary,
+      decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
         MediaQuery.paddingOf(context).top + Insets.xl,
@@ -130,7 +131,7 @@ class _Hlavicka extends ConsumerWidget {
             'Nastavení',
             style: AppTextStyles.appBarTitle(
               isIOS: context.isIOS,
-            ).copyWith(color: Colors.white),
+            ).copyWith(color: palette.naHlavicce),
           ),
           if (employee != null) ...[
             const SizedBox(height: Insets.lg),
@@ -153,13 +154,14 @@ class _KartaUzivatele extends StatelessWidget {
     // Pobočku zatím zná jen ukázkový účet - u Microsoft účtu se štítek
     // ukáže, až se pobočky namapují na skupiny v Entra ID.
     final pobocka = employee.homeBranch?.label;
+    final palette = context.palette;
 
     return Container(
       padding: const EdgeInsets.all(Insets.lg),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: palette.hlavickaPrvek,
         borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: palette.hlavickaOkraj),
       ),
       child: Row(
         children: [
@@ -194,7 +196,7 @@ class _KartaUzivatele extends StatelessWidget {
                     Text(
                       employee.displayName,
                       style: AppTextStyles.sectionTitle.copyWith(
-                        color: Colors.white,
+                        color: palette.naHlavicce,
                       ),
                     ),
                     if (pobocka != null)
@@ -210,7 +212,9 @@ class _KartaUzivatele extends StatelessWidget {
                         child: Text(
                           pobocka.toUpperCase(),
                           style: AppTextStyles.overline.copyWith(
-                            color: const Color(0xFF9CC8FF),
+                            color: context.isDarkMode
+                                ? const Color(0xFF9CC8FF)
+                                : AppColors.accent,
                             fontSize: 10,
                           ),
                         ),
@@ -223,7 +227,7 @@ class _KartaUzivatele extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.metaSmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: palette.naHlavicceTlumene,
                   ),
                 ),
               ],
@@ -236,8 +240,8 @@ class _KartaUzivatele extends StatelessWidget {
             icon: const Icon(Icons.logout_rounded, size: 18),
             label: const Text('Odhlásit'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+              foregroundColor: palette.naHlavicce,
+              side: BorderSide(color: palette.hlavickaOkraj),
               padding: const EdgeInsets.symmetric(
                 horizontal: Insets.lg,
                 vertical: Insets.base,

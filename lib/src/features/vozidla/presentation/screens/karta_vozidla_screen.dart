@@ -131,10 +131,11 @@ class _Hlavicka extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIOS = context.isIOS;
+    final palette = context.palette;
 
     return Container(
       width: double.infinity,
-      color: AppColors.primary,
+      decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.base,
         MediaQuery.paddingOf(context).top + Insets.base,
@@ -150,7 +151,7 @@ class _Hlavicka extends StatelessWidget {
               isIOS
                   ? Icons.arrow_back_ios_new_rounded
                   : Icons.arrow_back_rounded,
-              color: Colors.white,
+              color: palette.naHlavicce,
             ),
           ),
           const SizedBox(width: Insets.xxs),
@@ -159,7 +160,7 @@ class _Hlavicka extends StatelessWidget {
               'Vyhledat vozidlo',
               style: AppTextStyles.appBarTitle(
                 isIOS: isIOS,
-              ).copyWith(color: Colors.white),
+              ).copyWith(color: palette.naHlavicce),
             ),
           ),
         ],

@@ -73,6 +73,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.plate,
     required this.avatar,
     required this.cardShadow,
+    required this.hlavicka,
+    required this.naHlavicce,
+    required this.naHlavicceTlumene,
+    required this.hlavickaPrvek,
+    required this.hlavickaOkraj,
   });
 
   final Color background;
@@ -92,6 +97,22 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Stín karty - v tmavém režimu prázdný seznam.
   final List<BoxShadow> cardShadow;
 
+  /// Pozadí hlaviček obrazovek a boční lišty. Ve tmavém režimu firemní
+  /// navy, ve světlém bílá - tmavý pruh by ve světlém vzhledu svítil.
+  final Color hlavicka;
+
+  /// Nadpisy a ikony v hlavičce.
+  final Color naHlavicce;
+
+  /// Vedlejší text v hlavičce (počty, e-mail, popisky).
+  final Color naHlavicceTlumene;
+
+  /// Podklad prvků v hlavičce - vyhledávací pole, karta uživatele, chipy.
+  final Color hlavickaPrvek;
+
+  /// Okraj prvků v hlavičce a linka pod hlavičkou ve světlém režimu.
+  final Color hlavickaOkraj;
+
   static const AppPalette light = AppPalette(
     background: AppColors.bgLight,
     card: AppColors.surfaceWhite,
@@ -109,6 +130,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
         offset: Offset(0, 1),
       ),
     ],
+    hlavicka: AppColors.surfaceWhite,
+    naHlavicce: AppColors.primary,
+    naHlavicceTlumene: AppColors.mutedLight,
+    hlavickaPrvek: AppColors.bgLight,
+    hlavickaOkraj: Color(0x2E2D4046), // rgba(45,64,70,.18)
   );
 
   static const AppPalette dark = AppPalette(
@@ -122,6 +148,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     plate: Color(0x17FFFFFF),
     avatar: Color(0x1FFFFFFF), // rgba(255,255,255,.12)
     cardShadow: [],
+    hlavicka: AppColors.primary,
+    naHlavicce: Colors.white,
+    naHlavicceTlumene: Color(0xB3FFFFFF), // white 70 %
+    hlavickaPrvek: Color(0x1AFFFFFF), // white 10 %
+    hlavickaOkraj: Color(0x2EFFFFFF), // white 18 %
   );
 
   @override
@@ -136,6 +167,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? plate,
     Color? avatar,
     List<BoxShadow>? cardShadow,
+    Color? hlavicka,
+    Color? naHlavicce,
+    Color? naHlavicceTlumene,
+    Color? hlavickaPrvek,
+    Color? hlavickaOkraj,
   }) {
     return AppPalette(
       background: background ?? this.background,
@@ -148,6 +184,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
       plate: plate ?? this.plate,
       avatar: avatar ?? this.avatar,
       cardShadow: cardShadow ?? this.cardShadow,
+      hlavicka: hlavicka ?? this.hlavicka,
+      naHlavicce: naHlavicce ?? this.naHlavicce,
+      naHlavicceTlumene: naHlavicceTlumene ?? this.naHlavicceTlumene,
+      hlavickaPrvek: hlavickaPrvek ?? this.hlavickaPrvek,
+      hlavickaOkraj: hlavickaOkraj ?? this.hlavickaOkraj,
     );
   }
 
@@ -165,6 +206,24 @@ class AppPalette extends ThemeExtension<AppPalette> {
       plate: Color.lerp(plate, other.plate, t)!,
       avatar: Color.lerp(avatar, other.avatar, t)!,
       cardShadow: t < 0.5 ? cardShadow : other.cardShadow,
+      hlavicka: Color.lerp(hlavicka, other.hlavicka, t)!,
+      naHlavicce: Color.lerp(naHlavicce, other.naHlavicce, t)!,
+      naHlavicceTlumene: Color.lerp(
+        naHlavicceTlumene,
+        other.naHlavicceTlumene,
+        t,
+      )!,
+      hlavickaPrvek: Color.lerp(hlavickaPrvek, other.hlavickaPrvek, t)!,
+      hlavickaOkraj: Color.lerp(hlavickaOkraj, other.hlavickaOkraj, t)!,
     );
   }
 }
+
+/// Podklad hlavičky obrazovky: barva podle režimu a ve světlém linka dole,
+/// ať se bílá hlavička neslije s šedým pozadím pod ní.
+BoxDecoration dekoraceHlavicky(AppPalette palette) => BoxDecoration(
+  color: palette.hlavicka,
+  border: palette.hlavicka == AppColors.primary
+      ? null
+      : Border(bottom: BorderSide(color: palette.hairline2)),
+);

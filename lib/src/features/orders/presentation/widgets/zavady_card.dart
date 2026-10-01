@@ -31,23 +31,31 @@ class ZavadyCard extends StatelessWidget {
             children: [
               // Pružný: na úzkém telefonu se nadpis zalomí, značka vedle
               // něj zůstane celá.
-              Flexible(
-                child: SectionLabel(
-                  'ZÁVADY/ÚKONY',
-                  barva: AppColors.heliosZelena(context),
+              // Nadpis s počtem si vezme všechno místo vedle značky; zalomí
+              // se, až když se opravdu nevejde.
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: SectionLabel(
+                        'ZÁVADY/ÚKONY',
+                        barva: AppColors.heliosZelena(context),
+                      ),
+                    ),
+                    if (zavady.isNotEmpty) ...[
+                      const SizedBox(width: Insets.sm),
+                      Text(
+                        '${zavady.length}',
+                        style: AppTextStyles.orderNumber.copyWith(
+                          fontSize: 11.5,
+                          color: palette.muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (zavady.isNotEmpty) ...[
-                const SizedBox(width: Insets.sm),
-                Text(
-                  '${zavady.length}',
-                  style: AppTextStyles.orderNumber.copyWith(
-                    fontSize: 11.5,
-                    color: palette.muted,
-                  ),
-                ),
-              ],
-              const Spacer(),
+              const SizedBox(width: Insets.sm),
               const HeliosZnacka(),
             ],
           ),

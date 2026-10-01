@@ -404,9 +404,10 @@ class _DetailHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIOS = context.isIOS;
+    final palette = context.palette;
 
     return Container(
-      color: AppColors.primary,
+      decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
         MediaQuery.paddingOf(context).top + Insets.md,
@@ -438,7 +439,7 @@ class _DetailHeader extends StatelessWidget {
                               ? Icons.arrow_back_ios_new_rounded
                               : Icons.arrow_back_rounded,
                           size: isIOS ? 20 : 22,
-                          color: Colors.white,
+                          color: palette.naHlavicce,
                         ),
                       ),
                     ),
@@ -451,7 +452,7 @@ class _DetailHeader extends StatelessWidget {
                 style: AppTextStyles.orderNumber.copyWith(
                   fontSize: 13,
                   letterSpacing: 0.52,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: palette.naHlavicceTlumene,
                 ),
               ),
               const SizedBox(width: Insets.base),
@@ -466,15 +467,17 @@ class _DetailHeader extends StatelessWidget {
             children: [
               Text(
                 order.licensePlate,
-                style: AppTextStyles.plateLarge.copyWith(color: Colors.white),
+                style: AppTextStyles.plateLarge.copyWith(
+                  color: palette.naHlavicce,
+                ),
               ),
               Text(
                 order.model,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.sans,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xC7FFFFFF),
+                  color: palette.naHlavicceTlumene,
                 ),
               ),
             ],
@@ -487,7 +490,7 @@ class _DetailHeader extends StatelessWidget {
               Text(
                 'VIN',
                 style: AppTextStyles.metaSmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: palette.naHlavicceTlumene,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -498,7 +501,7 @@ class _DetailHeader extends StatelessWidget {
                   maxLines: 1,
                   style: AppTextStyles.monoLabel.copyWith(
                     fontSize: 15,
-                    color: Colors.white,
+                    color: palette.naHlavicce,
                     letterSpacing: 0.6,
                   ),
                 ),
@@ -508,16 +511,14 @@ class _DetailHeader extends StatelessWidget {
           const SizedBox(height: Insets.xs),
           Text(
             order.customerName,
-            style: AppTextStyles.cardBody.copyWith(
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
+            style: AppTextStyles.cardBody.copyWith(color: palette.naHlavicce),
           ),
           if (order.mechanicName != null) ...[
             const SizedBox(height: 2),
             Text(
               '${ServiceOrder.rolePopisek}: ${order.mechanicName}',
               style: AppTextStyles.meta.copyWith(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: palette.naHlavicceTlumene,
               ),
             ),
           ],
@@ -557,6 +558,7 @@ class _HeaderChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 5),
       // Delší štítek (VIN, dlouhý název řady) si vezme celý řádek a zbytek
@@ -565,10 +567,10 @@ class _HeaderChip extends StatelessWidget {
         maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
       ),
       decoration: BoxDecoration(
-        color: barva ?? Colors.white.withValues(alpha: 0.11),
+        color: barva ?? palette.hlavickaPrvek,
         borderRadius: BorderRadius.circular(7),
         border: zvyrazneny
-            ? Border.all(color: Colors.white.withValues(alpha: 0.45))
+            ? Border.all(color: palette.naHlavicceTlumene)
             : null,
       ),
       child: Text(
@@ -576,7 +578,7 @@ class _HeaderChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: AppTextStyles.meta.copyWith(
-          color: Colors.white.withValues(alpha: barva == null ? 0.82 : 1),
+          color: barva == null ? palette.naHlavicce : Colors.white,
           fontWeight: barva == null ? FontWeight.w400 : FontWeight.w600,
         ),
       ),

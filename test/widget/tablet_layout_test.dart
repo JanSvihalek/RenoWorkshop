@@ -11,15 +11,21 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
+import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
+import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
-  Widget buildApp() {
+  Widget buildApp({RezimVzhledu vzhled = RezimVzhledu.podleSystemu}) {
     return ProviderScope(
       overrides: [
+        nastaveniUlozisteProvider.overrideWithValue(
+          PametoveNastaveni(Nastaveni(vzhled: vzhled)),
+        ),
         authRepositoryProvider.overrideWithValue(
           PlaceholderAuthRepository(
             ssoDelay: Duration.zero,
@@ -49,8 +55,11 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Future<void> prihlas(WidgetTester tester) async {
-    await tester.pumpWidget(buildApp());
+  Future<void> prihlas(
+    WidgetTester tester, {
+    RezimVzhledu vzhled = RezimVzhledu.podleSystemu,
+  }) async {
+    await tester.pumpWidget(buildApp(vzhled: vzhled));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
@@ -135,7 +144,13 @@ void main() {
         matching: find.byType(Container),
       ),
     );
-    return kontejnery.firstWhere((c) => c.color != null).color!;
+    // Barva je buď přímo v kontejneru, nebo v jeho dekoraci.
+    Color? barva(Container c) =>
+        c.color ??
+        (c.decoration is BoxDecoration
+            ? (c.decoration! as BoxDecoration).color
+            : null);
+    return barva(kontejnery.firstWhere((c) => barva(c) != null))!;
   }
 
   testWidgets('na tabletu má hlavička seznamu stejnou šedou jako seznam', (
@@ -152,8 +167,42 @@ void main() {
     expect(pole.style!.color, isNot(Colors.white));
   });
 
-  testWidgets('na telefonu zůstává hlavička tmavomodrá', (tester) async {
-    await prihlas(tester);
+  testWidgets('na telefonu je hlavička ve tmavém vzhledu tmavomodrá', (
+    tester,
+  ) async {
+    await prihlas(tester, vzhled: RezimVzhledu.tmavy);
     expect(barvaHlavicky(tester), AppColors.primary);
+  });
+
+  testWidgets('ve světlém vzhledu je hlavička bílá a text tmavý', (
+    tester,
+  ) async {
+    await prihlas(tester, vzhled: RezimVzhledu.svetly);
+    expect(barvaHlavicky(tester), AppColors.surfaceWhite);
+
+    final nadpis = tester.widget<Text>(find.text('Zakázky na dílně'));
+    expect(nadpis.style!.color, AppColors.primary);
+    // Pole hledání ve světlé variantě - bílý text by na bílé zmizel.
+    final pole = tester.widget<TextField>(find.byType(TextField).first);
+    expect(pole.style!.color, isNot(Colors.white));
+  });
+
+  testWidgets('boční lišta tabletu se řídí vzhledem', (tester) async {
+    await tabletovaObrazovka(tester);
+    await prihlas(tester, vzhled: RezimVzhledu.svetly);
+
+    Color? barvaListy() {
+      final lista = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(WorkshopSideNav),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      return (lista.decoration! as BoxDecoration).color;
+    }
+
+    expect(barvaListy(), AppColors.surfaceWhite);
   });
 }

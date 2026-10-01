@@ -222,8 +222,9 @@ class _Hlavicka extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
-      color: AppColors.primary,
+      decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
         Insets.xxl,
         MediaQuery.paddingOf(context).top + Insets.base,
@@ -237,7 +238,7 @@ class _Hlavicka extends StatelessWidget {
             'Vyhledat vozidlo',
             style: AppTextStyles.appBarTitle(
               isIOS: context.isIOS,
-            ).copyWith(color: Colors.white),
+            ).copyWith(color: palette.naHlavicce),
           ),
           const SizedBox(height: Insets.lg),
           OrderSearchField(
@@ -246,6 +247,7 @@ class _Hlavicka extends StatelessWidget {
             onChanged: onPsani,
             onScan: onScan,
             hintText: 'SPZ nebo VIN',
+            naTmavem: context.isDarkMode,
           ),
         ],
       ),

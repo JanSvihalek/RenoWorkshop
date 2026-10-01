@@ -6,9 +6,9 @@ import 'dimens.dart';
 
 /// Sestavení [ThemeData] pro světlý a tmavý režim.
 ///
-/// App bar je v obou režimech navy [AppColors.primary] (konstantní, kvůli
-/// rychlé orientaci na dílně) - proto se v appce používá vlastní hlavička
-/// místo Material AppBaru a `appBarTheme` slouží jen jako fallback.
+/// Hlavičky jsou vlastní, ne Material AppBar - barvy jim dává paleta
+/// (`hlavicka`, `naHlavicce`): ve tmavém režimu navy, ve světlém bílá.
+/// `appBarTheme` slouží jen jako fallback.
 abstract final class AppTheme {
   static ThemeData light() => _build(Brightness.light, AppPalette.light);
 
@@ -37,9 +37,9 @@ abstract final class AppTheme {
       splashFactory: InkSparkle.splashFactory,
       extensions: <ThemeExtension<dynamic>>[palette],
       textTheme: _textTheme(palette),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      appBarTheme: AppBarTheme(
+        backgroundColor: palette.hlavicka,
+        foregroundColor: palette.naHlavicce,
         elevation: 0,
         scrolledUnderElevation: 0,
       ),

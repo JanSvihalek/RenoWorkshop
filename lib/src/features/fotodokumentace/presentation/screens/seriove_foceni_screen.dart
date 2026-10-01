@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../orders/domain/entities/vyrez_snimku.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
+import 'package:flutter/services.dart';
 
 /// Sériové focení do jedné kategorie fotodokumentace.
 ///
@@ -166,154 +166,162 @@ class _SerioveFoceniScreenState extends ConsumerState<SerioveFoceniScreen> {
     final kamera = _kamera;
     final spoust = ref.watch(nastaveniProvider).spoust;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: LayoutBuilder(
-        builder: (context, constraints) => Stack(
-          fit: StackFit.expand,
-          children: [
-            if (kamera != null)
-              FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox.fromSize(
-                  size: VyrezSnimku.velikostNahledu(
-                    nahledKamery: kamera.value.previewSize ?? const Size(16, 9),
-                    plocha: constraints.biggest,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Obrazovka zůstává tmavá i ve světlém vzhledu - bílé hodiny
+      // a baterie, jinak by na tmavém pozadí zmizely.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            fit: StackFit.expand,
+            children: [
+              if (kamera != null)
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox.fromSize(
+                    size: VyrezSnimku.velikostNahledu(
+                      nahledKamery:
+                          kamera.value.previewSize ?? const Size(16, 9),
+                      plocha: constraints.biggest,
+                    ),
+                    child: CameraPreview(kamera),
                   ),
-                  child: CameraPreview(kamera),
-                ),
-              )
-            else if (_chyba == null)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            else
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(Insets.giant),
-                  child: Text(
-                    _chyba!,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.cardBody.copyWith(color: Colors.white),
+                )
+              else if (_chyba == null)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              else
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Insets.giant),
+                    child: Text(
+                      _chyba!,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            // Tmavý přechod pod horní lištou - na světlém náhledu (bílé
-            // auto, zeď v hale) by bílý text i tlačítka zanikly.
-            Align(
-              alignment: Alignment.topCenter,
-              child: IgnorePointer(
-                child: Container(
-                  height: 140,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.black87, Colors.transparent],
+              // Tmavý přechod pod horní lištou - na světlém náhledu (bílé
+              // auto, zeď v hale) by bílý text i tlačítka zanikly.
+              Align(
+                alignment: Alignment.topCenter,
+                child: IgnorePointer(
+                  child: Container(
+                    height: 140,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black87, Colors.transparent],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Insets.xl,
-                        Insets.base,
-                        Insets.xl,
-                        0,
-                      ),
-                      child: Row(
-                        children: [
-                          // Šipka zpět i tlačítko Hotovo dělají totéž -
-                          // z focení se odchází kamkoli z obou stran.
-                          IconButton(
-                            key: const Key('foceni-zpet'),
-                            tooltip: 'Zpět',
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(
-                              Icons.arrow_back_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              widget.nadpis,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.sectionTitle.copyWith(
+              SafeArea(
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          Insets.xl,
+                          Insets.base,
+                          Insets.xl,
+                          0,
+                        ),
+                        child: Row(
+                          children: [
+                            // Šipka zpět i tlačítko Hotovo dělají totéž -
+                            // z focení se odchází kamkoli z obou stran.
+                            IconButton(
+                              key: const Key('foceni-zpet'),
+                              tooltip: 'Zpět',
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(
+                                Icons.arrow_back_rounded,
                                 color: Colors.white,
                               ),
                             ),
-                          ),
-                          if (_maBlesk)
-                            IconButton(
-                              key: const Key('foceni-blesk'),
-                              tooltip: switch (_blesk) {
-                                FlashMode.off => 'Blesk vypnutý',
-                                FlashMode.auto => 'Blesk automaticky',
-                                _ => 'Blesk zapnutý',
-                              },
-                              onPressed: kamera == null ? null : _prepniBlesk,
-                              icon: Icon(
-                                switch (_blesk) {
-                                  FlashMode.off => Icons.flash_off_rounded,
-                                  FlashMode.auto => Icons.flash_auto_rounded,
-                                  _ => Icons.flash_on_rounded,
-                                },
-                                color: _blesk == FlashMode.off
-                                    ? Colors.white
-                                    : AppColors.accent,
+                            Expanded(
+                              child: Text(
+                                widget.nadpis,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.sectionTitle.copyWith(
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                          const SizedBox(width: Insets.sm),
-                          FilledButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.accent,
+                            if (_maBlesk)
+                              IconButton(
+                                key: const Key('foceni-blesk'),
+                                tooltip: switch (_blesk) {
+                                  FlashMode.off => 'Blesk vypnutý',
+                                  FlashMode.auto => 'Blesk automaticky',
+                                  _ => 'Blesk zapnutý',
+                                },
+                                onPressed: kamera == null ? null : _prepniBlesk,
+                                icon: Icon(
+                                  switch (_blesk) {
+                                    FlashMode.off => Icons.flash_off_rounded,
+                                    FlashMode.auto => Icons.flash_auto_rounded,
+                                    _ => Icons.flash_on_rounded,
+                                  },
+                                  color: _blesk == FlashMode.off
+                                      ? Colors.white
+                                      : AppColors.accent,
+                                ),
+                              ),
+                            const SizedBox(width: Insets.sm),
+                            FilledButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                              ),
+                              child: Text(
+                                _pocet == 0 ? 'Zavřít' : 'Hotovo ($_pocet)',
+                              ),
                             ),
-                            child: Text(
-                              _pocet == 0 ? 'Zavřít' : 'Hotovo ($_pocet)',
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  if (_posledni case final fotka?)
+                    if (_posledni case final fotka?)
+                      Align(
+                        // Na opačné straně než spoušť, ať ji náhled nekryje.
+                        alignment: spoust == UmisteniSpouste.vlevo
+                            ? Alignment.bottomRight
+                            : Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.all(Insets.xl),
+                          child: _NahledPosledni(fotka: fotka, pocet: _pocet),
+                        ),
+                      ),
                     Align(
-                      // Na opačné straně než spoušť, ať ji náhled nekryje.
-                      alignment: spoust == UmisteniSpouste.vlevo
-                          ? Alignment.bottomRight
-                          : Alignment.bottomLeft,
+                      alignment: switch (spoust) {
+                        UmisteniSpouste.vlevo => Alignment.centerLeft,
+                        UmisteniSpouste.vpravo => Alignment.centerRight,
+                        UmisteniSpouste.dole => Alignment.bottomCenter,
+                      },
                       child: Padding(
-                        padding: const EdgeInsets.all(Insets.xl),
-                        child: _NahledPosledni(fotka: fotka, pocet: _pocet),
+                        padding: spoust == UmisteniSpouste.dole
+                            ? const EdgeInsets.only(bottom: Insets.giant)
+                            : const EdgeInsets.symmetric(horizontal: Insets.xl),
+                        child: _Spoust(
+                          foti: _foti,
+                          onTap: kamera == null ? null : _vyfot,
+                        ),
                       ),
                     ),
-                  Align(
-                    alignment: switch (spoust) {
-                      UmisteniSpouste.vlevo => Alignment.centerLeft,
-                      UmisteniSpouste.vpravo => Alignment.centerRight,
-                      UmisteniSpouste.dole => Alignment.bottomCenter,
-                    },
-                    child: Padding(
-                      padding: spoust == UmisteniSpouste.dole
-                          ? const EdgeInsets.only(bottom: Insets.giant)
-                          : const EdgeInsets.symmetric(horizontal: Insets.xl),
-                      child: _Spoust(
-                        foti: _foti,
-                        onTap: kamera == null ? null : _vyfot,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
