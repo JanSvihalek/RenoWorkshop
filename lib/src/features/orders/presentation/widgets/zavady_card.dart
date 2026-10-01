@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
@@ -9,7 +10,8 @@ import 'detail_cards.dart';
 /// Závady na zakázce z Heliosu - co má dílna na voze udělat.
 ///
 /// Jen ke čtení: závady zapisuje poradce v Heliosu a aplikace je přebírá.
-/// Když se v Heliosu změní, do pěti minut se to projeví i tady.
+/// Když se v Heliosu změní, do pěti minut se to projeví i tady. Proto je
+/// karta zelená jako všechno z Heliosu.
 class ZavadyCard extends StatelessWidget {
   const ZavadyCard({super.key, required this.zavady});
 
@@ -20,13 +22,23 @@ class ZavadyCard extends StatelessWidget {
     final palette = context.palette;
 
     return DetailCard(
+      key: const Key('zavady-karta'),
+      zHeliosu: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(child: SectionLabel('ZÁVADY/ÚKONY')),
-              if (zavady.isNotEmpty)
+              // Pružný: na úzkém telefonu se nadpis zalomí, značka vedle
+              // něj zůstane celá.
+              Flexible(
+                child: SectionLabel(
+                  'ZÁVADY/ÚKONY',
+                  barva: AppColors.heliosZelena(context),
+                ),
+              ),
+              if (zavady.isNotEmpty) ...[
+                const SizedBox(width: Insets.sm),
                 Text(
                   '${zavady.length}',
                   style: AppTextStyles.orderNumber.copyWith(
@@ -34,6 +46,9 @@ class ZavadyCard extends StatelessWidget {
                     color: palette.muted,
                   ),
                 ),
+              ],
+              const Spacer(),
+              const HeliosZnacka(),
             ],
           ),
           const SizedBox(height: Insets.base),

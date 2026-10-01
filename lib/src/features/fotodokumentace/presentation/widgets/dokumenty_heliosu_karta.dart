@@ -123,19 +123,29 @@ class _DokumentyHeliosuKartaState extends ConsumerState<DokumentyHeliosuKarta> {
 
     return DetailCard(
       key: const Key('dokumenty-heliosu'),
+      // Zelená jako všechno z Heliosu - dokumenty vznikají tam.
+      zHeliosu: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(child: SectionLabel('DOKUMENTY HELIOS')),
-              if (seznam.isNotEmpty)
-                Text(
-                  pocetDokumentu(seznam.length),
-                  style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              Expanded(
+                child: SectionLabel(
+                  'DOKUMENTY HELIOS',
+                  barva: AppColors.heliosZelena(context),
                 ),
+              ),
+              const HeliosZnacka(text: 'JEN KE ČTENÍ'),
             ],
           ),
+          if (seznam.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              pocetDokumentu(seznam.length),
+              style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+            ),
+          ],
           const SizedBox(height: Insets.sm),
           obsah,
         ],
@@ -168,7 +178,11 @@ class _Radek extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: Insets.sm),
         child: Row(
           children: [
-            Icon(dokument.ikona, color: AppColors.accent, size: 26),
+            Icon(
+              dokument.ikona,
+              color: AppColors.heliosZelena(context),
+              size: 26,
+            ),
             const SizedBox(width: Insets.base),
             Expanded(
               child: Column(

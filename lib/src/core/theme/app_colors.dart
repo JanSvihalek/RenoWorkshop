@@ -35,6 +35,15 @@ abstract final class AppColors {
   /// Stav z Heliosu. Zelená schválně - Helios má zelenou, takže je na
   /// první pohled poznat, který údaj je z ERP a který z dílny.
   static const Color heliosGreen = Color(0xFF2E7D32);
+
+  /// Zelená Heliosu na tmavém podkladu - tmavá by tam nebyla čitelná.
+  static const Color heliosGreenOnDark = Color(0xFF7CC47F);
+
+  /// Zelená Heliosu pro text a okraje podle světlého/tmavého vzhledu.
+  static Color heliosZelena(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? heliosGreenOnDark
+      : heliosGreen;
   static const Color mutedLight = Color(0xFF6B818A);
   static const Color muted2Light = Color(0xFF3D545C);
   static const Color plateLight = Color(0xFFE4EBEE);

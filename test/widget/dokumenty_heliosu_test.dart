@@ -9,6 +9,7 @@ import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokume
 import 'package:renoworkshop/src/features/fotodokumentace/presentation/prace_s_dokumenty.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/order_detail_screen.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/detail_cards.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -99,6 +100,49 @@ void main() {
       'Zak-list-Z1212607793-29.09.2026-10-39-50_1.pdf',
     );
     expect(prace.otevrene.single.$2, [7, 7]);
+  });
+
+  testWidgets('data z Heliosu jsou na zelených kartách se zámkem', (
+    tester,
+  ) async {
+    await otevriDetail(tester, dokumenty: [zakazkovyList]);
+
+    DetailCard karta(String klic) =>
+        tester.widget<DetailCard>(find.byKey(Key(klic)));
+    expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
+    expect(karta('zavady-karta').zHeliosu, isTrue);
+    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(2));
+    // Ostatní karty (postup, poznámky...) zapisuje dílna - zelené nejsou.
+    final zelene = tester
+        .widgetList<DetailCard>(find.byType(DetailCard))
+        .where((k) => k.zHeliosu);
+    expect(zelene, hasLength(2));
+  });
+
+  testWidgets('na úzkém telefonu se záhlaví Helios karet vejde', (
+    tester,
+  ) async {
+    // Sbírají se všechna přetečení a hlídají se jen karty z Heliosu.
+    // Testovací písmo má všechny znaky stejně široké, takže na 360 px
+    // přetéká i jinde, kde by skutečné písmo vyšlo - to tenhle test neřeší.
+    final chyby = <String>[];
+    final puvodni = FlutterError.onError;
+    FlutterError.onError = (chyba) => chyby.add(chyba.toString());
+    addTearDown(() => FlutterError.onError = puvodni);
+
+    await otevriDetail(tester, dokumenty: [zakazkovyList]);
+    tester.view.physicalSize = const Size(360, 3000);
+    await tester.pumpAndSettle();
+
+    FlutterError.onError = puvodni;
+    final vHeliosu = chyby.where(
+      (chyba) =>
+          chyba.contains('zavady_card.dart') ||
+          chyba.contains('dokumenty_heliosu_karta.dart') ||
+          chyba.contains('detail_cards.dart'),
+    );
+    expect(vHeliosu, isEmpty);
+    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(2));
   });
 
   testWidgets('zakázka bez dokumentů v Heliosu to řekne', (tester) async {
