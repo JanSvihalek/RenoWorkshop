@@ -69,13 +69,12 @@ void main() {
     await tester.tap(find.text('8AB 4721'));
     await tester.pumpAndSettle();
 
-    // Pojištění je ve stavu zakázky, pod prací na voze.
-    await tester.scrollUntilVisible(
-      find.text('POJIŠŤOVNA'),
-      300,
-      scrollable: find.byType(Scrollable).last,
+    // Pojištění je v hlavičce, vidět hned po otevření.
+    final udaje = find.byKey(const Key('hlavicka-udaje'));
+    expect(
+      find.descendant(of: udaje, matching: find.text('POJIŠŤOVNA')),
+      findsOneWidget,
     );
-    expect(find.text('POJIŠŤOVNA'), findsOneWidget);
     expect(find.text('Kooperativa'), findsOneWidget);
     expect(find.text('POJISTNÁ UDÁLOST'), findsOneWidget);
     expect(find.text('4201234567'), findsOneWidget);

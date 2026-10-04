@@ -191,51 +191,6 @@ class _DetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isBusy = ref.watch(orderActionsProvider).isLoading;
-    final overdue = order.isOverdue();
-
-    final datumy = Row(
-      children: [
-        Expanded(
-          child: InfoBox(
-            label: 'PŘIJATO',
-            // Bez času: s ním se datum v úzkém sloupci lámalo do dvou
-            // řádků a hodina příjmu nikoho nezajímá.
-            value: order.receivedAt == null
-                ? 'Neuvedeno'
-                : AppDateFormat.date(order.receivedAt!),
-          ),
-        ),
-        const SizedBox(width: Insets.md),
-        Expanded(
-          child: InfoBox(
-            label: 'TERMÍN DOKONČENÍ',
-            value: order.dueAt == null
-                ? 'Neuvedeno'
-                : AppDateFormat.date(order.dueAt!),
-            valueColor: overdue ? AppColors.danger : null,
-          ),
-        ),
-      ],
-    );
-
-    final pojisteni = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: InfoBox(
-            label: 'POJIŠŤOVNA',
-            value: order.pojistovna ?? 'Neuvedeno',
-          ),
-        ),
-        const SizedBox(width: Insets.md),
-        Expanded(
-          child: InfoBox(
-            label: 'POJISTNÁ UDÁLOST',
-            value: order.cisloPojistneUdalosti ?? 'Neuvedeno',
-          ),
-        ),
-      ],
-    );
 
     final postup = DetailCard(
       padding: const EdgeInsets.fromLTRB(
@@ -306,17 +261,11 @@ class _DetailBody extends ConsumerWidget {
     final dokumentyHeliosu = DokumentyHeliosuKarta(orderId: order.id);
 
     // Na širokém tabletu dva sloupce: vlevo práce na voze (závady, příjem,
-    // fotky, pracovní list), vpravo stav zakázky (termíny, pojištění,
-    // postup, dokumenty z Heliosu). Přes celou šířku by karty byly
-    // nepřehledně roztažené.
+    // fotky, pracovní list), vpravo stav zakázky (postup, dokumenty
+    // z Heliosu). Termíny a pojištění jsou v hlavičce. Přes celou šířku
+    // by karty byly nepřehledně roztažené.
     final prace = <Widget>[zavady, ?prijem, ?fotky, poznamky];
-    final stav = <Widget>[
-      datumy,
-      if (order.pojisteniPopisek != null) pojisteni,
-      ?predmet,
-      postup,
-      dokumentyHeliosu,
-    ];
+    final stav = <Widget>[?predmet, postup, dokumentyHeliosu];
 
     return Column(
       children: [
@@ -393,6 +342,134 @@ class _DetailHeader extends StatelessWidget {
     final isIOS = context.isIOS;
     final palette = context.palette;
 
+    final identifikace = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            // V rozděleném zobrazení není kam se vracet - detail je
+            // vedle seznamu, ne nad ním.
+            if (zobrazitZpet) ...[
+              Semantics(
+                button: true,
+                label: 'Zpět na seznam zakázek',
+                child: GestureDetector(
+                  onTap: onBack,
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(
+                        // iOS chevron, Android arrow.
+                        isIOS
+                            ? Icons.arrow_back_ios_new_rounded
+                            : Icons.arrow_back_rounded,
+                        size: isIOS ? 20 : 22,
+                        color: palette.naHlavicce,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: Insets.xxs),
+            ],
+            Text(
+              order.id,
+              style: AppTextStyles.orderNumber.copyWith(
+                fontSize: 13,
+                letterSpacing: 0.52,
+                color: palette.naHlavicceTlumene,
+              ),
+            ),
+            const SizedBox(width: Insets.base),
+            StatusBadge(stav: order.stav, fontSize: 12),
+          ],
+        ),
+        const SizedBox(height: Insets.lg),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 11,
+          runSpacing: Insets.xs,
+          children: [
+            Text(
+              order.licensePlate,
+              style: AppTextStyles.plateLarge.copyWith(
+                color: palette.naHlavicce,
+              ),
+            ),
+            Text(
+              order.model,
+              style: TextStyle(
+                fontFamily: AppFonts.sans,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: palette.naHlavicceTlumene,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Insets.base),
+        // VIN má vlastní řádek a je výraznější než ostatní údaje: podle
+        // něj se vůz dohledává a často se přepisuje do jiných systémů.
+        Row(
+          children: [
+            Text(
+              'VIN',
+              style: AppTextStyles.metaSmall.copyWith(
+                color: palette.naHlavicceTlumene,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: SelectableText(
+                order.vin,
+                maxLines: 1,
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontSize: 15,
+                  color: palette.naHlavicce,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Insets.xs),
+        Text(
+          order.customerName,
+          style: AppTextStyles.cardBody.copyWith(color: palette.naHlavicce),
+        ),
+        if (order.mechanicName != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            '${ServiceOrder.rolePopisek}: ${order.mechanicName}',
+            style: AppTextStyles.meta.copyWith(
+              color: palette.naHlavicceTlumene,
+            ),
+          ),
+        ],
+        const SizedBox(height: Insets.base),
+        Wrap(
+          spacing: Insets.sm,
+          runSpacing: Insets.sm,
+          children: [
+            // Stav z Heliosu zeleně - Helios je zelený, takže je na první
+            // pohled poznat, který stav je z ERP a který z dílny.
+            if (order.heliosStatus != null)
+              _HeaderChip(order.heliosStatus!, barva: AppColors.heliosGreen),
+            // Typ hned za stavem: říká o zakázce víc než pobočka, a mezi
+            // šedými štítky by se jako poslední ztratil.
+            if (order.typZakazky != null)
+              _HeaderChip(order.typZakazky!.nazev, zvyrazneny: true),
+            if (order.department != null) _HeaderChip(order.departmentLabel),
+            _HeaderChip(order.branchLabel),
+          ],
+        ),
+      ],
+    );
+
     return Container(
       decoration: dekoraceHlavicky(palette),
       padding: EdgeInsets.fromLTRB(
@@ -401,133 +478,147 @@ class _DetailHeader extends StatelessWidget {
         Insets.xxl,
         Insets.xl,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // V rozděleném zobrazení není kam se vracet - detail je
-              // vedle seznamu, ne nad ním.
-              if (zobrazitZpet) ...[
-                Semantics(
-                  button: true,
-                  label: 'Zpět na seznam zakázek',
-                  child: GestureDetector(
-                    onTap: onBack,
-                    behavior: HitTestBehavior.opaque,
-                    child: SizedBox(
-                      width: 38,
-                      height: 38,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Icon(
-                          // iOS chevron, Android arrow.
-                          isIOS
-                              ? Icons.arrow_back_ios_new_rounded
-                              : Icons.arrow_back_rounded,
-                          size: isIOS ? 20 : 22,
-                          color: palette.naHlavicce,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: Insets.xxs),
-              ],
-              Text(
-                order.id,
-                style: AppTextStyles.orderNumber.copyWith(
-                  fontSize: 13,
-                  letterSpacing: 0.52,
-                  color: palette.naHlavicceTlumene,
-                ),
-              ),
-              const SizedBox(width: Insets.base),
-              StatusBadge(stav: order.stav, fontSize: 12),
-            ],
-          ),
-          const SizedBox(height: Insets.lg),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 11,
-            runSpacing: Insets.xs,
-            children: [
-              Text(
-                order.licensePlate,
-                style: AppTextStyles.plateLarge.copyWith(
-                  color: palette.naHlavicce,
-                ),
-              ),
-              Text(
-                order.model,
-                style: TextStyle(
-                  fontFamily: AppFonts.sans,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: palette.naHlavicceTlumene,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.base),
-          // VIN má vlastní řádek a je výraznější než ostatní údaje: podle
-          // něj se vůz dohledává a často se přepisuje do jiných systémů.
-          Row(
-            children: [
-              Text(
-                'VIN',
-                style: AppTextStyles.metaSmall.copyWith(
-                  color: palette.naHlavicceTlumene,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(width: Insets.sm),
-              Expanded(
-                child: SelectableText(
-                  order.vin,
-                  maxLines: 1,
-                  style: AppTextStyles.monoLabel.copyWith(
-                    fontSize: 15,
-                    color: palette.naHlavicce,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.xs),
-          Text(
-            order.customerName,
-            style: AppTextStyles.cardBody.copyWith(color: palette.naHlavicce),
-          ),
-          if (order.mechanicName != null) ...[
-            const SizedBox(height: 2),
+      // Termíny a pojištění vpravo vedle vozu; na telefonu se vedle
+      // nevejdou, tak jdou pod štítky.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final vedle = constraints.maxWidth >= _sirkaProUdajeVedle;
+          final udaje = _UdajeZakazky(order: order, vedle: vedle);
+          return vedle
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: identifikace),
+                    const SizedBox(width: Insets.xxl),
+                    udaje,
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    identifikace,
+                    const SizedBox(height: Insets.lg),
+                    udaje,
+                  ],
+                );
+        },
+      ),
+    );
+  }
+}
+
+/// Od téhle šířky hlavičky jsou termíny a pojištění vpravo vedle vozu.
+/// Míň by na identifikaci vozu zbylo tak málo, že by se nevešel ani
+/// řádek s číslem zakázky a stavem.
+const double _sirkaProUdajeVedle = 820;
+
+/// Přijato, termín dokončení a u pojistné zakázky pojišťovna a číslo
+/// pojistné události - v hlavičce, ať jsou vidět hned po otevření a
+/// nezabírají místo kartami v těle detailu.
+class _UdajeZakazky extends StatelessWidget {
+  const _UdajeZakazky({required this.order, required this.vedle});
+
+  final ServiceOrder order;
+
+  /// Vedle identifikace vozu: pevné sloupce. Pod ní půl na půl.
+  final bool vedle;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    // Na navy hlavičce by plná červená zanikla.
+    final poTerminu = order.isOverdue()
+        ? (context.isDarkMode ? const Color(0xFFFF7A7A) : AppColors.danger)
+        : null;
+    final pojistna = order.pojisteniPopisek != null;
+
+    Widget udaj(
+      String label,
+      String hodnota, {
+      Color? barva,
+      bool mono = true,
+      bool vlevo = false,
+      bool nahore = false,
+    }) {
+      return Padding(
+        padding: EdgeInsets.only(
+          right: vlevo ? Insets.xl : 0,
+          bottom: nahore && pojistna ? Insets.md : 0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              '${ServiceOrder.rolePopisek}: ${order.mechanicName}',
-              style: AppTextStyles.meta.copyWith(
+              label,
+              style: AppTextStyles.overline.copyWith(
+                fontSize: 10.5,
                 color: palette.naHlavicceTlumene,
               ),
             ),
+            const SizedBox(height: 3),
+            Text(
+              hodnota,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  (mono
+                          ? AppTextStyles.dataValue.copyWith(fontSize: 15)
+                          : AppTextStyles.cardBody.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ))
+                      .copyWith(color: barva ?? palette.naHlavicce),
+            ),
           ],
-          const SizedBox(height: Insets.base),
-          Wrap(
-            spacing: Insets.sm,
-            runSpacing: Insets.sm,
+        ),
+      );
+    }
+
+    return Table(
+      key: const Key('hlavicka-udaje'),
+      // Vedle vozu pevně: první sloupec širší, ať se název pojišťovny
+      // vejde na řádek.
+      columnWidths: vedle
+          ? const {0: FixedColumnWidth(230), 1: FixedColumnWidth(170)}
+          : const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
+      children: [
+        TableRow(
+          children: [
+            // Bez času: hodina příjmu nikoho nezajímá.
+            udaj(
+              'PŘIJATO',
+              order.receivedAt == null
+                  ? 'Neuvedeno'
+                  : AppDateFormat.date(order.receivedAt!),
+              vlevo: true,
+              nahore: true,
+            ),
+            udaj(
+              'TERMÍN DOKONČENÍ',
+              order.dueAt == null
+                  ? 'Neuvedeno'
+                  : AppDateFormat.date(order.dueAt!),
+              barva: poTerminu,
+              nahore: true,
+            ),
+          ],
+        ),
+        if (pojistna)
+          TableRow(
             children: [
-              // Stav z Heliosu zeleně - Helios je zelený, takže je na první
-              // pohled poznat, který stav je z ERP a který z dílny.
-              if (order.heliosStatus != null)
-                _HeaderChip(order.heliosStatus!, barva: AppColors.heliosGreen),
-              // Typ hned za stavem: říká o zakázce víc než pobočka, a mezi
-              // šedými štítky by se jako poslední ztratil.
-              if (order.typZakazky != null)
-                _HeaderChip(order.typZakazky!.nazev, zvyrazneny: true),
-              if (order.department != null) _HeaderChip(order.departmentLabel),
-              _HeaderChip(order.branchLabel),
+              udaj(
+                'POJIŠŤOVNA',
+                order.pojistovna ?? 'Neuvedeno',
+                mono: false,
+                vlevo: true,
+              ),
+              udaj(
+                'POJISTNÁ UDÁLOST',
+                order.cisloPojistneUdalosti ?? 'Neuvedeno',
+              ),
             ],
           ),
-        ],
-      ),
+      ],
     );
   }
 }

@@ -91,4 +91,32 @@ void main() {
     expect(fotky.top, lessThan(postup.top));
     expect(fotky.width, greaterThan(700));
   });
+
+  final udaje = find.byKey(const Key('hlavicka-udaje'));
+
+  testWidgets('na tabletu jsou termíny v hlavičce vpravo vedle vozu', (
+    tester,
+  ) async {
+    await otevri(tester, const Size(1280, 800));
+
+    final spz = tester.getRect(find.text('1AA 1111'));
+    final rect = tester.getRect(udaje);
+    expect(rect.left, greaterThan(640));
+    expect(rect.top, lessThan(spz.bottom));
+    expect(
+      find.descendant(of: udaje, matching: find.text('TERMÍN DOKONČENÍ')),
+      findsOneWidget,
+    );
+    // Karty s termíny v těle detailu už nejsou.
+    expect(find.text('PŘIJATO'), findsOneWidget);
+  });
+
+  testWidgets('na telefonu jsou termíny v hlavičce pod vozem', (tester) async {
+    await otevri(tester, const Size(600, 1400));
+
+    final spz = tester.getRect(find.text('1AA 1111'));
+    final rect = tester.getRect(udaje);
+    expect(rect.top, greaterThan(spz.bottom));
+    expect(rect.left, lessThan(100));
+  });
 }

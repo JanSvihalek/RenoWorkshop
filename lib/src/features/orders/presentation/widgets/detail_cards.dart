@@ -90,38 +90,3 @@ class HeliosZnacka extends StatelessWidget {
     );
   }
 }
-
-/// Info box s jedním údajem - "PŘIJATO", "TERMÍN DOKONČENÍ".
-class InfoBox extends StatelessWidget {
-  const InfoBox({
-    super.key,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return DetailCard(
-      padding: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: 13),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionLabel(label),
-          const SizedBox(height: 5),
-          Text(
-            value,
-            style: AppTextStyles.dataValue.copyWith(
-              color: valueColor ?? palette.text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -111,7 +111,12 @@
           "title": "Diagnostika",
           "text": "Kontrola parkovacích senzorů vzadu po opravě."
         }
-      ]
+      ],
+      "insurer": {
+        "id": 60001,
+        "name": "Kooperativa pojišťovna, a.s."
+      },
+      "insuranceClaimNumber": "4201234567"
     },
     {
       "id": "Z1212608455",
@@ -199,7 +204,12 @@
           "title": "Brzdy",
           "text": "Výměna předních brzdových destiček a kotoučů."
         }
-      ]
+      ],
+      "insurer": {
+        "id": 60003,
+        "name": "Česká pojišťovna a.s."
+      },
+      "insuranceClaimNumber": "2026-118805"
     },
     {
       "id": "Z1212608301",
@@ -618,7 +628,12 @@
           "title": "Karoserie",
           "text": "Poškozený přední blatník po parkování."
         }
-      ]
+      ],
+      "insurer": {
+        "id": 60002,
+        "name": "Allianz pojišťovna, a.s."
+      },
+      "insuranceClaimNumber": "7900112233"
     },
     {
       "id": "Z1212607944",
