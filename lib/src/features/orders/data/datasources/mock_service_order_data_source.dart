@@ -396,12 +396,27 @@ class MockServiceOrderDataSource
     return List.of(_dokumenty[orderId] ?? const []);
   }
 
-  /// Ukázková data Helios nemají - karta ukáže, že dokumenty nejsou.
+  /// Každá ukázková zakázka má v Heliosu jeden zakázkový list - ať je
+  /// karta Dokumenty Helios vidět i bez firemní sítě.
   @override
   Future<List<Dokument>> dokumentyHeliosu(String orderId) async {
     await _simulateLatency();
-    return const [];
+    final orders = await _ensureLoaded();
+    final index = _indexOf(orders, orderId);
+    if (index < 0) return const [];
+    final prijato = orders[index].receivedAt;
+    return [
+      Dokument(
+        id: _ukazkovyZakazkovyList,
+        nazev: 'Zakázkový list $orderId.pdf',
+        velikost: null,
+        zmenenoAt: prijato == null ? null : DateTime.tryParse(prijato),
+        zHeliosu: true,
+      ),
+    ];
   }
+
+  static const _ukazkovyZakazkovyList = 'helios-ukazka';
 
   @override
   Future<Dokument> nahrajDokument(
@@ -424,6 +439,10 @@ class MockServiceOrderDataSource
 
   @override
   Future<Uint8List> stahniDokument(String orderId, String id) async {
+    if (id == _ukazkovyZakazkovyList) {
+      final data = await _bundle.load('assets/mock/zakazkovy_list_ukazka.pdf');
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }
     final bajty = _bajtyDokumentu[id];
     if (bajty == null) throw StateError('Dokument $id v mocku není.');
     return bajty;

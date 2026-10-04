@@ -7,6 +7,7 @@ import '../navigace/pozadavek_skeneru.dart';
 import '../../features/prijem/presentation/controllers/prijem_providers.dart';
 import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../../features/vozidla/presentation/controllers/vozidla_providers.dart';
+import 'ukazkova_data_pruh.dart';
 import 'workshop_bottom_nav.dart';
 import 'workshop_side_nav.dart';
 
@@ -66,7 +67,14 @@ class WorkshopScaffold extends ConsumerWidget {
               active: aktivni,
               onSelect: (tab) => _prepni(ref, tab.index),
             ),
-            Expanded(child: navigationShell),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: navigationShell),
+                  const UkazkovaDataPruh(),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -74,9 +82,16 @@ class WorkshopScaffold extends ConsumerWidget {
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: WorkshopBottomNav(
-        active: aktivni,
-        onSelect: (tab) => _prepni(ref, tab.index),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Nad lištou - spodní okraj obrazovky drží lišta.
+          const UkazkovaDataPruh(dolniOkraj: false),
+          WorkshopBottomNav(
+            active: aktivni,
+            onSelect: (tab) => _prepni(ref, tab.index),
+          ),
+        ],
       ),
     );
   }

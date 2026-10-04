@@ -34,6 +34,9 @@ abstract final class AppColors {
 
   /// Stav z Heliosu. Zelená schválně - Helios má zelenou, takže je na
   /// první pohled poznat, který údaj je z ERP a který z dílny.
+  /// Pruh "Ukázková data" - nesmí splynout s ničím, co znamená ostrá data.
+  static const Color ukazkovaData = Color(0xFFFFB900);
+
   static const Color heliosGreen = Color(0xFF2E7D32);
 
   /// Zelená Heliosu na tmavém podkladu - tmavá by tam nebyla čitelná.

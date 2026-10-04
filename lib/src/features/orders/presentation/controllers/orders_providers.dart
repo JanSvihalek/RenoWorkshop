@@ -19,11 +19,26 @@ import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../../../app/log_udalosti_provider.dart';
 
-/// Zdroj dat: bez `API_BASE_URL` mock JSON, s ním reálné API.
+/// Má build adresu služby (`API_BASE_URL`)? Bez ní jede appka jen na
+/// ukázkových datech a není co přepínat. Vlastní provider, ať jde
+/// v testech přepnout.
+final buildSeSluzbouProvider = Provider<bool>((ref) => AppConfig.pouzivaApi);
+
+/// Jede appka proti ostré službě? Ne, když build službu nemá, nebo když
+/// si technik v nastavení zapnul ukázková data (mimo firemní síť).
+final pouzivaApiProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(buildSeSluzbouProvider) &&
+      !ref.watch(nastaveniProvider.select((n) => n.ukazkovaData)),
+);
+
+/// Zdroj dat: ukázková data z mock JSONu, nebo reálné API.
 /// Jediné místo, kde se to rozhoduje - zbytek appky rozdíl nepozná.
+/// Po přepnutí v nastavení se zdroj vymění a všechno, co z něj čte,
+/// se načte znovu.
 final Provider<ServiceOrderDataSource> serviceOrderDataSourceProvider =
     Provider<ServiceOrderDataSource>((ref) {
-      if (!AppConfig.pouzivaApi) return MockServiceOrderDataSource();
+      if (!ref.watch(pouzivaApiProvider)) return MockServiceOrderDataSource();
 
       final dataSource = RestServiceOrderDataSource(
         baseUrl: Uri.parse(AppConfig.apiBaseUrl),

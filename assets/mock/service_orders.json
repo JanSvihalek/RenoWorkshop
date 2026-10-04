@@ -91,7 +91,27 @@
           "createdAt": "2026-08-23T16:20:00"
         }
       ],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608412-001",
+          "code": "001",
+          "title": "Karoserie",
+          "text": "Promáčklé zadní levé dveře, oprava a lakování."
+        },
+        {
+          "id": "Z1212608412-002",
+          "code": "002",
+          "title": "Karoserie",
+          "text": "Odřený zadní nárazník - přelakovat."
+        },
+        {
+          "id": "Z1212608412-003",
+          "code": "003",
+          "title": "Diagnostika",
+          "text": "Kontrola parkovacích senzorů vzadu po opravě."
+        }
+      ]
     },
     {
       "id": "Z1212608455",
@@ -165,7 +185,21 @@
           "createdAt": "2026-08-25T08:12:00"
         }
       ],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608455-001",
+          "code": "001",
+          "title": "Podvozek",
+          "text": "Klepání přední nápravy při přejezdu nerovností."
+        },
+        {
+          "id": "Z1212608455-002",
+          "code": "002",
+          "title": "Brzdy",
+          "text": "Výměna předních brzdových destiček a kotoučů."
+        }
+      ]
     },
     {
       "id": "Z1212608301",
@@ -268,7 +302,21 @@
       "serviceAdvisorName": null,
       "bay": "Stání 7",
       "notes": [],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608301-001",
+          "code": "001",
+          "title": "Servisní prohlídka",
+          "text": "Výměna oleje, filtrů a kontrola dle plánu údržby."
+        },
+        {
+          "id": "Z1212608301-002",
+          "code": "002",
+          "title": "Elektro",
+          "text": "Občas nefunguje bezklíčkové odemykání řidičových dveří."
+        }
+      ]
     },
     {
       "id": "Z1222608077",
@@ -311,7 +359,20 @@
       "serviceAdvisorName": null,
       "bay": "Moto box",
       "notes": [],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1222608077-001",
+          "code": "001",
+          "title": "Servisní prohlídka",
+          "text": "Pravidelná prohlídka po 20 000 km."
+        },
+        {
+          "id": "Z1222608077-002",
+          "code": "002",
+          "text": "Zákazník hlásí pískání brzdy vzadu."
+        }
+      ]
     },
     {
       "id": "Z1212608501",
@@ -549,7 +610,15 @@
       "serviceAdvisorName": null,
       "bay": "Stání 3",
       "notes": [],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608390-001",
+          "code": "001",
+          "title": "Karoserie",
+          "text": "Poškozený přední blatník po parkování."
+        }
+      ]
     },
     {
       "id": "Z1212607944",
@@ -738,7 +807,27 @@
           "createdAt": "2026-08-24T13:05:00"
         }
       ],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608233-001",
+          "code": "001",
+          "title": "Motor",
+          "text": "Svítí kontrolka motoru, chybová paměť: tlak plnění."
+        },
+        {
+          "id": "Z1212608233-002",
+          "code": "002",
+          "title": "Motor",
+          "text": "Únik oleje v oblasti turbodmychadla."
+        },
+        {
+          "id": "Z1212608233-003",
+          "code": "003",
+          "title": "Pneuservis",
+          "text": "Přezutí na zimní kola, uskladnění letních."
+        }
+      ]
     },
     {
       "id": "Z1212608466",
@@ -781,7 +870,21 @@
       "serviceAdvisorName": null,
       "bay": null,
       "notes": [],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608466-001",
+          "code": "001",
+          "title": "Elektro",
+          "text": "Aktualizace softwaru vozu."
+        },
+        {
+          "id": "Z1212608466-002",
+          "code": "002",
+          "title": "Klimatizace",
+          "text": "Klimatizace slabě chladí."
+        }
+      ]
     },
     {
       "id": "Z1212608520",
@@ -921,7 +1024,15 @@
       "serviceAdvisorName": null,
       "bay": "Stání 5",
       "notes": [],
-      "workItems": []
+      "workItems": [],
+      "defects": [
+        {
+          "id": "Z1212608344-001",
+          "code": "001",
+          "title": "Servisní prohlídka",
+          "text": "Výměna oleje a mikrofiltru."
+        }
+      ]
     },
     {
       "id": "Z1212608102",

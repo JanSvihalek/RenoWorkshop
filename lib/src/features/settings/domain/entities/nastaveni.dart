@@ -106,6 +106,7 @@ class Nastaveni {
     this.skenovatPoOtevreni = true,
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
     this.uvodniZalozka = UvodniZalozka.zakazky,
+    this.ukazkovaData = false,
   });
 
   final RezimVzhledu vzhled;
@@ -154,6 +155,11 @@ class Nastaveni {
   /// Kam se aplikace otevře po spuštění a po přihlášení.
   final UvodniZalozka uvodniZalozka;
 
+  /// Smyšlené zakázky místo Heliosu, i když build služba má. Mimo firemní
+  /// síť se na server nedostane - takhle jde appku aspoň projít
+  /// a ukázat. Nic z toho se do Heliosu ani na server nezapíše.
+  final bool ukazkovaData;
+
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
@@ -174,6 +180,7 @@ class Nastaveni {
     bool? skenovatPoOtevreni,
     ZobrazeniZakazek? zobrazeniZakazek,
     UvodniZalozka? uvodniZalozka,
+    bool? ukazkovaData,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -191,6 +198,7 @@ class Nastaveni {
       skenovatPoOtevreni: skenovatPoOtevreni ?? this.skenovatPoOtevreni,
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
       uvodniZalozka: uvodniZalozka ?? this.uvodniZalozka,
+      ukazkovaData: ukazkovaData ?? this.ukazkovaData,
     );
   }
 
@@ -207,7 +215,8 @@ class Nastaveni {
           other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
           other.skenovatPoOtevreni == skenovatPoOtevreni &&
           other.zobrazeniZakazek == zobrazeniZakazek &&
-          other.uvodniZalozka == uvodniZalozka);
+          other.uvodniZalozka == uvodniZalozka &&
+          other.ukazkovaData == ukazkovaData);
 
   @override
   int get hashCode => Object.hash(
@@ -221,5 +230,6 @@ class Nastaveni {
     skenovatPoOtevreni,
     zobrazeniZakazek,
     uvodniZalozka,
+    ukazkovaData,
   );
 }

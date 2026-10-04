@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
+
+export '../../../orders/presentation/controllers/orders_providers.dart'
+    show buildSeSluzbouProvider, pouzivaApiProvider;
 
 /// Co ukazuje řádek pod přihlášením.
 enum StavServeru {
@@ -17,7 +19,7 @@ enum StavServeru {
   /// Služba neodpovídá: telefon je mimo firemní síť, nebo služba neběží.
   nedostupny('Nedostupný'),
 
-  /// Build bez API - jede na ukázkových datech.
+  /// Build bez API nebo zapnutá ukázková data - na server se neptá.
   ukazka('Ukázková data');
 
   const StavServeru(this.popisek);
@@ -31,10 +33,6 @@ enum StavServeru {
   String get sPopisem =>
       this == StavServeru.ukazka ? popisek : 'Server: ${popisek.toLowerCase()}';
 }
-
-/// Jede build proti ostré službě? Vlastní provider, ať jde v testech
-/// přepnout - jinak by se stav serveru testoval jen v režimu ukázkových dat.
-final pouzivaApiProvider = Provider<bool>((ref) => AppConfig.pouzivaApi);
 
 /// Jak často se to zkouší znovu, dokud server neodpovídá. Technik zapne
 /// wi-fi a čeká u přihlašovací obrazovky - má se to spravit samo, bez

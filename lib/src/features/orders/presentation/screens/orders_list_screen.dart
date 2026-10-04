@@ -182,6 +182,12 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
               error: (error, _) => _ListError(
                 message: '$error',
                 onRetry: () => ref.invalidate(ordersStreamProvider),
+                // Mimo firemní síť se nenačte nic - aspoň ukázka appky.
+                onUkazkovaData: ref.watch(pouzivaApiProvider)
+                    ? () => ref
+                          .read(nastaveniProvider.notifier)
+                          .zmenUkazkovaData(true)
+                    : null,
               ),
               // Stažení prstem funguje i nad prázdným a krátkým seznamem:
               // dílenský stav je sdílený a člověk chce vidět, co mezitím
@@ -852,10 +858,17 @@ class _EmployeeAvatar extends StatelessWidget {
 }
 
 class _ListError extends StatelessWidget {
-  const _ListError({required this.message, required this.onRetry});
+  const _ListError({
+    required this.message,
+    required this.onRetry,
+    this.onUkazkovaData,
+  });
 
   final String message;
   final VoidCallback onRetry;
+
+  /// Přepne na ukázková data; `null` = tlačítko se neukáže.
+  final VoidCallback? onUkazkovaData;
 
   @override
   Widget build(BuildContext context) {
@@ -880,6 +893,14 @@ class _ListError extends StatelessWidget {
             ),
             const SizedBox(height: Insets.xl),
             FilledButton(onPressed: onRetry, child: const Text('Zkusit znovu')),
+            if (onUkazkovaData != null) ...[
+              const SizedBox(height: Insets.sm),
+              TextButton(
+                key: const Key('zapnout-ukazkova-data'),
+                onPressed: onUkazkovaData,
+                child: const Text('Zobrazit ukázková data'),
+              ),
+            ],
           ],
         ),
       ),

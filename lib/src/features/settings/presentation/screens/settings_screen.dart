@@ -508,6 +508,20 @@ class _OAplikaci extends ConsumerWidget {
             ),
           ),
         const _RadekServeru(),
+        // Jen když build službu má - jinak jsou ukázková data jediná.
+        if (ref.watch(buildSeSluzbouProvider))
+          _Radek(
+            titul: 'Ukázková data',
+            popis:
+                'Smyšlené zakázky místo Heliosu - pro prohlídku appky '
+                'mimo firmu. Nic se neuloží do Heliosu ani na server.',
+            vpravo: Switch.adaptive(
+              key: const Key('ukazkova-data'),
+              value: ref.watch(nastaveniProvider).ukazkovaData,
+              activeTrackColor: AppColors.accent,
+              onChanged: ref.read(nastaveniProvider.notifier).zmenUkazkovaData,
+            ),
+          ),
         _Radek(
           titul: 'Zdroj dat',
           // Ukázková data vypadají stejně jako ostrá, ale znamenají něco
