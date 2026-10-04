@@ -305,31 +305,17 @@ class _DetailBody extends ConsumerWidget {
     // Zakázkový list a další dokumenty z EDM Heliosu, jen ke čtení.
     final dokumentyHeliosu = DokumentyHeliosuKarta(orderId: order.id);
 
-    // Na širokém tabletu dva sloupce: vlevo údaje o voze a příjmu (kdy
-    // přišel, pojištění, příjem, fotky), vpravo práce na něm (postup,
-    // poznámky, závady). Přes celou šířku by karty byly nepřehledně
-    // roztažené.
-    final ctenari = <Widget>[
-      datumy,
-      if (order.pojisteniPopisek != null) pojisteni,
-      ?prijem,
-      ?fotky,
-      dokumentyHeliosu,
-    ];
-    // Závady pod poznámkami - k práci na voze patří vedle postupu.
-    final zapisovaci = <Widget>[postup, ?predmet, poznamky, zavady];
-
-    // Na telefonu jeden sloupec v pořadí, jak se zakázka prochází.
-    final zaSebou = <Widget>[
+    // Na širokém tabletu dva sloupce: vlevo práce na voze (závady, příjem,
+    // fotky, pracovní list), vpravo stav zakázky (termíny, pojištění,
+    // postup, dokumenty z Heliosu). Přes celou šířku by karty byly
+    // nepřehledně roztažené.
+    final prace = <Widget>[zavady, ?prijem, ?fotky, poznamky];
+    final stav = <Widget>[
       datumy,
       if (order.pojisteniPopisek != null) pojisteni,
       ?predmet,
       postup,
-      ?prijem,
-      ?fotky,
       dokumentyHeliosu,
-      poznamky,
-      zavady,
     ];
 
     return Column(
@@ -344,11 +330,12 @@ class _DetailBody extends ConsumerWidget {
                     children: [
                       // Každý sloupec se posouvá zvlášť - časová osa bývá
                       // dlouhá a nemá tahat dolů i zbytek.
-                      Expanded(child: _Sloupec(karty: ctenari)),
-                      Expanded(child: _Sloupec(karty: zapisovaci)),
+                      Expanded(child: _Sloupec(karty: prace)),
+                      Expanded(child: _Sloupec(karty: stav)),
                     ],
                   )
-                : _Sloupec(karty: zaSebou),
+                // Na telefonu jeden sloupec: nejdřív práce, pak stav.
+                : _Sloupec(karty: [...prace, ...stav]),
           ),
         ),
       ],

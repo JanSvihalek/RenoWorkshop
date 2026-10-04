@@ -8,8 +8,9 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Na širokém tabletu má detail dva sloupce: vlevo co se čte, vpravo co
-/// se zapisuje. Na telefonu i v rozděleném zobrazení zůstává jeden.
+/// Na širokém tabletu má detail dva sloupce: vlevo práce na voze (závady,
+/// příjem, fotky, pracovní list), vpravo stav zakázky (postup, dokumenty
+/// z Heliosu). Na telefonu i v rozděleném zobrazení zůstává jeden.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -43,26 +44,41 @@ void main() {
   final fotkyKarta = find.byKey(const Key('otevrit-fotodokumentaci'));
   final postupKarta = find.byKey(const Key('pridat-stav'));
 
-  testWidgets('na širokém tabletu je zápis vpravo od údajů', (tester) async {
+  testWidgets('na širokém tabletu je stav vpravo od práce', (tester) async {
     await otevri(tester, const Size(1280, 800));
 
     final vlevo = tester.getRect(fotkyKarta);
     final vpravo = tester.getRect(postupKarta);
-    // Fotodokumentace (ke čtení) končí dřív, než začíná postup (zápis).
+    // Fotodokumentace (práce) končí dřív, než začíná postup (stav).
     expect(vlevo.right, lessThanOrEqualTo(vpravo.left));
     // Každá karta je ve své polovině obrazovky.
     expect(vlevo.right, lessThan(640));
     expect(vpravo.left, greaterThan(640));
   });
 
-  testWidgets('na tabletu jsou závady vpravo pod poznámkami', (tester) async {
-    // Vysoký, ať je celý pravý sloupec postavený najednou.
+  testWidgets('na tabletu jsou vlevo závady, příjem, fotky a pracovní list', (
+    tester,
+  ) async {
+    // Vysoký, ať jsou oba sloupce postavené najednou.
     await otevri(tester, const Size(1280, 2400));
 
-    final zavady = tester.getRect(find.text('ZÁVADY/ÚKONY'));
-    final poznamky = tester.getRect(find.text('POZNÁMKY'));
-    expect(zavady.left, greaterThan(640));
-    expect(zavady.top, greaterThan(poznamky.top));
+    double y(Finder f) => tester.getRect(f).top;
+    final zavady = find.text('ZÁVADY/ÚKONY');
+    final prijem = find.byKey(const Key('otevrit-prijem'));
+    final poznamky = find.text('PRACOVNÍ LIST / POZNÁMKY');
+
+    for (final karta in [zavady, prijem, fotkyKarta, poznamky]) {
+      expect(tester.getRect(karta).right, lessThan(640));
+    }
+    expect(y(zavady), lessThan(y(prijem)));
+    expect(y(prijem), lessThan(y(fotkyKarta)));
+    expect(y(fotkyKarta), lessThan(y(poznamky)));
+
+    // Vpravo stav: postup a pod ním dokumenty z Heliosu.
+    final dokumenty = find.byKey(const Key('dokumenty-heliosu'));
+    expect(tester.getRect(postupKarta).left, greaterThan(640));
+    expect(tester.getRect(dokumenty).left, greaterThan(640));
+    expect(y(postupKarta), lessThan(y(dokumenty)));
   });
 
   testWidgets('na telefonu jsou karty pod sebou', (tester) async {
@@ -70,8 +86,9 @@ void main() {
 
     final postup = tester.getRect(postupKarta);
     final fotky = tester.getRect(fotkyKarta);
-    // Jeden sloupec: fotodokumentace je pod postupem a přes celou šířku.
-    expect(fotky.top, greaterThan(postup.top));
+    // Jeden sloupec: nejdřív práce (fotky), pod ní stav (postup), přes
+    // celou šířku.
+    expect(fotky.top, lessThan(postup.top));
     expect(fotky.width, greaterThan(700));
   });
 }

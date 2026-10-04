@@ -70,6 +70,11 @@ void main() {
 
     expect(find.text('Lakovna'), findsNothing);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pridat-stav')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.ensureVisible(find.byKey(const Key('pridat-stav')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('pridat-stav')));

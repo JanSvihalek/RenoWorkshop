@@ -210,6 +210,11 @@ void main() {
     // Detail zakázky, ne hláška - karta vozidla ukazuje hlavně staré
     // zakázky a ty nejsou v seznamu dílny.
     expect(find.textContaining('nebyla nalezena'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('POSTUP ZAKÁZKY'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
   });
 

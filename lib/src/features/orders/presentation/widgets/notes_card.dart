@@ -27,7 +27,7 @@ class NotesCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(child: SectionLabel('POZNÁMKY')),
+              const Expanded(child: SectionLabel('PRACOVNÍ LIST / POZNÁMKY')),
               Semantics(
                 button: true,
                 child: GestureDetector(

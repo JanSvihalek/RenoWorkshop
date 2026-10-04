@@ -64,14 +64,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
+      expect(find.text('ZÁVADY/ÚKONY'), findsOneWidget);
 
       // Spodní karty jsou pod přehybem - projdeme celý obsah.
-      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.scrollUntilVisible(
+        find.text('POSTUP ZAKÁZKY'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('ZÁVADY/ÚKONY'), findsOneWidget);
-      expect(find.text('POZNÁMKY'), findsOneWidget);
+      expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

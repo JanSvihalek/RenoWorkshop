@@ -118,6 +118,12 @@ void main() {
     await tester.tap(find.text('8AB 4721'));
     await tester.pumpAndSettle();
 
+    // Postup je ve stavu zakázky, pod prací na voze.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pridat-stav')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
     // Stav se přidává odkazem v kartě postupu, velké tlačítko dole zmizelo.
     expect(find.text('Přidat stav'), findsNothing);

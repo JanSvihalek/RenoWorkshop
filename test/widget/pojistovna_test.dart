@@ -69,6 +69,12 @@ void main() {
     await tester.tap(find.text('8AB 4721'));
     await tester.pumpAndSettle();
 
+    // Pojištění je ve stavu zakázky, pod prací na voze.
+    await tester.scrollUntilVisible(
+      find.text('POJIŠŤOVNA'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('POJIŠŤOVNA'), findsOneWidget);
     expect(find.text('Kooperativa'), findsOneWidget);
     expect(find.text('POJISTNÁ UDÁLOST'), findsOneWidget);
