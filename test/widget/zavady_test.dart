@@ -85,7 +85,7 @@ void main() {
     expect(find.byType(Checkbox), findsNothing);
   });
 
-  testWidgets('pořadí karet: závady, pracovní list, postup', (tester) async {
+  testWidgets('pořadí karet: závady, postup, pracovní list', (tester) async {
     // Vysoké okno: všechny tři karty musí být postavené najednou, líný
     // seznam by po odrolování k závadám postup zahodil.
     tester.view.physicalSize = const Size(800, 3000);
@@ -95,14 +95,14 @@ void main() {
     await otevri(tester, '8AB 4721');
 
     await tester.scrollUntilVisible(
-      find.text('POSTUP ZAKÁZKY'),
+      find.text('PRACOVNÍ LIST / POZNÁMKY'),
       300,
       scrollable: find.byType(Scrollable).last,
     );
     double y(String text) => tester.getTopLeft(find.text(text)).dy;
 
-    expect(y('ZÁVADY/ÚKONY'), lessThan(y('PRACOVNÍ LIST / POZNÁMKY')));
-    expect(y('PRACOVNÍ LIST / POZNÁMKY'), lessThan(y('POSTUP ZAKÁZKY')));
+    expect(y('ZÁVADY/ÚKONY'), lessThan(y('POSTUP ZAKÁZKY')));
+    expect(y('POSTUP ZAKÁZKY'), lessThan(y('PRACOVNÍ LIST / POZNÁMKY')));
   });
 
   testWidgets('zakázka bez závad to řekne', (tester) async {

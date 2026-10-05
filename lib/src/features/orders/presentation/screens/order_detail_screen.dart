@@ -283,12 +283,12 @@ class _DetailBody extends ConsumerWidget {
     // Zakázkový list a další dokumenty z EDM Heliosu, jen ke čtení.
     final dokumentyHeliosu = DokumentyHeliosuKarta(orderId: order.id);
 
-    // Na širokém tabletu dva sloupce: vlevo práce na voze (závady, příjem,
-    // fotky, pracovní list), vpravo stav zakázky (postup, dokumenty
-    // z Heliosu). Termíny a pojištění jsou v hlavičce. Přes celou šířku
-    // by karty byly nepřehledně roztažené.
-    final prace = <Widget>[zavady, ?prijem, ?fotky, poznamky];
-    final stav = <Widget>[?predmet, postup, dokumentyHeliosu];
+    // Na širokém tabletu dva sloupce: vlevo podklady k vozu (závady, příjem,
+    // fotky, dokumenty z Heliosu), vpravo průběh opravy (postup, pracovní
+    // list). Termíny a pojištění jsou v hlavičce. Přes celou šířku by
+    // karty byly nepřehledně roztažené.
+    final prace = <Widget>[zavady, ?prijem, ?fotky, dokumentyHeliosu];
+    final stav = <Widget>[?predmet, postup, poznamky];
 
     return Column(
       children: [

@@ -8,9 +8,10 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Na širokém tabletu má detail dva sloupce: vlevo práce na voze (závady,
-/// příjem, fotky, pracovní list), vpravo stav zakázky (postup, dokumenty
-/// z Heliosu). Na telefonu i v rozděleném zobrazení zůstává jeden.
+/// Na širokém tabletu má detail dva sloupce: vlevo podklady k vozu
+/// (závady, příjem, fotky, dokumenty z Heliosu), vpravo průběh opravy
+/// (postup, pracovní list). Na telefonu i v rozděleném zobrazení zůstává
+/// jeden.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -56,30 +57,31 @@ void main() {
     expect(vpravo.left, greaterThan(640));
   });
 
-  testWidgets('na tabletu jsou vlevo závady, příjem, fotky a pracovní list', (
-    tester,
-  ) async {
-    // Vysoký, ať jsou oba sloupce postavené najednou.
-    await otevri(tester, const Size(1280, 2400));
+  testWidgets(
+    'na tabletu jsou vlevo závady, příjem, fotky a dokumenty Helios',
+    (tester) async {
+      // Vysoký, ať jsou oba sloupce postavené najednou.
+      await otevri(tester, const Size(1280, 2400));
 
-    double y(Finder f) => tester.getRect(f).top;
-    final zavady = find.text('ZÁVADY/ÚKONY');
-    final prijem = find.byKey(const Key('otevrit-prijem'));
-    final poznamky = find.text('PRACOVNÍ LIST / POZNÁMKY');
+      double y(Finder f) => tester.getRect(f).top;
+      final zavady = find.text('ZÁVADY/ÚKONY');
+      final prijem = find.byKey(const Key('otevrit-prijem'));
+      final dokumenty = find.byKey(const Key('dokumenty-heliosu'));
 
-    for (final karta in [zavady, prijem, fotkyKarta, poznamky]) {
-      expect(tester.getRect(karta).right, lessThan(640));
-    }
-    expect(y(zavady), lessThan(y(prijem)));
-    expect(y(prijem), lessThan(y(fotkyKarta)));
-    expect(y(fotkyKarta), lessThan(y(poznamky)));
+      for (final karta in [zavady, prijem, fotkyKarta, dokumenty]) {
+        expect(tester.getRect(karta).right, lessThan(640));
+      }
+      expect(y(zavady), lessThan(y(prijem)));
+      expect(y(prijem), lessThan(y(fotkyKarta)));
+      expect(y(fotkyKarta), lessThan(y(dokumenty)));
 
-    // Vpravo stav: postup a pod ním dokumenty z Heliosu.
-    final dokumenty = find.byKey(const Key('dokumenty-heliosu'));
-    expect(tester.getRect(postupKarta).left, greaterThan(640));
-    expect(tester.getRect(dokumenty).left, greaterThan(640));
-    expect(y(postupKarta), lessThan(y(dokumenty)));
-  });
+      // Vpravo průběh: postup a pod ním pracovní list.
+      final poznamky = find.text('PRACOVNÍ LIST / POZNÁMKY');
+      expect(tester.getRect(postupKarta).left, greaterThan(640));
+      expect(tester.getRect(poznamky).left, greaterThan(640));
+      expect(y(postupKarta), lessThan(y(poznamky)));
+    },
+  );
 
   testWidgets('na telefonu jsou karty pod sebou', (tester) async {
     await otevri(tester, const Size(800, 1400));
