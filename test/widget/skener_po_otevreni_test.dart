@@ -7,15 +7,15 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/skener_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Příjem i hledání vozu začínají SPZ, takže klepnutí na záložku rovnou
-/// otevře skener. Musí z něj jít rychle k ručnímu psaní a nesmí se
+/// Záložka Vozidlo začíná SPZ, takže klepnutí na ni rovnou otevře
+/// skener. Musí z něj jít rychle k ručnímu psaní a nesmí se
 /// otevírat pořád dokola.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
@@ -61,9 +61,9 @@ void main() {
     await dojed(tester);
   }
 
-  testWidgets('klepnutí na Příjem otevře skener s nápovědou', (tester) async {
+  testWidgets('klepnutí na Vozidlo otevře skener s nápovědou', (tester) async {
     await spust(tester);
-    await klepniNa(tester, 'Příjem');
+    await klepniNa(tester, 'Vozidlo');
 
     expect(find.byType(SkenerScreen), findsOneWidget);
     expect(
@@ -73,25 +73,18 @@ void main() {
     expect(find.byKey(const Key('skener-rucne')), findsOneWidget);
   });
 
-  testWidgets('klepnutí na Vozidla otevře skener', (tester) async {
-    await spust(tester);
-    await klepniNa(tester, 'Vozidla');
-
-    expect(find.byType(SkenerScreen), findsOneWidget);
-  });
-
   testWidgets('Zadat ručně zavře skener a dá kurzor do pole', (tester) async {
     await spust(tester);
-    await klepniNa(tester, 'Příjem');
+    await klepniNa(tester, 'Vozidlo');
 
     await tester.tap(find.byKey(const Key('skener-rucne')));
     await dojed(tester);
 
     expect(find.byType(SkenerScreen), findsNothing);
-    expect(find.byType(PrijemScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
     final pole = tester.widget<EditableText>(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(EditableText),
       ),
     );
@@ -100,22 +93,22 @@ void main() {
 
   testWidgets('zavřený skener se sám znovu neotevře', (tester) async {
     await spust(tester);
-    await klepniNa(tester, 'Příjem');
+    await klepniNa(tester, 'Vozidlo');
 
     await tester.tap(find.byTooltip('Zavřít'));
     await dojed(tester);
 
-    // Zůstane na Příjmu, žádný nový skener.
+    // Zůstane na Vozidle, žádný nový skener.
     expect(find.byType(SkenerScreen), findsNothing);
-    expect(find.byType(PrijemScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
   });
 
   testWidgets('vypnuté v nastavení se skener sám neotevře', (tester) async {
     await spust(tester, nastaveni: const Nastaveni(skenovatPoOtevreni: false));
-    await klepniNa(tester, 'Příjem');
+    await klepniNa(tester, 'Vozidlo');
 
     expect(find.byType(SkenerScreen), findsNothing);
-    expect(find.byType(PrijemScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
   });
 
   testWidgets('skener ze seznamu zakázek nemá Zadat ručně', (tester) async {

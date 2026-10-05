@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
@@ -11,8 +12,7 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/orders_lis
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
@@ -57,11 +57,11 @@ void main() {
   }
 
   Future<void> otevriPrijem(WidgetTester tester) async {
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Vozidlo'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(TextField),
       ),
       '2bk 94',
@@ -291,14 +291,14 @@ void main() {
     tester,
   ) async {
     await spust(tester);
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Vozidlo'));
     await tester.pumpAndSettle();
 
     final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(PrijemScreen)),
+      tester.element(find.byType(VozidloScreen)),
     );
-    kontejner.read(otevritJedinyPrijemProvider.notifier).state = true;
-    kontejner.read(dotazPrijmuProvider.notifier).state = '2BK 9485';
+    kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
+    kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
     await tester.pumpAndSettle();
 
     // U stejných modelů nebo po přeregistraci SPZ se hodí podívat, že je
@@ -308,7 +308,6 @@ void main() {
     expect(find.text('Nalezena otevřená zakázka'), findsOneWidget);
     expect(find.text('NASKENOVÁNO · SPZ'), findsOneWidget);
     expect(find.text('WBATEST0000000001'), findsOneWidget);
-    expect(find.text('Krok 1 ze 4 · Identifikace vozidla'), findsOneWidget);
   });
 
   testWidgets('rozpracovaný příjem karta řekne a nabídne pokračovat', (
@@ -316,11 +315,11 @@ void main() {
   ) async {
     await spust(tester);
     zdroj.prijmy.zmen('ZK-26-0001', 'brzdy', ZmenaPolozky.splneno(true));
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Vozidlo'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(TextField),
       ),
       '2bk 94',
@@ -336,11 +335,11 @@ void main() {
     tester,
   ) async {
     await spust(tester);
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Vozidlo'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(TextField),
       ),
       '2bk 94',
@@ -358,7 +357,7 @@ void main() {
     final kontejner = ProviderScope.containerOf(
       tester.element(find.byType(SkenerScreen)),
     );
-    expect(kontejner.read(dotazPrijmuProvider), isEmpty);
+    expect(kontejner.read(dotazVozidlaProvider), isEmpty);
   });
 
   test('počet nalezených zakázek česky', () {

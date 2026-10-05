@@ -157,7 +157,7 @@ class _Hlavicka extends StatelessWidget {
           const SizedBox(width: Insets.xxs),
           Expanded(
             child: Text(
-              'Vyhledat vozidlo',
+              'Vozidlo',
               style: AppTextStyles.appBarTitle(
                 isIOS: isIOS,
               ).copyWith(color: palette.naHlavicce),

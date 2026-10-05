@@ -12,7 +12,7 @@ import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/screens/karta_vozidla_screen.dart';
-import 'package:renoworkshop/src/features/vozidla/presentation/screens/vyhledavani_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/widgets/identifikace_vozidla_karta.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
@@ -72,9 +72,11 @@ void main() {
             biometricDelay: Duration.zero,
           ),
         ),
+        // Na dílně je jiný vůz - tady se zkouší vůz bez zakázky na dílně,
+        // ten s ní zkouší vozidlo_test.dart.
         serviceOrderDataSourceProvider.overrideWithValue(
           FakeServiceOrderDataSource(
-            [rozdelana],
+            [buildOrderDto(id: 'ZK-26-0009', licensePlate: '5T1 0001')],
             archiv: [ukoncena],
             vozidla: vozidla ?? [vuz()],
           ),
@@ -92,14 +94,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vozidla'));
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
   }
 
   Future<void> napis(WidgetTester tester, String text) async {
     await tester.enterText(
       find.descendant(
-        of: find.byType(VyhledavaniScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(TextField),
       ),
       text,
@@ -115,10 +117,11 @@ void main() {
       )
       .first;
 
-  testWidgets('záložka Vozidla nabídne naskenování SPZ', (tester) async {
+  testWidgets('záložka Vozidlo nabídne naskenování SPZ', (tester) async {
     await naZalozkuVozidel(tester);
 
-    expect(find.text('Vyhledat vozidlo'), findsOneWidget);
+    // Nadpis obrazovky i záložka v liště.
+    expect(find.text('Vozidlo'), findsWidgets);
     expect(find.text('Najděte vozidlo'), findsOneWidget);
   });
 
@@ -223,7 +226,7 @@ void main() {
 
     // Totéž, co udělá skener: vyplní dotaz a řekne, že přišel z fotoaparátu.
     final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(VyhledavaniScreen)),
+      tester.element(find.byType(VozidloScreen)),
     );
     kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
     kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
@@ -238,7 +241,7 @@ void main() {
   testWidgets('Není to ono vrátí k hledání a otevře skener', (tester) async {
     await naZalozkuVozidel(tester);
     final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(VyhledavaniScreen)),
+      tester.element(find.byType(VozidloScreen)),
     );
     kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
     kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
@@ -262,7 +265,7 @@ void main() {
     await naZalozkuVozidel(tester, vozidla: [vuz(id: 1), vuz(id: 2)]);
 
     final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(VyhledavaniScreen)),
+      tester.element(find.byType(VozidloScreen)),
     );
     kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
     kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
@@ -286,10 +289,10 @@ void main() {
 
     // Stejně jako identifikace v příjmu - žádný sloupec s výsledky vedle.
     expect(find.byType(IdentifikaceVozidlaKarta), findsOneWidget);
-    expect(find.byType(VyhledavaniScreen), findsNothing);
+    expect(find.byType(VozidloScreen), findsNothing);
 
     await tester.tap(find.byTooltip('Zpět'));
     await tester.pumpAndSettle();
-    expect(find.byType(VyhledavaniScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
   });
 }

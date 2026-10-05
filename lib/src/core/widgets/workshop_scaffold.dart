@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../layout/rozlozeni.dart';
 import '../navigace/pozadavek_skeneru.dart';
-import '../../features/prijem/presentation/controllers/prijem_providers.dart';
 import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'ukazkova_data_pruh.dart';
@@ -22,28 +21,22 @@ class WorkshopScaffold extends ConsumerWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  /// Přepnutí záložky. Příjem i Vozidla začínají SPZ, takže se na nich
-  /// rovnou nabídne skener - jen při klepnutí na záložku, ne při návratu
+  /// Přepnutí záložky. Vozidlo začíná SPZ, takže se na něm rovnou
+  /// nabídne skener - jen při klepnutí na záložku, ne při návratu
   /// z detailu nebo ze samotného skeneru.
   ///
-  /// Hledání na Příjmu a Vozidlech se klepnutím na záložku vymaže - kdo
-  /// se na ni vrací, jde na další vůz a starý výsledek by jen mátl.
-  /// Musí to být dřív než požadavek na skener: s rozepsaným hledáním se
-  /// skener sám neotvírá.
+  /// Hledání se klepnutím na záložku vymaže - kdo se na ni vrací, jde na
+  /// další vůz a starý výsledek by jen mátl. Musí to být dřív než
+  /// požadavek na skener: s rozepsaným hledáním se skener sám neotvírá.
   void _prepni(WidgetRef ref, int index) {
     final tab = WorkshopTab.values[index];
-    switch (tab) {
-      case WorkshopTab.prijem:
-        ref.read(otevritJedinyPrijemProvider.notifier).state = false;
-        ref.read(dotazPrijmuProvider.notifier).state = '';
-      case WorkshopTab.vyhledavani:
-        ref.read(otevritJedineVozidloProvider.notifier).state = false;
-        ref.read(dotazVozidlaProvider.notifier).state = '';
-      default:
+    if (tab == WorkshopTab.vozidlo) {
+      ref.read(otevritJedineVozidloProvider.notifier).state = false;
+      ref.read(dotazVozidlaProvider.notifier).state = '';
     }
     final skenovat =
         ref.read(nastaveniProvider).skenovatPoOtevreni &&
-        (tab == WorkshopTab.prijem || tab == WorkshopTab.vyhledavani);
+        tab == WorkshopTab.vozidlo;
     ref.read(pozadavekSkeneruProvider.notifier).state = skenovat ? tab : null;
 
     navigationShell.goBranch(

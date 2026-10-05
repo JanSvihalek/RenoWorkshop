@@ -323,7 +323,7 @@ class _SkenerAFotoaparat extends ConsumerWidget {
         ),
         _Radek(
           titul: 'Skenovat hned po otevření',
-          popis: 'Příjem a Vozidla otevřou rovnou skener SPZ.',
+          popis: 'Záložka Vozidlo otevře rovnou skener SPZ.',
           vpravo: Switch.adaptive(
             key: const Key('skenovat-po-otevreni'),
             value: nastaveni.skenovatPoOtevreni,

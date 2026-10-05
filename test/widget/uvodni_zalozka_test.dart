@@ -8,11 +8,10 @@ import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_con
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/skener_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
-import 'package:renoworkshop/src/features/vozidla/presentation/screens/vyhledavani_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -60,20 +59,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(OrdersListScreen), findsOneWidget);
-    expect(find.byType(PrijemScreen), findsNothing);
+    expect(find.byType(VozidloScreen), findsNothing);
   });
 
   testWidgets('úvodní Příjem se otevře po přihlášení', (tester) async {
     await prihlas(
       tester,
       nastaveni: const Nastaveni(
-        uvodniZalozka: UvodniZalozka.prijem,
+        uvodniZalozka: UvodniZalozka.vozidlo,
         skenovatPoOtevreni: false,
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(PrijemScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
     expect(find.byType(SkenerScreen), findsNothing);
   });
 
@@ -81,13 +80,13 @@ void main() {
     await prihlas(
       tester,
       nastaveni: const Nastaveni(
-        uvodniZalozka: UvodniZalozka.vozidla,
+        uvodniZalozka: UvodniZalozka.vozidlo,
         skenovatPoOtevreni: false,
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(VyhledavaniScreen), findsOneWidget);
+    expect(find.byType(VozidloScreen), findsOneWidget);
   });
 
   testWidgets('se skenováním po otevření naskočí rovnou skener', (
@@ -95,7 +94,7 @@ void main() {
   ) async {
     await prihlas(
       tester,
-      nastaveni: const Nastaveni(uvodniZalozka: UvodniZalozka.prijem),
+      nastaveni: const Nastaveni(uvodniZalozka: UvodniZalozka.vozidlo),
     );
     await dojed(tester);
 
@@ -110,13 +109,13 @@ void main() {
 
     final volba = find.descendant(
       of: find.byKey(const Key('uvodni-zalozka')),
-      matching: find.text('Vozidla'),
+      matching: find.text('Vozidlo'),
     );
     await tester.ensureVisible(volba);
     await tester.pumpAndSettle();
     await tester.tap(volba);
     await tester.pumpAndSettle();
 
-    expect(uloziste.nacti().uvodniZalozka, UvodniZalozka.vozidla);
+    expect(uloziste.nacti().uvodniZalozka, UvodniZalozka.vozidlo);
   });
 }

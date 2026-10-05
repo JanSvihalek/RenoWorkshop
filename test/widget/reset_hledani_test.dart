@@ -6,14 +6,13 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/screens/karta_vozidla_screen.dart';
-import 'package:renoworkshop/src/features/vozidla/presentation/screens/vyhledavani_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -80,54 +79,58 @@ void main() {
       .controller!
       .text;
 
-  testWidgets('Příjem po návratu z jiné záložky začíná znovu', (tester) async {
+  testWidgets('karta příjmu po návratu z jiné záložky zmizí', (tester) async {
     await spust(tester);
-    await tester.tap(find.text('Příjem').last);
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
-    await napis(tester, PrijemScreen, '2BK 9485');
+    await napis(tester, VozidloScreen, '2BK 9485');
     expect(find.byType(IdentifikaceKarta), findsOneWidget);
 
     await tester.tap(find.text('Zakázky').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Příjem').last);
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
 
     expect(find.byType(IdentifikaceKarta), findsNothing);
-    expect(pole(tester, PrijemScreen), isEmpty);
+    expect(pole(tester, VozidloScreen), isEmpty);
   });
 
-  testWidgets('Vozidla po návratu z jiné záložky začínají znovu', (
+  testWidgets('hledání vozu po návratu z jiné záložky začíná znovu', (
     tester,
   ) async {
     await spust(tester);
-    await tester.tap(find.text('Vozidla').last);
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
-    await napis(tester, VyhledavaniScreen, '2BK');
+    await napis(tester, VozidloScreen, '2BK');
     expect(find.text('BMW 320d Touring'), findsOneWidget);
 
     await tester.tap(find.text('Zakázky').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vozidla').last);
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
 
     expect(find.text('BMW 320d Touring'), findsNothing);
     expect(find.text('Najděte vozidlo'), findsOneWidget);
-    expect(pole(tester, VyhledavaniScreen), isEmpty);
+    expect(pole(tester, VozidloScreen), isEmpty);
   });
 
   testWidgets('návrat z karty vozidla výsledek nechá', (tester) async {
     await spust(tester);
-    await tester.tap(find.text('Vozidla').last);
+    await tester.tap(find.text('Vozidlo').last);
     await tester.pumpAndSettle();
-    await napis(tester, VyhledavaniScreen, '2BK');
-    await tester.tap(find.text('BMW 320d Touring'));
+    await napis(tester, VozidloScreen, '2BK');
+    // Vůz má zakázku na dílně - karta vozu je pod kartou příjmu.
+    final radek = find.byType(RadekVozidla).first;
+    await tester.ensureVisible(radek);
+    await tester.pumpAndSettle();
+    await tester.tap(radek);
     await tester.pumpAndSettle();
     expect(find.byType(KartaVozidlaScreen), findsOneWidget);
 
     await tester.tap(find.byTooltip('Zpět'));
     await tester.pumpAndSettle();
 
-    expect(find.text('BMW 320d Touring'), findsOneWidget);
-    expect(pole(tester, VyhledavaniScreen), '2BK');
+    expect(find.byType(RadekVozidla), findsWidgets);
+    expect(pole(tester, VozidloScreen), '2BK');
   });
 }

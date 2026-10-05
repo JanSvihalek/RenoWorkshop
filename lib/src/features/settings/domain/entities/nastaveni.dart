@@ -52,14 +52,16 @@ enum UmisteniSpouste {
 /// Nastavení mezi nabídkou není - po startu ho nikdo nepotřebuje.
 enum UvodniZalozka {
   zakazky('Zakázky'),
-  prijem('Příjem'),
-  vozidla('Vozidla');
+  vozidlo('Vozidlo');
 
   const UvodniZalozka(this.label);
 
   final String label;
 
   static UvodniZalozka zNazvu(String? nazev) {
+    // Příjem a Vozidla byly do 1.6 dvě záložky - kdo měl úvodní jednu
+    // z nich, otevře se na Vozidle, které je nahradilo.
+    if (nazev == 'prijem' || nazev == 'vozidla') return UvodniZalozka.vozidlo;
     for (final zalozka in values) {
       if (zalozka.name == nazev) return zalozka;
     }
@@ -116,7 +118,7 @@ class Nastaveni {
   /// Kde je spoušť na obrazovce skeneru SPZ a VINu.
   final UmisteniSpouste spoust;
 
-  /// Po klepnutí na záložku Příjem nebo Vozidla rovnou otevřít skener.
+  /// Po klepnutí na záložku Vozidlo rovnou otevřít skener.
   /// Obojí vždycky začíná SPZ, takže je to o dvě klepnutí míň; kdo píše
   /// radši ručně, si to vypne.
   final bool skenovatPoOtevreni;

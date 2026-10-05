@@ -16,12 +16,6 @@ final prijemDataSourceProvider = Provider<PrijemDataSource>((ref) {
   );
 });
 
-/// Co se hledá na záložce Příjem. Mimo obrazovku, ať ho vyplní skener.
-final dotazPrijmuProvider = StateProvider<String>((ref) => '');
-
-/// Dotaz přišel ze skeneru - jediná nalezená zakázka se otevře rovnou.
-final otevritJedinyPrijemProvider = StateProvider<bool>((ref) => false);
-
 /// Příjem zakázky. Sdílí ho obrazovka checklistu i karta v detailu.
 final prijemZakazkyProvider = AsyncNotifierProvider.autoDispose
     .family<PrijemController, Prijem, String>(PrijemController.new);

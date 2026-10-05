@@ -6,7 +6,7 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_screen.dart';
+import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
@@ -52,11 +52,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Příjem'));
+    await tester.tap(find.text('Vozidlo'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
-        of: find.byType(PrijemScreen),
+        of: find.byType(VozidloScreen),
         matching: find.byType(TextField),
       ),
       '2BK 9485',
