@@ -499,6 +499,20 @@ class MockServiceOrderDataSource
 
   static const _ukazkovyZakazkovyList = 'helios-ukazka';
 
+  /// Ukázkový protokol - stejné ukázkové PDF jako zakázkový list.
+  static const _ukazkovyProtokol = 'protokol-ukazka';
+
+  @override
+  Future<Dokument> vytvorProtokol(String orderId) async {
+    await _simulateLatency();
+    return Dokument(
+      id: _ukazkovyProtokol,
+      nazev: 'Protokol $orderId.pdf',
+      velikost: null,
+      zmenenoAt: DateTime.now(),
+    );
+  }
+
   @override
   Future<Dokument> nahrajDokument(
     String orderId,
@@ -520,7 +534,7 @@ class MockServiceOrderDataSource
 
   @override
   Future<Uint8List> stahniDokument(String orderId, String id) async {
-    if (id == _ukazkovyZakazkovyList) {
+    if (id == _ukazkovyZakazkovyList || id == _ukazkovyProtokol) {
       final data = await _bundle.load('assets/mock/zakazkovy_list_ukazka.pdf');
       return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     }

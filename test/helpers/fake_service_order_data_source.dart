@@ -184,6 +184,27 @@ class FakeServiceOrderDataSource
   Future<Uint8List> stahniDokument(String orderId, String id) async =>
       bajtyDokumentu[id]!;
 
+  /// Kolikrát se žádalo o protokol.
+  int vytvorenychProtokolu = 0;
+
+  /// Hláška, se kterou vytvoření protokolu selže (otevřený soubor...).
+  String? protokolSelze;
+
+  @override
+  Future<Dokument> vytvorProtokol(String orderId) async {
+    final chyba = protokolSelze;
+    if (chyba != null) throw ServiceOrderException(chyba);
+    vytvorenychProtokolu++;
+    final protokol = Dokument(
+      id: 'protokol-$orderId',
+      nazev: 'Protokol $orderId.pdf',
+      velikost: 4,
+      zmenenoAt: DateTime(2026, 10, 5, 14, 30),
+    );
+    bajtyDokumentu[protokol.id] = Uint8List.fromList('%PDF'.codeUnits);
+    return protokol;
+  }
+
   /// Dokumenty z EDM Heliosu podle zakázky; bajty v [bajtyDokumentu].
   final Map<String, List<Dokument>> dokumentyHeliosuZakazek = {};
 

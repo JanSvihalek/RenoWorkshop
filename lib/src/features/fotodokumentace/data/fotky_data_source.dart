@@ -52,6 +52,10 @@ abstract interface class FotkyDataSource {
   /// `GET /orders/{id}/helios-documents` - dokumenty zakázky z EDM Heliosu
   /// (zakázkový list...), nejnovější první. Jen ke čtení.
   Future<List<Dokument>> dokumentyHeliosu(String orderId);
+
+  /// `POST /orders/{id}/protocol` - vytvoří (přepíše) PDF protokol zakázky
+  /// ve složce zakázky a vrátí ho jako dokument ke stažení.
+  Future<Dokument> vytvorProtokol(String orderId);
 }
 
 /// Nejdelší strana fotky po zmenšení. Na přečtení VINu i posouzení

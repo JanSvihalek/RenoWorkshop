@@ -318,6 +318,19 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<Dokument> vytvorProtokol(String orderId) async {
+    final data = await _send(
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}/protocol',
+      body: const <String, Object?>{},
+      // PDF se skládá ze složky na souborovém serveru - může to chvíli trvat.
+      timeout: const Duration(seconds: 60),
+    );
+    if (data == null) throw ServiceOrderNotFoundException(orderId);
+    return Dokument.fromJson(_asMap(data));
+  }
+
+  @override
   Future<List<Dokument>> dokumentyHeliosu(String orderId) async {
     final data = await _send(
       'GET',

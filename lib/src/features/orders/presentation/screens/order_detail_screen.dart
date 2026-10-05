@@ -12,6 +12,7 @@ import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
+import '../../../fotodokumentace/presentation/widgets/protokol_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -288,7 +289,12 @@ class _DetailBody extends ConsumerWidget {
     // z Heliosu). Termíny a pojištění jsou v hlavičce. Přes celou šířku
     // by karty byly nepřehledně roztažené.
     final prace = <Widget>[zavady, ?prijem, ?fotky, poznamky];
-    final stav = <Widget>[?predmet, postup, dokumentyHeliosu];
+    final stav = <Widget>[
+      ?predmet,
+      postup,
+      dokumentyHeliosu,
+      ProtokolKarta(orderId: order.id),
+    ];
 
     return Column(
       children: [

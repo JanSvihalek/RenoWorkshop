@@ -566,6 +566,15 @@ Kategorie (`category`): `exterier` · `poskozeni` · `kola` · `stk` ·
   (`photo_storage_unavailable`); nepovedený zápis na souborový server `502`
   (`photo_storage_failed`). Obě chyby mají srozumitelnou `message`.
 
+## Protokol zakázky
+
+**POST /orders/{id}/protocol** - vytvoří (přepíše) PDF protokol zakázky ve
+složce zakázky na Foto-doc a vrátí ho jako dokument (stejný tvar jako
+položka `GET /orders/{id}/documents`), takže jde rovnou stáhnout přes
+`GET /orders/{id}/documents/{docId}`. Jinak se protokol obnovuje sám po
+změnách zakázky. `409` s kódem `protocol_locked`, když ho má někdo
+otevřený; `503` bez úložiště.
+
 ## Ostatní dokumentace
 
 PDF, skeny, tabulky a cokoli dalšího ze složky zakázky ve Foto-doc, **co
