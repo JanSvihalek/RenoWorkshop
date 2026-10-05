@@ -27,6 +27,8 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicUtvar = 'nastaveni.vychoziUtvar';
   static const _klicPoradac = 'nastaveni.vychoziPoradac';
   static const _klicZodpovida = 'nastaveni.vychoziZodpovida';
+  static const _klicZpracovatel = 'nastaveni.vychoziZpracovatel';
+  static const _klicZpracovatelJmeno = 'nastaveni.vychoziZpracovatelJmeno';
   static const _klicSlozkaFotek = 'nastaveni.slozkaFotek';
   static const _klicUkladatDoZarizeni = 'nastaveni.ukladatFotkyDoZarizeni';
   static const _klicZobrazeni = 'nastaveni.zobrazeniZakazek';
@@ -42,6 +44,10 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       vychoziUtvar: _prazdneJakoNull(_prefs.getString(_klicUtvar)),
       vychoziPoradac: _prazdneJakoNull(_prefs.getString(_klicPoradac)),
       vychoziZodpovida: _prazdneJakoNull(_prefs.getString(_klicZodpovida)),
+      vychoziZpracovatelId: _prefs.getInt(_klicZpracovatel),
+      vychoziZpracovatelJmeno: _prazdneJakoNull(
+        _prefs.getString(_klicZpracovatelJmeno),
+      ),
       slozkaFotek: _prazdneJakoNull(_prefs.getString(_klicSlozkaFotek)),
       ukladatFotkyDoZarizeni: _prefs.getBool(_klicUkladatDoZarizeni) ?? false,
       skenovatPoOtevreni: _prefs.getBool(_klicSkenovatPoOtevreni) ?? true,
@@ -60,6 +66,14 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
     await _ulozNeboSmaz(_klicUtvar, nastaveni.vychoziUtvar);
     await _ulozNeboSmaz(_klicPoradac, nastaveni.vychoziPoradac);
     await _ulozNeboSmaz(_klicZodpovida, nastaveni.vychoziZodpovida);
+    final zpracovatel = nastaveni.vychoziZpracovatelId;
+    await (zpracovatel == null
+        ? _prefs.remove(_klicZpracovatel)
+        : _prefs.setInt(_klicZpracovatel, zpracovatel));
+    await _ulozNeboSmaz(
+      _klicZpracovatelJmeno,
+      nastaveni.vychoziZpracovatelJmeno,
+    );
     await _ulozNeboSmaz(_klicSlozkaFotek, nastaveni.slozkaFotek);
     await _prefs.setBool(
       _klicUkladatDoZarizeni,

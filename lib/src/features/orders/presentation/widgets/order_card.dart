@@ -149,6 +149,33 @@ class OrderCard extends StatelessWidget {
               stav: order.stav?.nazev,
               barva: order.stav?.color,
             ),
+            // Kdo má vůz v rukou - jen když ho někdo převzal, prázdný
+            // řádek by na každé kartě jen zabíral místo.
+            if (order.zpracovatel case final kdo?) ...[
+              const SizedBox(height: 6),
+              Row(
+                key: const Key('karta-zpracovatel'),
+                children: [
+                  Icon(
+                    Icons.engineering_outlined,
+                    size: 14,
+                    color: palette.muted,
+                  ),
+                  const SizedBox(width: Insets.xs),
+                  Flexible(
+                    child: Text(
+                      kdo.jmeno,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.meta.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 9),
             Row(
               children: [

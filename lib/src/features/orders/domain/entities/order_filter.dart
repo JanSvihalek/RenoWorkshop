@@ -24,6 +24,7 @@ class OrderFilter {
     this.statusCode,
     this.heliosStav,
     this.mechanicName,
+    this.zpracovatelId,
     this.query = '',
     this.sort = OrderSort.receivedDate,
   });
@@ -51,6 +52,14 @@ class OrderFilter {
   /// `null` = všichni mechanici.
   final String? mechanicName;
 
+  /// Id zpracovatele (zaměstnanec v Heliosu). `null` = všichni,
+  /// [nikdo] = jen zakázky, které nikdo nezpracovává.
+  final int? zpracovatelId;
+
+  /// Hodnota [zpracovatelId] pro zakázky bez zpracovatele. Id z Heliosu
+  /// jsou kladná, nula se s nimi nepotká.
+  static const nikdo = 0;
+
   final String query;
   final OrderSort sort;
 
@@ -62,6 +71,7 @@ class OrderFilter {
       statusCode != null ||
       heliosStav != null ||
       mechanicName != null ||
+      zpracovatelId != null ||
       query.trim().isNotEmpty;
 
   /// Počet aktivních filtrů (pro badge u tlačítka filtru).
@@ -73,6 +83,7 @@ class OrderFilter {
     statusCode != null,
     heliosStav != null,
     mechanicName != null,
+    zpracovatelId != null,
     query.trim().isNotEmpty,
   ].where((active) => active).length;
 
@@ -84,6 +95,7 @@ class OrderFilter {
     String? statusCode,
     String? heliosStav,
     String? mechanicName,
+    int? zpracovatelId,
     String? query,
     OrderSort? sort,
     bool clearBranch = false,
@@ -93,6 +105,7 @@ class OrderFilter {
     bool clearStatus = false,
     bool clearHeliosStav = false,
     bool clearMechanic = false,
+    bool clearZpracovatel = false,
   }) {
     return OrderFilter(
       branchCode: clearBranch ? null : (branchCode ?? this.branchCode),
@@ -106,6 +119,9 @@ class OrderFilter {
       statusCode: clearStatus ? null : (statusCode ?? this.statusCode),
       heliosStav: clearHeliosStav ? null : (heliosStav ?? this.heliosStav),
       mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
+      zpracovatelId: clearZpracovatel
+          ? null
+          : (zpracovatelId ?? this.zpracovatelId),
       query: query ?? this.query,
       sort: sort ?? this.sort,
     );
@@ -125,6 +141,10 @@ class OrderFilter {
       if (statusCode != null && order.stav?.kod != statusCode) return false;
       if (heliosStav != null && order.heliosStatus != heliosStav) return false;
       if (mechanicName != null && order.mechanicName != mechanicName) {
+        return false;
+      }
+      if (zpracovatelId != null &&
+          (order.zpracovatel?.id ?? nikdo) != zpracovatelId) {
         return false;
       }
       return order.matchesQuery(query);
@@ -167,6 +187,7 @@ class OrderFilter {
           other.statusCode == statusCode &&
           other.heliosStav == heliosStav &&
           other.mechanicName == mechanicName &&
+          other.zpracovatelId == zpracovatelId &&
           other.query == query &&
           other.sort == sort);
 
@@ -179,6 +200,7 @@ class OrderFilter {
     statusCode,
     heliosStav,
     mechanicName,
+    zpracovatelId,
     query,
     sort,
   );

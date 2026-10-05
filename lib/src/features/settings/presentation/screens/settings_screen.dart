@@ -9,6 +9,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/controllers/stav_serveru.dart';
+import '../../../orders/domain/entities/order_filter.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
@@ -346,12 +347,22 @@ class _VychoziFiltr extends ConsumerWidget {
     final ovladani = ref.read(nastaveniProvider.notifier);
     final utvary = ref.watch(availableDepartmentsProvider);
     final zodpovedni = ref.watch(mechanicsProvider);
+    final zpracovatele = ref.watch(zpracovateleProvider);
+    // Klíče jako text - výběr v nastavení pracuje s textem.
+    final moznostiZpracovatele = <String, String>{
+      '${OrderFilter.nikdo}': 'Nikdo',
+      for (final kdo in zpracovatele) '${kdo.id}': kdo.jmeno,
+      if (nastaveni.vychoziZpracovatelId case final id?)
+        if (!zpracovatele.any((kdo) => kdo.id == id))
+          '$id': nastaveni.vychoziZpracovatelJmeno ?? 'č. $id',
+    };
     final poradace = ref.watch(pouzitePoradaceProvider);
     final aktivnich = [
       nastaveni.vychoziUtvar,
       nastaveni.vychoziPoradac,
       nastaveni.vychoziZodpovida,
-    ].whereType<String>().length;
+      nastaveni.vychoziZpracovatelId,
+    ].nonNulls.length;
 
     return _Skupina(
       nadpis: 'VÝCHOZÍ FILTR ZÁKAZEK',
@@ -409,6 +420,16 @@ class _VychoziFiltr extends ConsumerWidget {
                 hodnota: nastaveni.vychoziZodpovida,
                 moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
                 onZmena: ovladani.zmenVychoziZodpovida,
+              ),
+              _Vyber(
+                key: const Key('vychozi-zpracovatel'),
+                popisek: 'Zpracovává',
+                hodnota: nastaveni.vychoziZpracovatelId?.toString(),
+                moznosti: moznostiZpracovatele,
+                onZmena: (klic) => ovladani.zmenVychozihoZpracovatele(
+                  klic == null ? null : int.parse(klic),
+                  klic == null ? null : moznostiZpracovatele[klic],
+                ),
               ),
             ],
     );

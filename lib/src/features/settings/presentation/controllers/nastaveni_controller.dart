@@ -42,6 +42,16 @@ class NastaveniController extends Notifier<Nastaveni> {
         : state.copyWith(vychoziZodpovida: jmeno),
   );
 
+  /// [id] `0` = zakázky bez zpracovatele, `null` = všichni.
+  void zmenVychozihoZpracovatele(int? id, String? jmeno) => _uloz(
+    id == null
+        ? state.copyWith(zrusZpracovatele: true)
+        : state.copyWith(
+            vychoziZpracovatelId: id,
+            vychoziZpracovatelJmeno: jmeno,
+          ),
+  );
+
   void zmenSlozkuFotek(String? slozka) => _uloz(
     slozka == null
         ? state.copyWith(zrusSlozkuFotek: true)
@@ -64,7 +74,12 @@ class NastaveniController extends Notifier<Nastaveni> {
       _uloz(state.copyWith(ukazkovaData: zapnout));
 
   void zrusVychoziFiltr() => _uloz(
-    state.copyWith(zrusUtvar: true, zrusPoradac: true, zrusZodpovida: true),
+    state.copyWith(
+      zrusUtvar: true,
+      zrusPoradac: true,
+      zrusZodpovida: true,
+      zrusZpracovatele: true,
+    ),
   );
 
   /// Zápis do úložiště se nečeká: nastavení je drobnost a čekání na disk

@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../domain/entities/order_filter.dart';
 import '../controllers/orders_providers.dart';
 
@@ -32,6 +33,8 @@ class FiltrLista extends ConsumerWidget {
     final stavyHelios = ref.watch(pouziteStavyHeliosProvider);
     final typy = ref.watch(availableOrderTypesProvider);
     final lide = ref.watch(mechanicsProvider);
+    final zpracovatele = ref.watch(zpracovateleProvider);
+    final nastaveni = ref.watch(nastaveniProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -91,6 +94,21 @@ class FiltrLista extends ConsumerWidget {
               hodnota: filter.mechanicName,
               moznosti: {for (final clovek in lide) clovek: clovek},
               onZmena: controller.setMechanic,
+            ),
+            const SizedBox(width: Insets.sm),
+            _Filtr<int>(
+              popisek: 'Zpracovává',
+              hodnota: filter.zpracovatelId,
+              moznosti: {
+                OrderFilter.nikdo: 'Nikdo',
+                for (final kdo in zpracovatele) kdo.id: kdo.jmeno,
+                // Výchozí zpracovatel z nastavení, který zrovna nemá
+                // žádnou zakázku - jinak by filtr platil neviditelně.
+                if (nastaveni.vychoziZpracovatelId case final id?)
+                  if (!zpracovatele.any((kdo) => kdo.id == id))
+                    id: nastaveni.vychoziZpracovatelJmeno ?? 'č. $id',
+              },
+              onZmena: controller.setZpracovatel,
             ),
             const SizedBox(width: Insets.sm),
             // Řazení není filtr, ale patří sem ze stejného důvodu: rozhoduje

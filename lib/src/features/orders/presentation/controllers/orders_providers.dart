@@ -293,6 +293,17 @@ final mechanicsProvider = Provider<List<String>>((ref) {
   return names;
 });
 
+/// Zpracovatelé, kteří mají aspoň jednu načtenou zakázku (filtr), podle
+/// abecedy. Podle id - jméno se v Heliosu může opakovat.
+final zpracovateleProvider = Provider<List<Zpracovatel>>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final podleId = <int, Zpracovatel>{
+    for (final kdo in orders.map((order) => order.zpracovatel).nonNulls)
+      kdo.id: kdo,
+  };
+  return podleId.values.toList()..sort((a, b) => a.jmeno.compareTo(b.jmeno));
+});
+
 class OrderFilterController extends Notifier<OrderFilter> {
   /// Seznam se otevře rovnou na pobočce, kterou má mechanik v nastavení.
   /// Většina lidí pracuje pořád na jedné a přepínat ji po každém spuštění
@@ -304,6 +315,7 @@ class OrderFilterController extends Notifier<OrderFilter> {
     departmentCode: nastaveni.vychoziUtvar,
     poradacKod: nastaveni.vychoziPoradac,
     mechanicName: nastaveni.vychoziZodpovida,
+    zpracovatelId: nastaveni.vychoziZpracovatelId,
   );
 
   void setBranch(String? branchCode) => state = branchCode == null
@@ -333,6 +345,11 @@ class OrderFilterController extends Notifier<OrderFilter> {
   void setMechanic(String? mechanicName) => state = mechanicName == null
       ? state.copyWith(clearMechanic: true)
       : state.copyWith(mechanicName: mechanicName);
+
+  /// [OrderFilter.nikdo] = zakázky bez zpracovatele.
+  void setZpracovatel(int? id) => state = id == null
+      ? state.copyWith(clearZpracovatel: true)
+      : state.copyWith(zpracovatelId: id);
 
   void setQuery(String query) => state = state.copyWith(query: query);
 

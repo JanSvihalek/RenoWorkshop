@@ -48,6 +48,12 @@ final sloupceZakazek = <SloupecZakazek>[
     sirka: 110,
     hodnota: (z) => z.mechanicName ?? '-',
   ),
+  // Hned vedle zodpovědné osoby z Heliosu: kdo má vůz právě v rukou.
+  SloupecZakazek(
+    nazev: 'Zpracovává',
+    sirka: 110,
+    hodnota: (z) => z.zpracovatel?.jmeno ?? '-',
+  ),
   SloupecZakazek(
     nazev: 'Organizace',
     sirka: 150,

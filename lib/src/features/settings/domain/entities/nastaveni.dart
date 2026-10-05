@@ -101,6 +101,8 @@ class Nastaveni {
     this.vychoziUtvar,
     this.vychoziPoradac,
     this.vychoziZodpovida,
+    this.vychoziZpracovatelId,
+    this.vychoziZpracovatelJmeno,
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
     this.skenovatPoOtevreni = true,
@@ -135,6 +137,14 @@ class Nastaveni {
   /// pak se filtr prostě přestane uplatňovat a jde vybrat znovu.
   final String? vychoziZodpovida;
 
+  /// Zpracovatel, na jehož zakázkách se seznam otevře. Id zaměstnance
+  /// z Heliosu, `0` = zakázky bez zpracovatele, `null` = všichni.
+  final int? vychoziZpracovatelId;
+
+  /// Jméno k [vychoziZpracovatelId] - aby se volba dala ukázat, i když
+  /// zrovna nemá žádnou zakázku a mezi načtenými není.
+  final String? vychoziZpracovatelJmeno;
+
   /// Složka pobočky ve Foto-doc, kam jdou fotky z příjmu. `null` = podle
   /// pořadače zakázky.
   ///
@@ -163,7 +173,8 @@ class Nastaveni {
   bool get maVychoziFiltr =>
       vychoziUtvar != null ||
       vychoziPoradac != null ||
-      vychoziZodpovida != null;
+      vychoziZodpovida != null ||
+      vychoziZpracovatelId != null;
 
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
@@ -174,6 +185,9 @@ class Nastaveni {
     bool zrusPoradac = false,
     String? vychoziZodpovida,
     bool zrusZodpovida = false,
+    int? vychoziZpracovatelId,
+    String? vychoziZpracovatelJmeno,
+    bool zrusZpracovatele = false,
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
@@ -192,6 +206,12 @@ class Nastaveni {
       vychoziZodpovida: zrusZodpovida
           ? null
           : (vychoziZodpovida ?? this.vychoziZodpovida),
+      vychoziZpracovatelId: zrusZpracovatele
+          ? null
+          : (vychoziZpracovatelId ?? this.vychoziZpracovatelId),
+      vychoziZpracovatelJmeno: zrusZpracovatele
+          ? null
+          : (vychoziZpracovatelJmeno ?? this.vychoziZpracovatelJmeno),
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
@@ -211,6 +231,8 @@ class Nastaveni {
           other.vychoziUtvar == vychoziUtvar &&
           other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida &&
+          other.vychoziZpracovatelId == vychoziZpracovatelId &&
+          other.vychoziZpracovatelJmeno == vychoziZpracovatelJmeno &&
           other.slozkaFotek == slozkaFotek &&
           other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
           other.skenovatPoOtevreni == skenovatPoOtevreni &&
@@ -225,6 +247,8 @@ class Nastaveni {
     vychoziUtvar,
     vychoziPoradac,
     vychoziZodpovida,
+    vychoziZpracovatelId,
+    vychoziZpracovatelJmeno,
     slozkaFotek,
     ukladatFotkyDoZarizeni,
     skenovatPoOtevreni,

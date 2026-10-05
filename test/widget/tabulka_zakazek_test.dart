@@ -98,6 +98,7 @@ void main() {
     expect(sloupceZakazek.map((s) => s.nazev).toList(), [
       'Přijato',
       'Zodpovídá',
+      'Zpracovává',
       'Organizace',
       'Zakázka',
       'SPZ',
