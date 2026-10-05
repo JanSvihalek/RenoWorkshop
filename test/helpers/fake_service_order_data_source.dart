@@ -362,7 +362,9 @@ class FakeServiceOrderDataSource
         : _orders[index].department?['code'] as String?;
     final jenUtvar = !vsichni && kod != null;
     return NabidkaZpracovatelu(
-      utvarZakazky: kod == null ? null : Department(code: kod, label: kod),
+      utvarZakazky: kod == null
+          ? null
+          : Department(code: kod, label: 'Auta Servis'),
       jenUtvar: jenUtvar,
       lide: [
         for (final z in zamestnanci)

@@ -71,6 +71,15 @@ void main() {
     await otevriVyber(tester);
 
     expect(zdroj.posledniNabidkaVsichni, isFalse);
+    // Útvar kódem, ne názvem.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('zpracovatele-utvar')),
+        matching: find.text('11211'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Auta Servis'), findsNothing);
     expect(find.byKey(const Key('zpracovatel-501')), findsOneWidget);
     expect(find.byKey(const Key('zpracovatel-502')), findsOneWidget);
     // Novotný je z jiného útvaru.

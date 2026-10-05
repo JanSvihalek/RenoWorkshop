@@ -237,7 +237,7 @@ class _ZpracovatelSheetState extends ConsumerState<_ZpracovatelSheet> {
                             // útvaru je u všech stejný.
                             subtitle: _vsichni && clovek.utvar != null
                                 ? Text(
-                                    clovek.utvar!.label,
+                                    clovek.utvar!.code,
                                     style: AppTextStyles.meta.copyWith(
                                       color: palette.muted,
                                     ),
@@ -301,7 +301,9 @@ class _PrepinacUtvaru extends StatelessWidget {
       children: [
         ChoiceChip(
           key: const Key('zpracovatele-utvar'),
-          label: Text(utvar.label),
+          // Kód útvaru (12211), ne název - podle kódu se útvary na dílně
+          // znají a názvy se mezi pobočkami opakují.
+          label: Text(utvar.code),
           selected: !vsichni,
           onSelected: (_) => onZmena(false),
         ),
