@@ -13,6 +13,14 @@ enum KategorieFotky {
   interier('interier', 'Interiér vozu', Icons.airline_seat_recline_normal),
   tachometr('tachometr', 'Tachometr a přístrojová deska', Icons.speed_rounded),
   vin('vin', 'VIN kód', Icons.pin_rounded),
+  // Všechny doklady v jedné sekci: OP, ŘP, technický průkaz, plná moc,
+  // devinkulace, záznam o nehodě, protokol policie. Sekce pro každý doklad
+  // by příjem zbytečně natáhla.
+  doklady(
+    'doklady',
+    'Doklady (OP, ŘP, TP, plná moc, nehoda)',
+    Icons.badge_outlined,
+  ),
   // Kde vůz stojí - fotí se u zápisu dílenského stavu, ať se na velkém
   // parkovišti pozná, kde přesně je.
   umisteni('umisteni', 'Umístění vozu', Icons.place_outlined),
