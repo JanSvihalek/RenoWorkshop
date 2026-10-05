@@ -99,4 +99,34 @@ void main() {
     expect(find.text('8AB 4721'), findsNothing);
     expect(find.text('2SC 9014'), findsNothing);
   });
+
+  testWidgets('filtr Zpracovává nabídne přiřazené zpracovatele', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přihlásit se přes Microsoft'));
+    await tester.pumpAndSettle();
+
+    final filtr = find.ancestor(
+      of: find.text('Zpracovává'),
+      matching: find.byType(DropdownButton<int?>),
+    );
+    await tester.ensureVisible(filtr);
+    await tester.tap(filtr);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nikdo'), findsWidgets);
+    expect(find.text('Dvořák Jan'), findsWidgets);
+    await tester.tap(find.text('Kříž Martin').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2SC 9014'), findsOneWidget);
+    expect(find.text('8AB 4721'), findsNothing);
+  });
 }
