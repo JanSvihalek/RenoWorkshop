@@ -1,5 +1,6 @@
 import '../entities/dilensky_stav.dart';
 import '../entities/service_order.dart';
+import '../entities/zpracovatel.dart';
 
 /// Kontrakt datové vrstvy pro servisní zakázky.
 ///
@@ -45,6 +46,18 @@ abstract interface class ServiceOrderRepository {
 
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<ServiceOrder> smazStav(String orderId, String zaznamId);
+
+  /// Koho lze zakázce přiřadit jako zpracovatele.
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  });
+
+  /// Přiřadí zpracovatele; `null` zakázku uvolní.
+  Future<ServiceOrder> nastavZpracovatele(String orderId, int? zamestnanecId);
+
+  /// Zpracovatelem se stane přihlášený.
+  Future<ServiceOrder> prevezmiZakazku(String orderId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

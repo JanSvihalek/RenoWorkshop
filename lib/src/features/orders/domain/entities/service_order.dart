@@ -5,6 +5,7 @@ import 'poradac.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
 import 'zavada.dart';
+import 'zpracovatel.dart';
 
 /// Servisní zakázka na dílně - hlavní entita fáze 1.
 ///
@@ -30,6 +31,7 @@ class ServiceOrder {
     this.dueAt,
     required this.vin,
     this.mechanicName,
+    this.zpracovatel,
     this.serviceAdvisorName,
     this.bay,
     this.bayAt,
@@ -102,6 +104,10 @@ class ServiceOrder {
   /// Kdo za zakázku zodpovídá. Vede to Helios, aplikace to nemění.
   /// `null` = v Heliosu není vyplněno.
   final String? mechanicName;
+
+  /// Kdo má vůz právě na starosti. Vede dílna v aplikaci, na rozdíl od
+  /// [mechanicName] z Heliosu. `null` = nikdo.
+  final Zpracovatel? zpracovatel;
 
   /// Servisní poradce, který zakázku vede.
   final String? serviceAdvisorName;
@@ -177,6 +183,7 @@ class ServiceOrder {
       id,
       model,
       mechanicName ?? '',
+      zpracovatel?.jmeno ?? '',
       vin,
       predmetOpravy ?? '',
       pojistovna ?? '',
@@ -215,6 +222,7 @@ class ServiceOrder {
       dueAt: dueAt,
       vin: vin,
       mechanicName: mechanicName ?? this.mechanicName,
+      zpracovatel: zpracovatel,
       serviceAdvisorName: serviceAdvisorName,
       bay: bay ?? this.bay,
       bayAt: bayAt ?? this.bayAt,
@@ -234,10 +242,17 @@ class ServiceOrder {
           // jen v něm nejsou tatáž zakázka.
           other.predmetOpravy == predmetOpravy &&
           other.stav == stav &&
+          other.zpracovatel == zpracovatel &&
           other.notes.length == notes.length &&
           other.workItems == workItems);
 
   @override
-  int get hashCode =>
-      Object.hash(id, predmetOpravy, stav, notes.length, workItems.length);
+  int get hashCode => Object.hash(
+    id,
+    predmetOpravy,
+    stav,
+    zpracovatel,
+    notes.length,
+    workItems.length,
+  );
 }

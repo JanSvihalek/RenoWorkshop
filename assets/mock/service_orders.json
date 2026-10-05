@@ -116,7 +116,13 @@
         "id": 60001,
         "name": "Kooperativa pojišťovna, a.s."
       },
-      "insuranceClaimNumber": "4201234567"
+      "insuranceClaimNumber": "4201234567",
+      "assignee": {
+        "id": 501,
+        "name": "Dvořák Jan",
+        "since": "2026-08-21T08:10:00",
+        "assignedBy": "Petra Válková"
+      }
     },
     {
       "id": "Z1212608455",
@@ -209,7 +215,13 @@
         "id": 60003,
         "name": "Česká pojišťovna a.s."
       },
-      "insuranceClaimNumber": "2026-118805"
+      "insuranceClaimNumber": "2026-118805",
+      "assignee": {
+        "id": 503,
+        "name": "Válková Petra",
+        "since": "2026-08-17T12:40:00",
+        "assignedBy": "Petra Válková"
+      }
     },
     {
       "id": "Z1212608301",
@@ -842,7 +854,13 @@
           "title": "Pneuservis",
           "text": "Přezutí na zimní kola, uskladnění letních."
         }
-      ]
+      ],
+      "assignee": {
+        "id": 504,
+        "name": "Horáková Martina",
+        "since": "2026-08-24T07:55:00",
+        "assignedBy": "Martin Kříž"
+      }
     },
     {
       "id": "Z1212608466",
@@ -899,7 +917,13 @@
           "title": "Klimatizace",
           "text": "Klimatizace slabě chladí."
         }
-      ]
+      ],
+      "assignee": {
+        "id": 506,
+        "name": "Svoboda Tomáš",
+        "since": "2026-08-25T10:05:00",
+        "assignedBy": "Svoboda Tomáš"
+      }
     },
     {
       "id": "Z1212608520",

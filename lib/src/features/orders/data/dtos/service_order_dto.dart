@@ -6,6 +6,7 @@ import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
 import '../../domain/entities/zavada.dart';
+import '../../domain/entities/zpracovatel.dart';
 
 /// Přenosový model zakázky.
 ///
@@ -32,6 +33,7 @@ class ServiceOrderDto {
     required this.dueAt,
     required this.vin,
     required this.mechanicName,
+    this.assignee,
     required this.serviceAdvisorName,
     required this.bay,
     this.bayAt,
@@ -89,6 +91,10 @@ class ServiceOrderDto {
   final String? dueAt;
   final String vin;
   final String? mechanicName;
+
+  /// Zpracovatel - `{"id", "name", "email", "since", "assignedBy"}`,
+  /// `null` = nikdo. Starší API ho neposílá.
+  final Map<String, dynamic>? assignee;
   final String? serviceAdvisorName;
   final String? bay;
 
@@ -123,6 +129,7 @@ class ServiceOrderDto {
       dueAt: json['dueAt'] as String?,
       vin: json['vin'] as String,
       mechanicName: json['mechanicName'] as String?,
+      assignee: json['assignee'] as Map<String, dynamic>?,
       serviceAdvisorName: json['serviceAdvisorName'] as String?,
       bay: json['bay'] as String?,
       bayAt: json['bayAt'] as String?,
@@ -159,6 +166,7 @@ class ServiceOrderDto {
     'dueAt': dueAt,
     'vin': vin,
     'mechanicName': mechanicName,
+    'assignee': assignee,
     'serviceAdvisorName': serviceAdvisorName,
     'bay': bay,
     'bayAt': bayAt,
@@ -197,6 +205,7 @@ class ServiceOrderDto {
     dueAt: dueAt == null ? null : DateTime.tryParse(dueAt!),
     vin: vin,
     mechanicName: mechanicName,
+    zpracovatel: assignee == null ? null : Zpracovatel.fromJson(assignee!),
     serviceAdvisorName: serviceAdvisorName,
     bay: bay,
     bayAt: bayAt == null ? null : DateTime.tryParse(bayAt!),
@@ -219,6 +228,10 @@ class ServiceOrderDto {
     String? bayAt,
     List<OrderNoteDto>? notes,
     List<WorkItemDto>? workItems,
+    Map<String, dynamic>? assignee,
+
+    /// Uvolněná zakázka - `??` by jinak nechalo původního zpracovatele.
+    bool vymazatZpracovatele = false,
 
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
@@ -246,6 +259,7 @@ class ServiceOrderDto {
       dueAt: dueAt,
       vin: vin,
       mechanicName: mechanicName,
+      assignee: vymazatZpracovatele ? null : (assignee ?? this.assignee),
       serviceAdvisorName: serviceAdvisorName,
       bay: bay ?? this.bay,
       bayAt: bayAt ?? this.bayAt,

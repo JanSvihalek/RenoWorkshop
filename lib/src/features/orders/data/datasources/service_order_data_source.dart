@@ -1,4 +1,5 @@
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/zpracovatel.dart';
 import '../dtos/service_order_dto.dart';
 
 /// Zdroj dat o zakázkách - jediné místo, které se v další fázi vymění
@@ -45,6 +46,25 @@ abstract interface class ServiceOrderDataSource {
 
   /// Smaže záznam z historie stavů.
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
+
+  /// `GET /orders/{id}/assignees` - koho lze přiřadit jako zpracovatele.
+  /// Lidé z útvaru zakázky, s [vsichni] všichni zaměstnanci.
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  });
+
+  /// `PUT /orders/{id}/assignee` - přiřadí zpracovatele, `null` zakázku
+  /// uvolní.
+  Future<ServiceOrderDto?> nastavZpracovatele(
+    String orderId,
+    int? zamestnanecId,
+  );
+
+  /// `PUT /orders/{id}/assignee/me` - zpracovatelem se stane přihlášený.
+  /// Když ho server podle e-mailu v Heliosu nenajde, [ServiceOrderException]
+  /// s hláškou pro uživatele.
+  Future<ServiceOrderDto?> prevezmiZakazku(String orderId);
 
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.

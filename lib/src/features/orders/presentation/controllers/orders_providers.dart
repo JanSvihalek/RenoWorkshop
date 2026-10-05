@@ -14,6 +14,7 @@ import '../../domain/entities/order_filter.dart';
 import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
+import '../../domain/entities/zpracovatel.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
@@ -117,6 +118,16 @@ final availableOrderTypesProvider = Provider<List<TypZakazky>>((ref) {
 final nabidkaStavuProvider = FutureProvider<List<NabidkaStavu>>((ref) {
   return ref.watch(serviceOrderRepositoryProvider).nabidkaStavu();
 });
+
+/// Koho lze zakázce přiřadit jako zpracovatele - lidé z útvaru zakázky,
+/// s `vsichni` všichni zaměstnanci. Čte se pokaždé znovu, nabídka se
+/// mění v noci.
+final nabidkaZpracovateluProvider = FutureProvider.autoDispose
+    .family<NabidkaZpracovatelu, ({String orderId, bool vsichni})>(
+      (ref, dotaz) => ref
+          .watch(serviceOrderRepositoryProvider)
+          .nabidkaZpracovatelu(dotaz.orderId, vsichni: dotaz.vsichni),
+    );
 
 /// Stavy, které se vyskytují v načtených zakázkách - podle nich se
 /// filtruje. Skládají se z dat, ne z číselníku: filtrovat podle stavu,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
+import '../../domain/entities/zpracovatel.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../datasources/service_order_data_source.dart';
 import '../dtos/service_order_dto.dart';
@@ -108,6 +109,25 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   @override
   Future<ServiceOrder> smazStav(String orderId, String zaznamId) {
     return _mutate(orderId, () => _dataSource.smazStav(orderId, zaznamId));
+  }
+
+  @override
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  }) => _dataSource.nabidkaZpracovatelu(orderId, vsichni: vsichni);
+
+  @override
+  Future<ServiceOrder> nastavZpracovatele(String orderId, int? zamestnanecId) {
+    return _mutate(
+      orderId,
+      () => _dataSource.nastavZpracovatele(orderId, zamestnanecId),
+    );
+  }
+
+  @override
+  Future<ServiceOrder> prevezmiZakazku(String orderId) {
+    return _mutate(orderId, () => _dataSource.prevezmiZakazku(orderId));
   }
 
   @override

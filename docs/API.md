@@ -314,6 +314,50 @@ Vrací celou zakázku. Text delší než 1000 znaků vrací `400`. U zakázky je
 v poli `repairSubject`, `null` = zatím nezadáno. Hledání v archivu
 (`/orders/search`) prohledává i předmět opravy.
 
+### Zpracovatel zakázky
+
+Kdo má vůz právě na starosti. Vede ho dílna v aplikaci, do Heliosu se
+nevrací. U zakázky v poli `assignee`, `null` = nikdo:
+
+```json
+"assignee": {
+  "id": 501,
+  "name": "Dvořák Jan",
+  "email": "jan.dvorak@renocar.cz",
+  "since": "2026-10-05T09:30:00",
+  "assignedBy": "Petra Válková"
+}
+```
+
+`id` je `cislo_subjektu` zaměstnance v Heliosu, `name` a `email` snímek
+z chvíle přiřazení, `since` místní čas. Starší API pole neposílá - pak
+`null`.
+
+**GET /orders/{id}/assignees** - koho lze přiřadit: zaměstnanci z útvaru
+zakázky, podle abecedy. S `?all=1` všichni. `filtered: false` = filtrovat
+se nedalo (zakázka bez útvaru nebo `all`) a jsou tu všichni.
+
+```json
+{
+  "department": { "code": "12211", "label": "Auta Servis" },
+  "filtered": true,
+  "employees": [
+    { "id": 501, "name": "Dvořák Jan", "code": "1042",
+      "email": "jan.dvorak@renocar.cz",
+      "department": { "code": "12211", "label": "Auta Servis" } }
+  ]
+}
+```
+
+**PUT /orders/{id}/assignee** `{ "employeeId": 501 }` přiřadí,
+`{ "employeeId": null }` zakázku uvolní. Neznámý zaměstnanec `400`.
+
+**PUT /orders/{id}/assignee/me** - převzít: zpracovatelem se stane
+přihlášený, spárovaný se zaměstnancem v Heliosu podle e-mailu. Když
+takový není, `409` s kódem `employee_not_found` a hláškou pro uživatele.
+
+Obě PUT vrací celou zakázku. Stejný zpracovatel podruhé nic nezapíše.
+
 ### GET /vehicles/search?q=…
 
 Hledání vozidla podle **SPZ nebo VIN** pro záložku Vozidla. Hledá v zrcadle

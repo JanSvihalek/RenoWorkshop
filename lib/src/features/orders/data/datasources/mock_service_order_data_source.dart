@@ -12,6 +12,8 @@ import '../../domain/repositories/service_order_repository.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/zpracovatel.dart';
+import '../../domain/entities/branch.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -171,6 +173,85 @@ class MockServiceOrderDataSource
       vymazatPredmet: orezany.isEmpty,
     );
   }
+
+  /// Ukázkoví zaměstnanci. Útvary odpovídají ukázkovým zakázkám, ať jde
+  /// vyzkoušet nabídka jen z útvaru zakázky.
+  static const _zamestnanci = <(int, String, String?)>[
+    (501, 'Dvořák Jan', '11211'),
+    (502, 'Kříž Martin', '11211'),
+    (503, 'Válková Petra', '12211'),
+    (504, 'Horáková Martina', '12211'),
+    (505, 'Novotný Pavel', '12214'),
+    (506, 'Svoboda Tomáš', '14211'),
+    (507, 'Černý Lukáš', '13211'),
+    (508, 'Procházka David', '11221'),
+  ];
+
+  /// Za koho se v ukázce převezme zakázka - přihlášeného mock nezná.
+  static const _ja = (500, 'Ukázkový technik', null);
+
+  @override
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  }) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    final utvar = index == -1 ? null : orders[index].department;
+    final kod = utvar?['code'] as String?;
+    final jenUtvar =
+        !vsichni && kod != null && _zamestnanci.any((z) => z.$3 == kod);
+
+    return NabidkaZpracovatelu(
+      utvarZakazky: utvar == null ? null : Department.fromJson(utvar),
+      jenUtvar: jenUtvar,
+      lide: [
+        for (final (id, jmeno, utvarKod) in [_ja, ..._zamestnanci])
+          if (!jenUtvar || utvarKod == kod)
+            ZamestnanecKVyberu(
+              id: id,
+              jmeno: jmeno,
+              kod: '$id',
+              utvar: utvarKod == null
+                  ? null
+                  : Department(code: utvarKod, label: utvarKod),
+            ),
+      ]..sort((a, b) => a.jmeno.compareTo(b.jmeno)),
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> nastavZpracovatele(
+    String orderId,
+    int? zamestnanecId,
+  ) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    if (zamestnanecId == null) {
+      return orders[index] = orders[index].copyWith(vymazatZpracovatele: true);
+    }
+    final kdo = [_ja, ..._zamestnanci].firstWhere(
+      (z) => z.$1 == zamestnanecId,
+      orElse: () => throw const ServiceOrderException(
+        'Takový zaměstnanec v ukázkových datech není.',
+      ),
+    );
+    return orders[index] = orders[index].copyWith(
+      assignee: {
+        'id': kdo.$1,
+        'name': kdo.$2,
+        'since': DateTime.now().toIso8601String().substring(0, 19),
+        'assignedBy': 'Ukázkový technik',
+      },
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> prevezmiZakazku(String orderId) =>
+      nastavZpracovatele(orderId, _ja.$1);
 
   @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {

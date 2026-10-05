@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/zpracovatel.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
@@ -130,6 +131,43 @@ class RestServiceOrderDataSource
       'PUT',
       'orders/${Uri.encodeComponent(orderId)}/repair-subject',
       body: {'text': text},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  }) async {
+    final data = await _send(
+      'GET',
+      'orders/${Uri.encodeComponent(orderId)}/assignees'
+          '${vsichni ? '?all=1' : ''}',
+    );
+    if (data == null) throw ServiceOrderNotFoundException(orderId);
+    return NabidkaZpracovatelu.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> nastavZpracovatele(
+    String orderId,
+    int? zamestnanecId,
+  ) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/assignee',
+      body: {'employeeId': zamestnanecId},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> prevezmiZakazku(String orderId) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/assignee/me',
+      body: const <String, Object?>{},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

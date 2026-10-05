@@ -5,6 +5,8 @@ import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dar
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/zavada.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/branch.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/zpracovatel.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/data/fotky_data_source.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokument.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
@@ -322,6 +324,90 @@ class FakeServiceOrderDataSource
     );
   }
 
+  /// Zaměstnanci z Heliosu pro výběr zpracovatele.
+  List<ZamestnanecKVyberu> zamestnanci = const [
+    ZamestnanecKVyberu(
+      id: 501,
+      jmeno: 'Dvořák Jan',
+      email: 'jan.dvorak@renocar.cz',
+      utvar: Department(code: '11211', label: 'Auta Servis'),
+    ),
+    ZamestnanecKVyberu(
+      id: 502,
+      jmeno: 'Kříž Martin',
+      utvar: Department(code: '11211', label: 'Auta Servis'),
+    ),
+    ZamestnanecKVyberu(
+      id: 601,
+      jmeno: 'Novotný Pavel',
+      utvar: Department(code: '13211', label: 'Moto Servis'),
+    ),
+  ];
+
+  /// E-mail přihlášeného, podle kterého server páruje „Převzít".
+  String? emailPrihlaseneho = 'jan.dvorak@renocar.cz';
+
+  /// S jakým `vsichni` se naposledy žádalo o nabídku.
+  bool? posledniNabidkaVsichni;
+
+  @override
+  Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
+    String orderId, {
+    bool vsichni = false,
+  }) async {
+    posledniNabidkaVsichni = vsichni;
+    final index = _indexOf(orderId);
+    final kod = index == -1
+        ? null
+        : _orders[index].department?['code'] as String?;
+    final jenUtvar = !vsichni && kod != null;
+    return NabidkaZpracovatelu(
+      utvarZakazky: kod == null ? null : Department(code: kod, label: kod),
+      jenUtvar: jenUtvar,
+      lide: [
+        for (final z in zamestnanci)
+          if (!jenUtvar || z.utvar?.code == kod) z,
+      ],
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> nastavZpracovatele(
+    String orderId,
+    int? zamestnanecId,
+  ) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    if (zamestnanecId == null) {
+      return _orders[index] = _orders[index].copyWith(
+        vymazatZpracovatele: true,
+      );
+    }
+    final kdo = zamestnanci.firstWhere((z) => z.id == zamestnanecId);
+    return _orders[index] = _orders[index].copyWith(
+      assignee: {
+        'id': kdo.id,
+        'name': kdo.jmeno,
+        'email': kdo.email,
+        'since': '2026-10-05T09:30:00',
+        'assignedBy': 'Test',
+      },
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> prevezmiZakazku(String orderId) async {
+    final email = emailPrihlaseneho;
+    final ja = zamestnanci.where((z) => email != null && z.email == email);
+    if (ja.isEmpty) {
+      throw ServiceOrderException(
+        'K e-mailu $email není v Heliosu žádný zaměstnanec. '
+        'Vyberte se ze seznamu.',
+      );
+    }
+    return nastavZpracovatele(orderId, ja.first.id);
+  }
+
   @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final index = _indexOf(orderId);
@@ -397,6 +483,7 @@ ServiceOrderDto buildOrderDto({
   List<OrderNoteDto> notes = const [],
   List<Zavada> defects = const [],
   Map<String, dynamic>? insurer,
+  Map<String, dynamic>? assignee,
   String? insuranceClaimNumber,
   Map<String, dynamic>? folder,
 }) {
@@ -429,6 +516,7 @@ ServiceOrderDto buildOrderDto({
     workItems: workItems,
     defects: defects,
     insurer: insurer,
+    assignee: assignee,
     insuranceClaimNumber: insuranceClaimNumber,
     folder: folder,
   );

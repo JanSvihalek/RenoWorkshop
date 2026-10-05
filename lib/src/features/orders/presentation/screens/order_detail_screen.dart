@@ -12,9 +12,11 @@ import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
+import '../../domain/entities/zpracovatel.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/detail_cards.dart';
@@ -24,6 +26,7 @@ import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/predmet_opravy_card.dart';
 import '../widgets/status_timeline.dart';
 import '../widgets/zavady_card.dart';
+import '../widgets/zpracovatel_sheet.dart';
 
 /// Detail zakázky: stav, časová osa, fotodokumentace, poznámky, závady.
 class OrderDetailScreen extends ConsumerWidget {
@@ -171,6 +174,26 @@ class _DetailBody extends ConsumerWidget {
     }
   }
 
+  /// Okno zpracovatele: převzít, přiřadit kolegovi, nebo uvolnit.
+  Future<void> _zmenZpracovatele(BuildContext context, WidgetRef ref) async {
+    final volba = await vyberZpracovatele(
+      context,
+      orderId: order.id,
+      aktualni: order.zpracovatel,
+      mujEmail: ref.read(currentEmployeeProvider)?.email,
+    );
+    if (volba == null) return;
+    final akce = ref.read(orderActionsProvider.notifier);
+    switch (volba) {
+      case PrevzitZakazku():
+        await akce.prevezmiZakazku(order.id);
+      case PriraditZamestnance(:final id):
+        await akce.nastavZpracovatele(order.id, id);
+      case UvolnitZakazku():
+        await akce.nastavZpracovatele(order.id, null);
+    }
+  }
+
   Future<void> _upravPredmet(BuildContext context, WidgetRef ref) async {
     final text = await upravPredmetOpravy(context, order.predmetOpravy);
     // null = zrušeno; prázdný text je platná úprava (smazání).
@@ -269,7 +292,12 @@ class _DetailBody extends ConsumerWidget {
 
     return Column(
       children: [
-        _DetailHeader(order: order, onBack: onBack, zobrazitZpet: zobrazitZpet),
+        _DetailHeader(
+          order: order,
+          onBack: onBack,
+          zobrazitZpet: zobrazitZpet,
+          onZpracovatel: () => _zmenZpracovatele(context, ref),
+        ),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) =>
@@ -331,11 +359,15 @@ class _DetailHeader extends StatelessWidget {
     required this.order,
     required this.onBack,
     required this.zobrazitZpet,
+    required this.onZpracovatel,
   });
 
   final ServiceOrder order;
   final VoidCallback onBack;
   final bool zobrazitZpet;
+
+  /// Klepnutí na řádek zpracovatele - otevře jeho výběr.
+  final VoidCallback onZpracovatel;
 
   @override
   Widget build(BuildContext context) {
@@ -450,7 +482,11 @@ class _DetailHeader extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: Insets.base),
+        _RadekZpracovatele(
+          zpracovatel: order.zpracovatel,
+          onTap: onZpracovatel,
+        ),
+        const SizedBox(height: Insets.sm),
         Wrap(
           spacing: Insets.sm,
           runSpacing: Insets.sm,
@@ -619,6 +655,68 @@ class _UdajeZakazky extends StatelessWidget {
             ],
           ),
       ],
+    );
+  }
+}
+
+/// „Zpracovává: Dvořák Jan" pod zodpovědnou osobou. Na rozdíl od ní se
+/// mění v aplikaci - klepnutím se otevře výběr.
+class _RadekZpracovatele extends StatelessWidget {
+  const _RadekZpracovatele({required this.zpracovatel, required this.onTap});
+
+  final Zpracovatel? zpracovatel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final kdo = zpracovatel;
+    final styl = AppTextStyles.meta.copyWith(color: palette.naHlavicceTlumene);
+
+    return Semantics(
+      button: true,
+      child: InkWell(
+        key: const Key('zpracovatel'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: ConstrainedBox(
+          // Ať se do řádku trefí i prst v rukavici.
+          constraints: const BoxConstraints(minHeight: 32),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: 'Zpracovává: ', style: styl),
+                      TextSpan(
+                        text: kdo?.jmeno ?? 'nikdo',
+                        style: kdo == null
+                            ? styl
+                            : styl.copyWith(
+                                color: palette.naHlavicce,
+                                fontWeight: FontWeight.w600,
+                              ),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              Text(
+                kdo == null ? 'Převzít' : 'Změnit',
+                style: styl.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

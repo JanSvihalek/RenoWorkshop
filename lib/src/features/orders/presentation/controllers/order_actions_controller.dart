@@ -122,6 +122,41 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Zpracovatelem zakázky se stane přihlášený. Když ho server podle
+  /// e-mailu v Heliosu nenajde, chyba to řekne - pak se vybere ze seznamu.
+  Future<bool> prevezmiZakazku(String orderId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.prevezmiZakazku(orderId);
+      _zaloguj('zakazka_prevzata', orderId);
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Přiřadí zpracovatele zakázky; `null` ji uvolní.
+  Future<bool> nastavZpracovatele(String orderId, int? zamestnanecId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.nastavZpracovatele(orderId, zamestnanecId);
+      _zaloguj(
+        zamestnanecId == null ? 'zakazka_uvolnena' : 'zpracovatel_prirazen',
+        orderId,
+        detail: zamestnanecId?.toString(),
+      );
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<bool> smazStav(String orderId, String zaznamId) async {
     state = const AsyncLoading();
