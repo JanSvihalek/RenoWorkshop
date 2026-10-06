@@ -32,16 +32,28 @@ const _otoceniZarizeni = {
 /// O kolik stupňů je snímek ze snímače otočený proti tomu, jak ho vidí
 /// člověk. `null` = nejde určit, snímek se nečte.
 ///
-/// Na iOS stačí otočení snímače, na Androidu se odečte otočení zařízení
-/// (u přední kamery přičte - je zrcadlená). Postup podle příkladu
+/// Na Androidu se od otočení snímače odečte otočení zařízení (u přední
+/// kamery přičte - je zrcadlená), postup podle příkladu
 /// k google_mlkit_commons.
+///
+/// Na iOS plugin kamery snímky otáčí podle zařízení sám - na iPadu na
+/// šířku chodí 1280×720. Příklad ML Kitu počítá s appkou zamčenou na
+/// výšku a otočení snímače by přičetl podruhé (tak se to 6. 10. 2026
+/// ukázalo na iPadu). Proto se rozhoduje podle tvaru: [snimek] stejně
+/// orientovaný jako [plocha] je už otočený správně.
 int? otoceniSnimku({
   required bool ios,
   required int snimac,
   required DeviceOrientation zarizeni,
+  required Size snimek,
+  required Size plocha,
   bool predni = false,
 }) {
-  if (ios) return snimac % 360;
+  if (ios) {
+    final stejnyTvar =
+        (snimek.width >= snimek.height) == (plocha.width >= plocha.height);
+    return stejnyTvar ? 0 : snimac % 360;
+  }
   final kompenzace = _otoceniZarizeni[zarizeni];
   if (kompenzace == null) return null;
   return predni

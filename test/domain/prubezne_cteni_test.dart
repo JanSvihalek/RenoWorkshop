@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/data/prubezne_cteni.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/kod_vozidla.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/vyrez_snimku.dart';
 
 /// Průběžné čtení SPZ bez spouště - části, které jdou ověřit bez kamery.
 void main() {
@@ -58,15 +59,23 @@ void main() {
   });
 
   group('otočení snímku', () {
-    test('iOS bere otočení snímače', () {
-      expect(
-        otoceniSnimku(
-          ios: true,
-          snimac: 90,
-          zarizeni: DeviceOrientation.landscapeLeft,
-        ),
-        90,
+    const naSirku = Size(2000, 1390);
+    const naVysku = Size(1390, 2000);
+
+    test('iOS: snímek stejného tvaru jako obrazovka už je otočený', () {
+      int? ios(Size snimek, Size plocha) => otoceniSnimku(
+        ios: true,
+        snimac: 90,
+        zarizeni: DeviceOrientation.landscapeLeft,
+        snimek: snimek,
+        plocha: plocha,
       );
+
+      // iPad na šířku - takhle to 6. 10. 2026 přišlo z iPadu.
+      expect(ios(const Size(1280, 720), naSirku), 0);
+      expect(ios(const Size(720, 1280), naVysku), 0);
+      // Neotočený snímek ze snímače na výšku - otočení snímače.
+      expect(ios(const Size(1280, 720), naVysku), 90);
     });
 
     test('Android odečte otočení zařízení', () {
@@ -75,6 +84,8 @@ void main() {
             ios: false,
             snimac: 90,
             zarizeni: zarizeni,
+            snimek: const Size(1280, 720),
+            plocha: naVysku,
             predni: predni,
           );
 
@@ -112,6 +123,40 @@ void main() {
     expect(
       KodyZTextu.najdi(textVOblasti(radky, ramecek)).first,
       const KodVozidla(druh: DruhKodu.spz, hodnota: '4Z49636'),
+    );
+  });
+
+  test('iPad na šířku: SPZ ze snímku padne do rámečku', () {
+    // Situace z iPadu 6. 10. 2026: obrazovka na šířku, snímek 1280×720,
+    // ML Kit přečetl SPZ i rámeček značky, rámeček zůstal prázdný.
+    const plocha = Size(1180, 820);
+    const ramecek = Rect.fromLTRB(39, 268, 1050, 550);
+    const snimek = Size(1280, 720);
+
+    final otoceni = otoceniSnimku(
+      ios: true,
+      snimac: 90,
+      zarizeni: DeviceOrientation.landscapeLeft,
+      snimek: snimek,
+      plocha: plocha,
+    )!;
+    final oblast = sRezervou(
+      VyrezSnimku.prepocti(
+        snimek: vzprimenaVelikost(snimek, otoceni),
+        plocha: plocha,
+        ramecek: ramecek,
+      ),
+    );
+    final radky = [
+      // Kde je SPZ ve snímku, když je na obrazovce v rámečku.
+      (const Rect.fromLTRB(386, 332, 858, 414), 'EL4 92AS'),
+      // Nápis dealera na rámečku značky, taky v rámečku.
+      (const Rect.fromLTRB(500, 425, 800, 450), 'BMW Renocar Brno - Slatina'),
+    ];
+
+    expect(
+      KodyZTextu.najdi(textVOblasti(radky, oblast)).first,
+      const KodVozidla(druh: DruhKodu.spz, hodnota: 'EL492AS'),
     );
   });
 }

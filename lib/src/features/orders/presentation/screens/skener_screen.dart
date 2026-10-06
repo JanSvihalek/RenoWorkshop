@@ -199,6 +199,8 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
       ios: Platform.isIOS,
       snimac: kamera.description.sensorOrientation,
       zarizeni: kamera.value.deviceOrientation,
+      snimek: Size(snimek.width.toDouble(), snimek.height.toDouble()),
+      plocha: ramecek.plocha,
       predni: kamera.description.lensDirection == CameraLensDirection.front,
     );
     if (otoceni == null) {
