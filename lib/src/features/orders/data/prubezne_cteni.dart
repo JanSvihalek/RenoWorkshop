@@ -77,6 +77,16 @@ InputImage? obrazProCteni(CameraImage snimek, int otoceni) {
   );
 }
 
+/// Oblast rámečku s rezervou. Snímky pro čtení mívají jiný poměr stran
+/// než náhled (CameraX je posílá 4:3, náhled bývá 16:9), takže přepočet
+/// rámečku nesedí na pixel - bez rezervy by SPZ u okraje vypadla.
+Rect sRezervou(Rect oblast) => Rect.fromLTRB(
+  oblast.left - oblast.width * 0.15,
+  oblast.top - oblast.height * 0.5,
+  oblast.right + oblast.width * 0.15,
+  oblast.bottom + oblast.height * 0.5,
+);
+
 /// Text řádků, jejichž střed leží v [oblast] - jen to, co je v rámečku.
 /// Kolem SPZ bývá další text (sousední vůz, nápisy na stěně).
 String textVOblasti(Iterable<(Rect, String)> radky, Rect oblast) => [
