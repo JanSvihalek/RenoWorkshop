@@ -110,7 +110,13 @@ class _DetailBody extends ConsumerWidget {
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
     // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
     // nepíše u každého kroku znovu.
-    final vybrany = await vyberStav(context, misto: order.bay);
+    final vybrany = await vyberStav(
+      context,
+      misto: order.bay,
+      spz: order.licensePlate,
+      cisloZakazky: order.id,
+      autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+    );
     if (vybrany == null || !context.mounted) return;
 
     final hotovo = await ref
@@ -204,7 +210,12 @@ class _DetailBody extends ConsumerWidget {
   }
 
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
-    final text = await showAddNoteDialog(context);
+    final text = await showAddNoteDialog(
+      context,
+      spz: order.licensePlate,
+      cisloZakazky: order.id,
+      autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+    );
     if (text == null || text.isEmpty) return;
     await ref
         .read(orderActionsProvider.notifier)
