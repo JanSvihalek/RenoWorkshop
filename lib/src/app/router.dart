@@ -173,6 +173,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                   onScan: () => context.push(AppRoutes.skenerVozidla),
                   onOpenZakazka: (zakazka) =>
                       context.push(AppRoutes.prijemZakazky(zakazka.id)),
+                  onOpenDetail: (zakazka) =>
+                      context.push(AppRoutes.orderDetail(zakazka.id)),
                   onOpenVozidlo: (vozidlo, naskenovano) => context.push(
                     AppRoutes.kartaVozidla(
                       vozidlo.id,

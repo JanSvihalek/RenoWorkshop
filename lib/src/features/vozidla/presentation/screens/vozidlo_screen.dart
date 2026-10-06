@@ -72,12 +72,16 @@ class VozidloScreen extends ConsumerStatefulWidget {
   const VozidloScreen({
     super.key,
     required this.onOpenZakazka,
+    required this.onOpenDetail,
     required this.onOpenVozidlo,
     required this.onScan,
   });
 
   /// Zahájit (pokračovat v) příjmu zakázky.
   final void Function(ServiceOrder zakazka) onOpenZakazka;
+
+  /// Detail nalezené zakázky - postup, pracovní list, fotky.
+  final void Function(ServiceOrder zakazka) onOpenDetail;
 
   /// `naskenovano` - hledání vyplnil skener, ne klávesnice. Karta vozu to
   /// ukáže v popisku.
@@ -260,6 +264,7 @@ class _VozidloScreenState extends ConsumerState<VozidloScreen> {
         nalezene: nalezene,
         naskenovano: _zeSkeneru,
         onZahajit: widget.onOpenZakazka,
+        onDetail: widget.onOpenDetail,
         onNeniToOno: _neniToOno,
         vozidla: vozidla!,
         onOpenVozidlo: (v) => widget.onOpenVozidlo(v, _zeSkeneru),
@@ -342,6 +347,7 @@ class _NaDilne extends StatelessWidget {
     required this.nalezene,
     required this.naskenovano,
     required this.onZahajit,
+    required this.onDetail,
     required this.onNeniToOno,
     required this.vozidla,
     required this.onOpenVozidlo,
@@ -350,6 +356,7 @@ class _NaDilne extends StatelessWidget {
   final List<ServiceOrder> nalezene;
   final bool naskenovano;
   final void Function(ServiceOrder zakazka) onZahajit;
+  final void Function(ServiceOrder zakazka) onDetail;
   final VoidCallback onNeniToOno;
   final AsyncValue<List<NalezeneVozidlo>> vozidla;
   final void Function(NalezeneVozidlo vozidlo) onOpenVozidlo;
@@ -389,6 +396,7 @@ class _NaDilne extends StatelessWidget {
                 zakazka: zakazka,
                 naskenovano: naskenovano,
                 onZahajit: () => onZahajit(zakazka),
+                onDetail: () => onDetail(zakazka),
                 onNeniToOno: jedna ? onNeniToOno : null,
               ),
             ],

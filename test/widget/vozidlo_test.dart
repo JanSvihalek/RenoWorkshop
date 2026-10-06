@@ -6,6 +6,7 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/orders/presentation/screens/order_detail_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
@@ -107,6 +108,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
+  });
+
+  testWidgets('z naskenované zakázky jde otevřít její detail', (tester) async {
+    await naVozidlo(tester);
+    kontejner(tester).read(otevritJedineVozidloProvider.notifier).state = true;
+    kontejner(tester).read(dotazVozidlaProvider.notifier).state = '2BK 9485';
+    await tester.pumpAndSettle();
+
+    final detail = find.byKey(const Key('detail-zakazky-ZK-26-0001'));
+    await tester.ensureVisible(detail);
+    await tester.pumpAndSettle();
+    await tester.tap(detail);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OrderDetailScreen), findsOneWidget);
+    expect(find.byType(PrijemZakazkyScreen), findsNothing);
+
+    // Zpět se vrátí na kartu nalezené zakázky, ne do seznamu zakázek.
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) =>
+            w is Icon &&
+            (w.icon == Icons.arrow_back_rounded ||
+                w.icon == Icons.arrow_back_ios_new_rounded),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(OrderDetailScreen), findsNothing);
+    expect(find.byType(IdentifikaceKarta), findsOneWidget);
   });
 
   testWidgets('hledá i podle čísla zakázky', (tester) async {

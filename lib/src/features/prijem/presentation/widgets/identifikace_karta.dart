@@ -29,6 +29,7 @@ class IdentifikaceKarta extends ConsumerWidget {
     required this.naskenovano,
     required this.onZahajit,
     this.onNeniToOno,
+    this.onDetail,
   });
 
   final ServiceOrder zakazka;
@@ -39,6 +40,10 @@ class IdentifikaceKarta extends ConsumerWidget {
 
   /// `null` tlačítko schová - u výběru z víc zakázek není kam „jinam".
   final VoidCallback? onNeniToOno;
+
+  /// Otevře detail zakázky - z karty pak jde i jinam než do příjmu
+  /// (postup, pracovní list, fotky). `null` řádek na kartě schová.
+  final VoidCallback? onDetail;
 
   /// Šířka samotné karty a panelu vedle ní.
   static const sirkaKarty = 580.0;
@@ -103,7 +108,7 @@ class IdentifikaceKarta extends ConsumerWidget {
     );
     final karta = KeyedSubtree(
       key: Key('karta-${zakazka.id}'),
-      child: _Karta(zakazka: zakazka),
+      child: _Karta(zakazka: zakazka, onDetail: onDetail),
     );
 
     return ConstrainedBox(
@@ -426,9 +431,10 @@ class _Dlazdice extends StatelessWidget {
 }
 
 class _Karta extends StatelessWidget {
-  const _Karta({required this.zakazka});
+  const _Karta({required this.zakazka, this.onDetail});
 
   final ServiceOrder zakazka;
+  final VoidCallback? onDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -587,7 +593,66 @@ class _Karta extends StatelessWidget {
                 ],
               ),
             ),
+          if (onDetail case final otevrit?)
+            _OdkazNaDetail(key: Key('detail-zakazky-${z.id}'), onTap: otevrit),
         ],
+      ),
+    );
+  }
+}
+
+/// Řádek dole na kartě - přes celou šířku, ať se trefí i palcem.
+class _OdkazNaDetail extends StatelessWidget {
+  const _OdkazNaDetail({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: const BorderRadius.vertical(
+        bottom: Radius.circular(Radii.card),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Sizes.minTouchTarget),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Insets.xl,
+            vertical: Insets.base,
+          ),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: palette.hairline)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.description_outlined,
+                size: 18,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: Insets.sm),
+              Expanded(
+                child: Text(
+                  'Otevřít detail zakázky',
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppColors.accent,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
