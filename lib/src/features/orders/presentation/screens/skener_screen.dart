@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
+import '../../data/prubezne_cteni.dart';
 import '../../domain/entities/kod_vozidla.dart';
 import '../controllers/orders_providers.dart';
 import '../../domain/entities/vyrez_snimku.dart';
@@ -19,10 +22,10 @@ import 'package:flutter/services.dart';
 /// má mířit, a je to o dvě klepnutí míň. V rámečku je i světlo, protože
 /// štítek s VINem bývá na tmavém místě pod kapotou.
 ///
-/// Snímek se pořizuje spouští, ne průběžným čtením obrazu. Průběžné
-/// rozpoznávání vyžaduje převod snímků z kamery, který se chová jinak na
-/// Androidu a jinak na iOS - až se to ověří na zařízeních, dá se doplnit,
-/// aniž by se cokoli měnilo okolo.
+/// Snímek se pořizuje spouští. S volbou „Rozpoznat SPZ bez spouště"
+/// skener navíc průběžně čte obraz a SPZ v rámečku vyhledá sám
+/// (prubezne_cteni.dart); spoušť zůstává pro VIN a pro případ, že se
+/// průběžné čtení na daném zařízení nechytí.
 class SkenerScreen extends ConsumerStatefulWidget {
   const SkenerScreen({
     super.key,
@@ -55,6 +58,18 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   RamecekSkeneru? _ramecek;
   bool _menilRamecek = false;
 
+  /// Průběžné čtení SPZ (volba v nastavení) - podle stavu při otevření,
+  /// přepnutí uprostřed skenování se neprojeví.
+  late final bool _samo = ref.read(nastaveniProvider).samoRozpoznatSpz;
+  final _potvrzeni = PotvrzeniSpz();
+  bool _zpracovavaSnimek = false;
+  bool _nalezeno = false;
+  DateTime _posledniSnimek = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Jak často se čte snímek. Častěji to nemá smysl - čtení trvá kolem
+  /// desetiny vteřiny a zbytečně by se vybíjela baterie.
+  static const _rozestupCteni = Duration(milliseconds: 350);
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +96,9 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
         // sice přeneslo rychleji, ale VIN by se často nepřečetl.
         ResolutionPreset.high,
         enableAudio: false,
+        // Formát, který ML Kit přečte bez převodu - jen pro průběžné
+        // čtení, jinak zůstává výchozí.
+        imageFormatGroup: _samo ? formatProCteni : null,
       );
       try {
         await controller.initialize();
@@ -105,6 +123,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
         _kamera = controller;
         _pripravuje = false;
       });
+      if (_samo) await _spustCteni();
     } on CameraException catch (chyba) {
       if (!mounted) return;
       setState(() {
@@ -122,6 +141,83 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
         _chyba = 'Fotoaparát není k dispozici.';
       });
     }
+  }
+
+  /// Začne posílat snímky náhledu ke čtení. Když to zařízení neumí,
+  /// zbývá spoušť - nic se nehlásí.
+  Future<void> _spustCteni() async {
+    final kamera = _kamera;
+    if (kamera == null || kamera.value.isStreamingImages || _nalezeno) return;
+    _potvrzeni.vynuluj();
+    try {
+      await kamera.startImageStream(_noveSnimek);
+    } on CameraException {
+      // Bez průběžného čtení - spoušť funguje dál.
+    }
+  }
+
+  Future<void> _zastavCteni() async {
+    final kamera = _kamera;
+    if (kamera == null || !kamera.value.isStreamingImages) return;
+    try {
+      await kamera.stopImageStream();
+    } on CameraException {
+      // Už neběží.
+    }
+  }
+
+  /// Snímek z náhledu. Čte se jen jeden naráz a nejvýš po
+  /// [_rozestupCteni], ostatní se zahodí.
+  void _noveSnimek(CameraImage snimek) {
+    if (_zpracovavaSnimek || _pracuje || _nalezeno || !mounted) return;
+    final ted = DateTime.now();
+    if (ted.difference(_posledniSnimek) < _rozestupCteni) return;
+    _posledniSnimek = ted;
+    _zpracovavaSnimek = true;
+    _prectiSnimek(snimek).whenComplete(() => _zpracovavaSnimek = false);
+  }
+
+  Future<void> _prectiSnimek(CameraImage snimek) async {
+    final kamera = _kamera;
+    final ramecek = _ramecek;
+    if (kamera == null || ramecek == null) return;
+
+    final otoceni = otoceniSnimku(
+      ios: Platform.isIOS,
+      snimac: kamera.description.sensorOrientation,
+      zarizeni: kamera.value.deviceOrientation,
+      predni: kamera.description.lensDirection == CameraLensDirection.front,
+    );
+    if (otoceni == null) return;
+    final obraz = obrazProCteni(snimek, otoceni);
+    if (obraz == null) return;
+
+    // Rámeček z obrazovky do souřadnic snímku - stejně jako u spouště.
+    final oblast = VyrezSnimku.prepocti(
+      snimek: vzprimenaVelikost(
+        Size(snimek.width.toDouble(), snimek.height.toDouble()),
+        otoceni,
+      ),
+      plocha: ramecek.plocha,
+      ramecek: ramecek.obdelnik,
+    );
+
+    final List<KodVozidla> kody;
+    try {
+      kody = await ref.read(skenerProvider).prectiObraz(obraz, oblast);
+    } catch (_) {
+      // Jeden nepřečtený snímek nevadí, přijde další.
+      return;
+    }
+    if (!mounted || _pracuje || _nalezeno) return;
+
+    final spz = _potvrzeni.pridej(kody);
+    if (spz == null) return;
+    _nalezeno = true;
+    await _zastavCteni();
+    // Technik se nedívá na displej, ale na SPZ - ať ví, že je hotovo.
+    await HapticFeedback.mediumImpact();
+    if (mounted) widget.onNalezeno(spz);
   }
 
   Future<void> _prepniSvetlo() async {
@@ -196,9 +292,11 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 
   Future<void> _vyfot() async {
     final kamera = _kamera;
-    if (kamera == null || _pracuje) return;
+    if (kamera == null || _pracuje || _nalezeno) return;
 
     setState(() => _pracuje = true);
+    // Fotit a zároveň posílat snímky ke čtení některá zařízení neumí.
+    await _zastavCteni();
     try {
       final snimek = await kamera.takePicture();
       final ramecek = _ramecek;
@@ -212,7 +310,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 
       if (!mounted) return;
       if (kody.isEmpty) {
-        setState(() => _pracuje = false);
+        _pokracujVeCteni();
         _zprava('Nic se nenašlo. Zkuste to blíž, nebo přisviťte.');
         return;
       }
@@ -220,15 +318,22 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
       final vybrany = kody.length == 1 ? kody.single : await _vyberKod(kody);
       if (!mounted) return;
       if (vybrany == null) {
-        setState(() => _pracuje = false);
+        _pokracujVeCteni();
         return;
       }
+      _nalezeno = true;
       widget.onNalezeno(vybrany);
     } catch (chyba) {
       if (!mounted) return;
-      setState(() => _pracuje = false);
+      _pokracujVeCteni();
       _zprava('Snímek se nepodařilo zpracovat: $chyba');
     }
+  }
+
+  /// Po spoušti bez výsledku zpátky k míření - i průběžné čtení.
+  void _pokracujVeCteni() {
+    setState(() => _pracuje = false);
+    if (_samo) _spustCteni();
   }
 
   Future<KodVozidla?> _vyberKod(List<KodVozidla> kody) {
@@ -320,6 +425,7 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                     onDoubleTap: _vratRamecek,
                     child: _Ramecek(
                       ramecek: ramecek.obdelnik,
+                      samo: _samo,
                       ukazNapovedu: !_menilRamecek,
                       onTahni: _tahniStranu,
                     ),
@@ -349,11 +455,15 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 class _Ramecek extends StatelessWidget {
   const _Ramecek({
     required this.ramecek,
+    required this.samo,
     required this.ukazNapovedu,
     required this.onTahni,
   });
 
   final Rect ramecek;
+
+  /// SPZ se čte průběžně - jiná nápověda.
+  final bool samo;
 
   /// Napoví, jak se velikost mění. Zmizí, jakmile to člověk jednou udělá —
   /// pak už jen překáží.
@@ -437,7 +547,10 @@ class _Ramecek extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Namiřte na VIN nebo SPZ',
+                samo
+                    ? 'Namiřte na SPZ, vyhledá se sama. VIN vyfoťte spouští.'
+                    : 'Namiřte na VIN nebo SPZ',
+                key: const Key('napoveda-skeneru'),
                 textAlign: TextAlign.center,
                 style: AppTextStyles.cardBody.copyWith(color: Colors.white),
               ),

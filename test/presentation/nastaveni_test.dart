@@ -123,6 +123,23 @@ void main() {
       );
     });
 
+    test('rozpoznání SPZ bez spouště přežije restart', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().samoRozpoznatSpz,
+        isFalse,
+      );
+      await SharedPreferencesNastaveni(
+        prefs,
+      ).uloz(const Nastaveni(samoRozpoznatSpz: true));
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().samoRozpoznatSpz,
+        isTrue,
+      );
+    });
+
     test('zobrazení seznamu přežije restart, neznámé jsou karty', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

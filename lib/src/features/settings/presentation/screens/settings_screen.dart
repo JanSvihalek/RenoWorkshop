@@ -331,6 +331,18 @@ class _SkenerAFotoaparat extends ConsumerWidget {
             onChanged: ovladani.zmenSkenovaniPoOtevreni,
           ),
         ),
+        _Radek(
+          titul: 'Rozpoznat SPZ bez spouště',
+          popis:
+              'Skener čte obraz sám a SPZ v rámečku rovnou vyhledá. '
+              'VIN se dál fotí spouští.',
+          vpravo: Switch.adaptive(
+            key: const Key('samo-rozpoznat-spz'),
+            value: nastaveni.samoRozpoznatSpz,
+            activeTrackColor: AppColors.accent,
+            onChanged: ovladani.zmenSamoRozpoznaniSpz,
+          ),
+        ),
       ],
     );
   }

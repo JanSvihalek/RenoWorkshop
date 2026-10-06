@@ -110,4 +110,26 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
   });
+
+  testWidgets('SPZ bez spouště jde zapnout, výchozí je vypnuté', (
+    tester,
+  ) async {
+    await spust(tester);
+    await tester.tap(find.text('Nastavení'));
+    await tester.pumpAndSettle();
+
+    final prepinac = find.byKey(const Key('samo-rozpoznat-spz'));
+    await tester.scrollUntilVisible(
+      prepinac,
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rozpoznat SPZ bez spouště'), findsOneWidget);
+    expect(uloziste.nacti().samoRozpoznatSpz, isFalse);
+
+    await tester.tap(prepinac);
+    await tester.pumpAndSettle();
+    expect(uloziste.nacti().samoRozpoznatSpz, isTrue);
+  });
 }

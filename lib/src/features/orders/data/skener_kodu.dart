@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 
 import '../domain/entities/kod_vozidla.dart';
 import '../domain/entities/vyrez_snimku.dart';
+import 'prubezne_cteni.dart';
 
 /// Přečtení VINu nebo SPZ ze snímku.
 ///
@@ -47,6 +48,20 @@ class SkenerKodu {
       InputImage.fromFilePath(cesta),
     );
     return KodyZTextu.najdi(text.text);
+  }
+
+  /// Přečte snímek z náhledu kamery (průběžné čtení bez spouště).
+  ///
+  /// Snímek se neořezává - to by u každého snímku trvalo příliš dlouho.
+  /// Místo toho se vezmou jen řádky textu, které leží v [oblast]
+  /// (souřadnice vzpřímeného snímku, viz [vzprimenaVelikost]).
+  Future<List<KodVozidla>> prectiObraz(InputImage obraz, Rect oblast) async {
+    final text = await _rozpoznavac.processImage(obraz);
+    final radky = [
+      for (final blok in text.blocks)
+        for (final radek in blok.lines) (radek.boundingBox, radek.text),
+    ];
+    return KodyZTextu.najdi(textVOblasti(radky, oblast));
   }
 
   Future<String?> _orizni(String cesta, Rect ramecek, Size plocha) async {

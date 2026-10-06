@@ -108,6 +108,7 @@ class Nastaveni {
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
     this.skenovatPoOtevreni = true,
+    this.samoRozpoznatSpz = false,
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
     this.uvodniZalozka = UvodniZalozka.zakazky,
     this.ukazkovaData = false,
@@ -122,6 +123,13 @@ class Nastaveni {
   /// Obojí vždycky začíná SPZ, takže je to o dvě klepnutí míň; kdo píše
   /// radši ručně, si to vypne.
   final bool skenovatPoOtevreni;
+
+  /// Skener čte obraz průběžně a SPZ vyhledá sám, bez spouště - jakmile
+  /// ji v rámečku přečte víckrát po sobě stejně. VIN se dál fotí spouští.
+  ///
+  /// Vypnuté ve výchozím stavu: průběžné čtení víc vybíjí baterii a na
+  /// zařízeních zatím není vyzkoušené (6. 10. 2026).
+  final bool samoRozpoznatSpz;
 
   /// Kód útvaru, na který se seznam otevře. `null` = všechny.
   ///
@@ -194,6 +202,7 @@ class Nastaveni {
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
     bool? skenovatPoOtevreni,
+    bool? samoRozpoznatSpz,
     ZobrazeniZakazek? zobrazeniZakazek,
     UvodniZalozka? uvodniZalozka,
     bool? ukazkovaData,
@@ -218,6 +227,7 @@ class Nastaveni {
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
       skenovatPoOtevreni: skenovatPoOtevreni ?? this.skenovatPoOtevreni,
+      samoRozpoznatSpz: samoRozpoznatSpz ?? this.samoRozpoznatSpz,
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
       uvodniZalozka: uvodniZalozka ?? this.uvodniZalozka,
       ukazkovaData: ukazkovaData ?? this.ukazkovaData,
@@ -238,6 +248,7 @@ class Nastaveni {
           other.slozkaFotek == slozkaFotek &&
           other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
           other.skenovatPoOtevreni == skenovatPoOtevreni &&
+          other.samoRozpoznatSpz == samoRozpoznatSpz &&
           other.zobrazeniZakazek == zobrazeniZakazek &&
           other.uvodniZalozka == uvodniZalozka &&
           other.ukazkovaData == ukazkovaData);
@@ -254,6 +265,7 @@ class Nastaveni {
     slozkaFotek,
     ukladatFotkyDoZarizeni,
     skenovatPoOtevreni,
+    samoRozpoznatSpz,
     zobrazeniZakazek,
     uvodniZalozka,
     ukazkovaData,
