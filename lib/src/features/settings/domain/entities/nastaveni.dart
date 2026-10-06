@@ -127,8 +127,8 @@ class Nastaveni {
   /// Skener čte obraz průběžně a SPZ vyhledá sám, bez spouště - jakmile
   /// ji v rámečku přečte víckrát po sobě stejně. VIN se dál fotí spouští.
   ///
-  /// Vypnuté ve výchozím stavu: průběžné čtení víc vybíjí baterii a na
-  /// zařízeních zatím není vyzkoušené (6. 10. 2026).
+  /// Vypnuté ve výchozím stavu: průběžné čtení víc vybíjí baterii.
+  /// Vyzkoušené na iPadu (6. 10. 2026).
   final bool samoRozpoznatSpz;
 
   /// Kód útvaru, na který se seznam otevře. `null` = všechny.

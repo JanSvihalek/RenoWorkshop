@@ -14,9 +14,8 @@ import '../domain/entities/kod_vozidla.dart';
 //
 // ML Kit bere snímky z kamery bez převodu jen v určitém formátu: na
 // Androidu NV21, na iOS BGRA. Kamera se proto musí spustit s
-// [formatProCteni]. Ověřené zatím jen podle dokumentace ML Kitu, ne na
-// zařízeních - když se snímek převést nepodaří, čtení se tiše vynechá
-// a zbývá spoušť.
+// [formatProCteni]. Ověřené na iPadu (6. 10. 2026); když se snímek
+// převést nepodaří, čtení se tiše vynechá a zbývá spoušť.
 
 /// Formát snímků pro [CameraController.imageFormatGroup].
 ImageFormatGroup get formatProCteni =>

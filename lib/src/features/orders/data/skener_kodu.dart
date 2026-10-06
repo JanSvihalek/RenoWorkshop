@@ -55,24 +55,13 @@ class SkenerKodu {
   /// Snímek se neořezává - to by u každého snímku trvalo příliš dlouho.
   /// Místo toho se vezmou jen řádky textu, které leží v [oblast]
   /// (souřadnice vzpřímeného snímku, viz [vzprimenaVelikost]).
-  ///
-  /// Vrací i přečtený text (v rámečku a celý) - pro diagnostiku na
-  /// obrazovce skeneru, dokud se průběžné čtení ladí na zařízeních.
-  Future<({List<KodVozidla> kody, String vRamecku, String vse})> prectiObraz(
-    InputImage obraz,
-    Rect oblast,
-  ) async {
+  Future<List<KodVozidla>> prectiObraz(InputImage obraz, Rect oblast) async {
     final text = await _rozpoznavac.processImage(obraz);
     final radky = [
       for (final blok in text.blocks)
         for (final radek in blok.lines) (radek.boundingBox, radek.text),
     ];
-    final vRamecku = textVOblasti(radky, oblast);
-    return (
-      kody: KodyZTextu.najdi(vRamecku),
-      vRamecku: vRamecku,
-      vse: text.text,
-    );
+    return KodyZTextu.najdi(textVOblasti(radky, oblast));
   }
 
   Future<String?> _orizni(String cesta, Rect ramecek, Size plocha) async {

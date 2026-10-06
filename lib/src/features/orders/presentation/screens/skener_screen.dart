@@ -66,16 +66,6 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   bool _nalezeno = false;
   DateTime _posledniSnimek = DateTime.fromMillisecondsSinceEpoch(0);
 
-  /// DOČASNÉ (6. 10. 2026): co průběžné čtení dělá - řádek pod rámečkem,
-  /// dokud se neodladí na zařízeních. Pak smazat i s [_Diagnostika].
-  String? _diagnostika;
-  int _snimku = 0;
-  int _prectenych = 0;
-
-  void _diagnostikuj(String text) {
-    if (mounted) setState(() => _diagnostika = text);
-  }
-
   /// Jak často se čte snímek. Častěji to nemá smysl - čtení trvá kolem
   /// desetiny vteřiny a zbytečně by se vybíjela baterie.
   static const _rozestupCteni = Duration(milliseconds: 350);
@@ -161,10 +151,8 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     _potvrzeni.vynuluj();
     try {
       await kamera.startImageStream(_noveSnimek);
-      _diagnostikuj('Čtení spuštěno, čekám na snímky…');
-    } on CameraException catch (chyba) {
+    } on CameraException {
       // Bez průběžného čtení - spoušť funguje dál.
-      _diagnostikuj('Čtení nejde spustit: ${chyba.code} ${chyba.description}');
     }
   }
 
@@ -181,7 +169,6 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   /// Snímek z náhledu. Čte se jen jeden naráz a nejvýš po
   /// [_rozestupCteni], ostatní se zahodí.
   void _noveSnimek(CameraImage snimek) {
-    _snimku++;
     if (_zpracovavaSnimek || _pracuje || _nalezeno || !mounted) return;
     final ted = DateTime.now();
     if (ted.difference(_posledniSnimek) < _rozestupCteni) return;
@@ -203,18 +190,9 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
       plocha: ramecek.plocha,
       predni: kamera.description.lensDirection == CameraLensDirection.front,
     );
-    if (otoceni == null) {
-      _diagnostikuj('Neznámé otočení: ${kamera.value.deviceOrientation}');
-      return;
-    }
+    if (otoceni == null) return;
     final obraz = obrazProCteni(snimek, otoceni);
-    if (obraz == null) {
-      _diagnostikuj(
-        'Nepodporovaný snímek: formát ${snimek.format.raw} '
-        '(${snimek.format.group.name}), rovin ${snimek.planes.length}',
-      );
-      return;
-    }
+    if (obraz == null) return;
 
     // Rámeček z obrazovky do souřadnic snímku - stejně jako u spouště.
     final oblast = sRezervou(
@@ -230,24 +208,9 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 
     final List<KodVozidla> kody;
     try {
-      final vysledek = await ref
-          .read(skenerProvider)
-          .prectiObraz(obraz, oblast);
-      kody = vysledek.kody;
-      _prectenych++;
-      String radek(String t) => t.replaceAll('\n', ' | ');
-      _diagnostikuj(
-        'Snímků $_snimku, přečteno $_prectenych · '
-        '${snimek.width}×${snimek.height} · $otoceni° · '
-        'oblast ${oblast.left.round()},${oblast.top.round()} '
-        '${oblast.width.round()}×${oblast.height.round()}\n'
-        'V rámečku: „${radek(vysledek.vRamecku)}"\n'
-        'Celý snímek: „${radek(vysledek.vse)}"\n'
-        'SPZ: ${kody.where((k) => k.druh == DruhKodu.spz).join(', ')}',
-      );
-    } catch (chyba) {
+      kody = await ref.read(skenerProvider).prectiObraz(obraz, oblast);
+    } catch (_) {
       // Jeden nepřečtený snímek nevadí, přijde další.
-      _diagnostikuj('Chyba čtení: $chyba');
       return;
     }
     if (!mounted || _pracuje || _nalezeno) return;
@@ -471,8 +434,6 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                       onTahni: _tahniStranu,
                     ),
                   ),
-                if (_samo && _diagnostika != null)
-                  _Diagnostika(text: _diagnostika!),
                 // Až za rámečkem, aby tlačítka dostala doteky přednostně.
                 _Ovladani(
                   umisteni: spoust,
@@ -487,43 +448,6 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
               ],
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-/// DOČASNÉ: řádek s tím, co průběžné čtení dělá. Nahoře, ať nepřekáží
-/// spoušti ani nápovědě.
-class _Diagnostika extends StatelessWidget {
-  const _Diagnostika({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: MediaQuery.paddingOf(context).top + 64,
-      left: Insets.xl,
-      right: Insets.xl,
-      child: IgnorePointer(
-        child: Container(
-          key: const Key('diagnostika-skeneru'),
-          padding: const EdgeInsets.all(Insets.sm),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.7),
-            borderRadius: BorderRadius.circular(Radii.input),
-          ),
-          child: Text(
-            text,
-            maxLines: 8,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.metaSmall.copyWith(
-              color: Colors.white,
-              fontFamily: AppFonts.mono,
-              fontSize: 11,
-            ),
-          ),
         ),
       ),
     );
