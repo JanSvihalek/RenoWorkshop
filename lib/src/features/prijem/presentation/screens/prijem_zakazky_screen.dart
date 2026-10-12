@@ -15,6 +15,7 @@ import '../../../orders/domain/entities/service_order.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../domain/entities/prijem.dart';
+import '../../../orders/presentation/widgets/obalka_klice.dart';
 import '../controllers/prijem_providers.dart';
 import '../widgets/identifikace_karta.dart';
 
@@ -47,10 +48,14 @@ class PrijemZakazkyScreen extends ConsumerStatefulWidget {
     super.key,
     required this.orderId,
     required this.onBack,
+    this.onSkenujObalku,
   });
 
   final String orderId;
   final VoidCallback onBack;
+
+  /// Skener obálky s klíčem. Bez něj jde obálku jen napsat.
+  final SkenujObalku? onSkenujObalku;
 
   @override
   ConsumerState<PrijemZakazkyScreen> createState() =>
@@ -252,6 +257,12 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
       KrokPrijmu.kontrola => ListView(
         padding: odsazeni,
         children: [
+          // Klíč do obálky hned na začátku kontroly - technik ho drží
+          // v ruce, když vůz přebírá.
+          if (zakazka != null) ...[
+            ObalkaKarta(zakazka: zakazka, onSkenuj: widget.onSkenujObalku),
+            const SizedBox(height: Insets.base),
+          ],
           _Checklist(
             prijem: prijem,
             onZaskrtnout: (polozka, hodnota) =>
@@ -272,6 +283,10 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
             prijem: prijem,
             onUpravit: () => _jdiNa(KrokPrijmu.kontrola),
           ),
+          if (zakazka != null) ...[
+            const SizedBox(height: Insets.base),
+            ObalkaKarta(zakazka: zakazka, onSkenuj: widget.onSkenujObalku),
+          ],
           const SizedBox(height: Insets.base),
           FotodokumentaceKarta(
             orderId: _orderId,

@@ -3,10 +3,12 @@ import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image/image.dart' as img;
 
 import '../domain/entities/kod_vozidla.dart';
+import '../domain/entities/obalka_klice.dart';
 import '../domain/entities/vyrez_snimku.dart';
 import 'prubezne_cteni.dart';
 
@@ -19,10 +21,27 @@ import 'prubezne_cteni.dart';
 /// vybere — štítek pod kapotou bývá špinavý a slepé spolehnutí na strojové
 /// čtení by vedlo k hledání nesmyslů.
 class SkenerKodu {
-  SkenerKodu({TextRecognizer? rozpoznavac})
-    : _rozpoznavac = rozpoznavac ?? TextRecognizer();
+  SkenerKodu({TextRecognizer? rozpoznavac, BarcodeScanner? ctecka})
+    : _rozpoznavac = rozpoznavac ?? TextRecognizer(),
+      _ctecka = ctecka ?? BarcodeScanner(formats: [BarcodeFormat.qrCode]);
 
   final TextRecognizer _rozpoznavac;
+
+  /// QR kódy obálek s klíči. Jen QR - jiné čárové kódy (na dílech,
+  /// štítcích pneumatik) by se pletly.
+  final BarcodeScanner _ctecka;
+
+  /// Obálky z QR kódů. Jiné QR kódy (web, kontakt) se zahodí.
+  ///
+  /// S [oblast] jen kódy, jejichž střed leží v ní - stejně jako text.
+  Future<List<KodVozidla>> _obalkyZQr(InputImage obraz, {Rect? oblast}) async {
+    final kody = await _ctecka.processImage(obraz);
+    return {
+      for (final kod in kody)
+        if (oblast == null || oblast.contains(kod.boundingBox.center))
+          ?kodObalky(kod.rawValue ?? ''),
+    }.map((k) => KodVozidla(druh: DruhKodu.obalka, hodnota: k)).toList();
+  }
 
   /// Přečte snímek a vrátí, co v něm vypadá jako VIN nebo SPZ.
   ///
@@ -44,9 +63,17 @@ class SkenerKodu {
       if (oriznuta != null) cesta = oriznuta;
     }
 
-    final text = await _rozpoznavac.processImage(
-      InputImage.fromFilePath(cesta),
-    );
+    final obraz = InputImage.fromFilePath(cesta);
+    // QR obálky má přednost - je jednoznačný a přečte se spolehlivěji
+    // než text. Chyba čtečky (třeba nenačtený model) nesmí zabránit
+    // čtení textu.
+    try {
+      final obalky = await _obalkyZQr(obraz);
+      if (obalky.isNotEmpty) return obalky;
+    } on Exception {
+      // Zbývá text.
+    }
+    final text = await _rozpoznavac.processImage(obraz);
     return KodyZTextu.najdi(text.text);
   }
 
@@ -55,7 +82,16 @@ class SkenerKodu {
   /// Snímek se neořezává - to by u každého snímku trvalo příliš dlouho.
   /// Místo toho se vezmou jen řádky textu, které leží v [oblast]
   /// (souřadnice vzpřímeného snímku, viz [vzprimenaVelikost]).
-  Future<List<KodVozidla>> prectiObraz(InputImage obraz, Rect oblast) async {
+  ///
+  /// [jenQr] - skener obálek čte jen QR kódy, text by čtení zbytečně
+  /// zdržoval.
+  Future<List<KodVozidla>> prectiObraz(
+    InputImage obraz,
+    Rect oblast, {
+    bool jenQr = false,
+  }) async {
+    final obalky = await _obalkyZQr(obraz, oblast: oblast);
+    if (obalky.isNotEmpty || jenQr) return obalky;
     final text = await _rozpoznavac.processImage(obraz);
     final radky = [
       for (final blok in text.blocks)
@@ -95,7 +131,10 @@ class SkenerKodu {
     }
   }
 
-  Future<void> dispose() => _rozpoznavac.close();
+  Future<void> dispose() async {
+    await _rozpoznavac.close();
+    await _ctecka.close();
+  }
 }
 
 /// Ořízne snímek na rámeček. Běží mimo hlavní isolate, proto samostatně.

@@ -6,6 +6,7 @@ import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
 import '../../domain/entities/zavada.dart';
+import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/zpracovatel.dart';
 
 /// Přenosový model zakázky.
@@ -34,6 +35,8 @@ class ServiceOrderDto {
     required this.vin,
     required this.mechanicName,
     this.assignee,
+    this.keyEnvelope,
+    this.keyEnvelopeBranch,
     required this.serviceAdvisorName,
     required this.bay,
     this.bayAt,
@@ -95,6 +98,13 @@ class ServiceOrderDto {
   /// Zpracovatel - `{"id", "name", "email", "since", "assignedBy"}`,
   /// `null` = nikdo. Starší API ho neposílá.
   final Map<String, dynamic>? assignee;
+
+  /// Obálka s klíčem - `{"code", "branch", "branchName", "assignedAt",
+  /// "assignedBy"}`, `null` = žádná. Starší API ji neposílá.
+  final Map<String, dynamic>? keyEnvelope;
+
+  /// Pobočka obálek podle pořadače (`BSL`), `null` = neznámá.
+  final String? keyEnvelopeBranch;
   final String? serviceAdvisorName;
   final String? bay;
 
@@ -130,6 +140,8 @@ class ServiceOrderDto {
       vin: json['vin'] as String,
       mechanicName: json['mechanicName'] as String?,
       assignee: json['assignee'] as Map<String, dynamic>?,
+      keyEnvelope: json['keyEnvelope'] as Map<String, dynamic>?,
+      keyEnvelopeBranch: json['keyEnvelopeBranch'] as String?,
       serviceAdvisorName: json['serviceAdvisorName'] as String?,
       bay: json['bay'] as String?,
       bayAt: json['bayAt'] as String?,
@@ -167,6 +179,8 @@ class ServiceOrderDto {
     'vin': vin,
     'mechanicName': mechanicName,
     'assignee': assignee,
+    'keyEnvelope': keyEnvelope,
+    'keyEnvelopeBranch': keyEnvelopeBranch,
     'serviceAdvisorName': serviceAdvisorName,
     'bay': bay,
     'bayAt': bayAt,
@@ -206,6 +220,8 @@ class ServiceOrderDto {
     vin: vin,
     mechanicName: mechanicName,
     zpracovatel: assignee == null ? null : Zpracovatel.fromJson(assignee!),
+    obalka: keyEnvelope == null ? null : ObalkaKlice.fromJson(keyEnvelope!),
+    pobockaObalek: keyEnvelopeBranch,
     serviceAdvisorName: serviceAdvisorName,
     bay: bay,
     bayAt: bayAt == null ? null : DateTime.tryParse(bayAt!),
@@ -232,6 +248,10 @@ class ServiceOrderDto {
 
     /// Uvolněná zakázka - `??` by jinak nechalo původního zpracovatele.
     bool vymazatZpracovatele = false,
+    Map<String, dynamic>? keyEnvelope,
+
+    /// Uvolněná obálka - `??` by jinak nechalo původní.
+    bool vymazatObalku = false,
 
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
@@ -260,6 +280,8 @@ class ServiceOrderDto {
       vin: vin,
       mechanicName: mechanicName,
       assignee: vymazatZpracovatele ? null : (assignee ?? this.assignee),
+      keyEnvelope: vymazatObalku ? null : (keyEnvelope ?? this.keyEnvelope),
+      keyEnvelopeBranch: keyEnvelopeBranch,
       serviceAdvisorName: serviceAdvisorName,
       bay: bay ?? this.bay,
       bayAt: bayAt ?? this.bayAt,

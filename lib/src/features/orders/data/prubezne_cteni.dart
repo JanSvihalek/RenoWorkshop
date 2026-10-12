@@ -125,7 +125,13 @@ class PotvrzeniSpz {
   ///
   /// Bere první nalezenou SPZ - spojená slova (značka z tabulky bývá
   /// rozdělená mezerou) mají v [KodyZTextu.najdi] přednost.
+  ///
+  /// Obálka s klíčem se vrátí hned: QR kód má kontrolní součet a kód
+  /// obálky přísný tvar, splést se nedá.
   KodVozidla? pridej(List<KodVozidla> kody) {
+    final obalka = kody.where((k) => k.druh == DruhKodu.obalka).firstOrNull;
+    if (obalka != null) return obalka;
+
     final spz = kody.where((k) => k.druh == DruhKodu.spz).firstOrNull;
     if (spz == null) return null;
 

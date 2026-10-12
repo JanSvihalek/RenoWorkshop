@@ -1,3 +1,4 @@
+import '../entities/obalka_klice.dart';
 import '../entities/dilensky_stav.dart';
 import '../entities/service_order.dart';
 import '../entities/zpracovatel.dart';
@@ -59,6 +60,21 @@ abstract interface class ServiceOrderRepository {
   /// Zpracovatelem se stane přihlášený.
   Future<ServiceOrder> prevezmiZakazku(String orderId);
 
+  /// Obálka s klíčem k zakázce. Obálka jiné rozdělané zakázky nebo jiné
+  /// pobočky skončí [ServiceOrderException] s kódem z [otazkyObalky];
+  /// s [prepsat] se přiřadí stejně.
+  Future<ServiceOrder> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  });
+
+  /// Uvolní obálku zakázky - klíč z ní odešel jinak než se zákazníkem.
+  Future<ServiceOrder> uvolniObalku(String orderId);
+
+  /// Komu naskenovaná obálka patří. `null` = obálka v evidenci není.
+  Future<NalezenaObalka?> najdiObalku(String kod);
+
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();
 
@@ -82,9 +98,13 @@ abstract interface class ServiceOrderRepository {
 
 /// Chyba datové vrstvy prezentovatelná uživateli.
 class ServiceOrderException implements Exception {
-  const ServiceOrderException(this.message);
+  const ServiceOrderException(this.message, {this.kod});
 
   final String message;
+
+  /// Kód chyby ze serveru (`envelope_in_use`…), když ho poslal. Podle něj
+  /// aplikace pozná otázku od chyby - viz [otazkyObalky].
+  final String? kod;
 
   @override
   String toString() => 'ServiceOrderException: $message';

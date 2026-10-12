@@ -1,3 +1,4 @@
+import '../../domain/entities/obalka_klice.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -252,6 +253,61 @@ class MockServiceOrderDataSource
   @override
   Future<ServiceOrderDto?> prevezmiZakazku(String orderId) =>
       nastavZpracovatele(orderId, _ja.$1);
+
+  @override
+  Future<ServiceOrderDto?> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  }) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    final jina = orders.indexWhere(
+      (o) => o.id != orderId && o.keyEnvelope?['code'] == kod,
+    );
+    if (jina != -1 && !prepsat) {
+      throw ServiceOrderException(
+        'Obálka $kod patří zakázce ${orders[jina].id} '
+        '(${orders[jina].licensePlate}). Přesunout ji k téhle zakázce?',
+        kod: 'envelope_in_use',
+      );
+    }
+    if (jina != -1) orders[jina] = orders[jina].copyWith(vymazatObalku: true);
+    return orders[index] = orders[index].copyWith(
+      keyEnvelope: {
+        'code': kod,
+        'branch': kod.substring(1, 4),
+        'branchName': pobockyObalek[kod.substring(1, 4)],
+        'assignedAt': DateTime.now().toIso8601String().substring(0, 19),
+        'assignedBy': 'Ukázkový technik',
+      },
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> uvolniObalku(String orderId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    return orders[index] = orders[index].copyWith(vymazatObalku: true);
+  }
+
+  @override
+  Future<NalezenaObalka?> najdiObalku(String kod) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final zakazka = orders
+        .where((o) => o.keyEnvelope?['code'] == kod)
+        .firstOrNull;
+    return NalezenaObalka(
+      kod: kod,
+      zakazkaId: zakazka?.id,
+      spz: zakazka?.licensePlate,
+    );
+  }
 
   @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {

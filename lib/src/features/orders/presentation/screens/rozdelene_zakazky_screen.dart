@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
+import '../widgets/obalka_klice.dart';
 import 'order_detail_screen.dart';
 import 'orders_list_screen.dart';
 
@@ -21,11 +22,13 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
     required this.onScanCode,
     required this.onFotodokumentace,
     required this.onPrijem,
+    this.onSkenujObalku,
   });
 
   final VoidCallback onScanCode;
   final ValueChanged<String> onFotodokumentace;
   final ValueChanged<String> onPrijem;
+  final SkenujObalku? onSkenujObalku;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,6 +62,7 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                         ref.read(vybranaZakazkaProvider.notifier).state = null,
                     zobrazitZpet: false,
                     onFotodokumentace: onFotodokumentace,
+                    onSkenujObalku: onSkenujObalku,
                     onPrijem: onPrijem,
                   ),
           ),

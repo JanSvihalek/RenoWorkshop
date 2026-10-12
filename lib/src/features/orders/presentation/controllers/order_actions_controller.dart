@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/log_udalosti_provider.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../domain/entities/obalka_klice.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import 'orders_providers.dart';
 
@@ -58,6 +59,48 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         misto: misto?.trim(),
       );
       _zaloguj('stav_pridan', orderId, detail: kod ?? 'vlastní text');
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Přiřadí zakázce obálku s klíčem.
+  ///
+  /// Obálka jiné rozdělané zakázky nebo jiné pobočky vrátí [otazka] -
+  /// po potvrzení technikem zavolat znovu s [prepsat]. Jiná chyba je
+  /// v [chyba] (a ve stavu controlleru).
+  Future<({bool hotovo, String? otazka, String? chyba})> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.priradObalku(orderId, kod, prepsat: prepsat);
+      _zaloguj('obalka_prirazena', orderId, detail: kod);
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return (hotovo: true, otazka: null, chyba: null);
+    } on ServiceOrderException catch (error, stackTrace) {
+      if (otazkyObalky.contains(error.kod)) {
+        state = const AsyncData(null);
+        return (hotovo: false, otazka: error.message, chyba: null);
+      }
+      state = AsyncError(error.message, stackTrace);
+      return (hotovo: false, otazka: null, chyba: error.message);
+    }
+  }
+
+  /// Uvolní obálku zakázky - klíč z ní odešel jinak než se zákazníkem.
+  Future<bool> uvolniObalku(String orderId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.uvolniObalku(orderId);
+      _zaloguj('obalka_uvolnena', orderId);
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;

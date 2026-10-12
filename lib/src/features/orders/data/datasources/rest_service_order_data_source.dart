@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
@@ -170,6 +171,35 @@ class RestServiceOrderDataSource
       body: const <String, Object?>{},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  }) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/envelope',
+      body: {'code': kod, 'force': prepsat},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> uvolniObalku(String orderId) async {
+    final data = await _send(
+      'DELETE',
+      'orders/${Uri.encodeComponent(orderId)}/envelope',
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<NalezenaObalka?> najdiObalku(String kod) async {
+    final data = await _send('GET', 'envelopes/${Uri.encodeComponent(kod)}');
+    return data == null ? null : NalezenaObalka.fromJson(_asMap(data));
   }
 
   @override
@@ -491,10 +521,19 @@ class RestServiceOrderDataSource
     final kod = odpoved.statusCode;
 
     if (kod == 404) {
-      // Volající rozliší chybějící zakázku nebo vozidlo podle null.
+      // Neznámá obálka u zakázky není chybějící zakázka - hláška ze serveru.
+      if (_kodZTela(odpoved) == 'unknown_envelope' &&
+          !path.startsWith('envelopes/')) {
+        throw ServiceOrderException(
+          _chybaZTela(odpoved) ?? 'Obálka v evidenci není.',
+          kod: 'unknown_envelope',
+        );
+      }
+      // Volající rozliší chybějící zakázku, vozidlo nebo obálku podle null.
       if (path.startsWith('orders/') ||
           path.startsWith('vehicles/') ||
-          path.startsWith('photos/')) {
+          path.startsWith('photos/') ||
+          path.startsWith('envelopes/')) {
         return null;
       }
       throw const ServiceOrderException('Požadovaný zdroj nebyl nalezen.');
@@ -516,6 +555,7 @@ class RestServiceOrderDataSource
     if (kod < 200 || kod >= 300) {
       throw ServiceOrderException(
         _chybaZTela(odpoved) ?? 'Chyba serveru ($kod).',
+        kod: _kodZTela(odpoved),
       );
     }
     if (odpoved.bodyBytes.isEmpty) return null;
@@ -529,6 +569,20 @@ class RestServiceOrderDataSource
   }
 
   /// API vrací chyby jako `{"error": {"message": "..."}}`.
+  /// Kód chyby z těla (`{"error": {"code": ...}}`), nebo `null`.
+  String? _kodZTela(http.Response odpoved) {
+    try {
+      final telo = jsonDecode(utf8.decode(odpoved.bodyBytes));
+      if (telo is Map && telo['error'] is Map) {
+        final kod = (telo['error'] as Map)['code'];
+        if (kod is String && kod.isNotEmpty) return kod;
+      }
+    } on FormatException {
+      // Bez JSON těla kód není.
+    }
+    return null;
+  }
+
   String? _chybaZTela(http.Response odpoved) {
     try {
       final telo = jsonDecode(utf8.decode(odpoved.bodyBytes));

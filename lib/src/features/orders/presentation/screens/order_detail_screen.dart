@@ -15,12 +15,14 @@ import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/detail_cards.dart';
 import '../widgets/notes_card.dart';
+import '../widgets/obalka_klice.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/predmet_opravy_card.dart';
@@ -37,10 +39,14 @@ class OrderDetailScreen extends ConsumerWidget {
     this.zobrazitZpet = true,
     this.onFotodokumentace,
     this.onPrijem,
+    this.onSkenujObalku,
   });
 
   final String orderId;
   final VoidCallback onBack;
+
+  /// Skener obálky s klíčem. Bez něj jde obálku jen napsat.
+  final SkenujObalku? onSkenujObalku;
 
   /// Otevření fotodokumentace. Bez něj se karta fotek nezobrazí.
   final ValueChanged<String>? onFotodokumentace;
@@ -85,6 +91,7 @@ class OrderDetailScreen extends ConsumerWidget {
             zobrazitZpet: zobrazitZpet,
             onFotodokumentace: onFotodokumentace,
             onPrijem: onPrijem,
+            onSkenujObalku: onSkenujObalku,
           );
         },
       ),
@@ -99,6 +106,7 @@ class _DetailBody extends ConsumerWidget {
     required this.zobrazitZpet,
     required this.onFotodokumentace,
     required this.onPrijem,
+    required this.onSkenujObalku,
   });
 
   final ServiceOrder order;
@@ -106,6 +114,7 @@ class _DetailBody extends ConsumerWidget {
   final bool zobrazitZpet;
   final ValueChanged<String>? onFotodokumentace;
   final ValueChanged<String>? onPrijem;
+  final SkenujObalku? onSkenujObalku;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
     // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
@@ -308,6 +317,9 @@ class _DetailBody extends ConsumerWidget {
           onBack: onBack,
           zobrazitZpet: zobrazitZpet,
           onZpracovatel: () => _zmenZpracovatele(context, ref),
+          onPriraditObalku: () =>
+              zmenObalku(context, ref, order, onSkenuj: onSkenujObalku),
+          onUvolnitObalku: () => uvolnitObalku(context, ref, order),
         ),
         Expanded(
           child: LayoutBuilder(
@@ -371,6 +383,8 @@ class _DetailHeader extends StatelessWidget {
     required this.onBack,
     required this.zobrazitZpet,
     required this.onZpracovatel,
+    required this.onPriraditObalku,
+    required this.onUvolnitObalku,
   });
 
   final ServiceOrder order;
@@ -379,6 +393,10 @@ class _DetailHeader extends StatelessWidget {
 
   /// Klepnutí na řádek zpracovatele - otevře jeho výběr.
   final VoidCallback onZpracovatel;
+
+  /// Obálka s klíčem - přiřadit (skener nebo číslo), uvolnit.
+  final VoidCallback onPriraditObalku;
+  final VoidCallback onUvolnitObalku;
 
   @override
   Widget build(BuildContext context) {
@@ -530,7 +548,12 @@ class _DetailHeader extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final vedle = constraints.maxWidth >= _sirkaProUdajeVedle;
-          final udaje = _UdajeZakazky(order: order, vedle: vedle);
+          final udaje = _UdajeZakazky(
+            order: order,
+            vedle: vedle,
+            onPriraditObalku: onPriraditObalku,
+            onUvolnitObalku: onUvolnitObalku,
+          );
           return vedle
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,9 +586,16 @@ const double _sirkaProUdajeVedle = 820;
 /// pojistné události - v hlavičce, ať jsou vidět hned po otevření a
 /// nezabírají místo kartami v těle detailu.
 class _UdajeZakazky extends StatelessWidget {
-  const _UdajeZakazky({required this.order, required this.vedle});
+  const _UdajeZakazky({
+    required this.order,
+    required this.vedle,
+    required this.onPriraditObalku,
+    required this.onUvolnitObalku,
+  });
 
   final ServiceOrder order;
+  final VoidCallback onPriraditObalku;
+  final VoidCallback onUvolnitObalku;
 
   /// Vedle identifikace vozu: pevné sloupce. Pod ní půl na půl.
   final bool vedle;
@@ -665,8 +695,141 @@ class _UdajeZakazky extends StatelessWidget {
               ),
             ],
           ),
+        // Obálka s klíčem - náhrada desek s kapsičkou. Přes oba sloupce,
+        // ať se vejde kód i tlačítko.
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: Insets.md),
+              child: _KolonkaObalky(
+                obalka: order.obalka,
+                onPriradit: onPriraditObalku,
+                onUvolnit: onUvolnitObalku,
+              ),
+            ),
+            const SizedBox.shrink(),
+          ],
+        ),
       ],
     );
+  }
+}
+
+/// „OBÁLKA S KLÍČEM": kód obálky a Uvolnit, nebo Přiřadit.
+class _KolonkaObalky extends StatelessWidget {
+  const _KolonkaObalky({
+    required this.obalka,
+    required this.onPriradit,
+    required this.onUvolnit,
+  });
+
+  final ObalkaKlice? obalka;
+  final VoidCallback onPriradit;
+  final VoidCallback onUvolnit;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final kod = obalka?.kod;
+
+    return Column(
+      key: const Key('obalka'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'OBÁLKA S KLÍČEM',
+          style: AppTextStyles.overline.copyWith(
+            fontSize: 10.5,
+            color: palette.naHlavicceTlumene,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                kod ?? 'Nepřiřazena',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: kod == null
+                    ? AppTextStyles.cardBody.copyWith(
+                        fontSize: 15,
+                        color: palette.naHlavicceTlumene,
+                      )
+                    : AppTextStyles.dataValue.copyWith(
+                        fontSize: 15,
+                        color: palette.naHlavicce,
+                      ),
+              ),
+            ),
+            const SizedBox(width: Insets.base),
+            _TlacitkoObalky(
+              key: Key(
+                kod == null
+                    ? 'obalka-priradit-hlavicka'
+                    : 'obalka-uvolnit-hlavicka',
+              ),
+              text: kod == null ? 'Přiřadit' : 'Uvolnit',
+              zvyraznene: kod == null,
+              onTap: kod == null ? onPriradit : onUvolnit,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Malé tlačítko v hlavičce - Přiřadit plné, Uvolnit jen obrys, ať se
+/// na něj neklepne omylem místo něčeho jiného.
+class _TlacitkoObalky extends StatelessWidget {
+  const _TlacitkoObalky({
+    super.key,
+    required this.text,
+    required this.zvyraznene,
+    required this.onTap,
+  });
+
+  final String text;
+  final bool zvyraznene;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final styl = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: Insets.base),
+      ),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      visualDensity: VisualDensity.compact,
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      textStyle: WidgetStatePropertyAll(AppTextStyles.chip),
+    );
+
+    return zvyraznene
+        ? FilledButton(
+            onPressed: onTap,
+            style: styl.copyWith(
+              backgroundColor: const WidgetStatePropertyAll(AppColors.accent),
+              foregroundColor: const WidgetStatePropertyAll(Colors.white),
+            ),
+            child: Text(text),
+          )
+        : OutlinedButton(
+            onPressed: onTap,
+            style: styl.copyWith(
+              foregroundColor: WidgetStatePropertyAll(palette.naHlavicce),
+              side: WidgetStatePropertyAll(
+                BorderSide(color: palette.hlavickaOkraj),
+              ),
+            ),
+            child: Text(text),
+          );
   }
 }
 

@@ -1,7 +1,12 @@
+import 'obalka_klice.dart';
+
 /// Kód vozidla vytažený z textu — VIN nebo SPZ.
 enum DruhKodu {
   vin('VIN'),
-  spz('SPZ');
+  spz('SPZ'),
+
+  /// Obálka s klíčem (`KBSL-023`) - z QR kódu nebo z čísla na štítku.
+  obalka('Obálka');
 
   const DruhKodu(this.label);
 
@@ -51,6 +56,18 @@ abstract final class KodyZTextu {
         .map((slovo) => slovo.replaceAll(RegExp('[^A-Z0-9]'), ''))
         .where((slovo) => slovo.isNotEmpty)
         .toList();
+
+    // Obálka s klíčem má kód vytištěný i na štítku (KBSL-023). Je
+    // jednoznačná a na štítku nic jiného není - ze zbytku textu („023",
+    // „Brno") by se jinak poskládala falešná SPZ a skener by se zbytečně
+    // ptal, co hledat.
+    final obalky = {for (final slovo in slova) ?kodObalky(slovo)};
+    if (obalky.isNotEmpty) {
+      return [
+        for (final obalka in obalky)
+          KodVozidla(druh: DruhKodu.obalka, hodnota: obalka),
+      ];
+    }
 
     final viny = _najdiViny(slova);
     final spz = _najdiSpz(slova, viny);

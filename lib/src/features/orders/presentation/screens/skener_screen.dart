@@ -32,7 +32,13 @@ class SkenerScreen extends ConsumerStatefulWidget {
     required this.onNalezeno,
     required this.onBack,
     this.onRucne,
+    this.jenObalky = false,
   });
+
+  /// Skener obálky s klíčem (příjem, detail): čte jen QR kódy obálek,
+  /// průběžně a bez ohledu na nastavení - QR se přečte spolehlivě
+  /// a technik má jen namířit.
+  final bool jenObalky;
 
   /// Vrací vybraný kód. Prázdné pole znamená, že se nic nenašlo.
   final void Function(KodVozidla kod) onNalezeno;
@@ -58,9 +64,10 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
   RamecekSkeneru? _ramecek;
   bool _menilRamecek = false;
 
-  /// Průběžné čtení SPZ (volba v nastavení) - podle stavu při otevření,
-  /// přepnutí uprostřed skenování se neprojeví.
-  late final bool _samo = ref.read(nastaveniProvider).samoRozpoznatSpz;
+  /// Průběžné čtení: u obálek vždy, jinak podle volby v nastavení (stav
+  /// při otevření - přepnutí uprostřed skenování se neprojeví).
+  late final bool _samo =
+      widget.jenObalky || ref.read(nastaveniProvider).samoRozpoznatSpz;
   final _potvrzeni = PotvrzeniSpz();
   bool _zpracovavaSnimek = false;
   bool _nalezeno = false;
@@ -208,7 +215,9 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 
     final List<KodVozidla> kody;
     try {
-      kody = await ref.read(skenerProvider).prectiObraz(obraz, oblast);
+      kody = await ref
+          .read(skenerProvider)
+          .prectiObraz(obraz, oblast, jenQr: widget.jenObalky);
     } catch (_) {
       // Jeden nepřečtený snímek nevadí, přijde další.
       return;
@@ -304,18 +313,25 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
     try {
       final snimek = await kamera.takePicture();
       final ramecek = _ramecek;
-      final kody = await ref
+      final precteno = await ref
           .read(skenerProvider)
           .precti(
             snimek.path,
             ramecek: ramecek?.obdelnik,
             plochaNahledu: ramecek?.plocha,
           );
+      final kody = widget.jenObalky
+          ? precteno.where((k) => k.druh == DruhKodu.obalka).toList()
+          : precteno;
 
       if (!mounted) return;
       if (kody.isEmpty) {
         _pokracujVeCteni();
-        _zprava('Nic se nenašlo. Zkuste to blíž, nebo přisviťte.');
+        _zprava(
+          widget.jenObalky
+              ? 'QR kód obálky se nenašel. Zkuste to blíž, nebo přisviťte.'
+              : 'Nic se nenašlo. Zkuste to blíž, nebo přisviťte.',
+        );
         return;
       }
 
@@ -429,7 +445,11 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
                     onDoubleTap: _vratRamecek,
                     child: _Ramecek(
                       ramecek: ramecek.obdelnik,
-                      samo: _samo,
+                      napoveda: widget.jenObalky
+                          ? 'Namiřte na QR kód obálky s klíčem'
+                          : _samo
+                          ? 'Namiřte na SPZ, vyhledá se sama. VIN vyfoťte spouští.'
+                          : 'Namiřte na VIN nebo SPZ',
                       ukazNapovedu: !_menilRamecek,
                       onTahni: _tahniStranu,
                     ),
@@ -459,15 +479,15 @@ class _SkenerScreenState extends ConsumerState<SkenerScreen> {
 class _Ramecek extends StatelessWidget {
   const _Ramecek({
     required this.ramecek,
-    required this.samo,
+    required this.napoveda,
     required this.ukazNapovedu,
     required this.onTahni,
   });
 
   final Rect ramecek;
 
-  /// SPZ se čte průběžně - jiná nápověda.
-  final bool samo;
+  /// Co a jak se čte - podle režimu skeneru.
+  final String napoveda;
 
   /// Napoví, jak se velikost mění. Zmizí, jakmile to člověk jednou udělá —
   /// pak už jen překáží.
@@ -551,9 +571,7 @@ class _Ramecek extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                samo
-                    ? 'Namiřte na SPZ, vyhledá se sama. VIN vyfoťte spouští.'
-                    : 'Namiřte na VIN nebo SPZ',
+                napoveda,
                 key: const Key('napoveda-skeneru'),
                 textAlign: TextAlign.center,
                 style: AppTextStyles.cardBody.copyWith(color: Colors.white),

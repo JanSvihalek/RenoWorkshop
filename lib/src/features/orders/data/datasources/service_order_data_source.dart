@@ -1,3 +1,4 @@
+import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../dtos/service_order_dto.dart';
@@ -65,6 +66,21 @@ abstract interface class ServiceOrderDataSource {
   /// Když ho server podle e-mailu v Heliosu nenajde, [ServiceOrderException]
   /// s hláškou pro uživatele.
   Future<ServiceOrderDto?> prevezmiZakazku(String orderId);
+
+  /// `PUT /orders/{id}/envelope` - obálka s klíčem k zakázce. Otázka
+  /// (obálka jiné zakázky, jiné pobočky) je [ServiceOrderException]
+  /// s kódem z [otazkyObalky]; [prepsat] ji odsouhlasí.
+  Future<ServiceOrderDto?> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  });
+
+  /// `DELETE /orders/{id}/envelope` - uvolní obálku zakázky.
+  Future<ServiceOrderDto?> uvolniObalku(String orderId);
+
+  /// `GET /envelopes/{code}` - komu obálka patří. `null` = v evidenci není.
+  Future<NalezenaObalka?> najdiObalku(String kod);
 
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.

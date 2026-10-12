@@ -5,6 +5,7 @@ import 'poradac.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
 import 'zavada.dart';
+import 'obalka_klice.dart';
 import 'zpracovatel.dart';
 
 /// Servisní zakázka na dílně - hlavní entita fáze 1.
@@ -32,6 +33,8 @@ class ServiceOrder {
     required this.vin,
     this.mechanicName,
     this.zpracovatel,
+    this.obalka,
+    this.pobockaObalek,
     this.serviceAdvisorName,
     this.bay,
     this.bayAt,
@@ -109,6 +112,14 @@ class ServiceOrder {
   /// [mechanicName] z Heliosu. `null` = nikdo.
   final Zpracovatel? zpracovatel;
 
+  /// Obálka, ve které je klíč od vozu. `null` = klíč v žádné obálce není
+  /// (zakázka bez příjmu v aplikaci, nebo obálka uvolněná).
+  final ObalkaKlice? obalka;
+
+  /// Pobočka obálek zakázky podle pořadače (`BSL`). K ručně napsanému
+  /// číslu obálky se podle ní doplní předpona. `null` = neznámá.
+  final String? pobockaObalek;
+
   /// Servisní poradce, který zakázku vede.
   final String? serviceAdvisorName;
 
@@ -184,6 +195,8 @@ class ServiceOrder {
       model,
       mechanicName ?? '',
       zpracovatel?.jmeno ?? '',
+      // Napsaný kód obálky („KBSL-023") najde zakázku i bez skeneru.
+      obalka?.kod ?? '',
       vin,
       predmetOpravy ?? '',
       pojistovna ?? '',
@@ -223,6 +236,8 @@ class ServiceOrder {
       vin: vin,
       mechanicName: mechanicName ?? this.mechanicName,
       zpracovatel: zpracovatel,
+      obalka: obalka,
+      pobockaObalek: pobockaObalek,
       serviceAdvisorName: serviceAdvisorName,
       bay: bay ?? this.bay,
       bayAt: bayAt ?? this.bayAt,
@@ -243,6 +258,7 @@ class ServiceOrder {
           other.predmetOpravy == predmetOpravy &&
           other.stav == stav &&
           other.zpracovatel == zpracovatel &&
+          other.obalka == obalka &&
           other.notes.length == notes.length &&
           other.workItems == workItems);
 
@@ -252,6 +268,7 @@ class ServiceOrder {
     predmetOpravy,
     stav,
     zpracovatel,
+    obalka,
     notes.length,
     workItems.length,
   );

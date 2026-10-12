@@ -1,3 +1,4 @@
+import '../../domain/entities/obalka_klice.dart';
 import 'dart:async';
 
 import '../../domain/entities/dilensky_stav.dart';
@@ -129,6 +130,27 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   Future<ServiceOrder> prevezmiZakazku(String orderId) {
     return _mutate(orderId, () => _dataSource.prevezmiZakazku(orderId));
   }
+
+  @override
+  Future<ServiceOrder> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  }) {
+    return _mutate(
+      orderId,
+      () => _dataSource.priradObalku(orderId, kod, prepsat: prepsat),
+    );
+  }
+
+  @override
+  Future<ServiceOrder> uvolniObalku(String orderId) {
+    return _mutate(orderId, () => _dataSource.uvolniObalku(orderId));
+  }
+
+  @override
+  Future<NalezenaObalka?> najdiObalku(String kod) =>
+      _dataSource.najdiObalku(kod);
 
   @override
   Future<List<NabidkaStavu>> nabidkaStavu() => _dataSource.nabidkaStavu();

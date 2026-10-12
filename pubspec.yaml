@@ -2,7 +2,7 @@ name: renoworkshop
 description: "RenoWorkshop - interní dílenský tracker servisních zakázek RENOCAR a.s."
 publish_to: 'none'
 
-version: 1.9.0+1
+version: 1.10.0+1
 
 environment:
   sdk: ^3.11.5
@@ -39,6 +39,7 @@ dependencies:
   file_picker: ^13.1.0
   open_filex: ^4.7.0
   path_provider: ^2.1.6
+  google_mlkit_barcode_scanning: ^0.15.0
 
 dev_dependencies:
   flutter_test:

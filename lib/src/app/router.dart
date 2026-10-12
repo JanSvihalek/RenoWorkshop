@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +7,9 @@ import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/rozlozeni.dart';
 import '../core/widgets/workshop_scaffold.dart';
+import '../features/orders/domain/entities/kod_vozidla.dart';
+import '../features/orders/domain/entities/obalka_klice.dart';
+import '../features/orders/domain/repositories/service_order_repository.dart';
 import '../features/orders/presentation/controllers/orders_providers.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
@@ -42,6 +45,9 @@ abstract final class AppRoutes {
 
   /// Skener, jehož výsledek jde do záložky Vozidlo, ne do seznamu zakázek.
   static const String skenerVozidla = '$skener?cil=vozidlo';
+
+  /// Skener obálky s klíčem - vrátí její kód tomu, kdo ho otevřel.
+  static const String skenerObalky = '$skener?cil=obalka';
 
   /// `naskenovano` jen do popisku na kartě - vůz se našel podle SPZ
   /// z fotoaparátu.
@@ -87,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.skener,
         builder: (context, state) => Consumer(
           builder: (context, ref, _) => SkenerScreen(
+            jenObalky: state.uri.queryParameters['cil'] == 'obalka',
             onBack: () =>
                 context.canPop() ? context.pop() : context.go(AppRoutes.orders),
             // Ze záložky Vozidlo, kam se skener otevírá sám, musí jít rychle
@@ -99,6 +106,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                         ? context.pop()
                         : context.go(AppRoutes.vozidlo);
                   }
+                // Obálka: zpět do okna, číslo se dá napsat.
+                : state.uri.queryParameters['cil'] == 'obalka'
+                ? () => context.pop()
                 : null,
             // Naskenovaný kód se vloží do hledání v seznamu, ne rovnou do
             // archivu: hledaný vůz obvykle stojí na dílně, takže je mezi
@@ -108,6 +118,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             // `go`, ne `pushReplacement`: skener se otevírá ze seznamu,
             // takže by jinak v zásobníku zůstaly dva seznamy pod sebou.
             onNalezeno: (kod) {
+              // Skener obálky vrací kód tomu, kdo ho otevřel (příjem,
+              // detail zakázky).
+              if (state.uri.queryParameters['cil'] == 'obalka') {
+                context.pop(kod.hodnota);
+                return;
+              }
+              // Naskenovaná obálka s klíčem otevře svou zakázku.
+              if (kod.druh == DruhKodu.obalka) {
+                _otevriZakazkuObalky(context, ref, kod.hodnota);
+                return;
+              }
               // Ze záložky Vozidlo: SPZ jde do hledání. Vůz na dílně ukáže
               // kartu příjmu, jediný vůz bez zakázky se otevře rovnou.
               if (state.uri.queryParameters['cil'] == 'vozidlo') {
@@ -151,6 +172,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                                 context.push(AppRoutes.fotodokumentace(id)),
                             onPrijem: (id) =>
                                 context.push(AppRoutes.prijemZakazky(id)),
+                            onSkenujObalku: () =>
+                                context.push<String>(AppRoutes.skenerObalky),
                           )
                         : OrdersListScreen(
                             onOpenOrder: (order) =>
@@ -203,6 +226,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final orderId = state.pathParameters['orderId']!;
           return PrijemZakazkyScreen(
             orderId: orderId,
+            onSkenujObalku: () => context.push<String>(AppRoutes.skenerObalky),
             onBack: () => context.canPop()
                 ? context.pop()
                 : context.go(AppRoutes.vozidlo),
@@ -252,6 +276,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           onFotodokumentace: (id) =>
               context.push(AppRoutes.fotodokumentace(id)),
           onPrijem: (id) => context.push(AppRoutes.prijemZakazky(id)),
+          onSkenujObalku: () => context.push<String>(AppRoutes.skenerObalky),
         ),
       ),
     ],
@@ -282,5 +307,41 @@ class _AuthRefreshNotifier extends ChangeNotifier {
   void dispose() {
     _subscription.close();
     super.dispose();
+  }
+}
+
+/// Naskenovaná obálka s klíčem: otevře zakázku, které patří, místo
+/// skeneru. Volná nebo neznámá obálka - zpět a hláška.
+Future<void> _otevriZakazkuObalky(
+  BuildContext context,
+  WidgetRef ref,
+  String kod,
+) async {
+  final router = GoRouter.of(context);
+  final zpravy = ScaffoldMessenger.of(context);
+
+  void zpet(String text) {
+    router.canPop() ? router.pop() : router.go(AppRoutes.orders);
+    zpravy
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  try {
+    final nalezena = await ref
+        .read(serviceOrderRepositoryProvider)
+        .najdiObalku(kod);
+    final zakazka = nalezena?.zakazkaId;
+    if (zakazka != null) {
+      router.pushReplacement(AppRoutes.orderDetail(zakazka));
+      return;
+    }
+    zpet(switch (nalezena) {
+      null => 'Obálka $kod v evidenci není.',
+      NalezenaObalka(aktivni: false) => 'Obálka $kod je vyřazená.',
+      _ => 'Obálka $kod je volná - nepatří žádné rozdělané zakázce.',
+    });
+  } on ServiceOrderException catch (chyba) {
+    zpet(chyba.message);
   }
 }

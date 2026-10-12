@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:renoworkshop/src/features/orders/domain/entities/obalka_klice.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
@@ -431,6 +432,72 @@ class FakeServiceOrderDataSource
     return nastavZpracovatele(orderId, ja.first.id);
   }
 
+  /// Kódy obálek, které „v evidenci nejsou" - server na ně vrátí 404.
+  Set<String> neznameObalky = {};
+
+  @override
+  Future<ServiceOrderDto?> priradObalku(
+    String orderId,
+    String kod, {
+    bool prepsat = false,
+  }) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    if (neznameObalky.contains(kod)) {
+      throw ServiceOrderException(
+        'Obálka $kod v evidenci není.',
+        kod: 'unknown_envelope',
+      );
+    }
+    final jina = _orders.indexWhere(
+      (o) =>
+          o.id != orderId &&
+          !_archivIds.contains(o.id) &&
+          o.keyEnvelope?['code'] == kod,
+    );
+    if (jina != -1 && !prepsat) {
+      throw ServiceOrderException(
+        'Obálka $kod patří zakázce ${_orders[jina].id} '
+        '(${_orders[jina].licensePlate}). Přesunout ji k téhle zakázce?',
+        kod: 'envelope_in_use',
+      );
+    }
+    if (jina != -1) {
+      _orders[jina] = _orders[jina].copyWith(vymazatObalku: true);
+    }
+    return _orders[index] = _orders[index].copyWith(
+      keyEnvelope: {
+        'code': kod,
+        'branch': kod.substring(1, 4),
+        'branchName': pobockyObalek[kod.substring(1, 4)],
+        'assignedAt': '2026-10-12T08:15:00',
+        'assignedBy': 'Test',
+      },
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> uvolniObalku(String orderId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(vymazatObalku: true);
+  }
+
+  @override
+  Future<NalezenaObalka?> najdiObalku(String kod) async {
+    if (neznameObalky.contains(kod)) return null;
+    final zakazka = _orders
+        .where(
+          (o) => !_archivIds.contains(o.id) && o.keyEnvelope?['code'] == kod,
+        )
+        .firstOrNull;
+    return NalezenaObalka(
+      kod: kod,
+      zakazkaId: zakazka?.id,
+      spz: zakazka?.licensePlate,
+    );
+  }
+
   @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final index = _indexOf(orderId);
@@ -509,6 +576,8 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? assignee,
   String? insuranceClaimNumber,
   Map<String, dynamic>? folder,
+  Map<String, dynamic>? keyEnvelope,
+  String? keyEnvelopeBranch,
 }) {
   return ServiceOrderDto(
     id: id,
@@ -540,6 +609,8 @@ ServiceOrderDto buildOrderDto({
     defects: defects,
     insurer: insurer,
     assignee: assignee,
+    keyEnvelope: keyEnvelope,
+    keyEnvelopeBranch: keyEnvelopeBranch,
     insuranceClaimNumber: insuranceClaimNumber,
     folder: folder,
   );
