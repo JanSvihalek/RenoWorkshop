@@ -6,6 +6,7 @@ import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -236,5 +237,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('obalka-karta-uvolnit')), findsOneWidget);
+  });
+
+  testWidgets('číslo obálky je vidět i na kartě v seznamu', (tester) async {
+    await otevriDetail(tester);
+
+    // Na tabletu je seznam vedle detailu. Obálku má jen druhá zakázka.
+    final znaky = find.byKey(const Key('karta-obalka'));
+    expect(znaky, findsOneWidget);
+    expect(
+      find.descendant(of: znaky, matching: find.text('023')),
+      findsOneWidget,
+    );
+    final karta = find.ancestor(of: znaky, matching: find.byType(OrderCard));
+    expect(
+      find.descendant(of: karta, matching: find.text('2SC 9014')),
+      findsOneWidget,
+    );
   });
 }

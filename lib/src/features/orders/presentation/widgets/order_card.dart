@@ -9,6 +9,47 @@ import '../../domain/entities/service_order.dart';
 import 'order_status_visuals.dart';
 import 'plate_chip.dart';
 
+/// „🔑 024" v rohu karty - obálka, ve které je klíč od vozu.
+class _ObalkaZnak extends StatelessWidget {
+  const _ObalkaZnak({required this.cislo, required this.kod});
+
+  final String cislo;
+  final String kod;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Tooltip(
+      message: 'Klíč v obálce $kod',
+      child: Container(
+        key: const Key('karta-obalka'),
+        padding: const EdgeInsets.fromLTRB(Insets.sm, 2, Insets.md, 2),
+        decoration: BoxDecoration(
+          color: palette.plate,
+          borderRadius: BorderRadius.circular(Radii.chip),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.key_rounded, size: 15, color: palette.muted2),
+            const SizedBox(width: Insets.xxs),
+            Text(
+              cislo,
+              style: AppTextStyles.sectionTitle.copyWith(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+                color: palette.text,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Karta zakázky v seznamu. Jeden tap = detail.
 class OrderCard extends StatelessWidget {
   const OrderCard({
@@ -58,6 +99,10 @@ class OrderCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Číslo obálky s klíčem - podle něj se klíč vezme ze stolu,
+                // bez otevírání detailu.
+                if (order.obalka case final obalka?)
+                  _ObalkaZnak(cislo: obalka.cislo, kod: obalka.kod),
               ],
             ),
             const SizedBox(height: 7),

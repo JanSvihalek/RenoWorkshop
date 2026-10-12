@@ -102,6 +102,7 @@ void main() {
       'Organizace',
       'Zakázka',
       'SPZ',
+      'Obálka',
       'Model',
       'VIN',
       'Stav Helios',

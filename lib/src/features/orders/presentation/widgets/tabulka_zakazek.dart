@@ -71,6 +71,13 @@ final sloupceZakazek = <SloupecZakazek>[
     hodnota: (z) => z.licensePlate,
     mono: true,
   ),
+  // Číslo obálky s klíčem (024) - podle něj se klíč vezme ze stolu.
+  SloupecZakazek(
+    nazev: 'Obálka',
+    sirka: 70,
+    hodnota: (z) => z.obalka?.cislo ?? '-',
+    mono: true,
+  ),
   SloupecZakazek(nazev: 'Model', sirka: 180, hodnota: (z) => z.model),
   SloupecZakazek(nazev: 'VIN', sirka: 175, hodnota: (z) => z.vin, mono: true),
   SloupecZakazek(
