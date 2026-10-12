@@ -289,6 +289,51 @@ class _OknoObalkyState extends State<_OknoObalky> {
   }
 }
 
+/// Číslo obálky stejně jako na jejím štítku: velké číslo (podle něj
+/// obálka visí na háčku) a pod ním menší celý kód.
+class CisloObalky extends StatelessWidget {
+  const CisloObalky({
+    super.key,
+    required this.obalka,
+    required this.barva,
+    this.velikost = 32,
+  });
+
+  final ObalkaKlice obalka;
+  final Color barva;
+
+  /// Výška velkého čísla - kód pod ním je úměrně menší.
+  final double velikost;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          obalka.cislo,
+          style: AppTextStyles.sectionTitle.copyWith(
+            fontSize: velikost,
+            fontWeight: FontWeight.w700,
+            height: 1.05,
+            color: barva,
+          ),
+        ),
+        Text(
+          obalka.kod,
+          style: AppTextStyles.sectionTitle.copyWith(
+            fontSize: velikost * 0.38,
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+            color: barva,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Obálka s klíčem jako karta - v příjmu, kde se klíč do obálky dává.
 class ObalkaKarta extends ConsumerWidget {
   const ObalkaKarta({super.key, required this.zakazka, this.onSkenuj});
@@ -366,14 +411,8 @@ class ObalkaKarta extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        obalka.kod,
-                        style: AppTextStyles.sectionTitle.copyWith(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: palette.text,
-                        ),
-                      ),
+                      CisloObalky(obalka: obalka, barva: palette.text),
+                      const SizedBox(height: Insets.xxs),
                       Text(
                         [
                           obalka.nazevPobocky,

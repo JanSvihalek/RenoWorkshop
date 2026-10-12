@@ -748,22 +748,19 @@ class _KolonkaObalky extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: Text(
-                kod ?? 'Nepřiřazena',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: kod == null
-                    ? AppTextStyles.cardBody.copyWith(
+              // Číslo jako na štítku obálky - velké, podle něj se obálka
+              // hledá na tabuli s klíči.
+              child: obalka == null
+                  ? Text(
+                      'Nepřiřazena',
+                      style: AppTextStyles.cardBody.copyWith(
                         fontSize: 15,
                         color: palette.naHlavicceTlumene,
-                      )
-                    : AppTextStyles.dataValue.copyWith(
-                        fontSize: 15,
-                        color: palette.naHlavicce,
                       ),
-              ),
+                    )
+                  : CisloObalky(obalka: obalka!, barva: palette.naHlavicce),
             ),
-            const SizedBox(width: Insets.base),
+            const SizedBox(width: Insets.lg),
             _TlacitkoObalky(
               key: Key(
                 kod == null
