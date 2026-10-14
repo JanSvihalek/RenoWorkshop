@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:renoworkshop/src/features/akce/data/akce_data_source.dart';
+import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/obalka_klice.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
@@ -22,7 +24,8 @@ class FakeServiceOrderDataSource
         ServiceOrderDataSource,
         VozidlaDataSource,
         FotkyDataSource,
-        PrijemDataSource {
+        PrijemDataSource,
+        AkceDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -430,6 +433,47 @@ class FakeServiceOrderDataSource
       );
     }
     return nastavZpracovatele(orderId, ja.first.id);
+  }
+
+  /// Marketingové akce a jestli je přihlášený smí zadávat.
+  List<MarketingovaAkce> akce = [];
+  bool spravceAkci = false;
+  var _dalsiAkce = 1;
+
+  @override
+  Future<PrehledAkci> nactiAkce() async => PrehledAkci(
+    akce: [...akce]..sort((a, b) => a.od.compareTo(b.od)),
+    muzeUpravovat: spravceAkci,
+  );
+
+  @override
+  Future<MarketingovaAkce> ulozAkci(MarketingovaAkce akce) async {
+    if (!spravceAkci) {
+      throw const ServiceOrderException(
+        'Marketingové akce může zadávat jen jejich správce.',
+      );
+    }
+    final id = akce.id;
+    if (id == null) {
+      final nova = akce.copyWith(id: 'akce-${_dalsiAkce++}');
+      this.akce.add(nova);
+      return nova;
+    }
+    this.akce = [
+      for (final a in this.akce)
+        if (a.id == id) akce else a,
+    ];
+    return akce;
+  }
+
+  @override
+  Future<void> smazAkci(String id) async {
+    if (!spravceAkci) {
+      throw const ServiceOrderException(
+        'Marketingové akce může zadávat jen jejich správce.',
+      );
+    }
+    akce.removeWhere((a) => a.id == id);
   }
 
   /// Kódy obálek, které „v evidenci nejsou" - server na ně vrátí 404.

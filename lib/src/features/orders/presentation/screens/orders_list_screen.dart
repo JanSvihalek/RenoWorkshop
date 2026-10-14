@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../akce/presentation/akce_panel.dart';
 import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -28,6 +29,7 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     this.vRozdelenem = false,
     this.vybranaId,
     required this.onScanCode,
+    this.onOpenAkce,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
@@ -42,6 +44,10 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 
   /// Otevření skeneru VINu a SPZ.
   final VoidCallback onScanCode;
+
+  /// Přehled marketingových akcí. Bez něj se pruh s akcemi nad seznamem
+  /// neukáže - na tabletu jsou akce vedle seznamu.
+  final VoidCallback? onOpenAkce;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -176,6 +182,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             onNacistZHeliosu: _nacistZHeliosu,
           ),
           const FiltrLista(),
+          if (!widget.vRozdelenem && widget.onOpenAkce != null)
+            AkcePruh(onTap: widget.onOpenAkce!),
           Expanded(
             child: orders.when(
               loading: () => const Center(child: CircularProgressIndicator()),

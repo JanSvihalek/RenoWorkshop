@@ -17,8 +17,8 @@ class OknoZapisu extends StatelessWidget {
     super.key,
     required this.nadpis,
     required this.kam,
-    required this.spz,
-    required this.cisloZakazky,
+    this.spz,
+    this.cisloZakazky,
     required this.autor,
     required this.potvrdit,
     required this.onPotvrdit,
@@ -30,8 +30,10 @@ class OknoZapisu extends StatelessWidget {
 
   /// Kam zápis patří - „do pracovního listu", „do postupu zakázky".
   final String kam;
-  final String spz;
-  final String cisloZakazky;
+
+  /// Vůz a zakázka za [kam]. Bez nich (marketingová akce) jen [kam].
+  final String? spz;
+  final String? cisloZakazky;
   final String autor;
 
   /// Text potvrzovacího tlačítka.
@@ -94,15 +96,19 @@ class OknoZapisu extends StatelessWidget {
               Text.rich(
                 TextSpan(
                   children: [
-                    TextSpan(text: '$kam · '),
-                    TextSpan(
-                      text: spz,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: palette.text,
+                    TextSpan(text: kam),
+                    if (spz != null) ...[
+                      const TextSpan(text: ' · '),
+                      TextSpan(
+                        text: spz,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: palette.text,
+                        ),
                       ),
-                    ),
-                    TextSpan(text: ' · $cisloZakazky'),
+                    ],
+                    if (cisloZakazky != null)
+                      TextSpan(text: ' · $cisloZakazky'),
                   ],
                 ),
                 style: AppTextStyles.meta.copyWith(color: palette.muted),

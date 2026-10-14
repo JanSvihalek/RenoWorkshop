@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/akce/presentation/akce_screen.dart';
 import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -45,6 +46,9 @@ abstract final class AppRoutes {
 
   /// Skener, jehož výsledek jde do záložky Vozidlo, ne do seznamu zakázek.
   static const String skenerVozidla = '$skener?cil=vozidlo';
+
+  /// Marketingové akce přes celou obrazovku (telefon).
+  static const String akce = '/akce';
 
   /// Skener obálky s klíčem - vrátí její kód tomu, kdo ho otevřel.
   static const String skenerObalky = '$skener?cil=obalka';
@@ -179,6 +183,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                             onOpenOrder: (order) =>
                                 context.push(AppRoutes.orderDetail(order.id)),
                             onScanCode: () => context.push(AppRoutes.skener),
+                            onOpenAkce: () => context.push(AppRoutes.akce),
                           );
                   },
                 ),
@@ -220,6 +225,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Karta vozidla i detail zakázky jsou mimo rám schválně: na telefonu
       // překryjí i lištu záložek, protože nejsou záložka, ale zanoření.
+      GoRoute(
+        path: AppRoutes.akce,
+        builder: (context, state) => AkceScreen(
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+        ),
+      ),
       GoRoute(
         path: '${AppRoutes.prijem}/:orderId',
         builder: (context, state) {

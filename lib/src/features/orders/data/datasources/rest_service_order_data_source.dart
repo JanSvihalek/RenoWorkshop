@@ -9,6 +9,8 @@ import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/zpracovatel.dart';
+import '../../../akce/data/akce_data_source.dart';
+import '../../../akce/domain/marketingova_akce.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
@@ -33,6 +35,7 @@ class RestServiceOrderDataSource
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
+        AkceDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -171,6 +174,32 @@ class RestServiceOrderDataSource
       body: const <String, Object?>{},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<PrehledAkci> nactiAkce() async {
+    final data = await _send('GET', 'campaigns');
+    if (data == null) return const PrehledAkci(akce: [], muzeUpravovat: false);
+    return PrehledAkci.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<MarketingovaAkce> ulozAkci(MarketingovaAkce akce) async {
+    final id = akce.id;
+    final data = await _send(
+      id == null ? 'POST' : 'PUT',
+      id == null ? 'campaigns' : 'campaigns/${Uri.encodeComponent(id)}',
+      body: akce.toJson(),
+    );
+    if (data == null) {
+      throw const ServiceOrderException('Server akci nevrátil.');
+    }
+    return MarketingovaAkce.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<void> smazAkci(String id) async {
+    await _send('DELETE', 'campaigns/${Uri.encodeComponent(id)}');
   }
 
   @override
@@ -538,7 +567,7 @@ class RestServiceOrderDataSource
       }
       throw const ServiceOrderException('Požadovaný zdroj nebyl nalezen.');
     }
-    if (kod == 401 || kod == 403) {
+    if (kod == 401 || (kod == 403 && _chybaZTela(odpoved) == null)) {
       throw const ServiceOrderException(
         'Přihlášení vypršelo. Přihlaste se prosím znovu.',
       );

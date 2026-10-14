@@ -1,3 +1,5 @@
+import '../../../akce/data/akce_data_source.dart';
+import '../../../akce/domain/marketingova_akce.dart';
 import '../../domain/entities/obalka_klice.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -27,7 +29,8 @@ class MockServiceOrderDataSource
         ServiceOrderDataSource,
         VozidlaDataSource,
         FotkyDataSource,
-        PrijemDataSource {
+        PrijemDataSource,
+        AkceDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -253,6 +256,75 @@ class MockServiceOrderDataSource
   @override
   Future<ServiceOrderDto?> prevezmiZakazku(String orderId) =>
       nastavZpracovatele(orderId, _ja.$1);
+
+  /// Ukázkové akce kolem dneška - jedna běží, jedna brzy končí, jedna
+  /// teprve začne. V ukázkových datech smí akce zadávat každý.
+  late final List<MarketingovaAkce> _akce = () {
+    final ted = DateTime.now();
+    final dnes = DateTime(ted.year, ted.month, ted.day);
+    return [
+      MarketingovaAkce(
+        id: 'ukazka-1',
+        nazev: 'Zimní prohlídka -20 % na práci',
+        text:
+            'Kontrola vozu před zimou: baterie, stěrače, kapaliny, pneumatiky. '
+            'Na práci sleva 20 %, platí pro všechny značky.',
+        od: dnes.subtract(const Duration(days: 12)),
+        do_: dnes.add(const Duration(days: 40)),
+        zadalKdo: 'Marketing',
+      ),
+      MarketingovaAkce(
+        id: 'ukazka-2',
+        nazev: 'Stěrače zdarma k servisu',
+        text: 'K servisní prohlídce sada předních stěračů zdarma.',
+        od: dnes.subtract(const Duration(days: 20)),
+        do_: dnes.add(const Duration(days: 4)),
+        zadalKdo: 'Marketing',
+      ),
+      MarketingovaAkce(
+        id: 'ukazka-3',
+        nazev: 'Přezutí pneumatik s uskladněním',
+        text: 'Přezutí a uskladnění kol za zvýhodněnou cenu.',
+        od: dnes.add(const Duration(days: 9)),
+        do_: dnes.add(const Duration(days: 55)),
+        zadalKdo: 'Marketing',
+      ),
+    ];
+  }();
+
+  @override
+  Future<PrehledAkci> nactiAkce() async {
+    await _simulateLatency();
+    final ted = DateTime.now();
+    final dnes = DateTime(ted.year, ted.month, ted.day);
+    return PrehledAkci(
+      akce: [
+        for (final a in _akce)
+          if (!a.do_.isBefore(dnes)) a,
+      ]..sort((a, b) => a.od.compareTo(b.od)),
+      muzeUpravovat: true,
+    );
+  }
+
+  @override
+  Future<MarketingovaAkce> ulozAkci(MarketingovaAkce akce) async {
+    await _simulateLatency();
+    final id = akce.id;
+    if (id == null) {
+      final nova = akce.copyWith(id: 'ukazka-${_akce.length + 1}');
+      _akce.add(nova);
+      return nova;
+    }
+    final i = _akce.indexWhere((a) => a.id == id);
+    if (i == -1) throw const ServiceOrderException('Akce nebyla nalezena.');
+    return _akce[i] = akce;
+  }
+
+  @override
+  Future<void> smazAkci(String id) async {
+    await _simulateLatency();
+    _akce.removeWhere((a) => a.id == id);
+  }
 
   @override
   Future<ServiceOrderDto?> priradObalku(

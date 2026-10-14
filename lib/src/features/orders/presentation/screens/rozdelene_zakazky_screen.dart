@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/layout/rozlozeni.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/dimens.dart';
+import '../../../akce/presentation/akce_panel.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/obalka_klice.dart';
@@ -51,8 +50,15 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
           ),
           Container(width: 1, color: palette.hairline),
           Expanded(
+            // Dokud není vybraná zakázka, je vpravo přehled marketingových
+            // akcí - místo, které by jinak jen čekalo.
             child: vybrana == null
-                ? const _PrazdnyDetail()
+                ? ColoredBox(
+                    color: palette.background,
+                    child: const AkcePanel(
+                      napoveda: 'Vyberte zakázku ze seznamu',
+                    ),
+                  )
                 : OrderDetailScreen(
                     // Bez klíče by se při přepnutí zakázky recykloval
                     // stav předchozího detailu (rozbalené karty, posun).
@@ -67,40 +73,6 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Pravý sloupec, dokud si člověk zakázku nevybere.
-class _PrazdnyDetail extends StatelessWidget {
-  const _PrazdnyDetail();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return ColoredBox(
-      color: palette.background,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: 44,
-              color: palette.muted.withValues(alpha: 0.45),
-            ),
-            const SizedBox(height: Insets.base),
-            Text(
-              'Vyberte zakázku ze seznamu',
-              style: AppTextStyles.metaSmall.copyWith(
-                fontSize: 13,
-                color: palette.muted,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
