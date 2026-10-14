@@ -56,7 +56,7 @@ class AkcePanel extends ConsumerWidget {
   /// Řádek nad panelem - na tabletu „Vyberte zakázku ze seznamu".
   final String? napoveda;
 
-  /// Křížek v hlavičce - panel vysunutý z postranní lišty.
+  /// Křížek v hlavičce - panel vysunutý přes detail zakázky.
   final VoidCallback? onZavrit;
 
   @override
@@ -463,78 +463,8 @@ class _KartaAkce extends StatelessWidget {
   }
 }
 
-/// Úzká lišta úplně vpravo na tabletu - akce jsou vidět pořád, i když je
-/// otevřená zakázka. Klepnutí vysune panel s akcemi přes detail.
-class AkceLista extends ConsumerWidget {
-  const AkceLista({super.key, required this.otevreno, required this.onTap});
-
-  static const sirka = 52.0;
-
-  final bool otevreno;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final prehled = ref.watch(akceProvider).valueOrNull;
-    final pocet = prehled?.platne(ref.watch(dnesProvider)).length ?? 0;
-    final barva = otevreno ? AppColors.accent : palette.muted2;
-
-    return Material(
-      color: otevreno ? AppColors.accent.withValues(alpha: 0.1) : palette.card,
-      child: InkWell(
-        key: const Key('akce-lista'),
-        onTap: onTap,
-        child: Container(
-          width: sirka,
-          decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: palette.hairline)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: Insets.xl),
-              Icon(Icons.campaign_outlined, color: barva),
-              if (pocet > 0) ...[
-                const SizedBox(height: Insets.xs),
-                Container(
-                  key: const Key('akce-lista-pocet'),
-                  constraints: const BoxConstraints(minWidth: 22),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Text(
-                    '$pocet',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.metaSmall.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: Insets.base),
-              RotatedBox(
-                quarterTurns: 1,
-                child: Text(
-                  'MARKETINGOVÉ AKCE',
-                  style: AppTextStyles.overline.copyWith(color: barva),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Pruh nad seznamem zakázek na telefonu: kolik akcí právě platí.
-/// Klepnutí otevře přehled. Správce ho vidí i bez akcí - jinak by neměl
+/// Pruh nad seznamem zakázek: kolik akcí právě platí. Klepnutí otevře
+/// přehled (na telefonu obrazovku, na tabletu panel přes detail). Správce ho vidí i bez akcí - jinak by neměl
 /// kudy akci přidat.
 class AkcePruh extends ConsumerWidget {
   const AkcePruh({super.key, required this.onTap});

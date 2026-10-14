@@ -17,9 +17,9 @@ import 'orders_list_screen.dart';
 /// po stáních), takže se vyplatí mít seznam pořád na očích. Detail se
 /// proto neotvírá přes seznam, ale mění se sloupec vpravo.
 ///
-/// Úplně vpravo je u otevřené zakázky postranní lišta marketingových akcí
-/// - akce jsou obecná informace, ne součást zakázky, a mají být po ruce
-/// pořád. Panel se vysouvá přes detail, ať detail zůstane široký.
+/// Marketingové akce jsou obecná informace, ne součást zakázky: pruh s nimi
+/// je nahoře v seznamu zakázek a klepnutí vysune panel přes detail (detail
+/// zůstane široký). Bez vybrané zakázky je panel rovnou místo detailu.
 class RozdeleneZakazkyScreen extends ConsumerWidget {
   const RozdeleneZakazkyScreen({
     super.key,
@@ -54,6 +54,10 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
               onOpenOrder: (ServiceOrder order) =>
                   ref.read(vybranaZakazkaProvider.notifier).state = order.id,
               onScanCode: onScanCode,
+              // Bez vybrané zakázky je panel akcí vidět i tak.
+              onOpenAkce: () {
+                if (vybrana != null) prepniAkce(!akceOtevrene);
+              },
             ),
           ),
           Container(width: 1, color: palette.hairline),
@@ -85,11 +89,6 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                     ),
                   ),
           ),
-          if (vybrana != null)
-            AkceLista(
-              otevreno: akceOtevrene,
-              onTap: () => prepniAkce(!akceOtevrene),
-            ),
         ],
       ),
     );

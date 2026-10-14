@@ -45,8 +45,8 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   /// Otevření skeneru VINu a SPZ.
   final VoidCallback onScanCode;
 
-  /// Přehled marketingových akcí. Bez něj se pruh s akcemi nad seznamem
-  /// neukáže - na tabletu jsou akce vedle seznamu.
+  /// Přehled marketingových akcí - klepnutí na pruh s akcemi nad seznamem.
+  /// Bez něj se pruh neukáže.
   final VoidCallback? onOpenAkce;
 
   @override
@@ -182,8 +182,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             onNacistZHeliosu: _nacistZHeliosu,
           ),
           const FiltrLista(),
-          if (!widget.vRozdelenem && widget.onOpenAkce != null)
-            AkcePruh(onTap: widget.onOpenAkce!),
+          if (widget.onOpenAkce case final otevrit?) AkcePruh(onTap: otevrit),
           Expanded(
             child: orders.when(
               loading: () => const Center(child: CircularProgressIndicator()),

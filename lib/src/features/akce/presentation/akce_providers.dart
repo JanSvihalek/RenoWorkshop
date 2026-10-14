@@ -21,7 +21,7 @@ final dnesProvider = Provider<DateTime>((ref) {
   return DateTime(ted.year, ted.month, ted.day);
 });
 
-/// Panel akcí vysunutý z postranní lišty na tabletu. Zůstává otevřený
+/// Panel akcí vysunutý přes detail na tabletu. Zůstává otevřený
 /// i při přepnutí zakázky.
 final akcePanelOtevrenyProvider = StateProvider<bool>((ref) => false);
 

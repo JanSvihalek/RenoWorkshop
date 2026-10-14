@@ -102,8 +102,6 @@ void main() {
 
     expect(find.byKey(const Key('akce-pridat')), findsNothing);
     expect(find.byKey(const Key('akce-upravit-a1')), findsNothing);
-    // Na tabletu je pruh nad seznamem zbytečný - akce jsou vedle.
-    expect(find.byKey(const Key('akce-pruh')), findsNothing);
   });
 
   testWidgets('správce akci přidá', (tester) async {
@@ -215,25 +213,18 @@ void main() {
     );
   });
 
-  testWidgets('u otevřené zakázky jsou akce v postranní liště', (tester) async {
+  testWidgets('u otevřené zakázky vysune pruh v seznamu panel přes detail', (
+    tester,
+  ) async {
     await spust(tester, velikost: tablet);
-    final lista = find.byKey(const Key('akce-lista'));
-    // Bez vybrané zakázky je panel rovnou místo detailu, lišta netřeba.
-    expect(lista, findsNothing);
+    final pruh = find.byKey(const Key('akce-pruh'));
+    expect(pruh, findsOneWidget);
 
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
-    expect(lista, findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('akce-lista-pocet')),
-        matching: find.text('2'),
-      ),
-      findsOneWidget,
-    );
     expect(find.byKey(const Key('akce-a1')), findsNothing);
 
-    await tester.tap(lista);
+    await tester.tap(pruh);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('akce-a1')), findsOneWidget);
 
@@ -242,7 +233,7 @@ void main() {
     expect(find.byKey(const Key('akce-a1')), findsNothing);
 
     // Klepnutí vedle panelu ho taky zavře.
-    await tester.tap(lista);
+    await tester.tap(pruh);
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(560, 500));
     await tester.pumpAndSettle();
