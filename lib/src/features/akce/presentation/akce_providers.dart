@@ -21,6 +21,10 @@ final dnesProvider = Provider<DateTime>((ref) {
   return DateTime(ted.year, ted.month, ted.day);
 });
 
+/// Panel akcí vysunutý z postranní lišty na tabletu. Zůstává otevřený
+/// i při přepnutí zakázky.
+final akcePanelOtevrenyProvider = StateProvider<bool>((ref) => false);
+
 /// Marketingové akce: seznam a zápis (jen správce).
 final akceProvider = AsyncNotifierProvider<AkceController, PrehledAkci>(
   AkceController.new,

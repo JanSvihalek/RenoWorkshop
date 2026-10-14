@@ -214,4 +214,38 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('u otevřené zakázky jsou akce v postranní liště', (tester) async {
+    await spust(tester, velikost: tablet);
+    final lista = find.byKey(const Key('akce-lista'));
+    // Bez vybrané zakázky je panel rovnou místo detailu, lišta netřeba.
+    expect(lista, findsNothing);
+
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+    expect(lista, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('akce-lista-pocet')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('akce-a1')), findsNothing);
+
+    await tester.tap(lista);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('akce-a1')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('akce-zavrit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('akce-a1')), findsNothing);
+
+    // Klepnutí vedle panelu ho taky zavře.
+    await tester.tap(lista);
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(560, 500));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('akce-a1')), findsNothing);
+  });
 }
