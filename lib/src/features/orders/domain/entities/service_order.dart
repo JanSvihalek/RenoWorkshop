@@ -1,5 +1,6 @@
 import 'branch.dart';
 import 'dilensky_stav.dart';
+import 'kampan_vozidla.dart';
 import 'order_note.dart';
 import 'poradac.dart';
 import 'typ_zakazky.dart';
@@ -42,6 +43,7 @@ class ServiceOrder {
     this.notes = const [],
     this.workItems = const [],
     this.zavady = const [],
+    this.technickeKampane = const [],
   });
 
   /// Číslo zakázky, např. "ZK-26-0418".
@@ -136,6 +138,10 @@ class ServiceOrder {
 
   /// Závady z Heliosu, v pořadí, v jakém je poradce zapsal. Jen ke čtení.
   final List<Zavada> zavady;
+
+  /// Technické kampaně BMW (svolávací akce), které se vozu týkají -
+  /// dohledá je server podle VINu.
+  final List<KampanVozidla> technickeKampane;
 
   /// Zakázka je po termínu.
   ///
@@ -245,6 +251,7 @@ class ServiceOrder {
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       zavady: zavady,
+      technickeKampane: technickeKampane,
     );
   }
 

@@ -1,5 +1,8 @@
 import '../../../akce/data/akce_data_source.dart';
+import '../../../akce/data/kampane_data_source.dart';
 import '../../../akce/domain/marketingova_akce.dart';
+import '../../../akce/domain/technicka_kampan.dart';
+import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/obalka_klice.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -30,7 +33,8 @@ class MockServiceOrderDataSource
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
-        AkceDataSource {
+        AkceDataSource,
+        KampaneDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -55,7 +59,9 @@ class MockServiceOrderDataSource
     final orders = (decoded['orders'] as List<dynamic>)
         .map((item) => ServiceOrderDto.fromJson(item as Map<String, dynamic>))
         .toList();
-    return _cache = orders;
+    _cache = orders;
+    _promitniKampane();
+    return orders;
   }
 
   Future<void> _simulateLatency() async {
@@ -324,6 +330,102 @@ class MockServiceOrderDataSource
   Future<void> smazAkci(String id) async {
     await _simulateLatency();
     _akce.removeWhere((a) => a.id == id);
+  }
+
+  /// Ukázkové technické kampaně - týkají se prvních vozů z ukázkových
+  /// zakázek (jednou celým VINem, jednou krátkým).
+  final List<TechnickaKampan> _kampane = [
+    const TechnickaKampan(
+      id: 'ukazka-k1',
+      kod: '0061960500',
+      nazev: 'Kontrola upevnění airbagu spolujezdce',
+      text:
+          'Zkontrolovat a případně dotáhnout šrouby modulu airbagu '
+          'spolujezdce. Doba práce 0,4 h.',
+      zadalKdo: 'Servis',
+    ),
+    const TechnickaKampan(
+      id: 'ukazka-k2',
+      kod: '0032760300',
+      nazev: 'Aktualizace softwaru řídicí jednotky motoru',
+      text: 'Programování přes ISTA, doba práce 0,8 h.',
+      zadalKdo: 'Servis',
+    ),
+  ];
+  final Map<String, List<String>> _vinyKampani = {
+    'ukazka-k1': ['WBAJN51070G980042', 'G973737', 'WBA00000000000017'],
+    'ukazka-k2': ['WBAJN51070G980042'],
+  };
+
+  /// Kampaně k zakázkám podle VINu - totéž dělá server.
+  void _promitniKampane() {
+    final orders = _cache;
+    if (orders == null) return;
+    for (var i = 0; i < orders.length; i++) {
+      final vin = orders[i].vin.toUpperCase();
+      orders[i] = orders[i].copyWith(
+        technicalCampaigns: [
+          for (final k in _kampane)
+            if (vin.length == 17 &&
+                (_vinyKampani[k.id] ?? const []).any(
+                  (v) => v == vin || v == vin.substring(10),
+                ))
+              KampanVozidla(
+                id: k.id!,
+                kod: k.kod,
+                nazev: k.nazev,
+                text: k.text,
+              ),
+        ],
+      );
+    }
+  }
+
+  @override
+  Future<PrehledKampani> nactiKampane() async {
+    await _simulateLatency();
+    return PrehledKampani(
+      kampane: [
+        for (final k in _kampane)
+          k.copyWith(pocetVozidel: _vinyKampani[k.id]?.length ?? 0),
+      ],
+      muzeUpravovat: true,
+    );
+  }
+
+  @override
+  Future<List<String>> nactiVinyKampane(String id) async {
+    await _simulateLatency();
+    return [...?_vinyKampani[id]];
+  }
+
+  @override
+  Future<TechnickaKampan> ulozKampan(
+    TechnickaKampan kampan,
+    List<String> viny,
+  ) async {
+    await _simulateLatency();
+    final ulozena = kampan.copyWith(
+      id: kampan.id ?? 'ukazka-k${_kampane.length + 1}',
+      pocetVozidel: viny.length,
+    );
+    final i = _kampane.indexWhere((k) => k.id == ulozena.id);
+    if (i == -1) {
+      _kampane.add(ulozena);
+    } else {
+      _kampane[i] = ulozena;
+    }
+    _vinyKampani[ulozena.id!] = [...viny];
+    _promitniKampane();
+    return ulozena;
+  }
+
+  @override
+  Future<void> smazKampan(String id) async {
+    await _simulateLatency();
+    _kampane.removeWhere((k) => k.id == id);
+    _vinyKampani.remove(id);
+    _promitniKampane();
   }
 
   @override

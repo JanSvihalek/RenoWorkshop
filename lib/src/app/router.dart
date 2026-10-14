@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/akce/presentation/akce_screen.dart';
+import '../features/akce/presentation/kampane_screen.dart';
 import '../features/auth/domain/entities/auth_state.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -49,6 +50,9 @@ abstract final class AppRoutes {
 
   /// Marketingové akce přes celou obrazovku (telefon).
   static const String akce = '/akce';
+
+  /// Technické kampaně přes celou obrazovku (telefon).
+  static const String kampane = '/kampane';
 
   /// Skener obálky s klíčem - vrátí její kód tomu, kdo ho otevřel.
   static const String skenerObalky = '$skener?cil=obalka';
@@ -184,6 +188,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                                 context.push(AppRoutes.orderDetail(order.id)),
                             onScanCode: () => context.push(AppRoutes.skener),
                             onOpenAkce: () => context.push(AppRoutes.akce),
+                            onOpenKampane: () =>
+                                context.push(AppRoutes.kampane),
                           );
                   },
                 ),
@@ -228,6 +234,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.akce,
         builder: (context, state) => AkceScreen(
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.kampane,
+        builder: (context, state) => KampaneScreen(
           onBack: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.orders),
         ),

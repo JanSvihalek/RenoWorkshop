@@ -14,6 +14,7 @@ import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.da
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
+import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/service_order.dart';
@@ -532,6 +533,18 @@ class _DetailHeader extends StatelessWidget {
             _HeaderChip(order.branchLabel),
           ],
         ),
+        // Svolávací akce BMW, které se vozu týkají - oranžově, ať je dílna
+        // při příjmu nepřehlédne.
+        if (order.technickeKampane.isNotEmpty) ...[
+          const SizedBox(height: Insets.md),
+          Wrap(
+            spacing: Insets.sm,
+            runSpacing: Insets.sm,
+            children: [
+              for (final kampan in order.technickeKampane) _KampanVozu(kampan),
+            ],
+          ),
+        ],
       ],
     );
 
@@ -882,6 +895,77 @@ class _RadekZpracovatele extends StatelessWidget {
                 style: styl.copyWith(
                   color: AppColors.accent,
                   fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Technická kampaň u vozu - klepnutí ukáže, co se má udělat.
+class _KampanVozu extends StatelessWidget {
+  const _KampanVozu(this.kampan);
+
+  final KampanVozidla kampan;
+
+  static const _barva = Color(0xFFE8A93A);
+  static const _text = Color(0xFF2A1E05);
+
+  void _ukaz(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: Text(kampan.nazev),
+        content: Text(
+          [
+            if (kampan.kod != null) 'Technická kampaň ${kampan.kod}',
+            if (kampan.text.trim().isNotEmpty) kampan.text.trim(),
+          ].join('\n\n'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Zavřít'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _barva,
+      borderRadius: BorderRadius.circular(7),
+      child: InkWell(
+        key: Key('kampan-vozu-${kampan.id}'),
+        borderRadius: BorderRadius.circular(7),
+        onTap: () => _ukaz(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Insets.md,
+            vertical: 5,
+          ),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.car_repair_outlined, size: 16, color: _text),
+              const SizedBox(width: Insets.xs),
+              Flexible(
+                child: Text(
+                  [?kampan.kod, kampan.nazev].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.meta.copyWith(
+                    color: _text,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/log_udalosti_provider.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../data/akce_data_source.dart';
+import '../data/kampane_data_source.dart';
 import '../domain/marketingova_akce.dart';
+import '../domain/technicka_kampan.dart';
 
 /// Zdroj akcí je tentýž jako zdroj zakázek - vrací je stejná služba.
 final akceDataSourceProvider = Provider<AkceDataSource>((ref) {
@@ -21,9 +23,26 @@ final dnesProvider = Provider<DateTime>((ref) {
   return DateTime(ted.year, ted.month, ted.day);
 });
 
-/// Panel akcí vysunutý přes detail na tabletu. Zůstává otevřený
-/// i při přepnutí zakázky.
+/// Technické kampaně - tentýž zdroj jako zakázky.
+final kampaneDataSourceProvider = Provider<KampaneDataSource>((ref) {
+  final zdroj = ref.watch(serviceOrderDataSourceProvider);
+  if (zdroj is KampaneDataSource) return zdroj as KampaneDataSource;
+  throw StateError(
+    'Zdroj dat ${zdroj.runtimeType} neumí technické kampaně '
+    '(KampaneDataSource).',
+  );
+});
+
+/// Panel vysunutý přes detail na tabletu. Zůstává otevřený i při
+/// přepnutí zakázky.
 final akcePanelOtevrenyProvider = StateProvider<bool>((ref) => false);
+
+/// Co je v panelu na tabletu - marketingové akce, nebo technické kampaně.
+enum DruhPanelu { akce, kampane }
+
+/// Který panel naposled vybral pruh v seznamu zakázek. Bez vybrané
+/// zakázky je místo detailu, u zakázky se vysouvá přes detail.
+final druhPaneluProvider = StateProvider<DruhPanelu>((ref) => DruhPanelu.akce);
 
 /// Marketingové akce: seznam a zápis (jen správce).
 final akceProvider = AsyncNotifierProvider<AkceController, PrehledAkci>(
@@ -54,6 +73,50 @@ class AkceController extends AsyncNotifier<PrehledAkci> {
   Future<void> smaz(String id) async {
     await _zdroj.smazAkci(id);
     ref.read(logUdalostiProvider).udalost('akce_smazana');
+    await obnov();
+  }
+}
+
+/// Technické kampaně: seznam a zápis (jen správce akcí).
+final kampaneProvider =
+    AsyncNotifierProvider<KampaneController, PrehledKampani>(
+      KampaneController.new,
+    );
+
+class KampaneController extends AsyncNotifier<PrehledKampani> {
+  KampaneDataSource get _zdroj => ref.read(kampaneDataSourceProvider);
+
+  @override
+  Future<PrehledKampani> build() =>
+      ref.watch(kampaneDataSourceProvider).nactiKampane();
+
+  Future<void> obnov() async {
+    state = await AsyncValue.guard(_zdroj.nactiKampane);
+  }
+
+  /// VINy kampaně - k úpravě seznamu.
+  Future<List<String>> viny(String id) => _zdroj.nactiVinyKampane(id);
+
+  /// Založí (kampaň bez id) nebo upraví kampaň a nahradí její VINy.
+  /// Chyba jde volajícímu - okno ji ukáže a zůstane otevřené.
+  Future<void> uloz(TechnickaKampan kampan, List<String> viny) async {
+    await _zdroj.ulozKampan(kampan, viny);
+    ref
+        .read(logUdalostiProvider)
+        .udalost(kampan.id == null ? 'kampan_pridana' : 'kampan_upravena');
+    await _poZmene();
+  }
+
+  Future<void> smaz(String id) async {
+    await _zdroj.smazKampan(id);
+    ref.read(logUdalostiProvider).udalost('kampan_smazana');
+    await _poZmene();
+  }
+
+  /// Kampaně u zakázek dohledává server - zakázky se načtou znovu, ať je
+  /// změna vidět i v detailu.
+  Future<void> _poZmene() async {
+    ref.invalidate(ordersStreamProvider);
     await obnov();
   }
 }

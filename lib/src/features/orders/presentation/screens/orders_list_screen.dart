@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../akce/presentation/akce_panel.dart';
+import '../../../akce/presentation/kampane_panel.dart';
 import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -30,6 +31,7 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     this.vybranaId,
     required this.onScanCode,
     this.onOpenAkce,
+    this.onOpenKampane,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
@@ -48,6 +50,9 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   /// Přehled marketingových akcí - klepnutí na pruh s akcemi nad seznamem.
   /// Bez něj se pruh neukáže.
   final VoidCallback? onOpenAkce;
+
+  /// Přehled technických kampaní - druhý řádek pruhu. Bez něj se neukáže.
+  final VoidCallback? onOpenKampane;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -183,6 +188,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           ),
           const FiltrLista(),
           if (widget.onOpenAkce case final otevrit?) AkcePruh(onTap: otevrit),
+          if (widget.onOpenKampane case final otevrit?)
+            KampanePruh(onTap: otevrit),
           Expanded(
             child: orders.when(
               loading: () => const Center(child: CircularProgressIndicator()),

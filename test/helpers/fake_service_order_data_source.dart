@@ -1,7 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:renoworkshop/src/features/akce/data/akce_data_source.dart';
+import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
+import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/kampan_vozidla.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/obalka_klice.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
@@ -25,7 +28,8 @@ class FakeServiceOrderDataSource
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
-        AkceDataSource {
+        AkceDataSource,
+        KampaneDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -476,6 +480,59 @@ class FakeServiceOrderDataSource
     akce.removeWhere((a) => a.id == id);
   }
 
+  /// Technické kampaně a jejich VINy. Zadávat smí [spravceAkci].
+  List<TechnickaKampan> kampane = [];
+  Map<String, List<String>> vinyKampani = {};
+  var _dalsiKampan = 1;
+
+  @override
+  Future<PrehledKampani> nactiKampane() async => PrehledKampani(
+    kampane: [
+      for (final k in kampane)
+        k.copyWith(pocetVozidel: vinyKampani[k.id]?.length ?? 0),
+    ],
+    muzeUpravovat: spravceAkci,
+  );
+
+  @override
+  Future<List<String>> nactiVinyKampane(String id) async => [
+    ...?vinyKampani[id],
+  ];
+
+  @override
+  Future<TechnickaKampan> ulozKampan(
+    TechnickaKampan kampan,
+    List<String> viny,
+  ) async {
+    if (!spravceAkci) {
+      throw const ServiceOrderException(
+        'Technické kampaně může zadávat jen správce akcí.',
+      );
+    }
+    final ulozena = kampan.copyWith(
+      id: kampan.id ?? 'kampan-${_dalsiKampan++}',
+      pocetVozidel: viny.length,
+    );
+    kampane = [
+      for (final k in kampane)
+        if (k.id != ulozena.id) k,
+      ulozena,
+    ];
+    vinyKampani[ulozena.id!] = [...viny];
+    return ulozena;
+  }
+
+  @override
+  Future<void> smazKampan(String id) async {
+    if (!spravceAkci) {
+      throw const ServiceOrderException(
+        'Technické kampaně může zadávat jen správce akcí.',
+      );
+    }
+    kampane.removeWhere((k) => k.id == id);
+    vinyKampani.remove(id);
+  }
+
   /// Kódy obálek, které „v evidenci nejsou" - server na ně vrátí 404.
   Set<String> neznameObalky = {};
 
@@ -622,6 +679,7 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? folder,
   Map<String, dynamic>? keyEnvelope,
   String? keyEnvelopeBranch,
+  List<KampanVozidla> technicalCampaigns = const [],
 }) {
   return ServiceOrderDto(
     id: id,
@@ -655,6 +713,7 @@ ServiceOrderDto buildOrderDto({
     assignee: assignee,
     keyEnvelope: keyEnvelope,
     keyEnvelopeBranch: keyEnvelopeBranch,
+    technicalCampaigns: technicalCampaigns,
     insuranceClaimNumber: insuranceClaimNumber,
     folder: folder,
   );

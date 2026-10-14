@@ -1,5 +1,6 @@
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/order_note.dart';
 import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
@@ -44,6 +45,7 @@ class ServiceOrderDto {
     required this.notes,
     required this.workItems,
     this.defects = const [],
+    this.technicalCampaigns = const [],
   });
 
   final String id;
@@ -117,6 +119,9 @@ class ServiceOrderDto {
   /// Závady z Heliosu. Chybí u starší verze API - pak prázdné.
   final List<Zavada> defects;
 
+  /// Technické kampaně k VINu. Starší API je neposílá - pak prázdné.
+  final List<KampanVozidla> technicalCampaigns;
+
   factory ServiceOrderDto.fromJson(Map<String, dynamic> json) {
     return ServiceOrderDto(
       id: json['id'] as String,
@@ -155,6 +160,12 @@ class ServiceOrderDto {
       defects: (json['defects'] as List<dynamic>? ?? const [])
           .map((item) => Zavada.fromJson(item as Map<String, dynamic>))
           .toList(),
+      technicalCampaigns:
+          (json['technicalCampaigns'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => KampanVozidla.fromJson(item as Map<String, dynamic>),
+              )
+              .toList(),
     );
   }
 
@@ -188,6 +199,7 @@ class ServiceOrderDto {
     'notes': notes.map((note) => note.toJson()).toList(),
     'workItems': workItems.map((item) => item.toJson()).toList(),
     'defects': defects.map((zavada) => zavada.toJson()).toList(),
+    'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
   };
 
   ServiceOrder toDomain() => ServiceOrder(
@@ -229,6 +241,7 @@ class ServiceOrderDto {
     notes: notes.map((note) => note.toDomain()).toList(),
     workItems: workItems.map((item) => item.toDomain()).toList(),
     zavady: defects,
+    technickeKampane: technicalCampaigns,
   );
 
   ServiceOrderDto copyWith({
@@ -252,6 +265,7 @@ class ServiceOrderDto {
 
     /// Uvolněná obálka - `??` by jinak nechalo původní.
     bool vymazatObalku = false,
+    List<KampanVozidla>? technicalCampaigns,
 
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
@@ -289,6 +303,7 @@ class ServiceOrderDto {
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       defects: defects,
+      technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
     );
   }
 }

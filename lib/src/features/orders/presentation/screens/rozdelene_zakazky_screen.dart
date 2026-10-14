@@ -5,6 +5,7 @@ import '../../../../core/layout/rozlozeni.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../akce/presentation/akce_panel.dart';
 import '../../../akce/presentation/akce_providers.dart';
+import '../../../akce/presentation/kampane_panel.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/obalka_klice.dart';
@@ -17,9 +18,10 @@ import 'orders_list_screen.dart';
 /// po stáních), takže se vyplatí mít seznam pořád na očích. Detail se
 /// proto neotvírá přes seznam, ale mění se sloupec vpravo.
 ///
-/// Marketingové akce jsou obecná informace, ne součást zakázky: pruh s nimi
-/// je nahoře v seznamu zakázek a klepnutí vysune panel přes detail (detail
-/// zůstane široký). Bez vybrané zakázky je panel rovnou místo detailu.
+/// Marketingové akce a technické kampaně jsou obecná informace, ne součást
+/// zakázky: pruh s nimi je nahoře v seznamu zakázek a klepnutí vysune
+/// panel přes detail (detail zůstane široký). Bez vybrané zakázky je panel
+/// rovnou místo detailu - klepnutí jen přepne, který.
 class RozdeleneZakazkyScreen extends ConsumerWidget {
   const RozdeleneZakazkyScreen({
     super.key,
@@ -39,8 +41,24 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
     final palette = context.palette;
     final vybrana = ref.watch(vybranaZakazkaProvider);
     final akceOtevrene = ref.watch(akcePanelOtevrenyProvider);
+    final druh = ref.watch(druhPaneluProvider);
     void prepniAkce(bool otevrit) =>
         ref.read(akcePanelOtevrenyProvider.notifier).state = otevrit;
+
+    // Stejný řádek pruhu panel zavře, druhý ho přepne.
+    void otevri(DruhPanelu novy) {
+      final stejny = novy == druh;
+      ref.read(druhPaneluProvider.notifier).state = novy;
+      if (vybrana != null) prepniAkce(!(akceOtevrene && stejny));
+    }
+
+    Widget panel({String? napoveda, VoidCallback? onZavrit}) => switch (druh) {
+      DruhPanelu.akce => AkcePanel(napoveda: napoveda, onZavrit: onZavrit),
+      DruhPanelu.kampane => KampanePanel(
+        napoveda: napoveda,
+        onZavrit: onZavrit,
+      ),
+    };
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -54,25 +72,22 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
               onOpenOrder: (ServiceOrder order) =>
                   ref.read(vybranaZakazkaProvider.notifier).state = order.id,
               onScanCode: onScanCode,
-              // Bez vybrané zakázky je panel akcí vidět i tak.
-              onOpenAkce: () {
-                if (vybrana != null) prepniAkce(!akceOtevrene);
-              },
+              onOpenAkce: () => otevri(DruhPanelu.akce),
+              onOpenKampane: () => otevri(DruhPanelu.kampane),
             ),
           ),
           Container(width: 1, color: palette.hairline),
           Expanded(
-            // Dokud není vybraná zakázka, je vpravo přehled marketingových
-            // akcí - místo, které by jinak jen čekalo.
+            // Dokud není vybraná zakázka, je vpravo přehled akcí nebo
+            // kampaní - místo, které by jinak jen čekalo.
             child: vybrana == null
                 ? ColoredBox(
                     color: palette.background,
-                    child: const AkcePanel(
-                      napoveda: 'Vyberte zakázku ze seznamu',
-                    ),
+                    child: panel(napoveda: 'Vyberte zakázku ze seznamu'),
                   )
                 : _DetailSAkcemi(
                     otevreno: akceOtevrene,
+                    panel: panel(onZavrit: () => prepniAkce(false)),
                     onZavrit: () => prepniAkce(false),
                     detail: OrderDetailScreen(
                       // Bez klíče by se při přepnutí zakázky recykloval
@@ -95,16 +110,18 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
   }
 }
 
-/// Detail zakázky a přes něj vysouvací panel marketingových akcí.
+/// Detail zakázky a přes něj vysouvací panel akcí nebo kampaní.
 /// Klepnutí vedle panelu ho zavře.
 class _DetailSAkcemi extends StatelessWidget {
   const _DetailSAkcemi({
     required this.detail,
+    required this.panel,
     required this.otevreno,
     required this.onZavrit,
   });
 
   final Widget detail;
+  final Widget panel;
   final bool otevreno;
   final VoidCallback onZavrit;
 
@@ -156,9 +173,7 @@ class _DetailSAkcemi extends StatelessWidget {
                         ]
                       : null,
                 ),
-                child: otevreno
-                    ? AkcePanel(onZavrit: onZavrit)
-                    : const SizedBox(),
+                child: otevreno ? panel : const SizedBox(),
               ),
             ),
           ],

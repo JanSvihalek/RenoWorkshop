@@ -10,7 +10,9 @@ import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../../akce/data/akce_data_source.dart';
+import '../../../akce/data/kampane_data_source.dart';
 import '../../../akce/domain/marketingova_akce.dart';
+import '../../../akce/domain/technicka_kampan.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
@@ -36,6 +38,7 @@ class RestServiceOrderDataSource
         FotkyDataSource,
         PrijemDataSource,
         AkceDataSource,
+        KampaneDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -200,6 +203,52 @@ class RestServiceOrderDataSource
   @override
   Future<void> smazAkci(String id) async {
     await _send('DELETE', 'campaigns/${Uri.encodeComponent(id)}');
+  }
+
+  @override
+  Future<PrehledKampani> nactiKampane() async {
+    final data = await _send('GET', 'technical-campaigns');
+    if (data == null) {
+      return const PrehledKampani(kampane: [], muzeUpravovat: false);
+    }
+    return PrehledKampani.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<List<String>> nactiVinyKampane(String id) async {
+    final data = await _send(
+      'GET',
+      'technical-campaigns/${Uri.encodeComponent(id)}/vins',
+    );
+    if (data == null) return const [];
+    return [
+      for (final vin in _asMap(data)['vins'] as List<dynamic>? ?? const [])
+        vin as String,
+    ];
+  }
+
+  @override
+  Future<TechnickaKampan> ulozKampan(
+    TechnickaKampan kampan,
+    List<String> viny,
+  ) async {
+    final id = kampan.id;
+    final data = await _send(
+      id == null ? 'POST' : 'PUT',
+      id == null
+          ? 'technical-campaigns'
+          : 'technical-campaigns/${Uri.encodeComponent(id)}',
+      body: kampan.toJson(viny),
+    );
+    if (data == null) {
+      throw const ServiceOrderException('Server kampaň nevrátil.');
+    }
+    return TechnickaKampan.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<void> smazKampan(String id) async {
+    await _send('DELETE', 'technical-campaigns/${Uri.encodeComponent(id)}');
   }
 
   @override
