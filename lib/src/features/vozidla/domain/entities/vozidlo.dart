@@ -1,3 +1,4 @@
+import '../../../orders/domain/entities/kampan_vozidla.dart';
 import '../../../orders/domain/entities/service_order.dart';
 
 /// Vozidlo nalezené podle SPZ nebo VIN - řádek výsledků hledání.
@@ -36,6 +37,7 @@ class KartaVozidla {
     this.motor,
     this.tachometr,
     this.prodano,
+    this.kampanePodleStari = const [],
     this.majitel,
     this.kontakt,
     this.zakazky = const [],
@@ -52,8 +54,12 @@ class KartaVozidla {
   /// Stav tachometru z Heliosu, v kilometrech.
   final int? tachometr;
 
-  /// Kdy RENOCAR vůz prodal - ne rok výroby, ten Helios nevede.
+  /// Kdy RENOCAR vůz prodal - na dílně datum (první) registrace. Ne rok
+  /// výroby, ten Helios nevede.
   final DateTime? prodano;
+
+  /// Kampaně podle stáří od registrace (FitServis+), které se vozu týkají.
+  final List<KampanVozidla> kampanePodleStari;
 
   /// Majitel **dnes**. Zákazník na staré zakázce může být jiný - vůz se
   /// mezitím prodal - a každá zakázka si ho nese sama.

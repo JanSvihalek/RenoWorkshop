@@ -1,3 +1,5 @@
+import '../../../akce/presentation/akce_providers.dart';
+import '../../../akce/presentation/kampan_stari_okno.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,7 +35,12 @@ class SettingsScreen extends ConsumerWidget {
     final palette = context.palette;
 
     const vlevo = [_VzhledASpusteni(), _SkenerAFotoaparat()];
-    const vpravo = [_VychoziFiltr(), _Fotodokumentace(), _OAplikaci()];
+    const vpravo = [
+      _VychoziFiltr(),
+      _Fotodokumentace(),
+      _KampanePodleStari(),
+      _OAplikaci(),
+    ];
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -517,6 +524,54 @@ class _Fotodokumentace extends ConsumerWidget {
           ),
         );
     }
+  }
+}
+
+/// Kampaně podle stáří vozu (FitServis+) - jen pro jejich správce,
+/// ostatním se skupina vůbec neukáže.
+class _KampanePodleStari extends ConsumerWidget {
+  const _KampanePodleStari();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final prehled = ref.watch(kampaneStariProvider).valueOrNull;
+    if (prehled == null || !prehled.muzeUpravovat) {
+      return const SizedBox.shrink();
+    }
+
+    return _Skupina(
+      nadpis: 'KAMPANĚ PODLE STÁŘÍ VOZU',
+      akce: _Odkaz(
+        key: const Key('kampan-stari-pridat'),
+        text: 'Přidat',
+        onTap: () => upravitKampanStari(context, ref),
+      ),
+      poznamka:
+          'Stáří se počítá od první registrace v Heliosu. Skupinu vidí '
+          'jen správci kampaní.',
+      radky: [
+        if (prehled.kampane.isEmpty)
+          _Radek(
+            obsah: Text(
+              'Žádné kampaně.',
+              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+            ),
+          ),
+        for (final kampan in prehled.kampane)
+          InkWell(
+            key: Key('kampan-stari-${kampan.id}'),
+            onTap: () => upravitKampanStari(context, ref, kampan: kampan),
+            child: _Radek(
+              titul: kampan.nazev,
+              popis: kampan.aktivni
+                  ? kampan.rozsah
+                  : '${kampan.rozsah} · vypnutá',
+              vpravo: Icon(Icons.chevron_right_rounded, color: palette.muted),
+            ),
+          ),
+      ],
+    );
   }
 }
 

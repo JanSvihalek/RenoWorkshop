@@ -1,3 +1,4 @@
+import '../domain/kampan_podle_stari.dart';
 import '../domain/technicka_kampan.dart';
 
 /// Technické kampaně. Implementuje ho stejná služba jako zakázky
@@ -16,4 +17,11 @@ abstract interface class KampaneDataSource {
 
   /// `DELETE /technical-campaigns/{id}` - jen správce akcí.
   Future<void> smazKampan(String id);
+
+  /// `GET /age-campaigns` - kampaně podle stáří vozu (FitServis+).
+  Future<PrehledKampaniStari> nactiKampaneStari();
+
+  /// `POST /age-campaigns` (bez id) nebo `PUT /age-campaigns/{id}`.
+  /// Jen správce kampaní podle stáří.
+  Future<KampanPodleStari> ulozKampanStari(KampanPodleStari kampan);
 }

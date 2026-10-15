@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../akce/presentation/stitek_kampane.dart';
 import '../../domain/entities/vozidlo.dart';
 
 /// Nalezený vůz se vším, co o něm víme z Heliosu - stejná karta jako
@@ -152,6 +153,30 @@ class _Karta extends StatelessWidget {
                     ),
                   ],
                 ),
+                // FitServis+ a další kampaně podle stáří od registrace.
+                if (v.kampanePodleStari.isNotEmpty) ...[
+                  const SizedBox(height: Insets.md),
+                  Wrap(
+                    spacing: Insets.sm,
+                    runSpacing: Insets.sm,
+                    children: [
+                      for (final kampan in v.kampanePodleStari)
+                        StitekKampane(
+                          key: Key('vuz-kampan-stari-${kampan.id}'),
+                          druh: DruhStitku.podleStari,
+                          popisek: kampan.nazev,
+                          nadpis: kampan.nazev,
+                          podrobnosti: [
+                            if (kampan.text.trim().isNotEmpty)
+                              kampan.text.trim(),
+                            if (registrace != null)
+                              'První registrace: '
+                                  '${AppDateFormat.date(registrace)}',
+                          ].join('\n\n'),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: Insets.lg),
                 _Oddil(
                   udaje: [

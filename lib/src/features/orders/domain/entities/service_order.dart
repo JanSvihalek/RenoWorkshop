@@ -44,6 +44,8 @@ class ServiceOrder {
     this.workItems = const [],
     this.zavady = const [],
     this.technickeKampane = const [],
+    this.prvniRegistrace,
+    this.kampanePodleStari = const [],
   });
 
   /// Číslo zakázky, např. "ZK-26-0418".
@@ -142,6 +144,14 @@ class ServiceOrder {
   /// Technické kampaně BMW (svolávací akce), které se vozu týkají -
   /// dohledá je server podle VINu.
   final List<KampanVozidla> technickeKampane;
+
+  /// První registrace vozu (`prodej_datum` z Heliosu). `null` = Helios
+  /// ji nemá.
+  final DateTime? prvniRegistrace;
+
+  /// Kampaně podle stáří vozu (FitServis+), které se vozu týkají -
+  /// vyhodnotí je server podle [prvniRegistrace].
+  final List<KampanVozidla> kampanePodleStari;
 
   /// Zakázka je po termínu.
   ///
@@ -252,6 +262,8 @@ class ServiceOrder {
       workItems: workItems ?? this.workItems,
       zavady: zavady,
       technickeKampane: technickeKampane,
+      prvniRegistrace: prvniRegistrace,
+      kampanePodleStari: kampanePodleStari,
     );
   }
 

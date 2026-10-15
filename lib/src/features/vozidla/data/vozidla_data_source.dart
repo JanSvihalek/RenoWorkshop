@@ -1,3 +1,4 @@
+import '../../orders/domain/entities/kampan_vozidla.dart';
 import '../../orders/data/dtos/service_order_dto.dart';
 import '../domain/entities/vozidlo.dart';
 
@@ -43,6 +44,10 @@ abstract final class VozidlaJson {
       motor: _text(json['engine']),
       tachometr: (json['mileage'] as num?)?.toInt(),
       prodano: DateTime.tryParse(json['soldAt'] as String? ?? ''),
+      kampanePodleStari: [
+        for (final k in json['ageCampaigns'] as List<dynamic>? ?? const [])
+          KampanVozidla.fromJson(k as Map<String, dynamic>),
+      ],
       majitel: majitel is Map<String, dynamic>
           ? MajitelVozidla(
               nazev: majitel['name'] as String? ?? '',

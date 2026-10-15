@@ -11,6 +11,7 @@ import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../../akce/data/akce_data_source.dart';
 import '../../../akce/data/kampane_data_source.dart';
+import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
@@ -249,6 +250,29 @@ class RestServiceOrderDataSource
   @override
   Future<void> smazKampan(String id) async {
     await _send('DELETE', 'technical-campaigns/${Uri.encodeComponent(id)}');
+  }
+
+  @override
+  Future<PrehledKampaniStari> nactiKampaneStari() async {
+    final data = await _send('GET', 'age-campaigns');
+    if (data == null) {
+      return const PrehledKampaniStari(kampane: [], muzeUpravovat: false);
+    }
+    return PrehledKampaniStari.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<KampanPodleStari> ulozKampanStari(KampanPodleStari kampan) async {
+    final id = kampan.id;
+    final data = await _send(
+      id == null ? 'POST' : 'PUT',
+      id == null ? 'age-campaigns' : 'age-campaigns/${Uri.encodeComponent(id)}',
+      body: kampan.toJson(),
+    );
+    if (data == null) {
+      throw const ServiceOrderException('Server kampaň nevrátil.');
+    }
+    return KampanPodleStari.fromJson(_asMap(data));
   }
 
   @override

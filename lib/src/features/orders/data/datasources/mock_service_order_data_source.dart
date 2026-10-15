@@ -1,5 +1,6 @@
 import '../../../akce/data/akce_data_source.dart';
 import '../../../akce/data/kampane_data_source.dart';
+import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
 import '../../domain/entities/kampan_vozidla.dart';
@@ -357,13 +358,43 @@ class MockServiceOrderDataSource
     'ukazka-k2': ['WBAJN51070G980042'],
   };
 
-  /// Kampaně k zakázkám podle VINu - totéž dělá server.
+  /// FitServis+ - v ukázkových datech ho smí upravovat každý.
+  final List<KampanPodleStari> _kampaneStari = [
+    const KampanPodleStari(
+      id: 'fitservis-plus',
+      nazev: 'FitServis+',
+      text: 'Kampaň BMW pro vozy starší 48 měsíců.',
+      odMesicu: 48,
+    ),
+  ];
+
+  /// Ukázkové zakázky registraci nemají - dostanou smyšlenou, každá
+  /// o rok starší, ať jsou vidět vozy v kampani i mimo ni.
+  static String _registrace(int i) {
+    final ted = DateTime.now();
+    final d = DateTime(ted.year - 1 - i % 8, ted.month, 1);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-01';
+  }
+
+  /// Kampaně k zakázkám podle VINu a stáří - totéž dělá server.
   void _promitniKampane() {
     final orders = _cache;
     if (orders == null) return;
+    final ted = DateTime.now();
     for (var i = 0; i < orders.length; i++) {
       final vin = orders[i].vin.toUpperCase();
+      final registrace = DateTime.parse(_registrace(i));
+      final stari =
+          (ted.year - registrace.year) * 12 + ted.month - registrace.month;
       orders[i] = orders[i].copyWith(
+        firstRegisteredAt: _registrace(i),
+        ageCampaigns: [
+          for (final k in _kampaneStari)
+            if (k.aktivni &&
+                stari >= k.odMesicu &&
+                (k.doMesicu == null || stari < k.doMesicu!))
+              KampanVozidla(id: k.id!, nazev: k.nazev, text: k.text),
+        ],
         technicalCampaigns: [
           for (final k in _kampane)
             if (vin.length == 17 &&
@@ -426,6 +457,31 @@ class MockServiceOrderDataSource
     _kampane.removeWhere((k) => k.id == id);
     _vinyKampani.remove(id);
     _promitniKampane();
+  }
+
+  @override
+  Future<PrehledKampaniStari> nactiKampaneStari() async {
+    await _simulateLatency();
+    return PrehledKampaniStari(
+      kampane: [..._kampaneStari],
+      muzeUpravovat: true,
+    );
+  }
+
+  @override
+  Future<KampanPodleStari> ulozKampanStari(KampanPodleStari kampan) async {
+    await _simulateLatency();
+    final ulozena = kampan.copyWith(
+      id: kampan.id ?? 'ukazka-s${_kampaneStari.length + 1}',
+    );
+    final i = _kampaneStari.indexWhere((k) => k.id == ulozena.id);
+    if (i == -1) {
+      _kampaneStari.add(ulozena);
+    } else {
+      _kampaneStari[i] = ulozena;
+    }
+    _promitniKampane();
+    return ulozena;
   }
 
   @override

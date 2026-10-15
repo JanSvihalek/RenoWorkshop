@@ -4,6 +4,7 @@ import '../../../app/log_udalosti_provider.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../data/akce_data_source.dart';
 import '../data/kampane_data_source.dart';
+import '../domain/kampan_podle_stari.dart';
 import '../domain/marketingova_akce.dart';
 import '../domain/technicka_kampan.dart';
 
@@ -118,5 +119,32 @@ class KampaneController extends AsyncNotifier<PrehledKampani> {
   Future<void> _poZmene() async {
     ref.invalidate(ordersStreamProvider);
     await obnov();
+  }
+}
+
+/// Kampaně podle stáří vozu (FitServis+) - upravuje jen jejich správce,
+/// v Nastavení.
+final kampaneStariProvider =
+    AsyncNotifierProvider<KampaneStariController, PrehledKampaniStari>(
+      KampaneStariController.new,
+    );
+
+class KampaneStariController extends AsyncNotifier<PrehledKampaniStari> {
+  @override
+  Future<PrehledKampaniStari> build() =>
+      ref.watch(kampaneDataSourceProvider).nactiKampaneStari();
+
+  /// Chyba jde volajícímu - okno ji ukáže a zůstane otevřené.
+  Future<void> uloz(KampanPodleStari kampan) async {
+    final zdroj = ref.read(kampaneDataSourceProvider);
+    await zdroj.ulozKampanStari(kampan);
+    ref
+        .read(logUdalostiProvider)
+        .udalost(
+          kampan.id == null ? 'kampan_stari_pridana' : 'kampan_stari_upravena',
+        );
+    // Které vozy do kampaně spadají, počítá server u zakázek.
+    ref.invalidate(ordersStreamProvider);
+    state = await AsyncValue.guard(zdroj.nactiKampaneStari);
   }
 }

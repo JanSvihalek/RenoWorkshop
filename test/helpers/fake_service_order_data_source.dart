@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:renoworkshop/src/features/akce/data/akce_data_source.dart';
 import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
+import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/kampan_vozidla.dart';
@@ -533,6 +534,34 @@ class FakeServiceOrderDataSource
     vinyKampani.remove(id);
   }
 
+  /// Kampaně podle stáří vozu a jestli je přihlášený smí upravovat.
+  List<KampanPodleStari> kampaneStari = [];
+  bool spravceKampaniStari = false;
+
+  @override
+  Future<PrehledKampaniStari> nactiKampaneStari() async => PrehledKampaniStari(
+    kampane: [...kampaneStari],
+    muzeUpravovat: spravceKampaniStari,
+  );
+
+  @override
+  Future<KampanPodleStari> ulozKampanStari(KampanPodleStari kampan) async {
+    if (!spravceKampaniStari) {
+      throw const ServiceOrderException(
+        'Kampaně podle stáří vozu může upravovat jen jejich správce.',
+      );
+    }
+    final ulozena = kampan.copyWith(
+      id: kampan.id ?? 'stari-${kampaneStari.length + 1}',
+    );
+    kampaneStari = [
+      for (final k in kampaneStari)
+        if (k.id != ulozena.id) k,
+      ulozena,
+    ];
+    return ulozena;
+  }
+
   /// Kódy obálek, které „v evidenci nejsou" - server na ně vrátí 404.
   Set<String> neznameObalky = {};
 
@@ -680,6 +709,8 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? keyEnvelope,
   String? keyEnvelopeBranch,
   List<KampanVozidla> technicalCampaigns = const [],
+  String? firstRegisteredAt,
+  List<KampanVozidla> ageCampaigns = const [],
 }) {
   return ServiceOrderDto(
     id: id,
@@ -714,6 +745,8 @@ ServiceOrderDto buildOrderDto({
     keyEnvelope: keyEnvelope,
     keyEnvelopeBranch: keyEnvelopeBranch,
     technicalCampaigns: technicalCampaigns,
+    firstRegisteredAt: firstRegisteredAt,
+    ageCampaigns: ageCampaigns,
     insuranceClaimNumber: insuranceClaimNumber,
     folder: folder,
   );

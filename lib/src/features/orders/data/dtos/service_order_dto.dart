@@ -46,6 +46,8 @@ class ServiceOrderDto {
     required this.workItems,
     this.defects = const [],
     this.technicalCampaigns = const [],
+    this.firstRegisteredAt,
+    this.ageCampaigns = const [],
   });
 
   final String id;
@@ -122,6 +124,12 @@ class ServiceOrderDto {
   /// Technické kampaně k VINu. Starší API je neposílá - pak prázdné.
   final List<KampanVozidla> technicalCampaigns;
 
+  /// `YYYY-MM-DD` první registrace vozu, `null` = neznámá.
+  final String? firstRegisteredAt;
+
+  /// Kampaně podle stáří vozu (FitServis+). Starší API je neposílá.
+  final List<KampanVozidla> ageCampaigns;
+
   factory ServiceOrderDto.fromJson(Map<String, dynamic> json) {
     return ServiceOrderDto(
       id: json['id'] as String,
@@ -166,6 +174,10 @@ class ServiceOrderDto {
                 (item) => KampanVozidla.fromJson(item as Map<String, dynamic>),
               )
               .toList(),
+      firstRegisteredAt: json['firstRegisteredAt'] as String?,
+      ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
+          .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -200,6 +212,8 @@ class ServiceOrderDto {
     'workItems': workItems.map((item) => item.toJson()).toList(),
     'defects': defects.map((zavada) => zavada.toJson()).toList(),
     'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
+    'firstRegisteredAt': firstRegisteredAt,
+    'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
   };
 
   ServiceOrder toDomain() => ServiceOrder(
@@ -242,6 +256,10 @@ class ServiceOrderDto {
     workItems: workItems.map((item) => item.toDomain()).toList(),
     zavady: defects,
     technickeKampane: technicalCampaigns,
+    prvniRegistrace: firstRegisteredAt == null
+        ? null
+        : DateTime.tryParse(firstRegisteredAt!),
+    kampanePodleStari: ageCampaigns,
   );
 
   ServiceOrderDto copyWith({
@@ -266,6 +284,8 @@ class ServiceOrderDto {
     /// Uvolněná obálka - `??` by jinak nechalo původní.
     bool vymazatObalku = false,
     List<KampanVozidla>? technicalCampaigns,
+    String? firstRegisteredAt,
+    List<KampanVozidla>? ageCampaigns,
 
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
@@ -304,6 +324,8 @@ class ServiceOrderDto {
       workItems: workItems ?? this.workItems,
       defects: defects,
       technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
+      firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
+      ageCampaigns: ageCampaigns ?? this.ageCampaigns,
     );
   }
 }
