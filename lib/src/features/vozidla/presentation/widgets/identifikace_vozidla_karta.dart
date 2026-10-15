@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -6,6 +7,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../../core/utils/stari_vozu.dart';
+import '../../../akce/presentation/akce_providers.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
 import '../../domain/entities/vozidlo.dart';
 
@@ -102,15 +105,16 @@ class IdentifikaceVozidlaKarta extends StatelessWidget {
   };
 }
 
-class _Karta extends StatelessWidget {
+class _Karta extends ConsumerWidget {
   const _Karta({required this.vozidlo});
 
   final KartaVozidla vozidlo;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final v = vozidlo;
+    final dnes = ref.watch(dnesProvider);
     final tachometr = v.tachometr;
     final registrace = v.prodano;
     final majitel = v.majitel;
@@ -192,13 +196,18 @@ class _Karta extends StatelessWidget {
                           : '${NumberFormat.decimalPattern('cs_CZ').format(tachometr)} km',
                       mono: false,
                     ),
-                    // `prodej_datum` z Heliosu - na dílně se mu říká datum
-                    // registrace.
+                    // `prodej_datum` z Heliosu - datum první registrace.
+                    // Stáří vedle něj, ať je hned vidět, kam vůz spadá
+                    // (FitServis+ od 48 měsíců).
                     (
                       'DATUM REGISTRACE',
                       registrace == null
                           ? null
-                          : AppDateFormat.date(registrace),
+                          : registraceSeStarim(
+                              registrace,
+                              dnes,
+                              AppDateFormat.date,
+                            ),
                       mono: false,
                     ),
                   ],

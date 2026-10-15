@@ -7,6 +7,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../../core/utils/stari_vozu.dart';
+import '../../../akce/presentation/akce_providers.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
@@ -498,6 +500,7 @@ class _DetailHeader extends StatelessWidget {
             ),
           ],
         ),
+        _RadekRegistrace(order: order),
         const SizedBox(height: Insets.xs),
         Text(
           order.customerName,
@@ -533,10 +536,9 @@ class _DetailHeader extends StatelessWidget {
             _HeaderChip(order.branchLabel),
           ],
         ),
-        // Kampaně, které se vozu týkají: svolávací akce BMW oranžově, ať je
-        // dílna při příjmu nepřehlédne, FitServis+ a spol. modře.
-        if (order.technickeKampane.isNotEmpty ||
-            order.kampanePodleStari.isNotEmpty) ...[
+        // Svolávací akce BMW, které se vozu týkají - oranžově, ať je dílna
+        // při příjmu nepřehlédne. FitServis+ je u první registrace.
+        if (order.technickeKampane.isNotEmpty) ...[
           const SizedBox(height: Insets.md),
           Wrap(
             spacing: Insets.sm,
@@ -551,19 +553,6 @@ class _DetailHeader extends StatelessWidget {
                   podrobnosti: [
                     if (kampan.kod != null) 'Technická kampaň ${kampan.kod}',
                     if (kampan.text.trim().isNotEmpty) kampan.text.trim(),
-                  ].join('\n\n'),
-                ),
-              for (final kampan in order.kampanePodleStari)
-                StitekKampane(
-                  key: Key('kampan-stari-${kampan.id}'),
-                  druh: DruhStitku.podleStari,
-                  popisek: kampan.nazev,
-                  nadpis: kampan.nazev,
-                  podrobnosti: [
-                    if (kampan.text.trim().isNotEmpty) kampan.text.trim(),
-                    if (order.prvniRegistrace != null)
-                      'První registrace: '
-                          '${AppDateFormat.date(order.prvniRegistrace!)}',
                   ].join('\n\n'),
                 ),
             ],
@@ -924,6 +913,65 @@ class _RadekZpracovatele extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// První registrace vozu (`prodej_datum` z Heliosu), stáří v měsících
+/// a hned vedle štítek FitServis+, když do něj vůz spadá - na jednom
+/// řádku, ať je vidět, proč štítek je (nebo není).
+class _RadekRegistrace extends ConsumerWidget {
+  const _RadekRegistrace({required this.order});
+
+  final ServiceOrder order;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final datum = order.prvniRegistrace;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: Insets.xs),
+      child: Wrap(
+        key: const Key('prvni-registrace'),
+        spacing: Insets.sm,
+        runSpacing: Insets.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            '1. REGISTRACE',
+            style: AppTextStyles.metaSmall.copyWith(
+              color: palette.naHlavicceTlumene,
+              letterSpacing: 0.8,
+            ),
+          ),
+          Text(
+            datum == null
+                ? 'v Heliosu neuvedena'
+                : registraceSeStarim(
+                    datum,
+                    ref.watch(dnesProvider),
+                    AppDateFormat.date,
+                  ),
+            style: datum == null
+                ? AppTextStyles.meta.copyWith(color: palette.naHlavicceTlumene)
+                : AppTextStyles.monoLabel.copyWith(
+                    fontSize: 14,
+                    color: palette.naHlavicce,
+                  ),
+          ),
+          for (final kampan in order.kampanePodleStari)
+            StitekKampane(
+              key: Key('kampan-stari-${kampan.id}'),
+              druh: DruhStitku.podleStari,
+              popisek: kampan.nazev,
+              nadpis: kampan.nazev,
+              podrobnosti: kampan.text.trim().isEmpty
+                  ? 'Vůz do kampaně spadá podle stáří od první registrace.'
+                  : kampan.text.trim(),
+            ),
+        ],
       ),
     );
   }

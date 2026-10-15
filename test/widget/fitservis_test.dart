@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
+import 'package:renoworkshop/src/features/akce/presentation/akce_providers.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
@@ -33,6 +34,7 @@ void main() {
     WidgetTester tester, {
     bool spravce = false,
     List<KampanVozidla> kampaneVozu = const [],
+    String? registrace = '2019-05-03',
   }) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
@@ -41,7 +43,7 @@ void main() {
     zdroj =
         FakeServiceOrderDataSource([
             buildOrderDto(
-              firstRegisteredAt: '2019-05-03',
+              firstRegisteredAt: registrace,
               ageCampaigns: kampaneVozu,
             ),
           ])
@@ -60,6 +62,7 @@ void main() {
             ),
           ),
           serviceOrderDataSourceProvider.overrideWithValue(zdroj),
+          dnesProvider.overrideWithValue(DateTime(2026, 10, 15)),
         ],
         child: const RenoWorkshopApp(),
       ),
@@ -106,7 +109,7 @@ void main() {
     });
   });
 
-  testWidgets('vůz ve FitServis+ má v detailu modrý štítek s registrací', (
+  testWidgets('vůz ve FitServis+ má štítek na řádku s registrací a stářím', (
     tester,
   ) async {
     await spust(
@@ -122,14 +125,27 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
+    final radek = find.byKey(const Key('prvni-registrace'));
     final stitek = find.byKey(const Key('kampan-stari-fitservis-plus'));
-    expect(stitek, findsOneWidget);
+    expect(
+      find.descendant(of: radek, matching: find.text('3. 5. 2019 · 89 měsíců')),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: radek, matching: stitek), findsOneWidget);
+
     await tester.tap(stitek);
     await tester.pumpAndSettle();
+    expect(find.text('Kampaň BMW pro vozy starší 48 měsíců.'), findsOneWidget);
+  });
+
+  testWidgets('bez registrace v Heliosu to řádek řekne', (tester) async {
+    await spust(tester, registrace: null);
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
     expect(
-      find.text(
-        'Kampaň BMW pro vozy starší 48 měsíců.\n\n'
-        'První registrace: 3. 5. 2019',
+      find.descendant(
+        of: find.byKey(const Key('prvni-registrace')),
+        matching: find.text('v Heliosu neuvedena'),
       ),
       findsOneWidget,
     );
