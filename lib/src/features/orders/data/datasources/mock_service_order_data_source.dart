@@ -912,15 +912,21 @@ List<PolozkaPlanu> _polozkyPlanu(
 ) {
   return [
     for (final o in orders)
-      if (o.bodyshopPlan case final plan?)
-        if (PlanKlempirny.fromJson(plan).prekryva(od, do_))
-          PolozkaPlanu(
-            zakazkaId: o.id,
-            spz: o.licensePlate,
-            model: o.model,
-            zakaznik: o.customerName,
-            pobockaKod: o.branch?['code'] as String?,
-            plan: PlanKlempirny.fromJson(plan),
-          ),
-  ]..sort((a, b) => a.plan.od.compareTo(b.plan.od));
+      if (o.canPlanBodyshop ||
+          (o.bodyshopPlan != null &&
+              PlanKlempirny.fromJson(o.bodyshopPlan!).prekryva(od, do_)))
+        PolozkaPlanu(
+          zakazkaId: o.id,
+          spz: o.licensePlate,
+          model: o.model,
+          zakaznik: o.customerName,
+          pobockaKod: o.branch?['code'] as String?,
+          prijato: o.receivedAt == null
+              ? null
+              : DateTime.tryParse(o.receivedAt!),
+          plan: o.bodyshopPlan == null
+              ? null
+              : PlanKlempirny.fromJson(o.bodyshopPlan!),
+        ),
+  ];
 }

@@ -11,6 +11,7 @@ import '../../../core/utils/date_formats.dart';
 import '../../akce/presentation/akce_providers.dart';
 import '../../orders/domain/repositories/service_order_repository.dart';
 import '../domain/prehled_planu.dart';
+import '../../orders/domain/entities/plan_klempirny.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
 import 'plan_providers.dart';
@@ -117,7 +118,7 @@ class _Ovladani extends ConsumerWidget {
                 ),
               ),
               Text(
-                'pojistné události · zaplánovat jde z detailu zakázky',
+                'zakázky klempířských středisek · klepnutím na den zaplánujete',
                 style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
               ),
             ],
@@ -228,8 +229,8 @@ class _Obsah extends ConsumerWidget {
     final polozky = [
       for (final p in prehled.polozky)
         if (pobocka == null || p.pobockaKod == pobocka) p,
-    ]..sort((a, b) => a.plan.od.compareTo(b.plan.od));
-    final kody = spolecneKody(polozky);
+    ];
+    final kody = spolecneKody(polozky, dny.first, dny.last);
 
     return RefreshIndicator.adaptive(
       onRefresh: () => ref.refresh(planKlempirnyProvider.future),
@@ -352,6 +353,7 @@ class _Osa extends StatelessWidget {
           (constraints.maxWidth - levy) / dny.length,
         );
         final sirka = levy + den * dny.length;
+        final radky = rozdelPolozky(polozky, dny.first, dny.last);
 
         final mrizka = SizedBox(
           width: sirka,
@@ -359,17 +361,24 @@ class _Osa extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ZahlaviDnu(dny: dny, levy: levy, den: den),
-              if (polozky.isEmpty)
-                const _Prazdno()
-              else
-                for (final p in polozky)
-                  _Radek(
-                    polozka: p,
-                    dny: dny,
-                    levy: levy,
-                    den: den,
-                    onOpenOrder: onOpenOrder,
-                  ),
+              if (polozky.isEmpty) const _Prazdno(),
+              for (final (nadpis, sekce) in [
+                (null, radky.vObdobi),
+                ('NAPLÁNOVANÉ JINDY', radky.jindy),
+                ('BEZ PLÁNU', radky.bezPlanu),
+              ])
+                if (sekce.isNotEmpty) ...[
+                  if (nadpis != null)
+                    _NadpisSekce(text: '$nadpis · ${sekce.length}'),
+                  for (final p in sekce)
+                    _Radek(
+                      polozka: p,
+                      dny: dny,
+                      levy: levy,
+                      den: den,
+                      onOpenOrder: onOpenOrder,
+                    ),
+                ],
             ],
           ),
         );
@@ -465,9 +474,23 @@ class _Radek extends ConsumerWidget {
     final dnes = ref.watch(dnesProvider);
     final plan = polozka.plan;
     // Které zobrazené dny blok zabírá - víkendy v ose nejsou.
-    final prvni = dny.indexWhere((d) => !d.isBefore(plan.od));
-    final posledni = dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
+    final prvni = plan == null
+        ? -1
+        : dny.indexWhere((d) => !d.isBefore(plan.od));
+    final posledni = plan == null
+        ? -1
+        : dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
     final viditelny = prvni != -1 && posledni >= prvni;
+    // Bez bloku v období jde na den klepnout: nový plán ho má předvyplněný,
+    // existující plán jinde se otevře k úpravě.
+    void otevri(DateTime den) => naplanovatKlempirnu(
+      context,
+      ref,
+      zakazkaId: polozka.zakazkaId,
+      spz: polozka.spz,
+      plan: plan,
+      den: den,
+    );
 
     return Container(
       key: Key('plan-radek-${polozka.zakazkaId}'),
@@ -530,9 +553,45 @@ class _Radek extends ConsumerWidget {
                             left: BorderSide(color: palette.hairline),
                           ),
                         ),
+                        child: viditelny
+                            ? null
+                            : InkWell(
+                                key: Key(
+                                  'plan-den-${polozka.zakazkaId}-${d.day}',
+                                ),
+                                onTap: () => otevri(d),
+                                child: plan == null
+                                    ? Icon(
+                                        Icons.add_rounded,
+                                        size: 18,
+                                        color: palette.muted.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                      )
+                                    : null,
+                              ),
                       ),
                   ],
                 ),
+                // Plán mimo zobrazené dny - aspoň kdy je.
+                if (plan != null && !viditelny)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Text(
+                          '${plan.hotovo ? 'Hotovo' : 'Naplánováno'} '
+                          '${obdobiPlanu(plan.od, plan.do_)}',
+                          key: Key('plan-jindy-${polozka.zakazkaId}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.metaSmall.copyWith(
+                            color: palette.muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (viditelny)
                   Positioned(
                     left: prvni * den + 4,
@@ -541,6 +600,7 @@ class _Radek extends ConsumerWidget {
                     bottom: 10,
                     child: _Pruh(
                       polozka: polozka,
+                      plan: plan!,
                       useknutyZleva: plan.od.isBefore(dny[prvni]),
                       useknutyZprava: plan.do_.isAfter(dny[posledni]),
                     ),
@@ -558,17 +618,18 @@ class _Radek extends ConsumerWidget {
 class _Pruh extends ConsumerWidget {
   const _Pruh({
     required this.polozka,
+    required this.plan,
     required this.useknutyZleva,
     required this.useknutyZprava,
   });
 
   final PolozkaPlanu polozka;
+  final PlanKlempirny plan;
   final bool useknutyZleva;
   final bool useknutyZprava;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final plan = polozka.plan;
     final barva = plan.hotovo ? AppColors.readyGreen : AppColors.accent;
     const r = Radius.circular(8);
 
@@ -620,6 +681,34 @@ class _Pruh extends ConsumerWidget {
   }
 }
 
+/// Oddělovač skupiny řádků - naplánované jindy, bez plánu.
+class _NadpisSekce extends StatelessWidget {
+  const _NadpisSekce({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        Insets.base,
+        Insets.md,
+        Insets.base,
+        Insets.xs,
+      ),
+      decoration: BoxDecoration(
+        color: palette.background,
+        border: Border(bottom: BorderSide(color: palette.hairline)),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.overline.copyWith(color: palette.muted),
+      ),
+    );
+  }
+}
+
 class _Prazdno extends StatelessWidget {
   const _Prazdno();
 
@@ -634,14 +723,14 @@ class _Prazdno extends StatelessWidget {
           Icon(Icons.event_available_outlined, size: 36, color: palette.muted),
           const SizedBox(height: Insets.sm),
           Text(
-            'V tomto období není na klempírně nic naplánované.',
+            'Klempírna pobočky teď nemá žádné zakázky.',
             textAlign: TextAlign.center,
             style: AppTextStyles.cardBody.copyWith(color: palette.text),
           ),
           const SizedBox(height: Insets.xxs),
           Text(
-            'Zakázku zaplánujete z jejího detailu - tlačítkem '
-            '„Zaplánovat na klempírnu/lakovnu".',
+            'V plánu jsou rozdělané zakázky klempířských středisek '
+            'a vše, co je v tomto období naplánované.',
             textAlign: TextAlign.center,
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
           ),

@@ -28,6 +28,9 @@ Future<void> naplanovatKlempirnu(
   required String zakazkaId,
   String? spz,
   PlanKlempirny? plan,
+
+  /// Den, na který se klepnulo v plánu - nový plán ho má předvyplněný.
+  DateTime? den,
 }) {
   return showDialog<void>(
     context: context,
@@ -35,6 +38,7 @@ Future<void> naplanovatKlempirnu(
       zakazkaId: zakazkaId,
       spz: spz,
       plan: plan,
+      den: den,
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     ),
   );
@@ -45,12 +49,14 @@ class _OknoPlanu extends ConsumerStatefulWidget {
     required this.zakazkaId,
     required this.spz,
     required this.plan,
+    required this.den,
     required this.autor,
   });
 
   final String zakazkaId;
   final String? spz;
   final PlanKlempirny? plan;
+  final DateTime? den;
   final String autor;
 
   @override
@@ -58,9 +64,11 @@ class _OknoPlanu extends ConsumerStatefulWidget {
 }
 
 class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
-  late DateTimeRange? _obdobi = widget.plan == null
-      ? null
-      : DateTimeRange(start: widget.plan!.od, end: widget.plan!.do_);
+  late DateTimeRange? _obdobi = switch ((widget.plan, widget.den)) {
+    (final plan?, _) => DateTimeRange(start: plan.od, end: plan.do_),
+    (null, final den?) => DateTimeRange(start: den, end: den),
+    _ => null,
+  };
   late final _kod = TextEditingController(text: widget.plan?.kodLaku ?? '');
   late final _poznamka = TextEditingController(
     text: widget.plan?.poznamka ?? '',

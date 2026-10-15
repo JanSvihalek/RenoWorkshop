@@ -659,18 +659,26 @@ class FakeServiceOrderDataSource
     obdobiPlanu = (od, do_);
     return PrehledPlanu(
       pobocky: pobockyPlanu,
+      // Jako server: klempířské zakázky s plánem i bez, a zakázky
+      // s blokem v období.
       polozky: [
         for (final o in _orders)
-          if (o.bodyshopPlan case final plan?)
-            if (PlanKlempirny.fromJson(plan).prekryva(od, do_))
-              PolozkaPlanu(
-                zakazkaId: o.id,
-                spz: o.licensePlate,
-                model: o.model,
-                zakaznik: o.customerName,
-                pobockaKod: o.branch?['code'] as String?,
-                plan: PlanKlempirny.fromJson(plan),
-              ),
+          if (o.canPlanBodyshop ||
+              (o.bodyshopPlan != null &&
+                  PlanKlempirny.fromJson(o.bodyshopPlan!).prekryva(od, do_)))
+            PolozkaPlanu(
+              zakazkaId: o.id,
+              spz: o.licensePlate,
+              model: o.model,
+              zakaznik: o.customerName,
+              pobockaKod: o.branch?['code'] as String?,
+              prijato: o.receivedAt == null
+                  ? null
+                  : DateTime.tryParse(o.receivedAt!),
+              plan: o.bodyshopPlan == null
+                  ? null
+                  : PlanKlempirny.fromJson(o.bodyshopPlan!),
+            ),
       ],
     );
   }

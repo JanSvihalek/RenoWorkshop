@@ -16,7 +16,8 @@ class PobockaPlanu {
   int get hashCode => Object.hash(kod, nazev);
 }
 
-/// Řádek plánu: zakázka a její blok na klempírně.
+/// Řádek plánu: zakázka klempířského útvaru a její blok na klempírně,
+/// pokud už ho má.
 class PolozkaPlanu {
   const PolozkaPlanu({
     required this.zakazkaId,
@@ -24,8 +25,9 @@ class PolozkaPlanu {
     required this.model,
     required this.zakaznik,
     this.pobockaKod,
+    this.prijato,
     this.aktivni = true,
-    required this.plan,
+    this.plan,
   });
 
   final String zakazkaId;
@@ -34,12 +36,18 @@ class PolozkaPlanu {
   final String zakaznik;
   final String? pobockaKod;
 
+  /// Kdy vůz přijel - zakázky bez plánu jdou od nejstarší.
+  final DateTime? prijato;
+
   /// Zakázka je v Heliosu ještě rozdělaná.
   final bool aktivni;
-  final PlanKlempirny plan;
+
+  /// `null` = zakázka zatím nemá plán.
+  final PlanKlempirny? plan;
 
   factory PolozkaPlanu.fromJson(Map<String, dynamic> json) {
     final pobocka = json['branch'];
+    final plan = json['plan'];
     return PolozkaPlanu(
       zakazkaId: json['orderId'] as String,
       spz: json['licensePlate'] as String? ?? '',
@@ -48,13 +56,15 @@ class PolozkaPlanu {
       pobockaKod: pobocka is Map<String, dynamic>
           ? pobocka['code'] as String?
           : null,
+      prijato: DateTime.tryParse(json['receivedAt'] as String? ?? ''),
       aktivni: json['isActive'] as bool? ?? true,
-      plan: PlanKlempirny.fromJson(json),
+      plan: plan is Map<String, dynamic> ? PlanKlempirny.fromJson(plan) : null,
     );
   }
 }
 
-/// Plán na období: bloky, které se s ním překrývají, a pobočky klempíren.
+/// Plán na období: všechny rozdělané zakázky klempířských útvarů (s plánem
+/// i bez), zakázky s blokem v období a pobočky klempíren.
 class PrehledPlanu {
   const PrehledPlanu({required this.pobocky, required this.polozky});
 
@@ -86,11 +96,18 @@ class SpolecnyKod {
 }
 
 /// Kódy laku, které mají v období aspoň dvě zakázky, od nejčastějšího.
-/// Velikost písmen ani mezery okolo nehrají roli.
-List<SpolecnyKod> spolecneKody(List<PolozkaPlanu> polozky) {
+/// Velikost písmen ani mezery okolo nehrají roli; zakázky bez plánu nebo
+/// s plánem mimo období se nepočítají.
+List<SpolecnyKod> spolecneKody(
+  List<PolozkaPlanu> polozky,
+  DateTime od,
+  DateTime do_,
+) {
   final podleKodu = <String, List<PolozkaPlanu>>{};
   for (final p in polozky) {
-    final kod = p.plan.kodLaku?.trim().toUpperCase();
+    final plan = p.plan;
+    if (plan == null || !plan.prekryva(od, do_)) continue;
+    final kod = plan.kodLaku?.trim().toUpperCase();
     if (kod == null || kod.isEmpty) continue;
     (podleKodu[kod] ??= []).add(p);
   }
@@ -112,3 +129,33 @@ List<DateTime> pracovniDny(DateTime zacatek, int tydnu) => [
     for (var d = 0; d < 5; d++)
       DateTime(zacatek.year, zacatek.month, zacatek.day + t * 7 + d),
 ];
+
+/// Řádky plánu rozdělené pro osu: s blokem v období (od začátku bloku),
+/// s plánem jindy a bez plánu (od nejdéle čekající).
+({
+  List<PolozkaPlanu> vObdobi,
+  List<PolozkaPlanu> jindy,
+  List<PolozkaPlanu> bezPlanu,
+})
+rozdelPolozky(List<PolozkaPlanu> polozky, DateTime od, DateTime do_) {
+  final vObdobi = <PolozkaPlanu>[];
+  final jindy = <PolozkaPlanu>[];
+  final bezPlanu = <PolozkaPlanu>[];
+  for (final p in polozky) {
+    final plan = p.plan;
+    if (plan == null) {
+      bezPlanu.add(p);
+    } else if (plan.prekryva(od, do_)) {
+      vObdobi.add(p);
+    } else {
+      jindy.add(p);
+    }
+  }
+  int podlePlanu(PolozkaPlanu a, PolozkaPlanu b) =>
+      a.plan!.od.compareTo(b.plan!.od);
+  final daleko = DateTime(9999);
+  vObdobi.sort(podlePlanu);
+  jindy.sort(podlePlanu);
+  bezPlanu.sort((a, b) => (a.prijato ?? daleko).compareTo(b.prijato ?? daleko));
+  return (vObdobi: vObdobi, jindy: jindy, bezPlanu: bezPlanu);
+}

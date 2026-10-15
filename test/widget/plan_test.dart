@@ -82,24 +82,55 @@ void main() {
     });
 
     test('společné kódy laku - aspoň dvě zakázky, bez ohledu na velikost', () {
-      PolozkaPlanu p(String id, String? kod) => PolozkaPlanu.fromJson({
-        'orderId': id,
-        'licensePlate': id,
-        ...plan('2026-10-12', '2026-10-13', kod: kod),
-      });
-      final kody = spolecneKody([
-        p('A', '416'),
-        p('B', 'c4p'),
-        p('C', '416'),
-        p('D', 'C4P '),
-        p('E', '416'),
-        p('F', 'A96'),
-        p('G', null),
-      ]);
+      PolozkaPlanu p(String id, String? kod, {String od = '2026-10-12'}) =>
+          PolozkaPlanu.fromJson({
+            'orderId': id,
+            'licensePlate': id,
+            'plan': plan(od, od, kod: kod),
+          });
+      final kody = spolecneKody(
+        [
+          p('A', '416'),
+          p('B', 'c4p'),
+          p('C', '416'),
+          p('D', 'C4P '),
+          p('E', '416'),
+          p('F', 'A96'),
+          p('G', null),
+          // Mimo období se nepočítá.
+          p('H', 'A96', od: '2026-11-02'),
+          PolozkaPlanu.fromJson({'orderId': 'I', 'plan': null}),
+        ],
+        DateTime(2026, 10, 12),
+        DateTime(2026, 10, 16),
+      );
       expect(kody.map((k) => (k.kod, k.polozky.length)), [
         ('416', 3),
         ('C4P', 2),
       ]);
+    });
+
+    test('řádky: v období od začátku, jindy, bez plánu od nejstarší', () {
+      PolozkaPlanu p(String id, {String? od, String? prijato}) =>
+          PolozkaPlanu.fromJson({
+            'orderId': id,
+            'receivedAt': prijato,
+            'plan': od == null ? null : plan(od, od),
+          });
+      final r = rozdelPolozky(
+        [
+          p('bez-novy', prijato: '2026-10-10T08:00:00'),
+          p('pozdeji', od: '2026-10-15'),
+          p('jindy', od: '2026-11-02'),
+          p('drive', od: '2026-10-12'),
+          p('bez-stary', prijato: '2026-09-01T08:00:00'),
+        ],
+        DateTime(2026, 10, 12),
+        DateTime(2026, 10, 16),
+      );
+      expect(r.vObdobi.map((p) => p.zakazkaId), ['drive', 'pozdeji']);
+      expect(r.jindy.map((p) => p.zakazkaId), ['jindy']);
+      expect(r.bezPlanu.map((p) => p.zakazkaId), ['bez-stary', 'bez-novy']);
     });
   });
 
@@ -223,7 +254,8 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-dal')));
     await tester.pumpAndSettle();
     expect(find.text('19. 10. – 23. 10. 2026'), findsOneWidget);
-    expect(find.byKey(const Key('plan-prazdny')), findsOneWidget);
+    // Blok je minulý týden - zakázka zůstane, jen s textem, kdy plán je.
+    expect(find.byKey(const Key('plan-jindy-ZK-26-0001')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('plan-dnes')));
     await tester.pumpAndSettle();
@@ -266,7 +298,46 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-zrusit-potvrdit')));
     await tester.pumpAndSettle();
     expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan, isNull);
-    expect(find.byKey(const Key('plan-prazdny')), findsOneWidget);
+    // Zakázka v plánu zůstane - jen bez bloku.
+    expect(find.text('BEZ PLÁNU · 1'), findsOneWidget);
+  });
+
+  testWidgets('v plánu jsou i zakázky bez plánu - klepnutí na den zaplánuje', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(utvar: '11215', canPlanBodyshop: true),
+        buildOrderDto(
+          id: 'ZK-26-0002',
+          licensePlate: '2BB 2222',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          bodyshopPlan: plan('2026-11-02', '2026-11-04'),
+        ),
+        // Servis, ne klempírna - v plánu není.
+        buildOrderDto(id: 'ZK-26-0003', utvar: '11211'),
+      ],
+    );
+    await tester.tap(find.text('Plán'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('BEZ PLÁNU · 1'), findsOneWidget);
+    expect(find.text('NAPLÁNOVANÉ JINDY · 1'), findsOneWidget);
+    expect(find.byKey(const Key('plan-jindy-ZK-26-0002')), findsOneWidget);
+    expect(find.byKey(const Key('plan-radek-ZK-26-0003')), findsNothing);
+
+    // Klepnutí na středu - nový plán má středu předvyplněnou.
+    await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-14')));
+    await tester.pumpAndSettle();
+    expect(find.text('14. 10. – 14. 10. 2026'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plan-ulozit')));
+    await tester.pumpAndSettle();
+
+    expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan!['from'], '2026-10-14');
+    expect(find.byKey(const Key('plan-pruh-ZK-26-0001')), findsOneWidget);
+    expect(find.text('BEZ PLÁNU · 1'), findsNothing);
   });
 
   testWidgets('klepnutí na zakázku v plánu otevře její detail', (tester) async {
