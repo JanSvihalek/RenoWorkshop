@@ -956,8 +956,9 @@ class _RadekRegistrace extends ConsumerWidget {
                   ),
             style: datum == null
                 ? AppTextStyles.meta.copyWith(color: palette.naHlavicceTlumene)
-                : AppTextStyles.monoLabel.copyWith(
-                    fontSize: 14,
+                : AppTextStyles.meta.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: palette.naHlavicce,
                   ),
           ),
@@ -965,6 +966,7 @@ class _RadekRegistrace extends ConsumerWidget {
             StitekKampane(
               key: Key('kampan-stari-${kampan.id}'),
               druh: DruhStitku.podleStari,
+              maly: true,
               popisek: kampan.nazev,
               nadpis: kampan.nazev,
               podrobnosti: kampan.text.trim().isEmpty

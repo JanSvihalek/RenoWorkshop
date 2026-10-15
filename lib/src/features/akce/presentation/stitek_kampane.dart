@@ -28,6 +28,7 @@ class StitekKampane extends StatelessWidget {
     required this.popisek,
     required this.nadpis,
     required this.podrobnosti,
+    this.maly = false,
   });
 
   final DruhStitku druh;
@@ -38,6 +39,9 @@ class StitekKampane extends StatelessWidget {
   /// Nadpis a text okna po klepnutí.
   final String nadpis;
   final String podrobnosti;
+
+  /// Menší - v řádku s textem (první registrace a FitServis+).
+  final bool maly;
 
   void _ukaz(BuildContext context) {
     showDialog<void>(
@@ -64,9 +68,9 @@ class StitekKampane extends StatelessWidget {
         borderRadius: BorderRadius.circular(7),
         onTap: () => _ukaz(context),
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Insets.md,
-            vertical: 5,
+          padding: EdgeInsets.symmetric(
+            horizontal: maly ? Insets.sm : Insets.md,
+            vertical: maly ? 2 : 5,
           ),
           constraints: BoxConstraints(
             maxWidth: MediaQuery.sizeOf(context).width - 2 * Insets.xxl,
@@ -74,7 +78,7 @@ class StitekKampane extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(druh.ikona, size: 16, color: druh.text),
+              Icon(druh.ikona, size: maly ? 13 : 16, color: druh.text),
               const SizedBox(width: Insets.xs),
               Flexible(
                 child: Text(
@@ -82,6 +86,7 @@ class StitekKampane extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.meta.copyWith(
+                    fontSize: maly ? 12 : null,
                     color: druh.text,
                     fontWeight: FontWeight.w600,
                   ),
