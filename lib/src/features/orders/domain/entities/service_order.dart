@@ -1,6 +1,7 @@
 import 'branch.dart';
 import 'dilensky_stav.dart';
 import 'kampan_vozidla.dart';
+import 'plan_klempirny.dart';
 import 'order_note.dart';
 import 'poradac.dart';
 import 'typ_zakazky.dart';
@@ -46,6 +47,8 @@ class ServiceOrder {
     this.technickeKampane = const [],
     this.prvniRegistrace,
     this.kampanePodleStari = const [],
+    this.planKlempirny,
+    this.lzePlanovatKlempirnu = false,
   });
 
   /// Číslo zakázky, např. "ZK-26-0418".
@@ -152,6 +155,13 @@ class ServiceOrder {
   /// Kampaně podle stáří vozu (FitServis+), které se vozu týkají -
   /// vyhodnotí je server podle [prvniRegistrace].
   final List<KampanVozidla> kampanePodleStari;
+
+  /// Plán na klempírně/lakovně. `null` = nenaplánovaná.
+  final PlanKlempirny? planKlempirny;
+
+  /// Jde zakázku zaplánovat na klempírnu? Jen klempířské útvary - seznam
+  /// vede server.
+  final bool lzePlanovatKlempirnu;
 
   /// Zakázka je po termínu.
   ///
@@ -264,6 +274,8 @@ class ServiceOrder {
       technickeKampane: technickeKampane,
       prvniRegistrace: prvniRegistrace,
       kampanePodleStari: kampanePodleStari,
+      planKlempirny: planKlempirny,
+      lzePlanovatKlempirnu: lzePlanovatKlempirnu,
     );
   }
 

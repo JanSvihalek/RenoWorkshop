@@ -18,6 +18,7 @@ import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
+import '../features/plan/presentation/plan_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -35,6 +36,9 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String orders = '/orders';
   static const String settings = '/settings';
+
+  /// Záložka Plán - klempírna a lakovna.
+  static const String plan = '/plan';
   static const String skener = '/skener';
 
   /// Záložka Vozidlo - hledání vozu i zakázky k příjmu.
@@ -197,7 +201,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           // Pořadí větví musí sedět s WorkshopTab: zakázky, vozidlo,
-          // nastavení.
+          // plán, nastavení.
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -215,6 +219,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                       naskenovano: naskenovano,
                     ),
                   ),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.plan,
+                // Zakázka z plánu se otevře přes celou obrazovku - plán
+                // potřebuje šířku pro dny, vedle detailu by se nevešel.
+                builder: (context, state) => PlanScreen(
+                  onOpenOrder: (id) => context.push(AppRoutes.orderDetail(id)),
                 ),
               ),
             ],

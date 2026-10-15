@@ -3,6 +3,9 @@ import '../../../akce/data/kampane_data_source.dart';
 import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
+import '../../../plan/data/plan_data_source.dart';
+import '../../../plan/domain/prehled_planu.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/obalka_klice.dart';
 import 'dart:convert';
@@ -35,7 +38,8 @@ class MockServiceOrderDataSource
         FotkyDataSource,
         PrijemDataSource,
         AkceDataSource,
-        KampaneDataSource {
+        KampaneDataSource,
+        PlanDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -62,7 +66,77 @@ class MockServiceOrderDataSource
         .toList();
     _cache = orders;
     _promitniKampane();
+    _zalozPlany(orders);
     return orders;
+  }
+
+  /// Klempířské útvary končí v ukázkových datech na 215 (11215, 12215…).
+  static bool _klempirna(ServiceOrderDto o) =>
+      (o.department?['code'] as String? ?? '').endsWith('215');
+
+  /// Klempířské zakázky jde plánovat a dvě jsou rovnou v plánu tohoto
+  /// týdne - ať záložka Plán není prázdná.
+  void _zalozPlany(List<ServiceOrderDto> orders) {
+    final po = pondeli(DateTime.now());
+    var n = 0;
+    for (var i = 0; i < orders.length; i++) {
+      if (!_klempirna(orders[i])) continue;
+      final od = po.add(Duration(days: n * 2));
+      orders[i] = orders[i].copyWith(
+        canPlanBodyshop: true,
+        bodyshopPlan: n < 2
+            ? PlanKlempirny(
+                od: od,
+                do_: od.add(const Duration(days: 2)),
+                kodLaku: n == 0 ? '416' : 'C4P',
+                zaplanoval: 'Dílna',
+              ).toJson()
+            : null,
+      );
+      n++;
+    }
+  }
+
+  @override
+  Future<ServiceOrderDto?> ulozPlanKlempirny(
+    String orderId,
+    PlanKlempirny plan,
+  ) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    if (!orders[index].canPlanBodyshop) {
+      throw const ServiceOrderException(
+        'Na klempírnu/lakovnu se plánují jen zakázky klempířských útvarů.',
+      );
+    }
+    return orders[index] = orders[index].copyWith(
+      bodyshopPlan: {...plan.toJson(), 'plannedBy': 'Dílna'},
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    return orders[index] = orders[index].copyWith(vymazatPlan: true);
+  }
+
+  @override
+  Future<PrehledPlanu> nactiPlan(DateTime od, DateTime do_) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    return PrehledPlanu(
+      pobocky: const [
+        PobockaPlanu(kod: '1', nazev: 'Brno'),
+        PobockaPlanu(kod: '2', nazev: 'Čestlice'),
+        PobockaPlanu(kod: '5', nazev: 'Bubeneč'),
+      ],
+      polozky: _polozkyPlanu(orders, od, do_),
+    );
   }
 
   Future<void> _simulateLatency() async {
@@ -828,4 +902,25 @@ class MockServiceOrderDataSource
     if (bajty == null) throw StateError('Dokument $id v mocku není.');
     return bajty;
   }
+}
+
+/// Řádky plánu ze zakázek v paměti - totéž skládá server.
+List<PolozkaPlanu> _polozkyPlanu(
+  List<ServiceOrderDto> orders,
+  DateTime od,
+  DateTime do_,
+) {
+  return [
+    for (final o in orders)
+      if (o.bodyshopPlan case final plan?)
+        if (PlanKlempirny.fromJson(plan).prekryva(od, do_))
+          PolozkaPlanu(
+            zakazkaId: o.id,
+            spz: o.licensePlate,
+            model: o.model,
+            zakaznik: o.customerName,
+            pobockaKod: o.branch?['code'] as String?,
+            plan: PlanKlempirny.fromJson(plan),
+          ),
+  ]..sort((a, b) => a.plan.od.compareTo(b.plan.od));
 }

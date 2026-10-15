@@ -1,4 +1,5 @@
 import '../entities/obalka_klice.dart';
+import '../entities/plan_klempirny.dart';
 import '../entities/dilensky_stav.dart';
 import '../entities/service_order.dart';
 import '../entities/zpracovatel.dart';
@@ -74,6 +75,12 @@ abstract interface class ServiceOrderRepository {
 
   /// Komu naskenovaná obálka patří. `null` = obálka v evidenci není.
   Future<NalezenaObalka?> najdiObalku(String kod);
+
+  /// Zaplánuje zakázku na klempírnu/lakovnu, nebo plán upraví.
+  Future<ServiceOrder> ulozPlanKlempirny(String orderId, PlanKlempirny plan);
+
+  /// Zruší plán zakázky na klempírně.
+  Future<ServiceOrder> zrusPlanKlempirny(String orderId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

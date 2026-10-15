@@ -1,3 +1,4 @@
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/obalka_klice.dart';
 import 'dart:async';
 
@@ -146,6 +147,16 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   @override
   Future<ServiceOrder> uvolniObalku(String orderId) {
     return _mutate(orderId, () => _dataSource.uvolniObalku(orderId));
+  }
+
+  @override
+  Future<ServiceOrder> ulozPlanKlempirny(String orderId, PlanKlempirny plan) {
+    return _mutate(orderId, () => _dataSource.ulozPlanKlempirny(orderId, plan));
+  }
+
+  @override
+  Future<ServiceOrder> zrusPlanKlempirny(String orderId) {
+    return _mutate(orderId, () => _dataSource.zrusPlanKlempirny(orderId));
   }
 
   @override

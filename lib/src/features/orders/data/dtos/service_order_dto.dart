@@ -1,6 +1,7 @@
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/kampan_vozidla.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/order_note.dart';
 import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
@@ -48,6 +49,8 @@ class ServiceOrderDto {
     this.technicalCampaigns = const [],
     this.firstRegisteredAt,
     this.ageCampaigns = const [],
+    this.bodyshopPlan,
+    this.canPlanBodyshop = false,
   });
 
   final String id;
@@ -130,6 +133,13 @@ class ServiceOrderDto {
   /// Kampaně podle stáří vozu (FitServis+). Starší API je neposílá.
   final List<KampanVozidla> ageCampaigns;
 
+  /// Plán klempírny `{from, to, paintCode, note, status, plannedBy,
+  /// plannedAt}`, `null` = nenaplánovaná. Starší API ho neposílá.
+  final Map<String, dynamic>? bodyshopPlan;
+
+  /// Jde zakázku zaplánovat na klempírnu (klempířský útvar)?
+  final bool canPlanBodyshop;
+
   factory ServiceOrderDto.fromJson(Map<String, dynamic> json) {
     return ServiceOrderDto(
       id: json['id'] as String,
@@ -178,6 +188,8 @@ class ServiceOrderDto {
       ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
           .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
           .toList(),
+      bodyshopPlan: json['bodyshopPlan'] as Map<String, dynamic>?,
+      canPlanBodyshop: json['canPlanBodyshop'] as bool? ?? false,
     );
   }
 
@@ -214,6 +226,8 @@ class ServiceOrderDto {
     'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
     'firstRegisteredAt': firstRegisteredAt,
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
+    'bodyshopPlan': bodyshopPlan,
+    'canPlanBodyshop': canPlanBodyshop,
   };
 
   ServiceOrder toDomain() => ServiceOrder(
@@ -260,6 +274,10 @@ class ServiceOrderDto {
         ? null
         : DateTime.tryParse(firstRegisteredAt!),
     kampanePodleStari: ageCampaigns,
+    planKlempirny: bodyshopPlan == null
+        ? null
+        : PlanKlempirny.fromJson(bodyshopPlan!),
+    lzePlanovatKlempirnu: canPlanBodyshop,
   );
 
   ServiceOrderDto copyWith({
@@ -286,6 +304,11 @@ class ServiceOrderDto {
     List<KampanVozidla>? technicalCampaigns,
     String? firstRegisteredAt,
     List<KampanVozidla>? ageCampaigns,
+    Map<String, dynamic>? bodyshopPlan,
+
+    /// Zrušený plán - `??` by jinak nechalo původní.
+    bool vymazatPlan = false,
+    bool? canPlanBodyshop,
 
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
@@ -326,6 +349,8 @@ class ServiceOrderDto {
       technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
       firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
+      bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),
+      canPlanBodyshop: canPlanBodyshop ?? this.canPlanBodyshop,
     );
   }
 }
