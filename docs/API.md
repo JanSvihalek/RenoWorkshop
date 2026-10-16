@@ -248,6 +248,11 @@ aplikace. Zakázka bez vyplněné řady má `null`.
 Když řada v převodní tabulce chybí, přijde v `label` samo číslo. Je to
 záměr: je vidět, že se má doplnit, a zakázka nezmizí.
 
+Řada sama typ vždy neurčí - v řadě 801 jsou běžné i jiné zakázky a rozliší
+je až řada v Caris (`carisSeries`). Zakázka s caris řadou má `code`
+ve tvaru `801/12` a `label` z převodní tabulky kombinací; chybějící
+kombinace přijde jako kód (`801/12`), ne jako název samotné řady.
+
 ### GET /orders/{id}
 
 Jedna zakázka ve stejném tvaru. Neexistující vrací `404` — appka to bere jako
