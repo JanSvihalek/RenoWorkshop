@@ -38,6 +38,12 @@ final kampaneDataSourceProvider = Provider<KampaneDataSource>((ref) {
 /// přepnutí zakázky.
 final akcePanelOtevrenyProvider = StateProvider<bool>((ref) => false);
 
+/// Svolávací akce (technické kampaně BMW) jsou zatím schované - nepoužívají
+/// se (rozhodnutí 16. 10. 2026). Bez nich chybí pruh nad seznamem zakázek
+/// i štítky v detailu a appka se na kampaně serveru ani neptá. Server je
+/// posílá dál; zapnout zpátky = `true` tady.
+final technickeKampaneZapnuteProvider = Provider<bool>((ref) => false);
+
 /// Co je v panelu na tabletu - marketingové akce, nebo technické kampaně.
 enum DruhPanelu { akce, kampane }
 

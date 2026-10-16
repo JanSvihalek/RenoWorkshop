@@ -285,6 +285,10 @@ class KampanePruh extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Schované i s dotazem na server (technickeKampaneZapnuteProvider).
+    if (!ref.watch(technickeKampaneZapnuteProvider)) {
+      return const SizedBox.shrink();
+    }
     final palette = context.palette;
     final prehled = ref.watch(kampaneProvider).valueOrNull;
     if (prehled == null) return const SizedBox.shrink();

@@ -37,6 +37,7 @@ void main() {
     bool spravce = false,
     List<TechnickaKampan> kampane = const [airbag],
     List<KampanVozidla> kampaneVozu = const [],
+    bool zapnute = true,
   }) async {
     tester.view.physicalSize = velikost;
     tester.view.devicePixelRatio = 1;
@@ -74,6 +75,7 @@ void main() {
           ),
           serviceOrderDataSourceProvider.overrideWithValue(zdroj),
           dnesProvider.overrideWithValue(DateTime(2026, 10, 14)),
+          technickeKampaneZapnuteProvider.overrideWithValue(zapnute),
         ],
         child: const RenoWorkshopApp(),
       ),
@@ -183,6 +185,24 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('schované kampaně: bez pruhu i bez štítku v detailu', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      velikost: tablet,
+      zapnute: false,
+      kampaneVozu: const [
+        KampanVozidla(id: 'k1', nazev: 'Kontrola airbagu spolujezdce'),
+      ],
+    );
+    expect(find.byKey(const Key('akce-pruh')), findsOneWidget);
+    expect(find.byKey(const Key('kampane-pruh')), findsNothing);
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('kampan-vozu-k1')), findsNothing);
   });
 
   testWidgets('bez kampaně štítek v detailu není', (tester) async {

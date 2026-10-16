@@ -388,7 +388,7 @@ class _Sloupec extends StatelessWidget {
 }
 
 /// Navy hlavička detailu - identifikace vozidla a zakázky.
-class _DetailHeader extends StatelessWidget {
+class _DetailHeader extends ConsumerWidget {
   const _DetailHeader({
     required this.order,
     required this.onBack,
@@ -410,7 +410,7 @@ class _DetailHeader extends StatelessWidget {
   final VoidCallback onUvolnitObalku;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isIOS = context.isIOS;
     final palette = context.palette;
 
@@ -547,7 +547,9 @@ class _DetailHeader extends StatelessWidget {
         ),
         // Svolávací akce BMW, které se vozu týkají - oranžově, ať je dílna
         // při příjmu nepřehlédne. FitServis+ je u první registrace.
-        if (order.technickeKampane.isNotEmpty) ...[
+        // Zatím schované (technickeKampaneZapnuteProvider).
+        if (ref.watch(technickeKampaneZapnuteProvider) &&
+            order.technickeKampane.isNotEmpty) ...[
           const SizedBox(height: Insets.md),
           Wrap(
             spacing: Insets.sm,
