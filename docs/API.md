@@ -198,7 +198,7 @@ stránkování.
     ],
     "branch": { "code": "1", "label": "Brno" },
     "department": { "code": "11211", "label": "Servis BMW Brno" },
-    "orderType": { "code": "801", "label": "Běžná" },
+    "orderType": { "code": "801", "label": "801 · Běžná" },
     "receivedAt": "2026-08-21T07:15:00",
     "dueAt": "2026-08-26T16:00:00",
     "vin": "WBAKS4105L9KL83914",
@@ -240,8 +240,8 @@ z ERP. `mechanicCode` je její kód, podle kterého se dá filtrovat i po
 přejmenování.
 
 `orderType` je typ zakázky, v Heliosu *řada*: `code` je její číslo
-(`801` běžná, `802` interní, `803` PDI...), `label` název ze serverové
-převodní tabulky. Aplikace význam kódu nezná - zobrazuje `label`,
+(`801` běžná, `802` interní, `803` PDI...), `label` číslo řady a název ze
+serverové převodní tabulky (`801 · Běžná`). Aplikace význam kódu nezná - zobrazuje `label`,
 filtruje podle `code`. Nová řada se tak objeví sama, bez nové verze
 aplikace. Zakázka bez vyplněné řady má `null`.
 
