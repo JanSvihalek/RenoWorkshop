@@ -110,6 +110,29 @@ void main() {
       ]);
     });
 
+    test('kód laku: ručně z plánu, jinak barva vozu z Heliosu', () {
+      PolozkaPlanu p(String id, String? kod, Object? barva) =>
+          PolozkaPlanu.fromJson({
+            'orderId': id,
+            'licensePlate': id,
+            'plan': plan('2026-10-12', '2026-10-12', kod: kod),
+            'vehicleColor': barva,
+          });
+      const barva = {'code': '475', 'name': 'Black Sapphire'};
+      expect(p('A', ' c4p ', barva).kodLaku, 'C4P');
+      expect(p('B', null, barva).kodLaku, '475');
+      expect(p('C', null, {'code': ' ', 'name': 'Bílá'}).kodLaku, isNull);
+      expect(p('D', null, null).barva, isNull);
+      expect(p('E', null, barva).barva!.popis, '475 · Black Sapphire');
+
+      final kody = spolecneKody(
+        [p('F', null, barva), p('G', null, barva), p('H', '300', barva)],
+        DateTime(2026, 10, 12),
+        DateTime(2026, 10, 16),
+      );
+      expect(kody.map((k) => (k.kod, k.polozky.length)), [('475', 2)]);
+    });
+
     test('řádky: v období od začátku, jindy, bez plánu od nejstarší', () {
       PolozkaPlanu p(String id, {String? od, String? prijato}) =>
           PolozkaPlanu.fromJson({

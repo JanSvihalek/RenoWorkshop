@@ -47,6 +47,7 @@ class ServiceOrder {
     this.technickeKampane = const [],
     this.prvniRegistrace,
     this.kampanePodleStari = const [],
+    this.barvaVozu,
     this.planKlempirny,
     this.lzePlanovatKlempirnu = false,
   });
@@ -155,6 +156,9 @@ class ServiceOrder {
   /// Kampaně podle stáří vozu (FitServis+), které se vozu týkají -
   /// vyhodnotí je server podle [prvniRegistrace].
   final List<KampanVozidla> kampanePodleStari;
+
+  /// Barva vozu z Heliosu - kód laku pro lakovnu. `null` = neznámá.
+  final BarvaVozu? barvaVozu;
 
   /// Plán na klempírně/lakovně. `null` = nenaplánovaná.
   final PlanKlempirny? planKlempirny;
@@ -274,6 +278,7 @@ class ServiceOrder {
       technickeKampane: technickeKampane,
       prvniRegistrace: prvniRegistrace,
       kampanePodleStari: kampanePodleStari,
+      barvaVozu: barvaVozu,
       planKlempirny: planKlempirny,
       lzePlanovatKlempirnu: lzePlanovatKlempirnu,
     );

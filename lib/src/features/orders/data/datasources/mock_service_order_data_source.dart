@@ -462,6 +462,7 @@ class MockServiceOrderDataSource
           (ted.year - registrace.year) * 12 + ted.month - registrace.month;
       orders[i] = orders[i].copyWith(
         firstRegisteredAt: _registrace(i),
+        vehicleColor: _barvy[i % _barvy.length],
         ageCampaigns: [
           for (final k in _kampaneStari)
             if (k.aktivni &&
@@ -930,3 +931,11 @@ List<PolozkaPlanu> _polozkyPlanu(
         ),
   ];
 }
+
+/// Ukázkové barvy BMW a MINI - kód laku z číselníku Heliosu.
+const _barvy = <Map<String, dynamic>>[
+  {'code': '475', 'name': 'Black Sapphire metalíza'},
+  {'code': '300', 'name': 'Alpinweiss III'},
+  {'code': 'C4P', 'name': 'Brooklyn Grey metalíza'},
+  {'code': '416', 'name': 'Carbon Black metalíza'},
+];

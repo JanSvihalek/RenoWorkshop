@@ -28,6 +28,7 @@ class PolozkaPlanu {
     this.prijato,
     this.aktivni = true,
     this.plan,
+    this.barva,
   });
 
   final String zakazkaId;
@@ -45,6 +46,12 @@ class PolozkaPlanu {
   /// `null` = zakázka zatím nemá plán.
   final PlanKlempirny? plan;
 
+  /// Barva vozu z Heliosu - kód laku, když ho plán nemá.
+  final BarvaVozu? barva;
+
+  /// Kód laku: ručně zadaný v plánu, jinak z barvy vozu.
+  String? get kodLaku => kodLakuZakazky(plan, barva);
+
   factory PolozkaPlanu.fromJson(Map<String, dynamic> json) {
     final pobocka = json['branch'];
     final plan = json['plan'];
@@ -59,6 +66,7 @@ class PolozkaPlanu {
       prijato: DateTime.tryParse(json['receivedAt'] as String? ?? ''),
       aktivni: json['isActive'] as bool? ?? true,
       plan: plan is Map<String, dynamic> ? PlanKlempirny.fromJson(plan) : null,
+      barva: BarvaVozu.zJson(json['vehicleColor']),
     );
   }
 }
@@ -107,8 +115,8 @@ List<SpolecnyKod> spolecneKody(
   for (final p in polozky) {
     final plan = p.plan;
     if (plan == null || !plan.prekryva(od, do_)) continue;
-    final kod = plan.kodLaku?.trim().toUpperCase();
-    if (kod == null || kod.isEmpty) continue;
+    final kod = p.kodLaku;
+    if (kod == null) continue;
     (podleKodu[kod] ??= []).add(p);
   }
   return [

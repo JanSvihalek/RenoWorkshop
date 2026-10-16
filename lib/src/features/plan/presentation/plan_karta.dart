@@ -36,6 +36,7 @@ class PlanKarta extends ConsumerWidget {
       zakazkaId: order.id,
       spz: order.licensePlate,
       plan: plan,
+      barva: order.barvaVozu,
     );
 
     return DetailCard(
@@ -75,7 +76,7 @@ class PlanKarta extends ConsumerWidget {
               label: const Text('Zaplánovat na klempírnu/lakovnu'),
             ),
           ] else
-            _Plan(plan: plan),
+            _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
         ],
       ),
     );
@@ -83,9 +84,10 @@ class PlanKarta extends ConsumerWidget {
 }
 
 class _Plan extends StatelessWidget {
-  const _Plan({required this.plan});
+  const _Plan({required this.plan, required this.kodLaku});
 
   final PlanKlempirny plan;
+  final String? kodLaku;
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +109,7 @@ class _Plan extends StatelessWidget {
               ),
             ),
             StavPlanuZnacka(hotovo: plan.hotovo),
-            if (plan.kodLaku != null) KodLaku(kod: plan.kodLaku!),
+            if (kodLaku != null) KodLaku(kod: kodLaku!),
           ],
         ),
         if (plan.poznamka.trim().isNotEmpty) ...[

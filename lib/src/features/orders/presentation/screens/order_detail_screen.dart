@@ -20,6 +20,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_karta.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../controllers/order_actions_controller.dart';
@@ -508,6 +509,7 @@ class _DetailHeader extends StatelessWidget {
           ],
         ),
         _RadekRegistrace(order: order),
+        if (order.barvaVozu case final barva?) _RadekBarvy(barva: barva),
         const SizedBox(height: Insets.xs),
         Text(
           order.customerName,
@@ -980,6 +982,43 @@ class _RadekRegistrace extends ConsumerWidget {
                   ? 'Vůz do kampaně spadá podle stáří od první registrace.'
                   : kampan.text.trim(),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Barva vozu z Heliosu pod první registrací: `BARVA 475 · Black Sapphire`.
+class _RadekBarvy extends StatelessWidget {
+  const _RadekBarvy({required this.barva});
+
+  final BarvaVozu barva;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(top: Insets.xs),
+      child: Wrap(
+        key: const Key('barva-vozu'),
+        spacing: Insets.sm,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'BARVA',
+            style: AppTextStyles.metaSmall.copyWith(
+              color: palette.naHlavicceTlumene,
+              letterSpacing: 0.8,
+            ),
+          ),
+          Text(
+            barva.popis,
+            style: AppTextStyles.meta.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: palette.naHlavicce,
+            ),
+          ),
         ],
       ),
     );

@@ -489,6 +489,7 @@ class _Radek extends ConsumerWidget {
       zakazkaId: polozka.zakazkaId,
       spz: polozka.spz,
       plan: plan,
+      barva: polozka.barva,
       den: den,
     );
 
@@ -647,6 +648,7 @@ class _Pruh extends ConsumerWidget {
           zakazkaId: polozka.zakazkaId,
           spz: polozka.spz,
           plan: plan,
+          barva: polozka.barva,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
@@ -656,8 +658,8 @@ class _Pruh extends ConsumerWidget {
                 const Icon(Icons.check_rounded, size: 16, color: Colors.white),
                 const SizedBox(width: Insets.xs),
               ],
-              if (plan.kodLaku != null) ...[
-                KodLaku(kod: plan.kodLaku!, naPruhu: true),
+              if (polozka.kodLaku case final kod?) ...[
+                KodLaku(kod: kod, naPruhu: true),
                 const SizedBox(width: Insets.sm),
               ],
               Expanded(

@@ -29,6 +29,9 @@ Future<void> naplanovatKlempirnu(
   String? spz,
   PlanKlempirny? plan,
 
+  /// Barva vozu z Heliosu - předvyplní kód laku.
+  BarvaVozu? barva,
+
   /// Den, na který se klepnulo v plánu - nový plán ho má předvyplněný.
   DateTime? den,
 }) {
@@ -38,6 +41,7 @@ Future<void> naplanovatKlempirnu(
       zakazkaId: zakazkaId,
       spz: spz,
       plan: plan,
+      barva: barva,
       den: den,
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     ),
@@ -49,6 +53,7 @@ class _OknoPlanu extends ConsumerStatefulWidget {
     required this.zakazkaId,
     required this.spz,
     required this.plan,
+    required this.barva,
     required this.den,
     required this.autor,
   });
@@ -56,6 +61,7 @@ class _OknoPlanu extends ConsumerStatefulWidget {
   final String zakazkaId;
   final String? spz;
   final PlanKlempirny? plan;
+  final BarvaVozu? barva;
   final DateTime? den;
   final String autor;
 
@@ -69,7 +75,9 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     (null, final den?) => DateTimeRange(start: den, end: den),
     _ => null,
   };
-  late final _kod = TextEditingController(text: widget.plan?.kodLaku ?? '');
+  late final _kod = TextEditingController(
+    text: widget.plan?.kodLaku ?? widget.barva?.kod ?? '',
+  );
   late final _poznamka = TextEditingController(
     text: widget.plan?.poznamka ?? '',
   );
@@ -216,6 +224,14 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           napoveda: 'Např. 416, C4P',
           maxDelka: 20,
         ),
+        if (widget.barva case final barva?) ...[
+          const SizedBox(height: Insets.xs),
+          Text(
+            'Z Heliosu: ${barva.popis}',
+            key: const Key('plan-barva-z-heliosu'),
+            style: AppTextStyles.meta.copyWith(color: context.palette.muted),
+          ),
+        ],
         const SizedBox(height: Insets.base),
         const PopisekPole('POZNÁMKA'),
         PoleZapisu(

@@ -397,6 +397,7 @@ Karta vozidla. `id` je `cislo_subjektu` z Heliosu, neexistující vrací `404`.
   "engine": "B47D20",
   "mileage": 123456,
   "soldAt": "2019-05-14",
+  "color": { "code": "475", "name": "Black Sapphire metalíza" },
   "owner": {
     "id": 60001,
     "name": "Stavby Novák s.r.o.",
@@ -422,6 +423,9 @@ Karta vozidla. `id` je `cislo_subjektu` z Heliosu, neexistující vrací `404`.
   neposílá, i když ji server má.
 - `soldAt` je `prodej_datum` vozidla z Heliosu, ne rok výroby - ten Helios
   nevede. Aplikace ho ukazuje jako „Datum registrace“.
+- `color` je barva vozu z číselníku barev Heliosu (`code` = kód laku), `null`
+  = neznámá. Stejný tvar má u zakázky `vehicleColor` - plán klempírny z něj
+  předvyplní kód laku.
 
 ### POST /orders/{id}/notes
 

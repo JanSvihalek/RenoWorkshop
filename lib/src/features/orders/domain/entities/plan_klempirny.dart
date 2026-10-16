@@ -1,3 +1,36 @@
+/// Barva vozu z Heliosu (číselník barev) - kód laku a název.
+class BarvaVozu {
+  const BarvaVozu({required this.kod, this.nazev});
+
+  /// Kód laku (`475`, `C4P`).
+  final String kod;
+  final String? nazev;
+
+  /// `475 · Black Sapphire`, bez názvu jen kód.
+  String get popis => [kod, ?nazev].join(' · ');
+
+  /// `null`, když API barvu neposlalo nebo nemá kód.
+  static BarvaVozu? zJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final kod = (json['code'] as String?)?.trim();
+    if (kod == null || kod.isEmpty) return null;
+    final nazev = (json['name'] as String?)?.trim();
+    return BarvaVozu(
+      kod: kod,
+      nazev: nazev == null || nazev.isEmpty ? null : nazev,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'code': kod, 'name': nazev};
+}
+
+/// Kód laku zakázky: ručně zadaný v plánu, jinak barva vozu z Heliosu.
+String? kodLakuZakazky(PlanKlempirny? plan, BarvaVozu? barva) {
+  final rucni = plan?.kodLaku?.trim().toUpperCase();
+  if (rucni != null && rucni.isNotEmpty) return rucni;
+  return barva?.kod;
+}
+
 /// Plán zakázky na klempírně/lakovně - jeden blok od-do po celých dnech.
 ///
 /// Plánují se pojistné události z klempířských útvarů (11215, 12215,

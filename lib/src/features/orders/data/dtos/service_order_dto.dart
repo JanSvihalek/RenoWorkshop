@@ -49,6 +49,7 @@ class ServiceOrderDto {
     this.technicalCampaigns = const [],
     this.firstRegisteredAt,
     this.ageCampaigns = const [],
+    this.vehicleColor,
     this.bodyshopPlan,
     this.canPlanBodyshop = false,
   });
@@ -133,6 +134,10 @@ class ServiceOrderDto {
   /// Kampaně podle stáří vozu (FitServis+). Starší API je neposílá.
   final List<KampanVozidla> ageCampaigns;
 
+  /// Barva vozu z Heliosu `{code, name}`, `null` = neznámá. Starší API ji
+  /// neposílá.
+  final Map<String, dynamic>? vehicleColor;
+
   /// Plán klempírny `{from, to, paintCode, note, status, plannedBy,
   /// plannedAt}`, `null` = nenaplánovaná. Starší API ho neposílá.
   final Map<String, dynamic>? bodyshopPlan;
@@ -188,6 +193,7 @@ class ServiceOrderDto {
       ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
           .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
           .toList(),
+      vehicleColor: json['vehicleColor'] as Map<String, dynamic>?,
       bodyshopPlan: json['bodyshopPlan'] as Map<String, dynamic>?,
       canPlanBodyshop: json['canPlanBodyshop'] as bool? ?? false,
     );
@@ -226,6 +232,7 @@ class ServiceOrderDto {
     'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
     'firstRegisteredAt': firstRegisteredAt,
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
+    'vehicleColor': vehicleColor,
     'bodyshopPlan': bodyshopPlan,
     'canPlanBodyshop': canPlanBodyshop,
   };
@@ -274,6 +281,7 @@ class ServiceOrderDto {
         ? null
         : DateTime.tryParse(firstRegisteredAt!),
     kampanePodleStari: ageCampaigns,
+    barvaVozu: BarvaVozu.zJson(vehicleColor),
     planKlempirny: bodyshopPlan == null
         ? null
         : PlanKlempirny.fromJson(bodyshopPlan!),
@@ -304,6 +312,7 @@ class ServiceOrderDto {
     List<KampanVozidla>? technicalCampaigns,
     String? firstRegisteredAt,
     List<KampanVozidla>? ageCampaigns,
+    Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
 
     /// Zrušený plán - `??` by jinak nechalo původní.
@@ -349,6 +358,7 @@ class ServiceOrderDto {
       technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
       firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
+      vehicleColor: vehicleColor ?? this.vehicleColor,
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),
       canPlanBodyshop: canPlanBodyshop ?? this.canPlanBodyshop,
     );
