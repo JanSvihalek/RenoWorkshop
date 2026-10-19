@@ -8,12 +8,15 @@ import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../../akce/data/akce_data_source.dart';
 import '../../../akce/data/kampane_data_source.dart';
 import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
+import '../../../plan/data/plan_data_source.dart';
+import '../../../plan/domain/prehled_planu.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
 import '../../../fotodokumentace/domain/entities/fotka.dart';
@@ -40,6 +43,7 @@ class RestServiceOrderDataSource
         PrijemDataSource,
         AkceDataSource,
         KampaneDataSource,
+        PlanDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -205,6 +209,49 @@ class RestServiceOrderDataSource
   Future<void> smazAkci(String id) async {
     await _send('DELETE', 'campaigns/${Uri.encodeComponent(id)}');
   }
+
+  @override
+  Future<ServiceOrderDto?> ulozPlanKlempirny(
+    String orderId,
+    PlanKlempirny plan,
+  ) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan',
+      body: plan.toJson(),
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+    final data = await _send(
+      'DELETE',
+      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan',
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<PrehledPlanu> nactiPlan(DateTime od, DateTime do_) async {
+    final data = await _send(
+      'GET',
+      'bodyshop-plan?from=${_den(od)}&to=${_den(do_)}',
+    );
+    if (data == null) throw const ServiceOrderException('Plán se nenačetl.');
+    return PrehledPlanu.fromJson(
+      _asMap(data),
+      // Řádek plánu je celá zakázka jako v /orders a k ní plán.
+      zakazka: (radek) => radek.containsKey('id')
+          ? ServiceOrderDto.fromJson(radek).toDomain()
+          : null,
+    );
+  }
+
+  static String _den(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   @override
   Future<PrehledKampani> nactiKampane() async {

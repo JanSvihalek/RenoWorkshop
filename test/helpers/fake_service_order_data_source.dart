@@ -5,6 +5,9 @@ import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
 import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
+import 'package:renoworkshop/src/features/plan/data/plan_data_source.dart';
+import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/kampan_vozidla.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/obalka_klice.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/service_order_data_source.dart';
@@ -30,7 +33,8 @@ class FakeServiceOrderDataSource
         FotkyDataSource,
         PrijemDataSource,
         AkceDataSource,
-        KampaneDataSource {
+        KampaneDataSource,
+        PlanDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -615,6 +619,70 @@ class FakeServiceOrderDataSource
 
   /// Zakázka tak, jak ji zdroj právě drží - kontrola, co se zapsalo.
   ServiceOrderDto ulozeneDto(String orderId) => _orders[_indexOf(orderId)];
+
+  /// Pobočky klempíren, které vrací plán.
+  List<PobockaPlanu> pobockyPlanu = const [
+    PobockaPlanu(kod: '1', nazev: 'Brno'),
+    PobockaPlanu(kod: '2', nazev: 'Nupaky'),
+    PobockaPlanu(kod: '5', nazev: 'Bubeneč'),
+  ];
+
+  /// Období, na které se aplikace naposledy ptala.
+  (DateTime, DateTime)? obdobiPlanu;
+
+  @override
+  Future<ServiceOrderDto?> ulozPlanKlempirny(
+    String orderId,
+    PlanKlempirny plan,
+  ) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    if (!_orders[index].canPlanBodyshop) {
+      throw const ServiceOrderException(
+        'Na klempírnu/lakovnu se plánují jen zakázky klempířských útvarů.',
+      );
+    }
+    return _orders[index] = _orders[index].copyWith(
+      bodyshopPlan: {...plan.toJson(), 'plannedBy': 'Jan Dvořák'},
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(vymazatPlan: true);
+  }
+
+  @override
+  Future<PrehledPlanu> nactiPlan(DateTime od, DateTime do_) async {
+    obdobiPlanu = (od, do_);
+    return PrehledPlanu(
+      pobocky: pobockyPlanu,
+      // Jako server: klempířské zakázky s plánem i bez, a zakázky
+      // s blokem v období.
+      polozky: [
+        for (final o in _orders)
+          if (o.canPlanBodyshop ||
+              (o.bodyshopPlan != null &&
+                  PlanKlempirny.fromJson(o.bodyshopPlan!).prekryva(od, do_)))
+            PolozkaPlanu(
+              zakazkaId: o.id,
+              spz: o.licensePlate,
+              model: o.model,
+              zakaznik: o.customerName,
+              pobockaKod: o.branch?['code'] as String?,
+              prijato: o.receivedAt == null
+                  ? null
+                  : DateTime.tryParse(o.receivedAt!),
+              plan: o.bodyshopPlan == null
+                  ? null
+                  : PlanKlempirny.fromJson(o.bodyshopPlan!),
+              zakazka: o.toDomain(),
+            ),
+      ],
+    );
+  }
 
   @override
   Future<NalezenaObalka?> najdiObalku(String kod) async {

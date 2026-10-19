@@ -18,6 +18,7 @@ import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
+import '../features/plan/presentation/plan_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -232,6 +233,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Karta vozidla i detail zakázky jsou mimo rám schválně: na telefonu
       // překryjí i lištu záložek, protože nejsou záložka, ale zanoření.
+      // Plánovač klempírny - otevírá ho přepínač aplikací a karta
+      // Klempírna / lakovna. Přes celou obrazovku jako samostatný portál.
+      GoRoute(
+        path: cestaPlanovace,
+        builder: (context, state) => PlanScreen(
+          onBack: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.orders),
+          onOpenOrder: (id) => context.push(AppRoutes.orderDetail(id)),
+        ),
+      ),
       GoRoute(
         path: AppRoutes.akce,
         builder: (context, state) => AkceScreen(

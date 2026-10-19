@@ -1,28 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/dimens.dart';
-import 'plan_karta.dart';
+import 'plan_screen.dart' show cestaPlanovace;
 
-/// Přepínač aplikací RenoWorkshopu (jako mřížka na webu): Zakázky - tahle
-/// appka - a Plán klempírny, portál v prohlížeči. Na telefonu je mřížka
-/// v hlavičce zakázek ([PrepinacAplikaci]), na tabletu položka Aplikace
-/// v boční navigaci. Na ukázkových datech není, portál nemá kam vést.
+/// Přepínač aplikací RenoWorkshopu (jako mřížka na webu): Zakázky a Plán
+/// klempírny - plánovač je obrazovka appky, přihlášení se neopakuje. Na
+/// telefonu mřížka v hlavičce zakázek ([PrepinacAplikaci]), na tabletu
+/// položka Aplikace v boční navigaci.
 Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
-  final planovac = ref.read(adresaPlanovaceProvider);
-  if (planovac == null) return Future.value();
-
-  Future<void> otevriPlanovac(BuildContext panel) async {
+  void otevriPlanovac(BuildContext panel) {
     Navigator.of(panel).pop();
-    final otevreno = await ref.read(otevritOdkazProvider)(planovac);
-    if (!otevreno && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plánovač se nepodařilo otevřít.')),
-      );
-    }
+    context.push(cestaPlanovace);
   }
 
   return showModalBottomSheet<void>(
@@ -68,7 +61,7 @@ Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
               key: const Key('aplikace-plan'),
               ikona: Icons.calendar_month_rounded,
               nazev: 'Plán klempírny',
-              popis: 'Plánování klempírny a lakovny - otevře se v prohlížeči',
+              popis: 'Plánování klempírny a lakovny a průběh na dílně',
               onTap: () => otevriPlanovac(panel),
             ),
           ],
@@ -88,9 +81,6 @@ class PrepinacAplikaci extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(adresaPlanovaceProvider) == null) {
-      return const SizedBox.shrink();
-    }
     return Semantics(
       button: true,
       label: 'Aplikace RenoWorkshopu',
@@ -194,7 +184,11 @@ class _Dlazdice extends StatelessWidget {
                   ),
                 )
               else
-                Icon(Icons.open_in_new_rounded, size: 18, color: palette.muted),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: palette.muted,
+                ),
             ],
           ),
         ),

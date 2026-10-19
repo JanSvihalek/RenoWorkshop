@@ -121,46 +121,8 @@ class _DetailBody extends ConsumerWidget {
   final ValueChanged<String>? onPrijem;
   final SkenujObalku? onSkenujObalku;
 
-  Future<void> _pridejStav(BuildContext context, WidgetRef ref) async {
-    // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
-    // nepíše u každého kroku znovu.
-    final vybrany = await vyberStav(
-      context,
-      misto: order.bay,
-      spz: order.licensePlate,
-      cisloZakazky: order.id,
-      autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
-    );
-    if (vybrany == null || !context.mounted) return;
-
-    final hotovo = await ref
-        .read(orderActionsProvider.notifier)
-        .pridejStav(
-          order.id,
-          kod: vybrany.kod,
-          nazev: vybrany.nazev,
-          poznamka: vybrany.poznamka,
-          misto: vybrany.misto,
-        );
-
-    if (!hotovo) return;
-
-    // Fotka až po uložení stavu - nahrává se stejnou frontou jako fotky
-    // z příjmu, takže výpadek wi-fi ji neztratí.
-    final fotka = vybrany.fotkaMista;
-    if (fotka != null) {
-      await ref.read(nahravaniFotekProvider(order.id).notifier).pridej(
-        KategorieFotky.umisteni,
-        [fotka],
-      );
-    }
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
-    }
-  }
+  Future<void> _pridejStav(BuildContext context, WidgetRef ref) =>
+      pridatStavZakazce(context, ref, order);
 
   /// Smaže záznam z historie stavů. Ptá se, protože záznam zmizí nadobro
   /// a u cizího zápisu nemusí být zřejmé, že šlo o omyl.
@@ -312,8 +274,8 @@ class _DetailBody extends ConsumerWidget {
     // fotky, dokumenty z Heliosu), vpravo průběh opravy (postup, pracovní
     // list). Termíny a pojištění jsou v hlavičce. Přes celou šířku by
     // karty byly nepřehledně roztažené.
-    // Plán klempírny a lakovny jen ke čtení s prokliknutím do portálu -
-    // u klempířských zakázek vždy, u ostatních jen když plán mají.
+    // Plán klempírny a lakovny - u klempířských zakázek vždy, u ostatních
+    // jen když plán mají.
     final klempirna = order.lzePlanovatKlempirnu || order.planKlempirny != null
         ? PlanKarta(order: order)
         : null;

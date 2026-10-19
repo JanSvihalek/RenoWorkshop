@@ -49,14 +49,14 @@ class FiltrLista extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Útvar',
               hodnota: filter.departmentCode,
               moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
               onZmena: controller.setDepartment,
             ),
             const SizedBox(width: Insets.sm),
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Pořadač',
               hodnota: filter.poradacKod,
               moznosti: {for (final p in poradace) p.kod: p.nazev},
@@ -65,14 +65,14 @@ class FiltrLista extends ConsumerWidget {
             const SizedBox(width: Insets.sm),
             // Dva nezávislé stavy jako na kartě: co o zakázce ví ERP
             // a co dílna.
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Stav Helios',
               hodnota: filter.heliosStav,
               moznosti: {for (final stav in stavyHelios) stav: stav},
               onZmena: controller.setHeliosStav,
             ),
             const SizedBox(width: Insets.sm),
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Stav dílna',
               hodnota: filter.statusCode,
               moznosti: {
@@ -82,21 +82,21 @@ class FiltrLista extends ConsumerWidget {
               onZmena: controller.setStatus,
             ),
             const SizedBox(width: Insets.sm),
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Typ',
               hodnota: filter.typZakazkyKod,
               moznosti: {for (final typ in typy) typ.kod: typ.nazev},
               onZmena: controller.setTypZakazky,
             ),
             const SizedBox(width: Insets.sm),
-            _Filtr<String>(
+            FiltrVyber<String>(
               popisek: 'Zodpovídá',
               hodnota: filter.mechanicName,
               moznosti: {for (final clovek in lide) clovek: clovek},
               onZmena: controller.setMechanic,
             ),
             const SizedBox(width: Insets.sm),
-            _Filtr<int>(
+            FiltrVyber<int>(
               popisek: 'Zpracovává',
               hodnota: filter.zpracovatelId,
               moznosti: {
@@ -113,7 +113,7 @@ class FiltrLista extends ConsumerWidget {
             const SizedBox(width: Insets.sm),
             // Řazení není filtr, ale patří sem ze stejného důvodu: rozhoduje
             // o tom, jak seznam vypadá, a bylo schované pod tlačítkem.
-            _Filtr<OrderSort>(
+            FiltrVyber<OrderSort>(
               popisek: 'Řadit',
               hodnota: filter.sort,
               moznosti: {for (final sort in OrderSort.values) sort: sort.label},
@@ -129,8 +129,10 @@ class FiltrLista extends ConsumerWidget {
 }
 
 /// Jeden rozbalovací filtr. Vybraný je barevný, ať je poznat, že zužuje.
-class _Filtr<T> extends StatelessWidget {
-  const _Filtr({
+/// Lišta zakázek i filtry plánu klempírny.
+class FiltrVyber<T> extends StatelessWidget {
+  const FiltrVyber({
+    super.key,
     required this.popisek,
     required this.hodnota,
     required this.moznosti,

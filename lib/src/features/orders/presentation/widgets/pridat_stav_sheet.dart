@@ -6,8 +6,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../fotodokumentace/domain/entities/fotka.dart';
+import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ziskani_fotek.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/service_order.dart';
+import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import 'okno_zapisu.dart';
 
@@ -366,5 +371,52 @@ class _NabidkaChybi extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+/// Nový dílenský stav u zakázky - okno, zápis, fotka místa a hláška.
+/// Z detailu zakázky i z plánu klempírny (průběh na dílně).
+Future<void> pridatStavZakazce(
+  BuildContext context,
+  WidgetRef ref,
+  ServiceOrder order,
+) async {
+  // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
+  // nepíše u každého kroku znovu.
+  final vybrany = await vyberStav(
+    context,
+    misto: order.bay,
+    spz: order.licensePlate,
+    cisloZakazky: order.id,
+    autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+  );
+  if (vybrany == null || !context.mounted) return;
+
+  final hotovo = await ref
+      .read(orderActionsProvider.notifier)
+      .pridejStav(
+        order.id,
+        kod: vybrany.kod,
+        nazev: vybrany.nazev,
+        poznamka: vybrany.poznamka,
+        misto: vybrany.misto,
+      );
+
+  if (!hotovo) return;
+
+  // Fotka až po uložení stavu - nahrává se stejnou frontou jako fotky
+  // z příjmu, takže výpadek wi-fi ji neztratí.
+  final fotka = vybrany.fotkaMista;
+  if (fotka != null) {
+    await ref.read(nahravaniFotekProvider(order.id).notifier).pridej(
+      KategorieFotky.umisteni,
+      [fotka],
+    );
+  }
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
   }
 }

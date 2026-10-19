@@ -129,29 +129,32 @@ class OrderFilter {
 
   /// Aplikuje filtry i řazení. Čistá funkce - snadno testovatelná.
   List<ServiceOrder> apply(List<ServiceOrder> orders) {
-    final result = orders.where((order) {
-      if (branchCode != null && order.branch?.code != branchCode) return false;
-      if (departmentCode != null && order.department?.code != departmentCode) {
-        return false;
-      }
-      if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
-        return false;
-      }
-      if (poradacKod != null && order.poradac?.kod != poradacKod) return false;
-      if (statusCode != null && order.stav?.kod != statusCode) return false;
-      if (heliosStav != null && order.heliosStatus != heliosStav) return false;
-      if (mechanicName != null && order.mechanicName != mechanicName) {
-        return false;
-      }
-      if (zpracovatelId != null &&
-          (order.zpracovatel?.id ?? nikdo) != zpracovatelId) {
-        return false;
-      }
-      return order.matchesQuery(query);
-    }).toList();
-
+    final result = orders.where(matches).toList();
     result.sort(_comparator);
     return result;
+  }
+
+  /// Projde zakázka filtrem? Bez řazení - plán klempírny filtruje své
+  /// řádky stejně jako seznam zakázek.
+  bool matches(ServiceOrder order) {
+    if (branchCode != null && order.branch?.code != branchCode) return false;
+    if (departmentCode != null && order.department?.code != departmentCode) {
+      return false;
+    }
+    if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
+      return false;
+    }
+    if (poradacKod != null && order.poradac?.kod != poradacKod) return false;
+    if (statusCode != null && order.stav?.kod != statusCode) return false;
+    if (heliosStav != null && order.heliosStatus != heliosStav) return false;
+    if (mechanicName != null && order.mechanicName != mechanicName) {
+      return false;
+    }
+    if (zpracovatelId != null &&
+        (order.zpracovatel?.id ?? nikdo) != zpracovatelId) {
+      return false;
+    }
+    return order.matchesQuery(query);
   }
 
   /// Zakázky bez data patří na konec seznamu, ať se řadí podle čehokoli.

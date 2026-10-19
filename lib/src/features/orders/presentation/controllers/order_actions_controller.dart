@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/log_udalosti_provider.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/obalka_klice.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import 'orders_providers.dart';
+import '../../../plan/presentation/plan_providers.dart';
 
 final orderActionsProvider =
     NotifierProvider<OrderActionsController, AsyncValue<void>>(
@@ -26,8 +28,11 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   /// Zakázka mimo dílnu se do detailu nepropíše přes seznam - načte se
   /// znovu ze serveru. U zakázky na dílně to nic nestojí, nikdo ji tak
   /// nesleduje.
-  void _obnovMimoDilnu(String orderId) =>
-      ref.invalidate(zakazkaMimoDilnuProvider(orderId));
+  void _obnovMimoDilnu(String orderId) {
+    ref.invalidate(zakazkaMimoDilnuProvider(orderId));
+    // Plán klempírny ukazuje dílenský stav - po zápisu se načte znovu.
+    ref.invalidate(planKlempirnyProvider);
+  }
 
   /// Zápis do logu událostí - ať je v posloupnosti kroků uživatele vidět
   /// i práce s postupem a poznámkami. Text poznámky se nezapisuje, je
@@ -109,6 +114,39 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  /// Zaplánuje zakázku na klempírnu/lakovnu, nebo plán upraví. Chyba
+  /// (třeba zakázka jiného útvaru) jde do [chyba].
+  Future<String?> ulozPlanKlempirny(String orderId, PlanKlempirny plan) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.ulozPlanKlempirny(orderId, plan);
+      _zaloguj('plan_klempirny_ulozen', orderId, detail: plan.kodLaku);
+      _poZmenePlanu(orderId);
+      state = const AsyncData(null);
+      return null;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return error.message;
+    }
+  }
+
+  Future<String?> zrusPlanKlempirny(String orderId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.zrusPlanKlempirny(orderId);
+      _zaloguj('plan_klempirny_zrusen', orderId);
+      _poZmenePlanu(orderId);
+      state = const AsyncData(null);
+      return null;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return error.message;
+    }
+  }
+
+  /// Plán se změnil - zakázka mimo dílnu i plánovač se načtou znovu.
+  void _poZmenePlanu(String orderId) => _obnovMimoDilnu(orderId);
 
   Future<bool> addNote({required String orderId, required String text}) async {
     final trimmed = text.trim();
