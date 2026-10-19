@@ -213,4 +213,54 @@ void main() {
     expect(find.byKey(const Key('plan-karta')), findsOneWidget);
     expect(find.byKey(const Key('otevrit-planovac')), findsNothing);
   });
+
+  testWidgets('telefon: mřížka v hlavičce otevře plánovač v prohlížeči', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [buildOrderDto()],
+      planovac: Uri.parse('https://dilna.test/plan/'),
+      velikost: const Size(400, 860),
+    );
+    expect(find.byKey(const Key('nav-aplikace')), findsNothing);
+    await tester.tap(find.byKey(const Key('prepinac-aplikaci')));
+    await tester.pumpAndSettle();
+    expect(find.text('APLIKACE RENOWORKSHOP'), findsOneWidget);
+    expect(find.text('Jste zde'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('aplikace-plan')));
+    await tester.pumpAndSettle();
+    expect(otevrene, [Uri.parse('https://dilna.test/plan/')]);
+    expect(find.text('APLIKACE RENOWORKSHOP'), findsNothing);
+  });
+
+  testWidgets('tablet: položka Aplikace v boční navigaci', (tester) async {
+    await spust(
+      tester,
+      zakazky: [buildOrderDto()],
+      planovac: Uri.parse('https://dilna.test/plan/'),
+    );
+    // V úzkém sloupci zakázek by mřížka zalomila nadpis - je v navigaci.
+    expect(find.byKey(const Key('prepinac-aplikaci')), findsNothing);
+    await tester.tap(find.byKey(const Key('nav-aplikace')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('aplikace-plan')));
+    await tester.pumpAndSettle();
+    expect(otevrene, [Uri.parse('https://dilna.test/plan/')]);
+  });
+
+  testWidgets('ukázková data, tablet: položka Aplikace není', (tester) async {
+    await spust(tester, zakazky: [buildOrderDto()]);
+    expect(find.byKey(const Key('nav-aplikace')), findsNothing);
+  });
+
+  testWidgets('ukázková data, telefon: mřížka v hlavičce není', (tester) async {
+    await spust(
+      tester,
+      zakazky: [buildOrderDto()],
+      velikost: const Size(400, 860),
+    );
+    expect(find.byKey(const Key('prepinac-aplikaci')), findsNothing);
+  });
 }

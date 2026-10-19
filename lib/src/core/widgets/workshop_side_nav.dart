@@ -20,10 +20,15 @@ class WorkshopSideNav extends StatelessWidget {
     super.key,
     required this.active,
     required this.onSelect,
+    this.onAplikace,
   });
 
   final WorkshopTab active;
   final ValueChanged<WorkshopTab> onSelect;
+
+  /// Přepínač aplikací (Zakázky / Plán klempírny) - pod záložkami,
+  /// oddělený, protože vede jinam než do appky. `null` = není.
+  final VoidCallback? onAplikace;
 
   static const _polozky = [
     (
@@ -94,6 +99,18 @@ class WorkshopSideNav extends StatelessWidget {
               ),
               const SizedBox(height: Insets.sm),
             ],
+            if (onAplikace case final otevri?) ...[
+              const SizedBox(height: Insets.sm),
+              Container(width: 32, height: 1, color: palette.hairline2),
+              const SizedBox(height: Insets.md),
+              _Polozka(
+                key: const Key('nav-aplikace'),
+                popisek: 'Aplikace',
+                ikona: Icons.apps_rounded,
+                jeAktivni: false,
+                onTap: otevri,
+              ),
+            ],
             // Iniciály přihlášeného tu nejsou - jsou v hlavičce zakázek
             // i s volbou vzhledu, dvakrát vedle sebe působily jako chyba.
           ],
@@ -105,6 +122,7 @@ class WorkshopSideNav extends StatelessWidget {
 
 class _Polozka extends StatelessWidget {
   const _Polozka({
+    super.key,
     required this.popisek,
     required this.ikona,
     required this.jeAktivni,

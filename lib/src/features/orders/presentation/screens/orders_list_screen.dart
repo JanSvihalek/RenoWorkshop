@@ -21,6 +21,7 @@ import '../widgets/filtr_lista.dart';
 import '../widgets/tabulka_zakazek.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
+import '../../../plan/presentation/prepinac_aplikaci.dart';
 
 /// Hlavní obrazovka: všechny zakázky na dílně (ne "moje vozidlo").
 class OrdersListScreen extends ConsumerStatefulWidget {
@@ -336,6 +337,13 @@ class _ListHeader extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Přepínač aplikací jako na webu - Zakázky / Plán klempírny.
+              // Na tabletu je v boční navigaci, v úzkém sloupci by zalomil
+              // nadpis.
+              if (!naTablet) ...[
+                PrepinacAplikaci(naTmavem: naTmavem),
+                const SizedBox(width: 6),
+              ],
               Expanded(
                 child: Text(
                   'Zakázky na dílně',

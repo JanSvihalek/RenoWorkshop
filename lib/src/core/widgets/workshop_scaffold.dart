@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../layout/rozlozeni.dart';
 import '../navigace/pozadavek_skeneru.dart';
+import '../../features/plan/presentation/plan_karta.dart';
+import '../../features/plan/presentation/prepinac_aplikaci.dart';
 import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'ukazkova_data_pruh.dart';
@@ -59,6 +61,9 @@ class WorkshopScaffold extends ConsumerWidget {
             WorkshopSideNav(
               active: aktivni,
               onSelect: (tab) => _prepni(ref, tab.index),
+              onAplikace: ref.watch(adresaPlanovaceProvider) == null
+                  ? null
+                  : () => zobrazPrepinacAplikaci(context, ref),
             ),
             Expanded(
               child: Column(

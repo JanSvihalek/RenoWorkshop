@@ -1,0 +1,204 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/dimens.dart';
+import 'plan_karta.dart';
+
+/// Přepínač aplikací RenoWorkshopu (jako mřížka na webu): Zakázky - tahle
+/// appka - a Plán klempírny, portál v prohlížeči. Na telefonu je mřížka
+/// v hlavičce zakázek ([PrepinacAplikaci]), na tabletu položka Aplikace
+/// v boční navigaci. Na ukázkových datech není, portál nemá kam vést.
+Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
+  final planovac = ref.read(adresaPlanovaceProvider);
+  if (planovac == null) return Future.value();
+
+  Future<void> otevriPlanovac(BuildContext panel) async {
+    Navigator.of(panel).pop();
+    final otevreno = await ref.read(otevritOdkazProvider)(planovac);
+    if (!otevreno && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plánovač se nepodařilo otevřít.')),
+      );
+    }
+  }
+
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    // Na tabletu by se list roztáhl přes celou šířku - stačí úzký.
+    constraints: const BoxConstraints(maxWidth: 480),
+    builder: (panel) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          Insets.base,
+          0,
+          Insets.base,
+          Insets.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Insets.sm,
+                0,
+                Insets.sm,
+                Insets.sm,
+              ),
+              child: Text(
+                'APLIKACE RENOWORKSHOP',
+                style: AppTextStyles.overline.copyWith(
+                  color: panel.palette.muted,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+            const _Dlazdice(
+              ikona: Icons.build_rounded,
+              nazev: 'Zakázky',
+              popis: 'Zakázky na dílně - stavy, fotky, dokumenty, obálky',
+              aktualni: true,
+            ),
+            const SizedBox(height: Insets.xs),
+            _Dlazdice(
+              key: const Key('aplikace-plan'),
+              ikona: Icons.calendar_month_rounded,
+              nazev: 'Plán klempírny',
+              popis: 'Plánování klempírny a lakovny - otevře se v prohlížeči',
+              onTap: () => otevriPlanovac(panel),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Mřížka přepínače aplikací v hlavičce zakázek na telefonu. Úzká - širší
+/// tlačítko by zalomilo nadpis „Zakázky na dílně".
+class PrepinacAplikaci extends ConsumerWidget {
+  const PrepinacAplikaci({super.key, required this.naTmavem});
+
+  /// V navy hlavičce je ikona bílá, ve světlém vzhledu tmavá.
+  final bool naTmavem;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(adresaPlanovaceProvider) == null) {
+      return const SizedBox.shrink();
+    }
+    return Semantics(
+      button: true,
+      label: 'Aplikace RenoWorkshopu',
+      child: GestureDetector(
+        key: const Key('prepinac-aplikaci'),
+        onTap: () => zobrazPrepinacAplikaci(context, ref),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 28,
+          height: 34,
+          child: Icon(
+            Icons.apps_rounded,
+            size: 24,
+            color: naTmavem ? Colors.white : context.palette.text,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Jedna aplikace v přepínači - aktuální podbarvená se štítkem
+/// „Jste zde", ostatní se otevřou klepnutím.
+class _Dlazdice extends StatelessWidget {
+  const _Dlazdice({
+    super.key,
+    required this.ikona,
+    required this.nazev,
+    required this.popis,
+    this.aktualni = false,
+    this.onTap,
+  });
+
+  final IconData ikona;
+  final String nazev;
+  final String popis;
+  final bool aktualni;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: aktualni ? palette.background : Colors.transparent,
+      borderRadius: BorderRadius.circular(Radii.card),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.card),
+        child: Padding(
+          padding: const EdgeInsets.all(Insets.md),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(ikona, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: Insets.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nazev,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      popis,
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              if (aktualni)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Insets.sm,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Jste zde',
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                Icon(Icons.open_in_new_rounded, size: 18, color: palette.muted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
