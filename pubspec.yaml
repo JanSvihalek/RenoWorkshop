@@ -40,6 +40,7 @@ dependencies:
   open_filex: ^4.7.0
   path_provider: ^2.1.6
   google_mlkit_barcode_scanning: ^0.15.0
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

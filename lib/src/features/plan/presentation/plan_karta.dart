@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -8,7 +11,27 @@ import '../../../core/utils/date_formats.dart';
 import '../../akce/presentation/kampane_panel.dart' show barvaKampani;
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
+import '../../orders/presentation/controllers/orders_providers.dart';
 import '../../orders/presentation/widgets/detail_cards.dart';
+
+/// Portál plánu klempírny (`/plan/` vedle API), nebo `null`, když appka
+/// běží na ukázkových datech - tam není kam odkázat.
+final adresaPlanovaceProvider = Provider<Uri?>(
+  (ref) => ref.watch(pouzivaApiProvider)
+      ? Uri.parse(AppConfig.apiBaseUrl).resolve('../plan/')
+      : null,
+);
+
+/// Otevře odkaz mimo appku, v prohlížeči. V testech se podvrhne.
+final otevritOdkazProvider = Provider<Future<bool> Function(Uri)>(
+  (ref) =>
+      (uri) => launchUrl(uri, mode: LaunchMode.externalApplication),
+);
+
+/// Zakázka v portálu plánu - otevře se její detail, odkud jde zaplánovat
+/// a šipkou zpět do plánu.
+Uri adresaZakazkyVPlanovaci(Uri planovac, String zakazkaId) =>
+    planovac.replace(fragment: '/zakazky/${Uri.encodeComponent(zakazkaId)}');
 
 /// „12. 10. – 14. 10. 2026", přes rok s rokem u obou.
 String obdobiPlanu(DateTime od, DateTime do_) {
@@ -26,17 +49,32 @@ String pocetDni(int n) =>
         ? 'dny'
         : 'dní'}';
 
-/// Karta Klempírna / lakovna v detailu zakázky - jen ke čtení. Plánuje
-/// se v portálu plánu na PC (`/plan/`), dílna tu vidí, kdy a s jakým
-/// kódem laku vůz na klempírnu jde. Jen u zakázky, která plán má.
-class PlanKarta extends StatelessWidget {
-  const PlanKarta({super.key, required this.order, required this.plan});
+/// Karta Klempírna / lakovna v detailu zakázky. Plán jen ke čtení -
+/// plánuje se v portálu plánu (`/plan/`), kam vede tlačítko „Otevřít
+/// plánovač" (v prohlížeči, rovnou na téhle zakázce). U klempířských
+/// zakázek vždy, u ostatních jen když plán už mají.
+class PlanKarta extends ConsumerWidget {
+  const PlanKarta({super.key, required this.order});
 
   final ServiceOrder order;
-  final PlanKlempirny plan;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final plan = order.planKlempirny;
+    final planovac = ref.watch(adresaPlanovaceProvider);
+
+    Future<void> otevri(Uri planovac) async {
+      final otevreno = await ref.read(otevritOdkazProvider)(
+        adresaZakazkyVPlanovaci(planovac, order.id),
+      );
+      if (!otevreno && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Plánovač se nepodařilo otevřít.')),
+        );
+      }
+    }
+
     return DetailCard(
       key: const Key('plan-karta'),
       child: Column(
@@ -44,7 +82,24 @@ class PlanKarta extends StatelessWidget {
         children: [
           const SectionLabel('KLEMPÍRNA / LAKOVNA'),
           const SizedBox(height: Insets.sm),
-          _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
+          if (plan == null)
+            Text(
+              'Zatím nezaplánováno.',
+              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+            )
+          else
+            _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
+          if (planovac != null) ...[
+            const SizedBox(height: Insets.md),
+            OutlinedButton.icon(
+              key: const Key('otevrit-planovac'),
+              onPressed: () => otevri(planovac),
+              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+              label: Text(
+                plan == null ? 'Zaplánovat v plánovači' : 'Otevřít plánovač',
+              ),
+            ),
+          ],
         ],
       ),
     );

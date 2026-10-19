@@ -9,6 +9,7 @@ import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_con
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/plan/presentation/plan_karta.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -34,11 +35,15 @@ void main() {
     'plannedBy': 'Jan Dvořák',
   };
 
+  final otevrene = <Uri>[];
+
   Future<void> spust(
     WidgetTester tester, {
     required List<ServiceOrderDto> zakazky,
     Size velikost = const Size(1280, 1000),
+    Uri? planovac,
   }) async {
+    otevrene.clear();
     tester.view.physicalSize = velikost;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -59,6 +64,11 @@ void main() {
             FakeServiceOrderDataSource(zakazky),
           ),
           dnesProvider.overrideWithValue(DateTime(2026, 10, 14)),
+          adresaPlanovaceProvider.overrideWithValue(planovac),
+          otevritOdkazProvider.overrideWithValue((uri) async {
+            otevrene.add(uri);
+            return true;
+          }),
         ],
         child: const RenoWorkshopApp(),
       ),
@@ -157,14 +167,50 @@ void main() {
     );
   });
 
-  testWidgets('bez plánu karta klempírny ani termín nejsou', (tester) async {
+  testWidgets('klempířská zakázka bez plánu: karta a proklik do plánovače', (
+    tester,
+  ) async {
     await spust(
       tester,
       zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      planovac: Uri.parse('https://dilna.test/plan/'),
     );
     expect(find.byKey(const Key('karta-plan')), findsNothing);
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('plan-karta')), findsOneWidget);
+    expect(find.text('Zatím nezaplánováno.'), findsOneWidget);
+    await tester.tap(find.text('Zaplánovat v plánovači'));
+    await tester.pump();
+    expect(otevrene, [
+      Uri.parse('https://dilna.test/plan/#/zakazky/ZK-26-0001'),
+    ]);
+  });
+
+  testWidgets('servisní zakázka bez plánu kartu klempírny nemá', (
+    tester,
+  ) async {
+    await spust(tester, zakazky: [buildOrderDto(utvar: '11211')]);
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('plan-karta')), findsNothing);
+  });
+
+  testWidgets('ukázková data: karta bez prokliku, není kam', (tester) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          utvar: '11215',
+          canPlanBodyshop: true,
+          bodyshopPlan: plan('2026-10-14', '2026-10-16'),
+        ),
+      ],
+    );
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('plan-karta')), findsOneWidget);
+    expect(find.byKey(const Key('otevrit-planovac')), findsNothing);
   });
 }
