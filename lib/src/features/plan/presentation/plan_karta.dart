@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/dimens.dart';
+import '../../../core/utils/date_formats.dart';
 import '../../akce/presentation/kampane_panel.dart' show barvaKampani;
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
 import '../../orders/presentation/widgets/detail_cards.dart';
-import 'okno_planu.dart';
+
+/// „12. 10. – 14. 10. 2026", přes rok s rokem u obou.
+String obdobiPlanu(DateTime od, DateTime do_) {
+  final zacatek = od.year == do_.year
+      ? AppDateFormat.dayMonth(od)
+      : AppDateFormat.date(od);
+  return '$zacatek – ${AppDateFormat.date(do_)}';
+}
 
 /// „1 den", „3 dny", „5 dní".
 String pocetDni(int n) =>
@@ -19,64 +26,25 @@ String pocetDni(int n) =>
         ? 'dny'
         : 'dní'}';
 
-/// Karta Klempírna / lakovna v detailu zakázky: plán, nebo tlačítko
-/// k zaplánování. Jen u klempířských zakázek (nebo když plán už je).
-class PlanKarta extends ConsumerWidget {
-  const PlanKarta({super.key, required this.order});
+/// Karta Klempírna / lakovna v detailu zakázky - jen ke čtení. Plánuje
+/// se v portálu plánu na PC (`/plan/`), dílna tu vidí, kdy a s jakým
+/// kódem laku vůz na klempírnu jde. Jen u zakázky, která plán má.
+class PlanKarta extends StatelessWidget {
+  const PlanKarta({super.key, required this.order, required this.plan});
 
   final ServiceOrder order;
+  final PlanKlempirny plan;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final plan = order.planKlempirny;
-    void otevri() => naplanovatKlempirnu(
-      context,
-      ref,
-      zakazkaId: order.id,
-      spz: order.licensePlate,
-      plan: plan,
-      barva: order.barvaVozu,
-    );
-
+  Widget build(BuildContext context) {
     return DetailCard(
       key: const Key('plan-karta'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(child: SectionLabel('KLEMPÍRNA / LAKOVNA')),
-              if (plan != null)
-                GestureDetector(
-                  key: const Key('plan-upravit'),
-                  onTap: otevri,
-                  behavior: HitTestBehavior.opaque,
-                  child: Text(
-                    'Upravit',
-                    style: AppTextStyles.cardBody.copyWith(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          const SectionLabel('KLEMPÍRNA / LAKOVNA'),
           const SizedBox(height: Insets.sm),
-          if (plan == null) ...[
-            Text(
-              'Zakázka zatím není v plánu klempírny.',
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-            ),
-            const SizedBox(height: Insets.md),
-            FilledButton.icon(
-              key: const Key('zaplanovat-klempirnu'),
-              onPressed: otevri,
-              icon: const Icon(Icons.event_available_outlined, size: 20),
-              label: const Text('Zaplánovat na klempírnu/lakovnu'),
-            ),
-          ] else
-            _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
+          _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
         ],
       ),
     );

@@ -1,4 +1,3 @@
-import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/zpracovatel.dart';
@@ -82,17 +81,6 @@ abstract interface class ServiceOrderDataSource {
 
   /// `GET /envelopes/{code}` - komu obálka patří. `null` = v evidenci není.
   Future<NalezenaObalka?> najdiObalku(String kod);
-
-  /// `PUT /orders/{id}/bodyshop-plan` - zaplánovat na klempírnu/lakovnu
-  /// nebo plán upravit. Zakázka jiného než klempířského útvaru je
-  /// [ServiceOrderException] s hláškou.
-  Future<ServiceOrderDto?> ulozPlanKlempirny(
-    String orderId,
-    PlanKlempirny plan,
-  );
-
-  /// `DELETE /orders/{id}/bodyshop-plan` - zrušit plán.
-  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId);
 
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.

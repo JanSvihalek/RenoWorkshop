@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../plan/presentation/plan_karta.dart' show obdobiPlanu;
 import '../../domain/entities/service_order.dart';
 import 'order_status_visuals.dart';
 import 'plate_chip.dart';
@@ -216,6 +217,33 @@ class OrderCard extends StatelessWidget {
                         color: palette.text,
                         fontWeight: FontWeight.w600,
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            // Termín na klempírně/lakovně z portálu plánu - kdy vůz jde
+            // na klempírnu, bez otevírání detailu.
+            if (order.planKlempirny case final plan?) ...[
+              const SizedBox(height: 6),
+              Row(
+                key: const Key('karta-plan'),
+                children: [
+                  Icon(
+                    plan.hotovo
+                        ? Icons.event_available_outlined
+                        : Icons.event_outlined,
+                    size: 14,
+                    color: plan.hotovo ? AppColors.readyGreen : palette.muted,
+                  ),
+                  const SizedBox(width: Insets.xs),
+                  Flexible(
+                    child: Text(
+                      'Klempírna ${obdobiPlanu(plan.od, plan.do_)}'
+                      '${plan.hotovo ? ' · hotovo' : ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.meta.copyWith(color: palette.text),
                     ),
                   ),
                 ],

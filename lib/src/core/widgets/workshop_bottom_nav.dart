@@ -10,7 +10,7 @@ import '../theme/app_typography.dart';
 /// Záložky spodní navigace.
 ///
 /// Pořadí je zároveň pořadí větví v routeru (`StatefulShellRoute`).
-enum WorkshopTab { orders, vozidlo, plan, settings }
+enum WorkshopTab { orders, vozidlo, settings }
 
 /// Spodní navigace dílny.
 class WorkshopBottomNav extends StatelessWidget {
@@ -36,13 +36,6 @@ class WorkshopBottomNav extends StatelessWidget {
       'Vozidlo',
       Icons.directions_car_outlined,
       Icons.directions_car,
-    ),
-    // Plán klempírny a lakovny.
-    _NavItem(
-      WorkshopTab.plan,
-      'Plán',
-      Icons.calendar_month_outlined,
-      Icons.calendar_month,
     ),
     _NavItem(
       WorkshopTab.settings,

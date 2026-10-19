@@ -39,12 +39,6 @@ class WorkshopSideNav extends StatelessWidget {
       Icons.directions_car,
     ),
     (
-      WorkshopTab.plan,
-      'Plán',
-      Icons.calendar_month_outlined,
-      Icons.calendar_month,
-    ),
-    (
       WorkshopTab.settings,
       'Nastavení',
       Icons.settings_outlined,

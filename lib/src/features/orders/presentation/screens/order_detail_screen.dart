@@ -312,11 +312,11 @@ class _DetailBody extends ConsumerWidget {
     // fotky, dokumenty z Heliosu), vpravo průběh opravy (postup, pracovní
     // list). Termíny a pojištění jsou v hlavičce. Přes celou šířku by
     // karty byly nepřehledně roztažené.
-    // Plán klempírny a lakovny - jen klempířské zakázky (nebo už
-    // naplánovaná, kdyby útvar mezitím vypadl ze seznamu).
-    final klempirna = order.lzePlanovatKlempirnu || order.planKlempirny != null
-        ? PlanKarta(order: order)
-        : null;
+    // Plán klempírny a lakovny jen ke čtení - plánuje se v portálu na PC.
+    final klempirna = switch (order.planKlempirny) {
+      final plan? => PlanKarta(order: order, plan: plan),
+      null => null,
+    };
 
     final prace = <Widget>[zavady, ?prijem, ?fotky, dokumentyHeliosu];
     final stav = <Widget>[?predmet, ?klempirna, postup, poznamky];
