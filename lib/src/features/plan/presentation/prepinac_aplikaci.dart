@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/rozlozeni.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -18,56 +19,98 @@ Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
     context.push(cestaPlanovace);
   }
 
-  return showModalBottomSheet<void>(
+  final palette = context.palette;
+  // Vysune se zleva a zastaví vlevo nahoře u mřížky - jako panel na webu.
+  // Na tabletu vedle boční navigace, na telefonu pod hlavičkou.
+  final vlevo = context.jeTablet
+      ? Rozlozeni.sirkaNavigace + Insets.sm
+      : Insets.md;
+  final sirka = (MediaQuery.sizeOf(context).width - vlevo - Insets.md).clamp(
+    0.0,
+    380.0,
+  );
+
+  return showGeneralDialog<void>(
     context: context,
-    showDragHandle: true,
-    // Na tabletu by se list roztáhl přes celou šířku - stačí úzký.
-    constraints: const BoxConstraints(maxWidth: 480),
-    builder: (panel) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          Insets.base,
-          0,
-          Insets.base,
-          Insets.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Insets.sm,
-                0,
-                Insets.sm,
-                Insets.sm,
-              ),
-              child: Text(
-                'APLIKACE RENOWORKSHOP',
-                style: AppTextStyles.overline.copyWith(
-                  color: panel.palette.muted,
-                  letterSpacing: 1,
+    barrierDismissible: true,
+    barrierLabel: 'Zavřít',
+    barrierColor: Colors.black26,
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (panel, _, _) => SafeArea(
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          padding: EdgeInsets.only(left: vlevo, top: Insets.base),
+          child: Material(
+            key: const Key('panel-aplikaci'),
+            color: palette.card,
+            elevation: 8,
+            borderRadius: BorderRadius.circular(Radii.card),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: sirka,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Insets.base,
+                  Insets.base,
+                  Insets.base,
+                  Insets.base,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Insets.sm,
+                        0,
+                        Insets.sm,
+                        Insets.sm,
+                      ),
+                      child: Text(
+                        'APLIKACE RENOWORKSHOP',
+                        style: AppTextStyles.overline.copyWith(
+                          color: panel.palette.muted,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const _Dlazdice(
+                      ikona: Icons.build_rounded,
+                      nazev: 'Zakázky',
+                      popis:
+                          'Zakázky na dílně - stavy, fotky, dokumenty, obálky',
+                      aktualni: true,
+                    ),
+                    const SizedBox(height: Insets.xs),
+                    _Dlazdice(
+                      key: const Key('aplikace-plan'),
+                      ikona: Icons.calendar_month_rounded,
+                      nazev: 'Plán klempírny',
+                      popis: 'Plánování klempírny a lakovny a průběh na dílně',
+                      onTap: () => otevriPlanovac(panel),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const _Dlazdice(
-              ikona: Icons.build_rounded,
-              nazev: 'Zakázky',
-              popis: 'Zakázky na dílně - stavy, fotky, dokumenty, obálky',
-              aktualni: true,
-            ),
-            const SizedBox(height: Insets.xs),
-            _Dlazdice(
-              key: const Key('aplikace-plan'),
-              ikona: Icons.calendar_month_rounded,
-              nazev: 'Plán klempírny',
-              popis: 'Plánování klempírny a lakovny a průběh na dílně',
-              onTap: () => otevriPlanovac(panel),
-            ),
-          ],
+          ),
         ),
       ),
     ),
+    transitionBuilder: (_, animace, _, dite) {
+      final krivka = CurvedAnimation(
+        parent: animace,
+        curve: Curves.easeOutCubic,
+      );
+      return SlideTransition(
+        position: Tween(
+          begin: const Offset(-1, 0),
+          end: Offset.zero,
+        ).animate(krivka),
+        child: dite,
+      );
+    },
   );
 }
 
