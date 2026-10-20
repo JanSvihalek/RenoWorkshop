@@ -529,7 +529,7 @@ class _Radek extends ConsumerWidget {
   final double den;
   final ValueChanged<String> onOpenOrder;
 
-  static const _vyska = 86.0;
+  static const _vyska = 102.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -596,6 +596,19 @@ class _Radek extends ConsumerWidget {
                       ),
                     ),
                     if (polozka.zakazka case final zakazka?) ...[
+                      // VIN a kdo zodpovídá - jeden řádek, co se nevejde,
+                      // je v detailu zakázky.
+                      if (_vozARuce(zakazka) case final text?)
+                        Text(
+                          text,
+                          key: Key('plan-vuz-${polozka.zakazkaId}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.metaSmall.copyWith(
+                            fontSize: 11,
+                            color: palette.muted,
+                          ),
+                        ),
                       const SizedBox(height: 4),
                       _StavDilny(zakazka: zakazka),
                     ],
@@ -1113,4 +1126,18 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
       ],
     );
   }
+}
+
+/// „VIN G980042 · Zodpovídá: Jan Dvořák", nebo `null`, když není ani
+/// jedno. VIN krátký (posledních 7 znaků, jak ho BMW používá) - celý by
+/// v úzkém sloupci jméno vytlačil; celý je v detailu zakázky.
+String? _vozARuce(ServiceOrder zakazka) {
+  final vin = zakazka.vin;
+  final casti = [
+    if (vin.isNotEmpty)
+      'VIN ${vin.length > 7 ? vin.substring(vin.length - 7) : vin}',
+    if (zakazka.mechanicName case final kdo? when kdo.isNotEmpty)
+      'Zodpovídá: $kdo',
+  ];
+  return casti.isEmpty ? null : casti.join(' · ');
 }

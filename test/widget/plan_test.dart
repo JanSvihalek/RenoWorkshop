@@ -432,6 +432,11 @@ void main() {
     await otevriPlanovac(tester);
     final stav = find.byKey(const Key('plan-stav-ZK-26-0001'));
     expect(stav, findsOneWidget);
+    // Pod zákazníkem VIN a kdo zodpovídá.
+    expect(
+      tester.widget<Text>(find.byKey(const Key('plan-vuz-ZK-26-0001'))).data,
+      allOf(contains('VIN '), contains('Zodpovídá: Jan Dvořák')),
+    );
     expect(
       find.descendant(of: stav, matching: find.text('Lakovna')),
       findsOneWidget,
