@@ -25,6 +25,8 @@ import '../../../prijem/data/prijem_data_source.dart';
 import '../../../prijem/domain/entities/prijem.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
+import '../../../uzivatele/data/uzivatele_data_source.dart';
+import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -45,6 +47,7 @@ class RestServiceOrderDataSource
         AkceDataSource,
         KampaneDataSource,
         PlanDataSource,
+        UzivateleDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -418,6 +421,28 @@ class RestServiceOrderDataSource
   @override
   Future<void> synchronizuj() async {
     await _send('POST', 'sync', timeout: const Duration(seconds: 60));
+  }
+
+  @override
+  Future<PrehledUzivatelu> nactiUzivatele() async {
+    final data = await _send('GET', 'users');
+    if (data == null) {
+      throw const ServiceOrderException('Seznam uživatelů se nenačetl.');
+    }
+    return PrehledUzivatelu.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<void> ulozUzivatele(
+    String email, {
+    required String role,
+    required Map<String, String?> prava,
+  }) async {
+    await _send(
+      'PUT',
+      'users/${Uri.encodeComponent(email)}',
+      body: {'role': role, 'access': prava},
+    );
   }
 
   @override

@@ -1,3 +1,4 @@
+import '../../../uzivatele/presentation/uzivatele_screen.dart';
 import '../../../akce/presentation/akce_providers.dart';
 import '../../../akce/presentation/kampan_stari_okno.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +40,7 @@ class SettingsScreen extends ConsumerWidget {
       _VychoziFiltr(),
       _Fotodokumentace(),
       _KampanePodleStari(),
+      _Uzivatele(),
       _OAplikaci(),
     ];
 
@@ -570,6 +572,37 @@ class _KampanePodleStari extends ConsumerWidget {
               vpravo: Icon(Icons.chevron_right_rounded, color: palette.muted),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Uživatelé a jejich práva k pořadačům - jen pro admina. Stejná správa
+/// jako stránka Uživatelé na webu.
+class _Uzivatele extends ConsumerWidget {
+  const _Uzivatele();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final prava = ref.watch(mojePravaProvider).valueOrNull;
+    if (prava == null || !prava.jeAdmin) return const SizedBox.shrink();
+
+    return _Skupina(
+      nadpis: 'SPRÁVA',
+      poznamka: 'Skupinu vidí jen admin. Totéž jde na webu v Uživatelích.',
+      radky: [
+        InkWell(
+          key: const Key('nastaveni-uzivatele'),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const UzivateleScreen()),
+          ),
+          child: _Radek(
+            titul: 'Uživatelé a práva',
+            popis: 'Role a přístup k zakázkám podle pořadače',
+            vpravo: Icon(Icons.chevron_right_rounded, color: palette.muted),
+          ),
+        ),
       ],
     );
   }

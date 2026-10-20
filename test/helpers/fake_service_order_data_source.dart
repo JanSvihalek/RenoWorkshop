@@ -5,6 +5,8 @@ import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
 import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
+import 'package:renoworkshop/src/features/uzivatele/data/uzivatele_data_source.dart';
+import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/plan/data/plan_data_source.dart';
@@ -35,7 +37,8 @@ class FakeServiceOrderDataSource
         PrijemDataSource,
         AkceDataSource,
         KampaneDataSource,
-        PlanDataSource {
+        PlanDataSource,
+        UzivateleDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -68,6 +71,41 @@ class FakeServiceOrderDataSource
 
   /// Práva přihlášeného - test si je nastaví.
   MojePrava prava = MojePrava.vse;
+
+  /// Správa uživatelů - pořadače a uživatelé v paměti.
+  List<PoradacSpravy> poradaceSpravy = const [
+    PoradacSpravy(kod: '10026', nazev: 'BMW BSL', pobockaNazev: 'Brno'),
+    PoradacSpravy(kod: '16877', nazev: 'MOT BSL', pobockaNazev: 'Brno'),
+    PoradacSpravy(kod: '16015', nazev: 'BMW CLI', pobockaNazev: 'Čestlice'),
+  ];
+  List<UzivatelSpravy> uzivatele = [];
+
+  /// Co appka naposledy uložila - kontrola v testu.
+  final ulozeniUzivatelu = <(String, String, Map<String, String?>)>[];
+
+  @override
+  Future<PrehledUzivatelu> nactiUzivatele() async =>
+      PrehledUzivatelu(poradace: poradaceSpravy, uzivatele: [...uzivatele]);
+
+  @override
+  Future<void> ulozUzivatele(
+    String email, {
+    required String role,
+    required Map<String, String?> prava,
+  }) async {
+    ulozeniUzivatelu.add((email, role, prava));
+    final novy = UzivatelSpravy(
+      email: email,
+      role: role,
+      prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
+    );
+    final i = uzivatele.indexWhere((u) => u.email == email);
+    if (i == -1) {
+      uzivatele.add(novy);
+    } else {
+      uzivatele[i] = novy;
+    }
+  }
 
   @override
   Future<MojePrava> mojePrava() async => prava;

@@ -22,6 +22,8 @@ import '../../../prijem/domain/entities/prijem.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
+import '../../../uzivatele/data/uzivatele_data_source.dart';
+import '../../../uzivatele/domain/uzivatele.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../domain/entities/branch.dart';
@@ -40,7 +42,8 @@ class MockServiceOrderDataSource
         PrijemDataSource,
         AkceDataSource,
         KampaneDataSource,
-        PlanDataSource {
+        PlanDataSource,
+        UzivateleDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -752,6 +755,66 @@ class MockServiceOrderDataSource
   /// Ukázková data - bez omezení.
   @override
   Future<MojePrava> mojePrava() async => MojePrava.vse;
+
+  /// Ukázkoví uživatelé - jen v paměti.
+  final List<UzivatelSpravy> _uzivatele = [
+    const UzivatelSpravy(
+      email: 'dilna@renocar.cz',
+      jmeno: 'Dílna',
+      role: 'admin',
+    ),
+    const UzivatelSpravy(
+      email: 'jan.dvorak@renocar.cz',
+      jmeno: 'Jan Dvořák',
+      prava: {'10026': 'W', '16877': 'W', '16015': 'R'},
+    ),
+    const UzivatelSpravy(
+      email: 'petr.kucera@renocar.cz',
+      jmeno: 'Petr Kučera',
+      prava: {'10026': 'W'},
+    ),
+  ];
+
+  static const _poradace = [
+    PoradacSpravy(kod: '10026', nazev: 'BMW BSL', pobockaNazev: 'Brno'),
+    PoradacSpravy(kod: '16877', nazev: 'MOT BSL', pobockaNazev: 'Brno'),
+    PoradacSpravy(kod: '16015', nazev: 'BMW CLI', pobockaNazev: 'Čestlice'),
+    PoradacSpravy(kod: '16879', nazev: 'BMW CSK', pobockaNazev: 'Česká'),
+    PoradacSpravy(kod: '17362', nazev: 'MOT CSK', pobockaNazev: 'Česká'),
+    PoradacSpravy(kod: '17350', nazev: 'BMW PBU', pobockaNazev: 'Bubeneč'),
+  ];
+
+  @override
+  Future<PrehledUzivatelu> nactiUzivatele() async {
+    await _simulateLatency();
+    return PrehledUzivatelu(poradace: _poradace, uzivatele: [..._uzivatele]);
+  }
+
+  @override
+  Future<void> ulozUzivatele(
+    String email, {
+    required String role,
+    required Map<String, String?> prava,
+  }) async {
+    await _simulateLatency();
+    final novy = UzivatelSpravy(
+      email: email,
+      role: role,
+      prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
+    );
+    final i = _uzivatele.indexWhere((u) => u.email == email);
+    if (i == -1) {
+      _uzivatele.add(novy);
+    } else {
+      _uzivatele[i] = UzivatelSpravy(
+        email: email,
+        jmeno: _uzivatele[i].jmeno,
+        prihlasen: _uzivatele[i].prihlasen,
+        role: role,
+        prava: novy.prava,
+      );
+    }
+  }
 
   /// Příjmy jen v paměti, se stejnými pravidly jako server.
   final PametovyPrijem _prijmy = PametovyPrijem();
