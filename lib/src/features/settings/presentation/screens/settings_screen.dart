@@ -590,6 +590,12 @@ class _Admin extends ConsumerWidget {
 
     return _Skupina(
       nadpis: 'ADMIN',
+      vedleNadpisu: Icon(
+        Icons.admin_panel_settings,
+        key: const Key('ikona-admin'),
+        size: 16,
+        color: palette.muted,
+      ),
       poznamka:
           'Nastavení, která smí měnit jen admin. Totéž je na webu '
           'v záložce Admin.',
