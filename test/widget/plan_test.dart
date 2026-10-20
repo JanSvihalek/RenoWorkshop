@@ -479,6 +479,14 @@ void main() {
     expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsOneWidget);
   });
 
+  testWidgets('plánovač: admin má v hlavičce Admin', (tester) async {
+    await spust(tester, zakazky: [buildOrderDto()]);
+    await otevriPlanovac(tester);
+    await tester.tap(find.byKey(const Key('plan-admin')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('uzivatel-pridat')), findsOneWidget);
+  });
+
   testWidgets('plánovač: šipka zpět vrátí do zakázek', (tester) async {
     await spust(tester, zakazky: [buildOrderDto()]);
     await otevriPlanovac(tester);

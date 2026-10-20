@@ -18,6 +18,7 @@ import '../../orders/presentation/widgets/order_status_visuals.dart';
 import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/prehled_planu.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
+import '../../uzivatele/presentation/uzivatele_screen.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
 import 'plan_providers.dart';
@@ -141,6 +142,18 @@ class _Ovladani extends ConsumerWidget {
               ),
               const SizedBox(width: Insets.xs),
               Flexible(child: _Nadpis(palette: palette)),
+              // Admin jako v portálu plánu na webu - jen pro admina.
+              if (ref.watch(mojePravaProvider).valueOrNull?.jeAdmin ?? false)
+                IconButton(
+                  key: const Key('plan-admin'),
+                  tooltip: 'Admin',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const UzivateleScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.admin_panel_settings),
+                ),
             ],
           ),
           if (pobocky case final nabidka? when nabidka.length > 1)
