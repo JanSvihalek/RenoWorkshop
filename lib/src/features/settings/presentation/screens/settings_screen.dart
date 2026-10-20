@@ -40,7 +40,7 @@ class SettingsScreen extends ConsumerWidget {
       _VychoziFiltr(),
       _Fotodokumentace(),
       _KampanePodleStari(),
-      _Uzivatele(),
+      _Admin(),
       _OAplikaci(),
     ];
 
@@ -577,10 +577,10 @@ class _KampanePodleStari extends ConsumerWidget {
   }
 }
 
-/// Uživatelé a jejich práva k pořadačům - jen pro admina. Stejná správa
-/// jako stránka Uživatelé na webu.
-class _Uzivatele extends ConsumerWidget {
-  const _Uzivatele();
+/// Admin - nastavení jen pro admina. Zatím uživatelé a jejich práva
+/// k pořadačům (stejná správa jako Admin na webu), další přibudou sem.
+class _Admin extends ConsumerWidget {
+  const _Admin();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -589,8 +589,10 @@ class _Uzivatele extends ConsumerWidget {
     if (prava == null || !prava.jeAdmin) return const SizedBox.shrink();
 
     return _Skupina(
-      nadpis: 'SPRÁVA',
-      poznamka: 'Skupinu vidí jen admin. Totéž jde na webu v Uživatelích.',
+      nadpis: 'ADMIN',
+      poznamka:
+          'Nastavení, která smí měnit jen admin. Totéž je na webu '
+          'v záložce Admin.',
       radky: [
         InkWell(
           key: const Key('nastaveni-uzivatele'),
