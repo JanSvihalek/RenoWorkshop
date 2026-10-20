@@ -43,8 +43,8 @@ class PlanKarta extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final plan = order.planKlempirny;
-    // Jen čtení - plán vidí, upravit ho nemůže.
-    final smi = ref.watch(smiZapisovatProvider(order.poradac?.kod));
+    // Plán jen s plánovačem „Plánovat" (a zápisem k pořadači).
+    final smi = ref.watch(smiPlanovatProvider(order.poradac?.kod));
     void otevri() => naplanovatKlempirnu(
       context,
       ref,
@@ -94,13 +94,15 @@ class PlanKarta extends ConsumerWidget {
             ],
           ] else
             _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
-          const SizedBox(height: Insets.sm),
-          TextButton.icon(
-            key: const Key('otevrit-planovac'),
-            onPressed: () => context.push(cestaPlanovace),
-            icon: const Icon(Icons.calendar_month_outlined, size: 18),
-            label: const Text('Otevřít plánovač'),
-          ),
+          if (ref.watch(vidiPlanovacProvider)) ...[
+            const SizedBox(height: Insets.sm),
+            TextButton.icon(
+              key: const Key('otevrit-planovac'),
+              onPressed: () => context.push(cestaPlanovace),
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: const Text('Otevřít plánovač'),
+            ),
+          ],
         ],
       ),
     );

@@ -2,7 +2,7 @@ name: renoworkshop
 description: "RenoWorkshop - interní dílenský tracker servisních zakázek RENOCAR a.s."
 publish_to: 'none'
 
-version: 2.3.3+1
+version: 2.3.4+1
 
 environment:
   sdk: ^3.11.5

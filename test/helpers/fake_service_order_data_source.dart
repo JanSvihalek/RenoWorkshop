@@ -83,6 +83,9 @@ class FakeServiceOrderDataSource
   /// Co appka naposledy uložila - kontrola v testu.
   final ulozeniUzivatelu = <(String, String, Map<String, String?>)>[];
 
+  /// Úroveň plánovače u uložení - kontrola v testu.
+  final ulozeniPlanovace = <String>[];
+
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async =>
       PrehledUzivatelu(poradace: poradaceSpravy, uzivatele: [...uzivatele]);
@@ -92,11 +95,14 @@ class FakeServiceOrderDataSource
     String email, {
     required String role,
     required Map<String, String?> prava,
+    String planovac = 'cist',
   }) async {
     ulozeniUzivatelu.add((email, role, prava));
+    ulozeniPlanovace.add(planovac);
     final novy = UzivatelSpravy(
       email: email,
       role: role,
+      planovac: planovac,
       prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
     );
     final i = uzivatele.indexWhere((u) => u.email == email);

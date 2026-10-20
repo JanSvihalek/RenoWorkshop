@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/dimens.dart';
+import '../../orders/presentation/controllers/orders_providers.dart';
 import 'plan_screen.dart' show cestaPlanovace;
 
 /// Přepínač aplikací RenoWorkshopu (jako mřížka na webu): Zakázky a Plán
@@ -20,6 +21,8 @@ Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
   }
 
   final palette = context.palette;
+  // Plánovač s úrovní „nevidí" se nenabízí.
+  final planovac = ref.read(vidiPlanovacProvider);
   // Vysune se zleva a zastaví vlevo nahoře u mřížky - jako panel na webu.
   // Na tabletu vedle boční navigace, na telefonu pod hlavičkou.
   final vlevo = context.jeTablet
@@ -82,14 +85,17 @@ Future<void> zobrazPrepinacAplikaci(BuildContext context, WidgetRef ref) {
                           'Zakázky na dílně - stavy, fotky, dokumenty, obálky',
                       aktualni: true,
                     ),
-                    const SizedBox(height: Insets.xs),
-                    _Dlazdice(
-                      key: const Key('aplikace-plan'),
-                      ikona: Icons.calendar_month_rounded,
-                      nazev: 'Plán klempírny',
-                      popis: 'Plánování klempírny a lakovny a průběh na dílně',
-                      onTap: () => otevriPlanovac(panel),
-                    ),
+                    if (planovac) ...[
+                      const SizedBox(height: Insets.xs),
+                      _Dlazdice(
+                        key: const Key('aplikace-plan'),
+                        ikona: Icons.calendar_month_rounded,
+                        nazev: 'Plán klempírny',
+                        popis:
+                            'Plánování klempírny a lakovny a průběh na dílně',
+                        onTap: () => otevriPlanovac(panel),
+                      ),
+                    ],
                   ],
                 ),
               ),

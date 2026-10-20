@@ -766,6 +766,7 @@ class MockServiceOrderDataSource
     const UzivatelSpravy(
       email: 'jan.dvorak@renocar.cz',
       jmeno: 'Jan Dvořák',
+      planovac: 'planovat',
       prava: {'10026': 'W', '16877': 'W', '16015': 'R'},
     ),
     const UzivatelSpravy(
@@ -795,11 +796,13 @@ class MockServiceOrderDataSource
     String email, {
     required String role,
     required Map<String, String?> prava,
+    String planovac = 'cist',
   }) async {
     await _simulateLatency();
     final novy = UzivatelSpravy(
       email: email,
       role: role,
+      planovac: planovac,
       prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
     );
     final i = _uzivatele.indexWhere((u) => u.email == email);
@@ -811,6 +814,7 @@ class MockServiceOrderDataSource
         jmeno: _uzivatele[i].jmeno,
         prihlasen: _uzivatele[i].prihlasen,
         role: role,
+        planovac: planovac,
         prava: novy.prava,
       );
     }

@@ -70,6 +70,17 @@ void main() {
     expect(s({'1': 'W'}), 'Brno: částečně');
     expect(s({}), 'Bez přístupu');
     expect(
+      souhrnPrav(
+        const UzivatelSpravy(
+          email: 'x@y',
+          prava: {'1': 'W', '2': 'W'},
+          planovac: 'planovat',
+        ),
+        poradace,
+      ),
+      'Brno: zápis · plánuje',
+    );
+    expect(
       souhrnPrav(const UzivatelSpravy(email: 'a@b', role: 'admin'), poradace),
       'Admin · vše',
     );
@@ -107,6 +118,22 @@ void main() {
     expect(email, 'petr.kucera@renocar.cz');
     expect(role, 'user');
     expect(prava, {'10026': 'W', '16015': 'R'});
+
+    // Plánovač zvlášť - výchozí Prohlížet, admin přepne na Plánovat.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('uzivatel-planovac')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('uzivatel-planovac')),
+        matching: find.text('Plánovat'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(zdroj.ulozeniPlanovace.last, 'planovat');
+    expect(zdroj.ulozeniUzivatelu.last.$3, {'10026': 'W', '16015': 'R'});
   });
 
   testWidgets('admin přidá uživatele e-mailem', (tester) async {

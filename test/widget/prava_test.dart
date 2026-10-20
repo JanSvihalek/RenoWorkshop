@@ -75,6 +75,34 @@ void main() {
     );
   });
 
+  test('plánovač: výchozí prohlížet, plánovat jen se zápisem', () {
+    const prohlizi = MojePrava(role: 'user', poradace: {'10026': 'W'});
+    expect(prohlizi.smiPlanovat('10026'), isFalse);
+    expect(prohlizi.vidiPlanovac, isTrue);
+    const planuje = MojePrava(
+      role: 'user',
+      poradace: {'10026': 'W', '16015': 'R'},
+      planovac: 'planovat',
+    );
+    expect(planuje.smiPlanovat('10026'), isTrue);
+    expect(planuje.smiPlanovat('16015'), isFalse);
+    expect(MojePrava.vse.smiPlanovat(null), isTrue);
+    expect(
+      const MojePrava(
+        role: 'user',
+        poradace: {},
+        planovac: 'zadne',
+      ).vidiPlanovac,
+      isFalse,
+    );
+    expect(MojePrava.fromJson({'role': 'user'}).planovac, 'cist');
+    expect(
+      MojePrava.fromJson({'role': 'user', 'planner': 'edit'}).planovac,
+      'planovat',
+    );
+    expect(planovacDoApi('zadne'), 'none');
+  });
+
   testWidgets('jen čtení: štítek a bez akcí, které zapisují', (tester) async {
     await spust(
       tester,
@@ -92,13 +120,62 @@ void main() {
     expect(find.text('Převzít'), findsNothing);
   });
 
-  testWidgets('zápis: akce jsou', (tester) async {
+  testWidgets('zápis bez plánovače: stav ano, plánovat ne', (tester) async {
     await spust(
       tester,
       zakazky: [
         buildOrderDto(utvar: '11215', canPlanBodyshop: true, folder: bsl),
       ],
       prava: const MojePrava(role: 'user', poradace: {'10026': 'W'}),
+    );
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
+    expect(find.byKey(const Key('zaplanovat-klempirnu')), findsNothing);
+    expect(find.byKey(const Key('otevrit-planovac')), findsOneWidget);
+  });
+
+  testWidgets('plánovač nevidí: bez dlaždice i odkazu', (tester) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(utvar: '11215', canPlanBodyshop: true, folder: bsl),
+      ],
+      prava: const MojePrava(
+        role: 'user',
+        poradace: {'10026': 'W'},
+        planovac: 'zadne',
+      ),
+    );
+    final nav = find.byKey(const Key('nav-aplikace'));
+    await tester.tap(
+      nav.evaluate().isNotEmpty
+          ? nav
+          : find.byKey(const Key('prepinac-aplikaci')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('panel-aplikaci')), findsOneWidget);
+    expect(find.byKey(const Key('aplikace-plan')), findsNothing);
+    await tester.tapAt(const Offset(1200, 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('otevrit-planovac')), findsNothing);
+  });
+
+  testWidgets('zápis s plánovačem: akce jsou', (tester) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(utvar: '11215', canPlanBodyshop: true, folder: bsl),
+      ],
+      prava: const MojePrava(
+        role: 'user',
+        poradace: {'10026': 'W'},
+        planovac: 'planovat',
+      ),
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();

@@ -6,10 +6,11 @@ abstract interface class UzivateleDataSource {
   Future<PrehledUzivatelu> nactiUzivatele();
 
   /// Role a práva uživatele, i nového. [prava]: kód pořadače -> `R`, `W`,
-  /// nebo `null` (žádný přístup).
+  /// nebo `null` (žádný přístup). [planovac]: `planovat`, `cist`, `zadne`.
   Future<void> ulozUzivatele(
     String email, {
     required String role,
     required Map<String, String?> prava,
+    String planovac = 'cist',
   });
 }

@@ -437,11 +437,12 @@ class RestServiceOrderDataSource
     String email, {
     required String role,
     required Map<String, String?> prava,
+    String planovac = 'cist',
   }) async {
     await _send(
       'PUT',
       'users/${Uri.encodeComponent(email)}',
-      body: {'role': role, 'access': prava},
+      body: {'role': role, 'planner': planovacDoApi(planovac), 'access': prava},
     );
   }
 

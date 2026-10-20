@@ -2,6 +2,8 @@
 /// Stejná data jako stránka Uživatelé na webu (`GET/PUT /users`).
 library;
 
+import '../../orders/domain/entities/moje_prava.dart';
+
 /// Pořadač s pobočkou - v detailu uživatele se podle ní seskupují.
 class PoradacSpravy {
   const PoradacSpravy({
@@ -38,6 +40,7 @@ class UzivatelSpravy {
     this.role = 'user',
     this.prihlasen,
     this.prava = const {},
+    this.planovac = 'cist',
   });
 
   final String email;
@@ -50,25 +53,33 @@ class UzivatelSpravy {
   /// Kód pořadače -> `R` (čtení) nebo `W` (zápis). Chybí = nic.
   final Map<String, String> prava;
 
+  /// Plánovač: `planovat`, `cist` (výchozí), `zadne`. Admin plánuje vždy.
+  final String planovac;
+
   bool get jeAdmin => role == 'admin';
 
   /// Jméno, nebo aspoň e-mail.
   String get popisek => jmeno?.trim().isNotEmpty == true ? jmeno! : email;
 
-  UzivatelSpravy copyWith({String? role, Map<String, String>? prava}) =>
-      UzivatelSpravy(
-        email: email,
-        jmeno: jmeno,
-        role: role ?? this.role,
-        prihlasen: prihlasen,
-        prava: prava ?? this.prava,
-      );
+  UzivatelSpravy copyWith({
+    String? role,
+    Map<String, String>? prava,
+    String? planovac,
+  }) => UzivatelSpravy(
+    email: email,
+    jmeno: jmeno,
+    role: role ?? this.role,
+    prihlasen: prihlasen,
+    prava: prava ?? this.prava,
+    planovac: planovac ?? this.planovac,
+  );
 
   factory UzivatelSpravy.fromJson(Map<String, dynamic> json) => UzivatelSpravy(
     email: json['email'] as String,
     jmeno: json['name'] as String?,
     role: json['role'] == 'admin' ? 'admin' : 'user',
     prihlasen: DateTime.tryParse(json['lastLoginAt'] as String? ?? ''),
+    planovac: planovacZApi(json['planner']),
     prava: {
       for (final MapEntry(:key, :value)
           in (json['access'] as Map<String, dynamic>? ?? const {}).entries)
@@ -122,5 +133,7 @@ String souhrnPrav(UzivatelSpravy uzivatel, List<PoradacSpravy> poradace) {
         : 'částečně';
     casti.add('$pobocka: $text');
   }
-  return casti.isEmpty ? 'Bez přístupu' : casti.join(' · ');
+  if (casti.isEmpty) return 'Bez přístupu';
+  if (uzivatel.planovac == 'planovat') casti.add('plánuje');
+  return casti.join(' · ');
 }

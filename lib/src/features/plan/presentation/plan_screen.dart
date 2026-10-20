@@ -68,18 +68,29 @@ class PlanScreen extends ConsumerWidget {
               onBack: onBack,
             ),
             Expanded(
-              child: prehled.when(
-                skipLoadingOnReload: true,
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (chyba, _) => _Chyba(
-                  text: chyba is ServiceOrderException
-                      ? chyba.message
-                      : 'Plán se nepodařilo načíst.',
-                  onZnovu: () => ref.invalidate(planKlempirnyProvider),
-                ),
-                data: (p) =>
-                    _Obsah(prehled: p, dny: dny, onOpenOrder: onOpenOrder),
-              ),
+              child: !ref.watch(vidiPlanovacProvider)
+                  ? const _Chyba(
+                      key: Key('plan-bez-pristupu'),
+                      text:
+                          'Plánovač vám není přístupný.\n'
+                          'Přístup k plánovači klempírny vám nastaví admin.',
+                    )
+                  : prehled.when(
+                      skipLoadingOnReload: true,
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (chyba, _) => _Chyba(
+                        text: chyba is ServiceOrderException
+                            ? chyba.message
+                            : 'Plán se nepodařilo načíst.',
+                        onZnovu: () => ref.invalidate(planKlempirnyProvider),
+                      ),
+                      data: (p) => _Obsah(
+                        prehled: p,
+                        dny: dny,
+                        onOpenOrder: onOpenOrder,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -558,8 +569,11 @@ class _Radek extends ConsumerWidget {
         ? -1
         : dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
     final viditelny = prvni != -1 && posledni >= prvni;
-    // Jen čtení (právo R k pořadači) - plán i stav jen vidí.
-    final smi = ref.watch(smiZapisovatProvider(polozka.zakazka?.poradac?.kod));
+    // Plán mění jen s plánovačem „Plánovat" a zápisem k pořadači, dílenský
+    // stav se zápisem k pořadači.
+    final poradac = polozka.zakazka?.poradac?.kod;
+    final smi = ref.watch(smiPlanovatProvider(poradac));
+    final smiStav = ref.watch(smiZapisovatProvider(poradac));
     // Bez bloku v období jde na den klepnout: nový plán ho má předvyplněný,
     // existující plán jinde se otevře k úpravě.
     void otevri(DateTime den) => naplanovatKlempirnu(
@@ -626,7 +640,7 @@ class _Radek extends ConsumerWidget {
                           ),
                         ),
                       const SizedBox(height: 4),
-                      _StavDilny(zakazka: zakazka, smi: smi),
+                      _StavDilny(zakazka: zakazka, smi: smiStav),
                     ],
                   ],
                 ),
@@ -846,10 +860,12 @@ class _Prazdno extends StatelessWidget {
 }
 
 class _Chyba extends StatelessWidget {
-  const _Chyba({required this.text, required this.onZnovu});
+  const _Chyba({super.key, required this.text, this.onZnovu});
 
   final String text;
-  final VoidCallback onZnovu;
+
+  /// Bez něj tlačítko Zkusit znovu chybí (plánovač bez přístupu).
+  final VoidCallback? onZnovu;
 
   @override
   Widget build(BuildContext context) {
@@ -865,7 +881,8 @@ class _Chyba extends StatelessWidget {
               textAlign: TextAlign.center,
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             ),
-            TextButton(onPressed: onZnovu, child: const Text('Zkusit znovu')),
+            if (onZnovu != null)
+              TextButton(onPressed: onZnovu, child: const Text('Zkusit znovu')),
           ],
         ),
       ),

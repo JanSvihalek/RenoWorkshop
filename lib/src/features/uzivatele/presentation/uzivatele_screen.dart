@@ -412,9 +412,40 @@ class _UzivatelScreenState extends ConsumerState<UzivatelScreen> {
                     ),
                   ],
                 ),
+                if (!u.jeAdmin)
+                  _Skupina(
+                    nadpis: 'PLÁNOVAČ',
+                    poznamka:
+                        'Plánovač klempírny zvlášť od zakázek. Plánovat jde '
+                        'jen u pořadačů se zápisem.',
+                    deti: [
+                      Padding(
+                        padding: const EdgeInsets.all(Insets.md),
+                        child: SegmentedButton<String>(
+                          key: const Key('uzivatel-planovac'),
+                          showSelectedIcon: false,
+                          segments: const [
+                            ButtonSegment(
+                              value: 'planovat',
+                              label: Text('Plánovat'),
+                            ),
+                            ButtonSegment(
+                              value: 'cist',
+                              label: Text('Prohlížet'),
+                            ),
+                            ButtonSegment(value: 'zadne', label: Text('–')),
+                          ],
+                          selected: {u.planovac},
+                          onSelectionChanged: _uklada
+                              ? null
+                              : (v) => _zmen(u.copyWith(planovac: v.first)),
+                        ),
+                      ),
+                    ],
+                  ),
                 if (u.jeAdmin)
                   Text(
-                    'Admin má zápis u všech pořadačů.',
+                    'Admin má zápis u všech pořadačů a plánuje.',
                     style: AppTextStyles.cardBody.copyWith(
                       color: palette.muted,
                     ),

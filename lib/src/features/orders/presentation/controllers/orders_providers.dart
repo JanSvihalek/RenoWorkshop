@@ -394,3 +394,15 @@ final smiZapisovatProvider = Provider.family<bool, String?>(
   (ref, poradac) =>
       ref.watch(mojePravaProvider).valueOrNull?.smiZapisovat(poradac) ?? true,
 );
+
+/// Smí přihlášený plánovat zakázky pořadače (kód)? Plánovač „Plánovat"
+/// a zápis k pořadači ([MojePrava.smiPlanovat]).
+final smiPlanovatProvider = Provider.family<bool, String?>(
+  (ref, poradac) =>
+      ref.watch(mojePravaProvider).valueOrNull?.smiPlanovat(poradac) ?? true,
+);
+
+/// Vidí přihlášený plánovač? Úroveň „nevidí" ho schová.
+final vidiPlanovacProvider = Provider<bool>(
+  (ref) => ref.watch(mojePravaProvider).valueOrNull?.vidiPlanovac ?? true,
+);
