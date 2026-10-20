@@ -15,14 +15,14 @@ import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Správa uživatelů v appce (Nastavení → Uživatelé, jen admin) - stejná
+/// Správa uživatelů v appce (záložka Admin, jen admin) - stejná
 /// data a pravidla jako stránka Uživatelé na webu.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
   late FakeServiceOrderDataSource zdroj;
 
-  Future<void> doNastaveni(WidgetTester tester, MojePrava prava) async {
+  Future<void> spust(WidgetTester tester, MojePrava prava) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -56,8 +56,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Přihlásit se přes Microsoft'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nastavení').first);
-    await tester.pumpAndSettle();
   }
 
   test('souhrn práv po pobočkách', () {
@@ -77,18 +75,21 @@ void main() {
     );
   });
 
-  testWidgets('uživatel, který není admin, správu nevidí', (tester) async {
-    await doNastaveni(
+  testWidgets('uživatel, který není admin, záložku Admin nevidí', (
+    tester,
+  ) async {
+    await spust(
       tester,
       const MojePrava(role: 'user', poradace: {'10026': 'W'}),
     );
-    expect(find.byKey(const Key('nastaveni-uzivatele')), findsNothing);
+    // Záložka Admin v navigaci jen pro admina.
+    expect(find.text('Admin'), findsNothing);
+    expect(find.text('Nastavení'), findsWidgets);
   });
 
   testWidgets('admin změní uživateli právo k pořadači', (tester) async {
-    await doNastaveni(tester, MojePrava.vse);
-    await tester.ensureVisible(find.byKey(const Key('nastaveni-uzivatele')));
-    await tester.tap(find.byKey(const Key('nastaveni-uzivatele')));
+    await spust(tester, MojePrava.vse);
+    await tester.tap(find.text('Admin'));
     await tester.pumpAndSettle();
 
     expect(find.text('Brno: částečně'), findsOneWidget);
@@ -109,9 +110,8 @@ void main() {
   });
 
   testWidgets('admin přidá uživatele e-mailem', (tester) async {
-    await doNastaveni(tester, MojePrava.vse);
-    await tester.ensureVisible(find.byKey(const Key('nastaveni-uzivatele')));
-    await tester.tap(find.byKey(const Key('nastaveni-uzivatele')));
+    await spust(tester, MojePrava.vse);
+    await tester.tap(find.text('Admin'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('uzivatel-pridat')));

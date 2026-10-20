@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../layout/rozlozeni.dart';
 import '../navigace/pozadavek_skeneru.dart';
+import '../../features/orders/presentation/controllers/orders_providers.dart';
 import '../../features/plan/presentation/prepinac_aplikaci.dart';
 import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../../features/vozidla/presentation/controllers/vozidla_providers.dart';
@@ -50,6 +51,8 @@ class WorkshopScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final aktivni = WorkshopTab.values[navigationShell.currentIndex];
+    // Záložka Admin jen pro admina (práva z /me).
+    final admin = ref.watch(mojePravaProvider).valueOrNull?.jeAdmin ?? false;
 
     // Na tabletu je obrazovka na šířku a spodní lišta by ukrajovala
     // z výšky, které je málo - navigace jde do svislého pruhu vlevo.
@@ -61,6 +64,7 @@ class WorkshopScaffold extends ConsumerWidget {
               active: aktivni,
               onSelect: (tab) => _prepni(ref, tab.index),
               onAplikace: () => zobrazPrepinacAplikaci(context, ref),
+              zobrazitAdmin: admin,
             ),
             Expanded(
               child: Column(
@@ -85,6 +89,7 @@ class WorkshopScaffold extends ConsumerWidget {
           WorkshopBottomNav(
             active: aktivni,
             onSelect: (tab) => _prepni(ref, tab.index),
+            zobrazitAdmin: admin,
           ),
         ],
       ),

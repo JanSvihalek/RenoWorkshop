@@ -10,7 +10,7 @@ import '../theme/app_typography.dart';
 /// Záložky spodní navigace.
 ///
 /// Pořadí je zároveň pořadí větví v routeru (`StatefulShellRoute`).
-enum WorkshopTab { orders, vozidlo, settings }
+enum WorkshopTab { orders, vozidlo, settings, admin }
 
 /// Spodní navigace dílny.
 class WorkshopBottomNav extends StatelessWidget {
@@ -18,10 +18,14 @@ class WorkshopBottomNav extends StatelessWidget {
     super.key,
     required this.active,
     required this.onSelect,
+    this.zobrazitAdmin = false,
   });
 
   final WorkshopTab active;
   final ValueChanged<WorkshopTab> onSelect;
+
+  /// Záložka Admin - jen pro admina.
+  final bool zobrazitAdmin;
 
   static const List<_NavItem> _items = [
     _NavItem(
@@ -42,6 +46,12 @@ class WorkshopBottomNav extends StatelessWidget {
       'Nastavení',
       Icons.settings_outlined,
       Icons.settings,
+    ),
+    _NavItem(
+      WorkshopTab.admin,
+      'Admin',
+      Icons.admin_panel_settings_outlined,
+      Icons.admin_panel_settings,
     ),
   ];
 
@@ -68,13 +78,16 @@ class WorkshopBottomNav extends StatelessWidget {
           child: Row(
             children: [
               for (final item in _items)
-                Expanded(
-                  child: _NavButton(
-                    item: item,
-                    isActive: item.tab == active,
-                    onTap: item.tab == active ? null : () => onSelect(item.tab),
+                if (item.tab != WorkshopTab.admin || zobrazitAdmin)
+                  Expanded(
+                    child: _NavButton(
+                      item: item,
+                      isActive: item.tab == active,
+                      onTap: item.tab == active
+                          ? null
+                          : () => onSelect(item.tab),
+                    ),
                   ),
-                ),
             ],
           ),
         ),

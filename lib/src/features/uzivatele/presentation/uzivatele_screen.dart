@@ -15,7 +15,12 @@ import 'uzivatele_providers.dart';
 /// s hledáním a shrnutím práv; klepnutím detail uživatele. Stejná data
 /// jako stránka Uživatelé na webu.
 class UzivateleScreen extends ConsumerStatefulWidget {
-  const UzivateleScreen({super.key});
+  const UzivateleScreen({super.key, this.jakoZalozka = false});
+
+  /// Záložka Admin v hlavní navigaci - nadpis „Admin" a sekce Uživatelé
+  /// a práva (další nastavení admina přibudou pod ni). Jinak samostatná
+  /// obrazovka (z plánovače) se šipkou zpět.
+  final bool jakoZalozka;
 
   @override
   ConsumerState<UzivateleScreen> createState() => _UzivateleScreenState();
@@ -66,8 +71,9 @@ class _UzivateleScreenState extends ConsumerState<UzivateleScreen> {
       appBar: AppBar(
         backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: !widget.jakoZalozka,
         title: Text(
-          'Uživatelé',
+          widget.jakoZalozka ? 'Admin' : 'Uživatelé',
           style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
         ),
         actions: [
@@ -110,6 +116,19 @@ class _UzivateleScreenState extends ConsumerState<UzivateleScreen> {
                 Insets.giant,
               ),
               children: [
+                if (widget.jakoZalozka)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: Insets.xxs,
+                      bottom: Insets.sm,
+                    ),
+                    child: Text(
+                      'UŽIVATELÉ A PRÁVA',
+                      style: AppTextStyles.overline.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ),
                 TextField(
                   key: const Key('uzivatele-hledani'),
                   onChanged: (t) => setState(() => _hledani = t),

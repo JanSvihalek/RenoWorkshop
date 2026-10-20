@@ -21,6 +21,7 @@ class WorkshopSideNav extends StatelessWidget {
     required this.active,
     required this.onSelect,
     this.onAplikace,
+    this.zobrazitAdmin = false,
   });
 
   final WorkshopTab active;
@@ -29,6 +30,9 @@ class WorkshopSideNav extends StatelessWidget {
   /// Přepínač aplikací (Zakázky / Plán klempírny) - pod záložkami,
   /// oddělený, protože vede jinam než do appky. `null` = není.
   final VoidCallback? onAplikace;
+
+  /// Záložka Admin - jen pro admina.
+  final bool zobrazitAdmin;
 
   static const _polozky = [
     (
@@ -48,6 +52,12 @@ class WorkshopSideNav extends StatelessWidget {
       'Nastavení',
       Icons.settings_outlined,
       Icons.settings,
+    ),
+    (
+      WorkshopTab.admin,
+      'Admin',
+      Icons.admin_panel_settings_outlined,
+      Icons.admin_panel_settings,
     ),
   ];
 
@@ -90,15 +100,16 @@ class WorkshopSideNav extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Insets.xxl),
-            for (final (tab, popisek, ikona, ikonaAktivni) in _polozky) ...[
-              _Polozka(
-                popisek: popisek,
-                ikona: tab == active ? ikonaAktivni : ikona,
-                jeAktivni: tab == active,
-                onTap: () => onSelect(tab),
-              ),
-              const SizedBox(height: Insets.sm),
-            ],
+            for (final (tab, popisek, ikona, ikonaAktivni) in _polozky)
+              if (tab != WorkshopTab.admin || zobrazitAdmin) ...[
+                _Polozka(
+                  popisek: popisek,
+                  ikona: tab == active ? ikonaAktivni : ikona,
+                  jeAktivni: tab == active,
+                  onTap: () => onSelect(tab),
+                ),
+                const SizedBox(height: Insets.sm),
+              ],
             if (onAplikace case final otevri?) ...[
               const SizedBox(height: Insets.sm),
               Container(width: 32, height: 1, color: palette.hairline2),

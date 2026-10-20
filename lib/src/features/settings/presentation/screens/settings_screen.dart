@@ -1,4 +1,3 @@
-import '../../../uzivatele/presentation/uzivatele_screen.dart';
 import '../../../akce/presentation/akce_providers.dart';
 import '../../../akce/presentation/kampan_stari_okno.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +39,6 @@ class SettingsScreen extends ConsumerWidget {
       _VychoziFiltr(),
       _Fotodokumentace(),
       _KampanePodleStari(),
-      _Admin(),
       _OAplikaci(),
     ];
 
@@ -572,45 +570,6 @@ class _KampanePodleStari extends ConsumerWidget {
               vpravo: Icon(Icons.chevron_right_rounded, color: palette.muted),
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// Admin - nastavení jen pro admina. Zatím uživatelé a jejich práva
-/// k pořadačům (stejná správa jako Admin na webu), další přibudou sem.
-class _Admin extends ConsumerWidget {
-  const _Admin();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final prava = ref.watch(mojePravaProvider).valueOrNull;
-    if (prava == null || !prava.jeAdmin) return const SizedBox.shrink();
-
-    return _Skupina(
-      nadpis: 'ADMIN',
-      vedleNadpisu: Icon(
-        Icons.admin_panel_settings,
-        key: const Key('ikona-admin'),
-        size: 16,
-        color: palette.muted,
-      ),
-      poznamka:
-          'Nastavení, která smí měnit jen admin. Totéž je na webu '
-          'v záložce Admin.',
-      radky: [
-        InkWell(
-          key: const Key('nastaveni-uzivatele'),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const UzivateleScreen()),
-          ),
-          child: _Radek(
-            titul: 'Uživatelé a práva',
-            popis: 'Role a přístup k zakázkám podle pořadače',
-            vpravo: Icon(Icons.chevron_right_rounded, color: palette.muted),
-          ),
-        ),
       ],
     );
   }

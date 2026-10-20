@@ -19,6 +19,7 @@ import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
 import '../features/plan/presentation/plan_screen.dart';
+import '../features/uzivatele/presentation/uzivatele_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
@@ -36,6 +37,9 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String orders = '/orders';
   static const String settings = '/settings';
+
+  /// Záložka Admin - jen pro admina (uživatelé a práva…).
+  static const String admin = '/admin';
 
   static const String skener = '/skener';
 
@@ -226,6 +230,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.settings,
                 builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.admin,
+                builder: (context, state) =>
+                    const UzivateleScreen(jakoZalozka: true),
               ),
             ],
           ),
