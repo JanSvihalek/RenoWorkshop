@@ -569,11 +569,10 @@ class _Radek extends ConsumerWidget {
         ? -1
         : dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
     final viditelny = prvni != -1 && posledni >= prvni;
-    // Plán mění jen s plánovačem „Plánovat" a zápisem k pořadači, dílenský
-    // stav se zápisem k pořadači.
-    final poradac = polozka.zakazka?.poradac?.kod;
-    final smi = ref.watch(smiPlanovatProvider(poradac));
-    final smiStav = ref.watch(smiZapisovatProvider(poradac));
+    // Plán i dílenský stav mění, kdo u pobočky v plánovači plánuje. Detail
+    // zakázky jen s právem k jejímu pořadači.
+    final smi = ref.watch(smiPlanovatProvider(polozka.pobockaKod));
+    final detail = ref.watch(smiCistProvider(polozka.zakazka?.poradac?.kod));
     // Bez bloku v období jde na den klepnout: nový plán ho má předvyplněný,
     // existující plán jinde se otevře k úpravě.
     void otevri(DateTime den) => naplanovatKlempirnu(
@@ -598,7 +597,7 @@ class _Radek extends ConsumerWidget {
             width: levy,
             child: InkWell(
               key: Key('plan-zakazka-${polozka.zakazkaId}'),
-              onTap: () => onOpenOrder(polozka.zakazkaId),
+              onTap: detail ? () => onOpenOrder(polozka.zakazkaId) : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Insets.base),
                 child: Column(
@@ -640,7 +639,7 @@ class _Radek extends ConsumerWidget {
                           ),
                         ),
                       const SizedBox(height: 4),
-                      _StavDilny(zakazka: zakazka, smi: smiStav),
+                      _StavDilny(zakazka: zakazka, smi: smi),
                     ],
                   ],
                 ),

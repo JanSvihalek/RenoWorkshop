@@ -766,7 +766,7 @@ class MockServiceOrderDataSource
     const UzivatelSpravy(
       email: 'jan.dvorak@renocar.cz',
       jmeno: 'Jan Dvořák',
-      planovac: 'planovat',
+      planovac: {'1': 'W', '2': 'R'},
       prava: {'10026': 'W', '16877': 'W', '16015': 'R'},
     ),
     const UzivatelSpravy(
@@ -774,6 +774,12 @@ class MockServiceOrderDataSource
       jmeno: 'Petr Kučera',
       prava: {'10026': 'W'},
     ),
+  ];
+
+  static const _pobockyPlanu = [
+    PobockaPlanu(kod: '1', nazev: 'Brno'),
+    PobockaPlanu(kod: '2', nazev: 'Nupaky'),
+    PobockaPlanu(kod: '5', nazev: 'Bubeneč'),
   ];
 
   static const _poradace = [
@@ -788,7 +794,11 @@ class MockServiceOrderDataSource
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async {
     await _simulateLatency();
-    return PrehledUzivatelu(poradace: _poradace, uzivatele: [..._uzivatele]);
+    return PrehledUzivatelu(
+      poradace: _poradace,
+      pobockyPlanu: _pobockyPlanu,
+      uzivatele: [..._uzivatele],
+    );
   }
 
   @override
@@ -796,16 +806,21 @@ class MockServiceOrderDataSource
     String email, {
     required String role,
     required Map<String, String?> prava,
-    String planovac = 'cist',
+    Map<String, String?>? planovac,
   }) async {
     await _simulateLatency();
+    final i = _uzivatele.indexWhere((u) => u.email == email);
     final novy = UzivatelSpravy(
       email: email,
       role: role,
-      planovac: planovac,
+      planovac: planovac == null
+          ? (i == -1 ? const {} : _uzivatele[i].planovac)
+          : {
+              for (final MapEntry(:key, :value) in planovac.entries)
+                key: ?value,
+            },
       prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
     );
-    final i = _uzivatele.indexWhere((u) => u.email == email);
     if (i == -1) {
       _uzivatele.add(novy);
     } else {
@@ -814,7 +829,7 @@ class MockServiceOrderDataSource
         jmeno: _uzivatele[i].jmeno,
         prihlasen: _uzivatele[i].prihlasen,
         role: role,
-        planovac: planovac,
+        planovac: novy.planovac,
         prava: novy.prava,
       );
     }

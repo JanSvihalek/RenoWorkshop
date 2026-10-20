@@ -43,8 +43,8 @@ class PlanKarta extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final plan = order.planKlempirny;
-    // Plán jen s plánovačem „Plánovat" (a zápisem k pořadači).
-    final smi = ref.watch(smiPlanovatProvider(order.poradac?.kod));
+    // Plán jen s plánovačem „Plánovat" u pobočky zakázky.
+    final smi = ref.watch(smiPlanovatProvider(order.branch?.code));
     void otevri() => naplanovatKlempirnu(
       context,
       ref,

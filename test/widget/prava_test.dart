@@ -75,32 +75,32 @@ void main() {
     );
   });
 
-  test('plánovač: výchozí prohlížet, plánovat jen se zápisem', () {
-    const prohlizi = MojePrava(role: 'user', poradace: {'10026': 'W'});
-    expect(prohlizi.smiPlanovat('10026'), isFalse);
-    expect(prohlizi.vidiPlanovac, isTrue);
-    const planuje = MojePrava(
+  test('plánovač po pobočkách, nezávisle na pořadačích', () {
+    // Zápis k pořadači v plánovači nic nedává.
+    const jenPoradac = MojePrava(role: 'user', poradace: {'10026': 'W'});
+    expect(jenPoradac.smiPlanovat('1'), isFalse);
+    expect(jenPoradac.vidiPlanovac, isFalse);
+    const planovac = MojePrava(
       role: 'user',
-      poradace: {'10026': 'W', '16015': 'R'},
-      planovac: 'planovat',
+      poradace: {},
+      planovac: {'1': 'W', '2': 'R'},
     );
-    expect(planuje.smiPlanovat('10026'), isTrue);
-    expect(planuje.smiPlanovat('16015'), isFalse);
+    expect(planovac.vidiPlanovac, isTrue);
+    expect(planovac.smiPlanovat('1'), isTrue);
+    expect(planovac.smiPlanovat('2'), isFalse);
+    expect(planovac.smiPlanovat(null), isFalse);
+    expect(planovac.smiCist('10026'), isFalse);
     expect(MojePrava.vse.smiPlanovat(null), isTrue);
     expect(
-      const MojePrava(
-        role: 'user',
-        poradace: {},
-        planovac: 'zadne',
-      ).vidiPlanovac,
-      isFalse,
+      MojePrava.fromJson({
+        'role': 'user',
+        'planner': [
+          {'code': '1', 'label': 'Brno', 'access': 'W'},
+          {'code': '5', 'label': 'Bubeneč', 'access': 'R'},
+        ],
+      }).planovac,
+      {'1': 'W', '5': 'R'},
     );
-    expect(MojePrava.fromJson({'role': 'user'}).planovac, 'cist');
-    expect(
-      MojePrava.fromJson({'role': 'user', 'planner': 'edit'}).planovac,
-      'planovat',
-    );
-    expect(planovacDoApi('zadne'), 'none');
   });
 
   testWidgets('jen čtení: štítek a bez akcí, které zapisují', (tester) async {
@@ -120,13 +120,19 @@ void main() {
     expect(find.text('Převzít'), findsNothing);
   });
 
-  testWidgets('zápis bez plánovače: stav ano, plánovat ne', (tester) async {
+  testWidgets('zápis, v plánovači jen prohlíží: stav ano, plánovat ne', (
+    tester,
+  ) async {
     await spust(
       tester,
       zakazky: [
         buildOrderDto(utvar: '11215', canPlanBodyshop: true, folder: bsl),
       ],
-      prava: const MojePrava(role: 'user', poradace: {'10026': 'W'}),
+      prava: const MojePrava(
+        role: 'user',
+        poradace: {'10026': 'W'},
+        planovac: {'1': 'R'},
+      ),
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
@@ -136,17 +142,13 @@ void main() {
     expect(find.byKey(const Key('otevrit-planovac')), findsOneWidget);
   });
 
-  testWidgets('plánovač nevidí: bez dlaždice i odkazu', (tester) async {
+  testWidgets('bez poboček v plánovači: bez dlaždice i odkazu', (tester) async {
     await spust(
       tester,
       zakazky: [
         buildOrderDto(utvar: '11215', canPlanBodyshop: true, folder: bsl),
       ],
-      prava: const MojePrava(
-        role: 'user',
-        poradace: {'10026': 'W'},
-        planovac: 'zadne',
-      ),
+      prava: const MojePrava(role: 'user', poradace: {'10026': 'W'}),
     );
     final nav = find.byKey(const Key('nav-aplikace'));
     await tester.tap(
@@ -165,7 +167,7 @@ void main() {
     expect(find.byKey(const Key('otevrit-planovac')), findsNothing);
   });
 
-  testWidgets('zápis s plánovačem: akce jsou', (tester) async {
+  testWidgets('plánuje pobočku i jen se čtením pořadače', (tester) async {
     await spust(
       tester,
       zakazky: [
@@ -173,15 +175,16 @@ void main() {
       ],
       prava: const MojePrava(
         role: 'user',
-        poradace: {'10026': 'W'},
-        planovac: 'planovat',
+        poradace: {'10026': 'R'},
+        planovac: {'1': 'W'},
       ),
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('jen-cteni')), findsNothing);
-    expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
+    // Zakázky jen čte, plánovat ale smí - plánovač je zvlášť.
+    expect(find.byKey(const Key('jen-cteni')), findsOneWidget);
+    expect(find.byKey(const Key('pridat-stav')), findsNothing);
     expect(find.byKey(const Key('zaplanovat-klempirnu')), findsOneWidget);
   });
 

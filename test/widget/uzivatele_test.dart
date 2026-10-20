@@ -33,6 +33,7 @@ void main() {
           email: 'petr.kucera@renocar.cz',
           jmeno: 'Petr Kučera',
           prava: {'10026': 'W'},
+          planovac: {'1': 'R'},
         ),
       ];
     await tester.pumpWidget(
@@ -74,11 +75,16 @@ void main() {
         const UzivatelSpravy(
           email: 'x@y',
           prava: {'1': 'W', '2': 'W'},
-          planovac: 'planovat',
+          planovac: {'1': 'W', '2': 'W', '5': 'R'},
         ),
         poradace,
+        pobockyPlanu: const [
+          PobockaPlanu(kod: '1', nazev: 'Brno'),
+          PobockaPlanu(kod: '2', nazev: 'Nupaky'),
+          PobockaPlanu(kod: '5', nazev: 'Bubeneč'),
+        ],
       ),
-      'Brno: zápis · plánuje',
+      'Brno: zápis · plánuje Brno, Nupaky',
     );
     expect(
       souhrnPrav(const UzivatelSpravy(email: 'a@b', role: 'admin'), poradace),
@@ -107,6 +113,11 @@ void main() {
     await tester.tap(find.byKey(const Key('uzivatel-petr.kucera@renocar.cz')));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pravo-16015')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(
       find.descendant(
         of: find.byKey(const Key('pravo-16015')),
@@ -119,20 +130,20 @@ void main() {
     expect(role, 'user');
     expect(prava, {'10026': 'W', '16015': 'R'});
 
-    // Plánovač zvlášť - výchozí Prohlížet, admin přepne na Plánovat.
+    // Plánovač zvlášť po pobočkách - Brno prohlíží, Nupaky začne plánovat.
     await tester.scrollUntilVisible(
-      find.byKey(const Key('uzivatel-planovac')),
-      200,
+      find.byKey(const Key('planovac-2')),
+      -200,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.tap(
       find.descendant(
-        of: find.byKey(const Key('uzivatel-planovac')),
+        of: find.byKey(const Key('planovac-2')),
         matching: find.text('Plánovat'),
       ),
     );
     await tester.pumpAndSettle();
-    expect(zdroj.ulozeniPlanovace.last, 'planovat');
+    expect(zdroj.ulozeniPlanovace.last, {'1': 'R', '2': 'W'});
     expect(zdroj.ulozeniUzivatelu.last.$3, {'10026': 'W', '16015': 'R'});
   });
 

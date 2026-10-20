@@ -83,26 +83,33 @@ class FakeServiceOrderDataSource
   /// Co appka naposledy uložila - kontrola v testu.
   final ulozeniUzivatelu = <(String, String, Map<String, String?>)>[];
 
-  /// Úroveň plánovače u uložení - kontrola v testu.
-  final ulozeniPlanovace = <String>[];
+  /// Plánovač u uložení (`null` = beze změny) - kontrola v testu.
+  final ulozeniPlanovace = <Map<String, String?>?>[];
 
   @override
-  Future<PrehledUzivatelu> nactiUzivatele() async =>
-      PrehledUzivatelu(poradace: poradaceSpravy, uzivatele: [...uzivatele]);
+  Future<PrehledUzivatelu> nactiUzivatele() async => PrehledUzivatelu(
+    poradace: poradaceSpravy,
+    // Tytéž pobočky, které vrací plán.
+    pobockyPlanu: pobockyPlanu,
+    uzivatele: [...uzivatele],
+  );
 
   @override
   Future<void> ulozUzivatele(
     String email, {
     required String role,
     required Map<String, String?> prava,
-    String planovac = 'cist',
+    Map<String, String?>? planovac,
   }) async {
     ulozeniUzivatelu.add((email, role, prava));
     ulozeniPlanovace.add(planovac);
     final novy = UzivatelSpravy(
       email: email,
       role: role,
-      planovac: planovac,
+      planovac: {
+        for (final MapEntry(:key, :value) in (planovac ?? const {}).entries)
+          key: ?value,
+      },
       prava: {for (final MapEntry(:key, :value) in prava.entries) key: ?value},
     );
     final i = uzivatele.indexWhere((u) => u.email == email);

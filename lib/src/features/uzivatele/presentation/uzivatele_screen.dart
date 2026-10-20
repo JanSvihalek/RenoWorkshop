@@ -161,7 +161,11 @@ class _UzivateleScreenState extends ConsumerState<UzivateleScreen> {
                             Divider(height: 1, color: palette.hairline),
                           _RadekUzivatele(
                             uzivatel: u,
-                            souhrn: souhrnPrav(u, p.poradace),
+                            souhrn: souhrnPrav(
+                              u,
+                              p.poradace,
+                              pobockyPlanu: p.pobockyPlanu,
+                            ),
                             onTap: () => _otevri(u),
                           ),
                         ],
@@ -412,35 +416,32 @@ class _UzivatelScreenState extends ConsumerState<UzivatelScreen> {
                     ),
                   ],
                 ),
-                if (!u.jeAdmin)
+                if (!u.jeAdmin && prehled.pobockyPlanu.isNotEmpty)
                   _Skupina(
                     nadpis: 'PLÁNOVAČ',
                     poznamka:
-                        'Plánovač klempírny zvlášť od zakázek. Plánovat jde '
-                        'jen u pořadačů se zápisem.',
+                        'Plánovač klempírny má práva zvlášť od pořadačů. '
+                        'Plánovat = plán i dílenský stav, Prohlížet = jen '
+                        'vidí, – = pobočku v plánovači nevidí.',
                     deti: [
-                      Padding(
-                        padding: const EdgeInsets.all(Insets.md),
-                        child: SegmentedButton<String>(
-                          key: const Key('uzivatel-planovac'),
-                          showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment(
-                              value: 'planovat',
-                              label: Text('Plánovat'),
-                            ),
-                            ButtonSegment(
-                              value: 'cist',
-                              label: Text('Prohlížet'),
-                            ),
-                            ButtonSegment(value: 'zadne', label: Text('–')),
-                          ],
-                          selected: {u.planovac},
-                          onSelectionChanged: _uklada
-                              ? null
-                              : (v) => _zmen(u.copyWith(planovac: v.first)),
+                      for (final p in prehled.pobockyPlanu)
+                        _RadekPrava(
+                          klic: 'planovac-${p.kod}',
+                          nazev: p.nazev,
+                          pravo: u.planovac[p.kod],
+                          cteni: 'Prohlížet',
+                          zapis: 'Plánovat',
+                          povoleno: !_uklada,
+                          onZmena: (pravo) {
+                            final planovac = {...u.planovac};
+                            if (pravo == null) {
+                              planovac.remove(p.kod);
+                            } else {
+                              planovac[p.kod] = pravo;
+                            }
+                            _zmen(u.copyWith(planovac: planovac));
+                          },
                         ),
-                      ),
                     ],
                   ),
                 if (u.jeAdmin)
@@ -458,8 +459,9 @@ class _UzivatelScreenState extends ConsumerState<UzivatelScreen> {
                       nadpis: pobocka.toUpperCase(),
                       deti: [
                         for (final p in poradace)
-                          _RadekPoradace(
-                            poradac: p,
+                          _RadekPrava(
+                            klic: 'pravo-${p.kod}',
+                            nazev: p.nazev,
                             pravo: u.prava[p.kod],
                             povoleno: !_uklada,
                             onZmena: (pravo) {
@@ -480,16 +482,24 @@ class _UzivatelScreenState extends ConsumerState<UzivatelScreen> {
   }
 }
 
-class _RadekPoradace extends StatelessWidget {
-  const _RadekPoradace({
-    required this.poradac,
+/// Řádek s právem - pořadač (Čtení / Zápis), nebo pobočka plánovače
+/// (Prohlížet / Plánovat).
+class _RadekPrava extends StatelessWidget {
+  const _RadekPrava({
+    required this.klic,
+    required this.nazev,
     required this.pravo,
     required this.povoleno,
     required this.onZmena,
+    this.cteni = 'Čtení',
+    this.zapis = 'Zápis',
   });
 
-  final PoradacSpravy poradac;
+  final String klic;
+  final String nazev;
   final String? pravo;
+  final String cteni;
+  final String zapis;
   final bool povoleno;
   final ValueChanged<String?> onZmena;
 
@@ -505,7 +515,7 @@ class _RadekPoradace extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              poradac.nazev,
+              nazev,
               style: AppTextStyles.cardBody.copyWith(
                 color: palette.text,
                 fontWeight: FontWeight.w600,
@@ -513,13 +523,13 @@ class _RadekPoradace extends StatelessWidget {
             ),
           ),
           SegmentedButton<String>(
-            key: Key('pravo-${poradac.kod}'),
+            key: Key(klic),
             showSelectedIcon: false,
             style: const ButtonStyle(visualDensity: VisualDensity.compact),
-            segments: const [
-              ButtonSegment(value: '', label: Text('–')),
-              ButtonSegment(value: 'R', label: Text('Čtení')),
-              ButtonSegment(value: 'W', label: Text('Zápis')),
+            segments: [
+              const ButtonSegment(value: '', label: Text('–')),
+              ButtonSegment(value: 'R', label: Text(cteni)),
+              ButtonSegment(value: 'W', label: Text(zapis)),
             ],
             selected: {pravo ?? ''},
             onSelectionChanged: povoleno

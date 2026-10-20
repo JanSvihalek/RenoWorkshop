@@ -2,7 +2,9 @@
 /// Stejná data jako stránka Uživatelé na webu (`GET/PUT /users`).
 library;
 
-import '../../orders/domain/entities/moje_prava.dart';
+import '../../plan/domain/prehled_planu.dart' show PobockaPlanu;
+
+export '../../plan/domain/prehled_planu.dart' show PobockaPlanu;
 
 /// Pořadač s pobočkou - v detailu uživatele se podle ní seskupují.
 class PoradacSpravy {
@@ -40,7 +42,7 @@ class UzivatelSpravy {
     this.role = 'user',
     this.prihlasen,
     this.prava = const {},
-    this.planovac = 'cist',
+    this.planovac = const {},
   });
 
   final String email;
@@ -53,8 +55,9 @@ class UzivatelSpravy {
   /// Kód pořadače -> `R` (čtení) nebo `W` (zápis). Chybí = nic.
   final Map<String, String> prava;
 
-  /// Plánovač: `planovat`, `cist` (výchozí), `zadne`. Admin plánuje vždy.
-  final String planovac;
+  /// Plánovač: kód pobočky -> `W` plánovat, `R` prohlížet. Chybí = nic.
+  /// Admin plánuje všude.
+  final Map<String, String> planovac;
 
   bool get jeAdmin => role == 'admin';
 
@@ -64,7 +67,7 @@ class UzivatelSpravy {
   UzivatelSpravy copyWith({
     String? role,
     Map<String, String>? prava,
-    String? planovac,
+    Map<String, String>? planovac,
   }) => UzivatelSpravy(
     email: email,
     jmeno: jmeno,
@@ -79,19 +82,29 @@ class UzivatelSpravy {
     jmeno: json['name'] as String?,
     role: json['role'] == 'admin' ? 'admin' : 'user',
     prihlasen: DateTime.tryParse(json['lastLoginAt'] as String? ?? ''),
-    planovac: planovacZApi(json['planner']),
-    prava: {
-      for (final MapEntry(:key, :value)
-          in (json['access'] as Map<String, dynamic>? ?? const {}).entries)
-        if (value == 'R' || value == 'W') key: value as String,
-    },
+    planovac: _prava(json['planner']),
+    prava: _prava(json['access']),
   );
+
+  /// `{kód: R/W}` - jen platná práva.
+  static Map<String, String> _prava(Object? json) => {
+    if (json is Map<String, dynamic>)
+      for (final MapEntry(:key, :value) in json.entries)
+        if (value == 'R' || value == 'W') key: value as String,
+  };
 }
 
 class PrehledUzivatelu {
-  const PrehledUzivatelu({required this.poradace, required this.uzivatele});
+  const PrehledUzivatelu({
+    required this.poradace,
+    required this.uzivatele,
+    this.pobockyPlanu = const [],
+  });
 
   final List<PoradacSpravy> poradace;
+
+  /// Pobočky klempíren - práva v plánovači.
+  final List<PobockaPlanu> pobockyPlanu;
   final List<UzivatelSpravy> uzivatele;
 
   factory PrehledUzivatelu.fromJson(Map<String, dynamic> json) =>
@@ -99,6 +112,11 @@ class PrehledUzivatelu {
         poradace: [
           for (final p in json['folders'] as List<dynamic>? ?? const [])
             PoradacSpravy.fromJson(p as Map<String, dynamic>),
+        ],
+        pobockyPlanu: [
+          for (final p in json['plannerBranches'] as List<dynamic>? ?? const [])
+            if (p case {'code': final String kod})
+              PobockaPlanu(kod: kod, nazev: p['label'] as String? ?? kod),
         ],
         uzivatele: [
           for (final u in json['users'] as List<dynamic>? ?? const [])
@@ -119,8 +137,13 @@ List<(String, List<PoradacSpravy>)> poradacePoPobockach(
 }
 
 /// Krátké shrnutí práv do seznamu: „Brno: zápis · Čestlice: čtení".
-/// Pobočka s různými právy u svých pořadačů je „částečně".
-String souhrnPrav(UzivatelSpravy uzivatel, List<PoradacSpravy> poradace) {
+/// Pobočka s různými právy u svých pořadačů je „částečně". Na konci
+/// pobočky, kde plánuje: „plánuje Brno, Nupaky".
+String souhrnPrav(
+  UzivatelSpravy uzivatel,
+  List<PoradacSpravy> poradace, {
+  List<PobockaPlanu> pobockyPlanu = const [],
+}) {
   if (uzivatel.jeAdmin) return 'Admin · vše';
   final casti = <String>[];
   for (final (pobocka, seznam) in poradacePoPobockach(poradace)) {
@@ -133,7 +156,10 @@ String souhrnPrav(UzivatelSpravy uzivatel, List<PoradacSpravy> poradace) {
         : 'částečně';
     casti.add('$pobocka: $text');
   }
-  if (casti.isEmpty) return 'Bez přístupu';
-  if (uzivatel.planovac == 'planovat') casti.add('plánuje');
-  return casti.join(' · ');
+  final planuje = [
+    for (final p in pobockyPlanu)
+      if (uzivatel.planovac[p.kod] == 'W') p.nazev,
+  ];
+  if (planuje.isNotEmpty) casti.add('plánuje ${planuje.join(', ')}');
+  return casti.isEmpty ? 'Bez přístupu' : casti.join(' · ');
 }
