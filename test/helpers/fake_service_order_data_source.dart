@@ -5,6 +5,7 @@ import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
 import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/plan/data/plan_data_source.dart';
 import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
@@ -64,6 +65,12 @@ class FakeServiceOrderDataSource
 
   /// Hláška, se kterou synchronizace spadne - třeba minutový limit služby.
   String? chybaSynchronizace;
+
+  /// Práva přihlášeného - test si je nastaví.
+  MojePrava prava = MojePrava.vse;
+
+  @override
+  Future<MojePrava> mojePrava() async => prava;
 
   @override
   Future<void> synchronizuj() async {

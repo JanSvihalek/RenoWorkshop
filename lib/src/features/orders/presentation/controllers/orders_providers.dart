@@ -10,6 +10,7 @@ import '../../data/skener_kodu.dart';
 import '../../data/repositories/service_order_repository_impl.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/order_filter.dart';
 import '../../domain/entities/poradac.dart';
 import '../../domain/entities/service_order.dart';
@@ -380,3 +381,16 @@ final otevritJedinouZakazkuProvider = StateProvider<bool>((ref) => false);
 /// nikdo nečte. Na tabletu se seznam kliknutím nepřekresluje celý -
 /// drží si posun i rozepsané hledání, mění se jen sloupec vedle.
 final vybranaZakazkaProvider = StateProvider<String?>((ref) => null);
+
+/// Práva přihlášeného (`GET /me`). Načtou se znovu s přepnutím zdroje dat
+/// (ukázková data / služba).
+final mojePravaProvider = FutureProvider<MojePrava>(
+  (ref) => ref.watch(serviceOrderDataSourceProvider).mojePrava(),
+);
+
+/// Smí přihlášený zapisovat u zakázek pořadače (kód)? Dokud se práva
+/// nenačtou, nic se neschovává - zápis bez práva služba odmítne sama.
+final smiZapisovatProvider = Provider.family<bool, String?>(
+  (ref, poradac) =>
+      ref.watch(mojePravaProvider).valueOrNull?.smiZapisovat(poradac) ?? true,
+);

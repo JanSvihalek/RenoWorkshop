@@ -201,6 +201,8 @@ class _DetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isBusy = ref.watch(orderActionsProvider).isLoading;
+    // Jen čtení (právo R k pořadači) - bez akcí, které zapisují.
+    final smi = ref.watch(smiZapisovatProvider(order.poradac?.kod));
 
     final postup = DetailCard(
       padding: const EdgeInsets.fromLTRB(
@@ -215,10 +217,11 @@ class _DetailBody extends ConsumerWidget {
           Row(
             children: [
               const Expanded(child: SectionLabel('POSTUP ZAKÁZKY')),
-              _PridatStavOdkaz(
-                isBusy: isBusy,
-                onTap: () => _pridejStav(context, ref),
-              ),
+              if (smi)
+                _PridatStavOdkaz(
+                  isBusy: isBusy,
+                  onTap: () => _pridejStav(context, ref),
+                ),
             ],
           ),
           if (order.bay != null) ...[
@@ -234,7 +237,7 @@ class _DetailBody extends ConsumerWidget {
           StatusTimeline(
             historie: order.historieStavu,
             bay: order.bay ?? '',
-            onSmazat: (stav) => _smazStav(context, ref, stav),
+            onSmazat: smi ? (stav) => _smazStav(context, ref, stav) : null,
           ),
         ],
       ),
@@ -243,16 +246,17 @@ class _DetailBody extends ConsumerWidget {
     final predmet = _zobrazitPredmetOpravy
         ? PredmetOpravyCard(
             predmet: order.predmetOpravy,
-            onUpravit: () => _upravPredmet(context, ref),
+            onUpravit: smi ? () => _upravPredmet(context, ref) : null,
           )
         : null;
 
     final poznamky = NotesCard(
       notes: order.notes,
-      onAddNote: () => _addNote(context, ref),
+      onAddNote: smi ? () => _addNote(context, ref) : null,
     );
 
-    final prijem = onPrijem == null
+    // Příjem zapisuje (kontroly, protokol) - jen se zápisem.
+    final prijem = onPrijem == null || !smi
         ? null
         : PrijemKarta(orderId: order.id, onOtevrit: () => onPrijem!(order.id));
 
@@ -289,10 +293,14 @@ class _DetailBody extends ConsumerWidget {
           order: order,
           onBack: onBack,
           zobrazitZpet: zobrazitZpet,
-          onZpracovatel: () => _zmenZpracovatele(context, ref),
-          onPriraditObalku: () =>
-              zmenObalku(context, ref, order, onSkenuj: onSkenujObalku),
-          onUvolnitObalku: () => uvolnitObalku(context, ref, order),
+          jenCteni: !smi,
+          onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
+          onPriraditObalku: smi
+              ? () => zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
+              : null,
+          onUvolnitObalku: smi
+              ? () => uvolnitObalku(context, ref, order)
+              : null,
         ),
         Expanded(
           child: LayoutBuilder(
@@ -358,6 +366,7 @@ class _DetailHeader extends ConsumerWidget {
     required this.onZpracovatel,
     required this.onPriraditObalku,
     required this.onUvolnitObalku,
+    this.jenCteni = false,
   });
 
   final ServiceOrder order;
@@ -365,11 +374,14 @@ class _DetailHeader extends ConsumerWidget {
   final bool zobrazitZpet;
 
   /// Klepnutí na řádek zpracovatele - otevře jeho výběr.
-  final VoidCallback onZpracovatel;
+  final VoidCallback? onZpracovatel;
+
+  /// Právo jen ke čtení - štítek „Jen čtení", akce chybí (`null`).
+  final bool jenCteni;
 
   /// Obálka s klíčem - přiřadit (skener nebo číslo), uvolnit.
-  final VoidCallback onPriraditObalku;
-  final VoidCallback onUvolnitObalku;
+  final VoidCallback? onPriraditObalku;
+  final VoidCallback? onUvolnitObalku;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -497,6 +509,8 @@ class _DetailHeader extends ConsumerWidget {
           children: [
             // Stav z Heliosu zeleně - Helios je zelený, takže je na první
             // pohled poznat, který stav je z ERP a který z dílny.
+            // Právo jen ke čtení - ať je vidět, proč chybí tlačítka.
+            if (jenCteni) const _HeaderChip('Jen čtení', key: Key('jen-cteni')),
             if (order.heliosStatus != null)
               _HeaderChip(order.heliosStatus!, barva: AppColors.heliosGreen),
             // Typ hned za stavem: říká o zakázce víc než pobočka, a mezi
@@ -593,8 +607,8 @@ class _UdajeZakazky extends StatelessWidget {
   });
 
   final ServiceOrder order;
-  final VoidCallback onPriraditObalku;
-  final VoidCallback onUvolnitObalku;
+  final VoidCallback? onPriraditObalku;
+  final VoidCallback? onUvolnitObalku;
 
   /// Vedle identifikace vozu: pevné sloupce. Pod ní půl na půl.
   final bool vedle;
@@ -723,8 +737,8 @@ class _KolonkaObalky extends StatelessWidget {
   });
 
   final ObalkaKlice? obalka;
-  final VoidCallback onPriradit;
-  final VoidCallback onUvolnit;
+  final VoidCallback? onPriradit;
+  final VoidCallback? onUvolnit;
 
   @override
   Widget build(BuildContext context) {
@@ -760,16 +774,17 @@ class _KolonkaObalky extends StatelessWidget {
                   : CisloObalky(obalka: obalka!, barva: palette.naHlavicce),
             ),
             const SizedBox(width: Insets.lg),
-            _TlacitkoObalky(
-              key: Key(
-                kod == null
-                    ? 'obalka-priradit-hlavicka'
-                    : 'obalka-uvolnit-hlavicka',
+            if ((kod == null ? onPriradit : onUvolnit) != null)
+              _TlacitkoObalky(
+                key: Key(
+                  kod == null
+                      ? 'obalka-priradit-hlavicka'
+                      : 'obalka-uvolnit-hlavicka',
+                ),
+                text: kod == null ? 'Přiřadit' : 'Uvolnit',
+                zvyraznene: kod == null,
+                onTap: (kod == null ? onPriradit : onUvolnit)!,
               ),
-              text: kod == null ? 'Přiřadit' : 'Uvolnit',
-              zvyraznene: kod == null,
-              onTap: kod == null ? onPriradit : onUvolnit,
-            ),
           ],
         ),
       ],
@@ -835,7 +850,9 @@ class _RadekZpracovatele extends StatelessWidget {
   const _RadekZpracovatele({required this.zpracovatel, required this.onTap});
 
   final Zpracovatel? zpracovatel;
-  final VoidCallback onTap;
+
+  /// `null` = jen čtení - jméno bez Převzít / Změnit.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -875,14 +892,15 @@ class _RadekZpracovatele extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: Insets.sm),
-              Text(
-                kdo == null ? 'Převzít' : 'Změnit',
-                style: styl.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w600,
+              if (onTap != null) const SizedBox(width: Insets.sm),
+              if (onTap != null)
+                Text(
+                  kdo == null ? 'Převzít' : 'Změnit',
+                  style: styl.copyWith(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -990,7 +1008,12 @@ class _RadekBarvy extends StatelessWidget {
 }
 
 class _HeaderChip extends StatelessWidget {
-  const _HeaderChip(this.label, {this.barva, this.zvyrazneny = false});
+  const _HeaderChip(
+    this.label, {
+    super.key,
+    this.barva,
+    this.zvyrazneny = false,
+  });
 
   final String label;
 

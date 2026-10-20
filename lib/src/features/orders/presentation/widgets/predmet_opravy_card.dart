@@ -18,7 +18,9 @@ class PredmetOpravyCard extends StatelessWidget {
   });
 
   final String? predmet;
-  final VoidCallback onUpravit;
+
+  /// `null` = jen čtení, bez úpravy.
+  final VoidCallback? onUpravit;
 
   @override
   Widget build(BuildContext context) {
@@ -32,26 +34,27 @@ class PredmetOpravyCard extends StatelessWidget {
           Row(
             children: [
               const Expanded(child: SectionLabel('PŘEDMĚT OPRAVY')),
-              Semantics(
-                button: true,
-                label: text == null
-                    ? 'Zapsat předmět opravy'
-                    : 'Upravit předmět opravy',
-                child: GestureDetector(
-                  onTap: onUpravit,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      text == null ? 'Zapsat' : 'Upravit',
-                      style: AppTextStyles.chip.copyWith(
-                        fontSize: 13,
-                        color: AppColors.accent,
+              if (onUpravit != null)
+                Semantics(
+                  button: true,
+                  label: text == null
+                      ? 'Zapsat předmět opravy'
+                      : 'Upravit předmět opravy',
+                  child: GestureDetector(
+                    onTap: onUpravit,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        text == null ? 'Zapsat' : 'Upravit',
+                        style: AppTextStyles.chip.copyWith(
+                          fontSize: 13,
+                          color: AppColors.accent,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: Insets.base),

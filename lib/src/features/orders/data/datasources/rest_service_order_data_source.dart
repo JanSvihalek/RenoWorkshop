@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/zpracovatel.dart';
@@ -417,6 +418,18 @@ class RestServiceOrderDataSource
   @override
   Future<void> synchronizuj() async {
     await _send('POST', 'sync', timeout: const Duration(seconds: 60));
+  }
+
+  @override
+  Future<MojePrava> mojePrava() async {
+    try {
+      final data = await _send('GET', 'me');
+      return data == null ? MojePrava.vse : MojePrava.fromJson(_asMap(data));
+    } on ServiceOrderException {
+      // Starší služba `/me` nemá - appka nic neschovává, zápis hlídá
+      // služba sama.
+      return MojePrava.vse;
+    }
   }
 
   @override

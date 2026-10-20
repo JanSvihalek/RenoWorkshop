@@ -1,6 +1,7 @@
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../dtos/service_order_dto.dart';
 
@@ -97,6 +98,9 @@ abstract interface class ServiceOrderDataSource {
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.
   Future<void> synchronizuj();
+
+  /// `GET /me` - role a práva k pořadačům přihlášeného.
+  Future<MojePrava> mojePrava();
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

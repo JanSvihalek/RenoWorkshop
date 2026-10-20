@@ -240,9 +240,16 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                           constraints: BoxConstraints(
                             minHeight: MediaQuery.sizeOf(context).height * 0.6,
                           ),
-                          child: OrdersEmptyState(
-                            onResetFilters: _resetFilters,
-                          ),
+                          // Bez práv k pořadačům služba nic nepošle - ať
+                          // nikdo nehledá chybu ve filtrech.
+                          child:
+                              ref
+                                      .watch(mojePravaProvider)
+                                      .valueOrNull
+                                      ?.bezPristupu ==
+                                  true
+                              ? const _BezPristupu()
+                              : OrdersEmptyState(onResetFilters: _resetFilters),
                         ),
                       ),
                     )
@@ -925,6 +932,42 @@ class _ListError extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Uživatel zatím nemá práva k žádnému pořadači.
+class _BezPristupu extends StatelessWidget {
+  const _BezPristupu();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      key: const Key('bez-pristupu'),
+      padding: const EdgeInsets.all(Insets.xxl),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.lock_outline_rounded, size: 40, color: palette.muted),
+          const SizedBox(height: Insets.md),
+          Text(
+            'Zatím nemáte přístup k zakázkám',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.cardBody.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: Insets.xs),
+          Text(
+            'Požádejte správce RenoWorkshopu o práva k pořadačům '
+            'své pobočky.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+          ),
+        ],
       ),
     );
   }

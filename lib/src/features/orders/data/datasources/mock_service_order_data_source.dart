@@ -5,6 +5,7 @@ import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
 import '../../../plan/data/plan_data_source.dart';
 import '../../../plan/domain/prehled_planu.dart';
+import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/obalka_klice.dart';
@@ -747,6 +748,10 @@ class MockServiceOrderDataSource
 
   @override
   Future<void> synchronizuj() => _simulateLatency();
+
+  /// Ukázková data - bez omezení.
+  @override
+  Future<MojePrava> mojePrava() async => MojePrava.vse;
 
   /// Příjmy jen v paměti, se stejnými pravidly jako server.
   final PametovyPrijem _prijmy = PametovyPrijem();

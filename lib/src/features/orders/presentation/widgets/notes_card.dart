@@ -14,7 +14,9 @@ class NotesCard extends StatelessWidget {
   const NotesCard({super.key, required this.notes, required this.onAddNote});
 
   final List<OrderNote> notes;
-  final VoidCallback onAddNote;
+
+  /// `null` = jen čtení, bez přidávání.
+  final VoidCallback? onAddNote;
 
   @override
   Widget build(BuildContext context) {
@@ -29,23 +31,24 @@ class NotesCard extends StatelessWidget {
           Row(
             children: [
               const Expanded(child: SectionLabel('PRACOVNÍ LIST / POZNÁMKY')),
-              Semantics(
-                button: true,
-                child: GestureDetector(
-                  onTap: onAddNote,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Přidat',
-                      style: AppTextStyles.chip.copyWith(
-                        fontSize: 13,
-                        color: AppColors.accent,
+              if (onAddNote != null)
+                Semantics(
+                  button: true,
+                  child: GestureDetector(
+                    onTap: onAddNote,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        'Přidat',
+                        style: AppTextStyles.chip.copyWith(
+                          fontSize: 13,
+                          color: AppColors.accent,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: Insets.lg),

@@ -12,6 +12,7 @@ import '../../akce/presentation/akce_providers.dart';
 import '../../orders/domain/entities/order_filter.dart';
 import '../../orders/domain/entities/service_order.dart';
 import '../../orders/domain/repositories/service_order_repository.dart';
+import '../../orders/presentation/controllers/orders_providers.dart';
 import '../../orders/presentation/widgets/filtr_lista.dart' show FiltrVyber;
 import '../../orders/presentation/widgets/order_status_visuals.dart';
 import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
@@ -544,6 +545,8 @@ class _Radek extends ConsumerWidget {
         ? -1
         : dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
     final viditelny = prvni != -1 && posledni >= prvni;
+    // Jen čtení (právo R k pořadači) - plán i stav jen vidí.
+    final smi = ref.watch(smiZapisovatProvider(polozka.zakazka?.poradac?.kod));
     // Bez bloku v období jde na den klepnout: nový plán ho má předvyplněný,
     // existující plán jinde se otevře k úpravě.
     void otevri(DateTime den) => naplanovatKlempirnu(
@@ -610,7 +613,7 @@ class _Radek extends ConsumerWidget {
                           ),
                         ),
                       const SizedBox(height: 4),
-                      _StavDilny(zakazka: zakazka),
+                      _StavDilny(zakazka: zakazka, smi: smi),
                     ],
                   ],
                 ),
@@ -640,8 +643,8 @@ class _Radek extends ConsumerWidget {
                                 key: Key(
                                   'plan-den-${polozka.zakazkaId}-${d.day}',
                                 ),
-                                onTap: () => otevri(d),
-                                child: plan == null
+                                onTap: smi ? () => otevri(d) : null,
+                                child: plan == null && smi
                                     ? Icon(
                                         Icons.add_rounded,
                                         size: 18,
@@ -681,6 +684,7 @@ class _Radek extends ConsumerWidget {
                     bottom: 10,
                     child: _Pruh(
                       polozka: polozka,
+                      smi: smi,
                       plan: plan!,
                       useknutyZleva: plan.od.isBefore(dny[prvni]),
                       useknutyZprava: plan.do_.isAfter(dny[posledni]),
@@ -702,10 +706,14 @@ class _Pruh extends ConsumerWidget {
     required this.plan,
     required this.useknutyZleva,
     required this.useknutyZprava,
+    this.smi = true,
   });
 
   final PolozkaPlanu polozka;
   final PlanKlempirny plan;
+
+  /// Jen čtení - klepnutím se plán neotevře k úpravě.
+  final bool smi;
   final bool useknutyZleva;
   final bool useknutyZprava;
 
@@ -722,14 +730,16 @@ class _Pruh extends ConsumerWidget {
       ),
       child: InkWell(
         key: Key('plan-pruh-${polozka.zakazkaId}'),
-        onTap: () => naplanovatKlempirnu(
-          context,
-          ref,
-          zakazkaId: polozka.zakazkaId,
-          spz: polozka.spz,
-          plan: plan,
-          barva: polozka.barva,
-        ),
+        onTap: smi
+            ? () => naplanovatKlempirnu(
+                context,
+                ref,
+                zakazkaId: polozka.zakazkaId,
+                spz: polozka.spz,
+                plan: plan,
+                barva: polozka.barva,
+              )
+            : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
           child: Row(
@@ -869,9 +879,12 @@ List<PolozkaPlanu> filtrujPlan(
 /// Průběh na dílně pod zakázkou: poslední dílenský stav, poznámka (co se
 /// právě dělá) a kdy. Klepnutím se zapíše nový - stejné okno jako v detailu.
 class _StavDilny extends ConsumerWidget {
-  const _StavDilny({required this.zakazka});
+  const _StavDilny({required this.zakazka, this.smi = true});
 
   final ServiceOrder zakazka;
+
+  /// Jen čtení - stav ukáže, nový nezapíše.
+  final bool smi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -887,7 +900,7 @@ class _StavDilny extends ConsumerWidget {
 
     return GestureDetector(
       key: Key('plan-stav-${zakazka.id}'),
-      onTap: () => pridatStavZakazce(context, ref, zakazka),
+      onTap: smi ? () => pridatStavZakazce(context, ref, zakazka) : null,
       behavior: HitTestBehavior.opaque,
       // V úzkém sloupci (telefon) se zkracuje štítek i poznámka, čas zůstává.
       child: Row(

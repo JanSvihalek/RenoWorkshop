@@ -10,6 +10,7 @@ import '../../../core/utils/date_formats.dart';
 import '../../akce/presentation/kampane_panel.dart' show barvaKampani;
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
+import '../../orders/presentation/controllers/orders_providers.dart';
 import '../../orders/presentation/widgets/detail_cards.dart';
 import 'okno_planu.dart';
 import 'plan_screen.dart' show cestaPlanovace;
@@ -42,6 +43,8 @@ class PlanKarta extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final plan = order.planKlempirny;
+    // Jen čtení - plán vidí, upravit ho nemůže.
+    final smi = ref.watch(smiZapisovatProvider(order.poradac?.kod));
     void otevri() => naplanovatKlempirnu(
       context,
       ref,
@@ -59,7 +62,7 @@ class PlanKarta extends ConsumerWidget {
           Row(
             children: [
               const Expanded(child: SectionLabel('KLEMPÍRNA / LAKOVNA')),
-              if (plan != null)
+              if (plan != null && smi)
                 GestureDetector(
                   key: const Key('plan-upravit'),
                   onTap: otevri,
@@ -80,13 +83,15 @@ class PlanKarta extends ConsumerWidget {
               'Zakázka zatím není v plánu klempírny.',
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             ),
-            const SizedBox(height: Insets.md),
-            FilledButton.icon(
-              key: const Key('zaplanovat-klempirnu'),
-              onPressed: otevri,
-              icon: const Icon(Icons.event_available_outlined, size: 20),
-              label: const Text('Zaplánovat na klempírnu/lakovnu'),
-            ),
+            if (smi) ...[
+              const SizedBox(height: Insets.md),
+              FilledButton.icon(
+                key: const Key('zaplanovat-klempirnu'),
+                onPressed: otevri,
+                icon: const Icon(Icons.event_available_outlined, size: 20),
+                label: const Text('Zaplánovat na klempírnu/lakovnu'),
+              ),
+            ],
           ] else
             _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
           const SizedBox(height: Insets.sm),
