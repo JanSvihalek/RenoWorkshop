@@ -369,6 +369,7 @@ class _VychoziFiltr extends ConsumerWidget {
     final zpracovatele = ref.watch(zpracovateleProvider);
     // Klíče jako text - výběr v nastavení pracuje s textem.
     final moznostiZpracovatele = <String, String>{
+      '${OrderFilter.ja}': 'Já',
       '${OrderFilter.nikdo}': 'Nikdo',
       for (final kdo in zpracovatele) '${kdo.id}': kdo.jmeno,
       if (nastaveni.vychoziZpracovatelId case final id?)
@@ -377,6 +378,8 @@ class _VychoziFiltr extends ConsumerWidget {
     };
     final poradace = ref.watch(pouzitePoradaceProvider);
     final aktivnich = [
+      nastaveni.vychoziPobocka,
+      nastaveni.vychoziStavHelios,
       nastaveni.vychoziUtvar,
       nastaveni.vychoziPoradac,
       nastaveni.vychoziZodpovida,
@@ -411,7 +414,9 @@ class _VychoziFiltr extends ConsumerWidget {
               onTap: ovladani.zrusVychoziFiltr,
             )
           : null,
-      poznamka: 'Seznam zakázek se otevře rovnou takto vyfiltrovaný.',
+      poznamka:
+          'Seznam zakázek se otevře rovnou takto vyfiltrovaný. Platí na '
+          'vašem účtu - stejně i na webu a jiném telefonu.',
       radky: utvary.isEmpty && poradace.isEmpty && zodpovedni.isEmpty
           ? [
               _Radek(

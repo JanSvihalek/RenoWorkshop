@@ -1050,6 +1050,7 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
       for (final m in zakazky.map((z) => z.mechanicName).nonNulls) m: m,
     });
     final zpracovatele = <int, String>{
+      OrderFilter.ja: 'Já',
       OrderFilter.nikdo: 'Nikdo',
       ...serad({
         for (final z in zakazky)
@@ -1171,8 +1172,8 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
                   key: const Key('plan-zrusit-filtry'),
                   onPressed: () {
                     _hledani.clear();
-                    ref.read(planFiltrProvider.notifier).state =
-                        const OrderFilter();
+                    final filtr = ref.read(planFiltrProvider.notifier);
+                    filtr.state = OrderFilter(mujEmail: filtr.state.mujEmail);
                     ref.read(planKodLakuProvider.notifier).state = null;
                     ref.read(planStavPlanuProvider.notifier).state = null;
                   },

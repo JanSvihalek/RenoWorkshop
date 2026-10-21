@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../akce/presentation/akce_providers.dart';
+import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../orders/domain/entities/order_filter.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../data/plan_data_source.dart';
@@ -29,7 +30,9 @@ final planPobockaProvider = StateProvider<String?>((ref) => null);
 /// Filtr plánu - stejný jako u seznamu zakázek (hledání, útvar, pořadač,
 /// stavy, zodpovídá, zpracovává). Pobočku vybírají čipy nahoře.
 final planFiltrProvider = StateProvider<OrderFilter>(
-  (ref) => const OrderFilter(),
+  (ref) => OrderFilter(
+    mujEmail: ref.watch(currentEmployeeProvider)?.email.trim().toLowerCase(),
+  ),
 );
 
 /// Jen zakázky s tímto kódem laku (ručním i z barvy vozu).

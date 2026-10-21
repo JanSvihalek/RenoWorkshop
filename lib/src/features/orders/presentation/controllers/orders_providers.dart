@@ -17,6 +17,7 @@ import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../domain/repositories/service_order_repository.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../../../app/log_udalosti_provider.dart';
@@ -310,14 +311,21 @@ class OrderFilterController extends Notifier<OrderFilter> {
   /// Většina lidí pracuje pořád na jedné a přepínat ji po každém spuštění
   /// je otrava; kdo chce vidět všechno, filtr shodí jedním klepnutím.
   @override
-  OrderFilter build() => _vychozi(ref.watch(nastaveniProvider));
-
-  static OrderFilter _vychozi(Nastaveni nastaveni) => OrderFilter(
-    departmentCode: nastaveni.vychoziUtvar,
-    poradacKod: nastaveni.vychoziPoradac,
-    mechanicName: nastaveni.vychoziZodpovida,
-    zpracovatelId: nastaveni.vychoziZpracovatelId,
+  OrderFilter build() => _vychozi(
+    ref.watch(nastaveniProvider),
+    ref.watch(currentEmployeeProvider)?.email.trim().toLowerCase(),
   );
+
+  static OrderFilter _vychozi(Nastaveni nastaveni, String? mujEmail) =>
+      OrderFilter(
+        branchCode: nastaveni.vychoziPobocka,
+        departmentCode: nastaveni.vychoziUtvar,
+        poradacKod: nastaveni.vychoziPoradac,
+        heliosStav: nastaveni.vychoziStavHelios,
+        mechanicName: nastaveni.vychoziZodpovida,
+        zpracovatelId: nastaveni.vychoziZpracovatelId,
+        mujEmail: mujEmail,
+      );
 
   void setBranch(String? branchCode) => state = branchCode == null
       ? state.copyWith(clearBranch: true, clearDepartment: true)
@@ -364,8 +372,9 @@ class OrderFilterController extends Notifier<OrderFilter> {
   /// na sebe, který zrovna nemá žádnou zakázku, by zůstal u prázdné
   /// obrazovky a „Zrušit filtry" by ho vracelo na ni.
   void reset() {
-    final vychozi = _vychozi(ref.read(nastaveniProvider));
-    state = state == vychozi ? const OrderFilter() : vychozi;
+    final email = ref.read(currentEmployeeProvider)?.email.trim().toLowerCase();
+    final vychozi = _vychozi(ref.read(nastaveniProvider), email);
+    state = state == vychozi ? OrderFilter(mujEmail: email) : vychozi;
   }
 }
 

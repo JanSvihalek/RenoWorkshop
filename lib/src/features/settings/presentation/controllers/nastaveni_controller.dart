@@ -76,8 +76,13 @@ class NastaveniController extends Notifier<Nastaveni> {
   void zmenUkazkovaData(bool zapnout) =>
       _uloz(state.copyWith(ukazkovaData: zapnout));
 
+  /// Nastavení z účtu (po přihlášení) - uloží se i do telefonu.
+  void prevezmiZUctu(Nastaveni nastaveni) => _uloz(nastaveni);
+
   void zrusVychoziFiltr() => _uloz(
     state.copyWith(
+      zrusPobocku: true,
+      zrusStavHelios: true,
       zrusUtvar: true,
       zrusPoradac: true,
       zrusZodpovida: true,

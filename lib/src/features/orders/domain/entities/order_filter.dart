@@ -27,6 +27,7 @@ class OrderFilter {
     this.zpracovatelId,
     this.query = '',
     this.sort = OrderSort.receivedDate,
+    this.mujEmail,
   });
 
   /// `null` = všechny pobočky. Kód pobočky, ne název - názvy se mohou
@@ -53,12 +54,20 @@ class OrderFilter {
   final String? mechanicName;
 
   /// Id zpracovatele (zaměstnanec v Heliosu). `null` = všichni,
-  /// [nikdo] = jen zakázky, které nikdo nezpracovává.
+  /// [nikdo] = jen zakázky, které nikdo nezpracovává, [ja] = moje.
   final int? zpracovatelId;
 
   /// Hodnota [zpracovatelId] pro zakázky bez zpracovatele. Id z Heliosu
   /// jsou kladná, nula se s nimi nepotká.
   static const nikdo = 0;
+
+  /// Hodnota [zpracovatelId] pro „Já" - zakázky, které zpracovává
+  /// přihlášený ([mujEmail]). Jako volba Já na webu.
+  static const ja = -1;
+
+  /// E-mail přihlášeného (malými písmeny) - podle něj se pozná „Já".
+  /// Není to filtr, jen údaj k němu.
+  final String? mujEmail;
 
   final String query;
   final OrderSort sort;
@@ -98,6 +107,7 @@ class OrderFilter {
     int? zpracovatelId,
     String? query,
     OrderSort? sort,
+    String? mujEmail,
     bool clearBranch = false,
     bool clearDepartment = false,
     bool clearTypZakazky = false,
@@ -124,6 +134,7 @@ class OrderFilter {
           : (zpracovatelId ?? this.zpracovatelId),
       query: query ?? this.query,
       sort: sort ?? this.sort,
+      mujEmail: mujEmail ?? this.mujEmail,
     );
   }
 
@@ -150,7 +161,10 @@ class OrderFilter {
     if (mechanicName != null && order.mechanicName != mechanicName) {
       return false;
     }
-    if (zpracovatelId != null &&
+    if (zpracovatelId == ja) {
+      final email = order.zpracovatel?.email?.trim().toLowerCase();
+      if (mujEmail == null || email != mujEmail) return false;
+    } else if (zpracovatelId != null &&
         (order.zpracovatel?.id ?? nikdo) != zpracovatelId) {
       return false;
     }

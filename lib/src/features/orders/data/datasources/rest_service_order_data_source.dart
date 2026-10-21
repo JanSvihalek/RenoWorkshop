@@ -25,6 +25,7 @@ import '../../../prijem/data/prijem_data_source.dart';
 import '../../../prijem/domain/entities/prijem.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
+import '../../../settings/data/nastaveni_uctu_data_source.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
@@ -41,6 +42,7 @@ import 'service_order_data_source.dart';
 class RestServiceOrderDataSource
     implements
         ServiceOrderDataSource,
+        NastaveniUctuDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -444,6 +446,18 @@ class RestServiceOrderDataSource
       'users/${Uri.encodeComponent(email)}',
       body: {'role': role, 'planner': ?planovac, 'access': prava},
     );
+  }
+
+  @override
+  Future<Map<String, Object?>> nactiNastaveniUctu() async {
+    final data = await _send('GET', 'me/settings');
+    final nastaveni = data == null ? null : _asMap(data)['settings'];
+    return nastaveni is Map<String, Object?> ? nastaveni : const {};
+  }
+
+  @override
+  Future<void> ulozNastaveniUctu(Map<String, Object?> zmena) async {
+    await _send('PATCH', 'me/settings', body: zmena);
   }
 
   @override

@@ -92,19 +92,23 @@ enum ZobrazeniZakazek {
 
 /// Co si aplikace pamatuje mezi spuštěními.
 ///
-/// Drží se v telefonu, ne na serveru: jde o pohodlí konkrétního přístroje.
-/// Na sdíleném dílenském telefonu by nastavení tažené z účtu znamenalo, že
-/// se vzhled mění pod rukama podle toho, kdo se zrovna přihlásil.
+/// Drží se v telefonu. Výchozí filtr, složka fotek a úvodní záložka se
+/// navíc nesou s účtem (nastaveni_uctu.dart) - po přihlášení je má člověk
+/// stejné i na webu a jiném telefonu. Vzhled, karty/tabulka a skener
+/// zůstávají jen v telefonu: na sdíleném dílenském telefonu by se jinak
+/// měnily pod rukama podle toho, kdo se zrovna přihlásil.
 @immutable
 class Nastaveni {
   const Nastaveni({
     this.vzhled = RezimVzhledu.podleSystemu,
     this.spoust = UmisteniSpouste.dole,
+    this.vychoziPobocka,
     this.vychoziUtvar,
     this.vychoziPoradac,
     this.vychoziZodpovida,
     this.vychoziZpracovatelId,
     this.vychoziZpracovatelJmeno,
+    this.vychoziStavHelios,
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
     this.skenovatPoOtevreni = true,
@@ -131,6 +135,10 @@ class Nastaveni {
   /// Vyzkoušené na iPadu (6. 10. 2026).
   final bool samoRozpoznatSpz;
 
+  /// Kód pobočky, na kterou se seznam otevře. `null` = všechny. Nastavuje
+  /// se zatím jen na webu, appka ho převezme z účtu.
+  final String? vychoziPobocka;
+
   /// Kód útvaru, na který se seznam otevře. `null` = všechny.
   ///
   /// Kód, ne název - názvy útvarů se v Heliosu přepisují, kód drží.
@@ -154,6 +162,10 @@ class Nastaveni {
   /// Jméno k [vychoziZpracovatelId] - aby se volba dala ukázat, i když
   /// zrovna nemá žádnou zakázku a mezi načtenými není.
   final String? vychoziZpracovatelJmeno;
+
+  /// Stav z Heliosu („Zpracováváno"), na kterém se seznam otevře. Jako
+  /// pobočka - nastavuje se na webu, appka ho převezme z účtu.
+  final String? vychoziStavHelios;
 
   /// Složka pobočky ve Foto-doc, kam jdou fotky z příjmu. `null` = podle
   /// pořadače zakázky.
@@ -181,6 +193,8 @@ class Nastaveni {
   final bool ukazkovaData;
 
   bool get maVychoziFiltr =>
+      vychoziPobocka != null ||
+      vychoziStavHelios != null ||
       vychoziUtvar != null ||
       vychoziPoradac != null ||
       vychoziZodpovida != null ||
@@ -189,6 +203,8 @@ class Nastaveni {
   Nastaveni copyWith({
     RezimVzhledu? vzhled,
     UmisteniSpouste? spoust,
+    String? vychoziPobocka,
+    bool zrusPobocku = false,
     String? vychoziUtvar,
     bool zrusUtvar = false,
     String? vychoziPoradac,
@@ -198,6 +214,8 @@ class Nastaveni {
     int? vychoziZpracovatelId,
     String? vychoziZpracovatelJmeno,
     bool zrusZpracovatele = false,
+    String? vychoziStavHelios,
+    bool zrusStavHelios = false,
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
@@ -210,6 +228,9 @@ class Nastaveni {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
       spoust: spoust ?? this.spoust,
+      vychoziPobocka: zrusPobocku
+          ? null
+          : (vychoziPobocka ?? this.vychoziPobocka),
       vychoziUtvar: zrusUtvar ? null : (vychoziUtvar ?? this.vychoziUtvar),
       vychoziPoradac: zrusPoradac
           ? null
@@ -223,6 +244,9 @@ class Nastaveni {
       vychoziZpracovatelJmeno: zrusZpracovatele
           ? null
           : (vychoziZpracovatelJmeno ?? this.vychoziZpracovatelJmeno),
+      vychoziStavHelios: zrusStavHelios
+          ? null
+          : (vychoziStavHelios ?? this.vychoziStavHelios),
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
@@ -240,6 +264,8 @@ class Nastaveni {
       (other is Nastaveni &&
           other.vzhled == vzhled &&
           other.spoust == spoust &&
+          other.vychoziPobocka == vychoziPobocka &&
+          other.vychoziStavHelios == vychoziStavHelios &&
           other.vychoziUtvar == vychoziUtvar &&
           other.vychoziPoradac == vychoziPoradac &&
           other.vychoziZodpovida == vychoziZodpovida &&
@@ -254,9 +280,11 @@ class Nastaveni {
           other.ukazkovaData == ukazkovaData);
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     vzhled,
     spoust,
+    vychoziPobocka,
+    vychoziStavHelios,
     vychoziUtvar,
     vychoziPoradac,
     vychoziZodpovida,
@@ -269,5 +297,5 @@ class Nastaveni {
     zobrazeniZakazek,
     uvodniZalozka,
     ukazkovaData,
-  );
+  ]);
 }

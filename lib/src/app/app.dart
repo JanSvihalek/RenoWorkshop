@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
+import '../features/settings/presentation/controllers/nastaveni_uctu_provider.dart';
 import 'router.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +16,8 @@ class RenoWorkshopApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Výchozí filtr, pohled plánovače… z účtu - po přihlášení.
+    ref.watch(nastaveniUctuProvider);
     return MaterialApp.router(
       title: 'RenoWorkshop',
       debugShowCheckedModeBanner: false,

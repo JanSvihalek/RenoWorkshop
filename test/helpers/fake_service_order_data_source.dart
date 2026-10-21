@@ -5,6 +5,7 @@ import 'package:renoworkshop/src/features/akce/data/kampane_data_source.dart';
 import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
+import 'package:renoworkshop/src/features/settings/data/nastaveni_uctu_data_source.dart';
 import 'package:renoworkshop/src/features/uzivatele/data/uzivatele_data_source.dart';
 import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
@@ -32,6 +33,7 @@ import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 class FakeServiceOrderDataSource
     implements
         ServiceOrderDataSource,
+        NastaveniUctuDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -68,6 +70,30 @@ class FakeServiceOrderDataSource
 
   /// Hláška, se kterou synchronizace spadne - třeba minutový limit služby.
   String? chybaSynchronizace;
+
+  /// Nastavení na účtu - jako služba: změna přepíše poslané klíče,
+  /// `null` klíč smaže.
+  Map<String, Object?> nastaveniUctu = {};
+
+  /// Změny nastavení, které appka poslala na účet.
+  final zmenyNastaveniUctu = <Map<String, Object?>>[];
+
+  @override
+  Future<Map<String, Object?>> nactiNastaveniUctu() async => {...nastaveniUctu};
+
+  @override
+  Future<void> ulozNastaveniUctu(Map<String, Object?> zmena) async {
+    zmenyNastaveniUctu.add(zmena);
+    final nove = {...nastaveniUctu};
+    for (final MapEntry(:key, :value) in zmena.entries) {
+      if (value == null) {
+        nove.remove(key);
+      } else {
+        nove[key] = value;
+      }
+    }
+    nastaveniUctu = nove;
+  }
 
   /// Práva přihlášeného - test si je nastaví.
   MojePrava prava = MojePrava.vse;

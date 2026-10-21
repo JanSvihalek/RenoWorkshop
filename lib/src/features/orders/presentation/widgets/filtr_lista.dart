@@ -100,6 +100,7 @@ class FiltrLista extends ConsumerWidget {
               popisek: 'Zpracovává',
               hodnota: filter.zpracovatelId,
               moznosti: {
+                OrderFilter.ja: 'Já',
                 OrderFilter.nikdo: 'Nikdo',
                 for (final kdo in zpracovatele) kdo.id: kdo.jmeno,
                 // Výchozí zpracovatel z nastavení, který zrovna nemá
