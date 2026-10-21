@@ -426,10 +426,19 @@ void main() {
           canPlanBodyshop: true,
           status: 'Lakovna',
           statusCode: 'lakovna',
+          vehicleColor: {'code': '475', 'name': 'Black Sapphire'},
         ),
       ],
     );
     await otevriPlanovac(tester);
+    // U vozu kód barvy z Heliosu.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('plan-barva-ZK-26-0001')),
+        matching: find.text('KÓD 475', findRichText: true),
+      ),
+      findsOneWidget,
+    );
     final stav = find.byKey(const Key('plan-stav-ZK-26-0001'));
     expect(stav, findsOneWidget);
     // Pod zákazníkem VIN a kdo zodpovídá.

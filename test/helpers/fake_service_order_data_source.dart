@@ -736,6 +736,7 @@ class FakeServiceOrderDataSource
               plan: o.bodyshopPlan == null
                   ? null
                   : PlanKlempirny.fromJson(o.bodyshopPlan!),
+              barva: BarvaVozu.zJson(o.vehicleColor),
               zakazka: o.toDomain(),
             ),
       ],

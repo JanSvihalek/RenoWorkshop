@@ -604,17 +604,34 @@ class _Radek extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      [
-                        if (polozka.spz.isNotEmpty) polozka.spz,
-                        if (polozka.model.isNotEmpty) polozka.model,
-                      ].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.cardBody.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: palette.text,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            [
+                              if (polozka.spz.isNotEmpty) polozka.spz,
+                              if (polozka.model.isNotEmpty) polozka.model,
+                            ].join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.cardBody.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: palette.text,
+                            ),
+                          ),
+                        ),
+                        // Kód barvy vozu z Heliosu - nezkracuje se.
+                        if (polozka.barva case final barva?) ...[
+                          const SizedBox(width: Insets.sm),
+                          Tooltip(
+                            message: barva.popis,
+                            child: KodLaku(
+                              key: Key('plan-barva-${polozka.zakazkaId}'),
+                              kod: barva.kod,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       '${polozka.zakazkaId} · ${polozka.zakaznik}',
