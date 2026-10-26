@@ -12,6 +12,7 @@ class DetailCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(Insets.xl),
     this.zHeliosu = false,
+    this.zIspi = false,
   });
 
   final Widget child;
@@ -22,25 +23,33 @@ class DetailCard extends StatelessWidget {
   /// ní z dílny nezapisuje.
   final bool zHeliosu;
 
+  /// Dokumenty ze serveru ISPI - karta je světle modrá.
+  final bool zIspi;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final tmavy = Theme.of(context).brightness == Brightness.dark;
+    final ton = zHeliosu
+        ? (AppColors.heliosGreen, AppColors.heliosZelena(context))
+        : zIspi
+        ? (AppColors.ispiBlue, AppColors.ispiModra(context))
+        : null;
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: zHeliosu
-            ? Color.alphaBlend(
-                AppColors.heliosGreen.withValues(alpha: tmavy ? 0.16 : 0.07),
+        color: ton == null
+            ? palette.card
+            : Color.alphaBlend(
+                ton.$1.withValues(alpha: tmavy ? 0.16 : 0.07),
                 palette.card,
-              )
-            : palette.card,
+              ),
         borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(
-          color: zHeliosu
-              ? AppColors.heliosZelena(context).withValues(alpha: 0.55)
-              : palette.hairline,
+          color: ton == null
+              ? palette.hairline
+              : ton.$2.withValues(alpha: 0.55),
         ),
       ),
       child: child,

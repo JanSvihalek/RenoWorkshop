@@ -47,6 +47,16 @@ abstract final class AppColors {
       Theme.of(context).brightness == Brightness.dark
       ? heliosGreenOnDark
       : heliosGreen;
+
+  /// Dokumenty ze serveru ISPI (ISTA/ISPA/AWP) - světle modrá, ať se
+  /// odliší od dílny i od Heliosu. Jako na webu.
+  static const Color ispiBlue = Color(0xFF0288D1);
+  static const Color ispiBlueOnDark = Color(0xFF4FC3F7);
+
+  static Color ispiModra(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? ispiBlueOnDark
+      : ispiBlue;
   static const Color mutedLight = Color(0xFF6B818A);
   static const Color muted2Light = Color(0xFF3D545C);
   static const Color plateLight = Color(0xFFE4EBEE);

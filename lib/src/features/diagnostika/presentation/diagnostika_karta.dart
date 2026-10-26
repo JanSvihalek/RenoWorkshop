@@ -135,6 +135,7 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
 
     return DetailCard(
       key: const Key('diagnostika-karta'),
+      zIspi: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -142,6 +143,7 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
             seznam.isEmpty
                 ? 'ISTA/ISPA/AWP DOKUMENTY'
                 : 'ISTA/ISPA/AWP DOKUMENTY  ${seznam.length}',
+            barva: AppColors.ispiModra(context),
           ),
           const SizedBox(height: Insets.sm),
           obsah,
@@ -253,7 +255,7 @@ class _Radek extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: Insets.sm),
         child: Row(
           children: [
-            Icon(ikona, color: AppColors.accent, size: 24),
+            Icon(ikona, color: AppColors.ispiModra(context), size: 24),
             const SizedBox(width: Insets.base),
             Expanded(
               child: Column(
