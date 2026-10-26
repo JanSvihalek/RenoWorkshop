@@ -87,14 +87,8 @@ void main() {
   ) async {
     await otevriDetail(tester, dokumenty: [zakazkovyList]);
 
-    // Část Doklady karty Dokumenty, s počtem a štítkem Helios.
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('dokumenty-karta')),
-        matching: find.text('Doklady  1'),
-      ),
-      findsOneWidget,
-    );
+    // Vlastní karta Helios doklady v sekci Dokumenty, s počtem.
+    expect(vKarte(find.text('HELIOS DOKLADY  1')), findsOneWidget);
     expect(
       vKarte(find.text('Zak-list-Z1212607793-29.09.2026-10-39-50_1.pdf')),
       findsOneWidget,
@@ -124,8 +118,9 @@ void main() {
         .widgetList<DetailCard>(find.byType(DetailCard))
         .where((k) => k.zHeliosu);
 
-    // Dokumenty: karta je smíšená, doklady z Heliosu mají štítek.
-    expect(zelene(), isEmpty);
+    // Dokumenty: zelená je jen karta Helios doklady.
+    expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
+    expect(zelene(), hasLength(1));
     expect(find.byKey(const Key('helios-znacka')), findsOneWidget);
 
     await naSekci(tester, 'zavady');

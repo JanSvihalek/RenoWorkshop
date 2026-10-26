@@ -21,14 +21,10 @@ class FotodokumentaceKarta extends ConsumerWidget {
     super.key,
     required this.orderId,
     required this.onOtevrit,
-    this.vlozena = false,
   });
 
   final String orderId;
   final VoidCallback onOtevrit;
-
-  /// Část karty Dokumenty: bez vlastní karty, s náhledy fotek.
-  final bool vlozena;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,25 +69,18 @@ class FotodokumentaceKarta extends ConsumerWidget {
         key: const Key('otevrit-fotodokumentaci'),
         onTap: onOtevrit,
         behavior: HitTestBehavior.opaque,
-        child: _Obal(
-          vlozena: vlozena,
+        child: DetailCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Expanded(
-                    child: vlozena
-                        ? Text(
-                            nahrane.isEmpty
-                                ? 'Fotodokumentace'
-                                : 'Fotodokumentace  ${nahrane.length}',
-                            style: AppTextStyles.cardBody.copyWith(
-                              color: palette.text,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          )
-                        : const SectionLabel('FOTODOKUMENTACE'),
+                    child: SectionLabel(
+                      nahrane.isEmpty
+                          ? 'FOTODOKUMENTACE'
+                          : 'FOTODOKUMENTACE  ${nahrane.length}',
+                    ),
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
@@ -100,7 +89,7 @@ class FotodokumentaceKarta extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (vlozena && nahrane.isNotEmpty) ...[
+              if (nahrane.isNotEmpty) ...[
                 const SizedBox(height: Insets.sm),
                 _Nahledy(fotky: nahrane),
               ],
@@ -147,18 +136,6 @@ class FotodokumentaceKarta extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Vlastní karta, nebo jen obsah uvnitř karty Dokumenty.
-class _Obal extends StatelessWidget {
-  const _Obal({required this.vlozena, required this.child});
-
-  final bool vlozena;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) =>
-      vlozena ? child : DetailCard(child: child);
 }
 
 /// Prvních pár náhledů a dlaždice „+N Zobrazit vše". Klepnutí kamkoli

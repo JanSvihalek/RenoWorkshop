@@ -12,7 +12,6 @@ import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart
 import '../../../prijem/domain/entities/prijem.dart';
 import '../../../prijem/presentation/controllers/prijem_providers.dart';
 import '../../../ulozenky/presentation/ulozenky_karta.dart';
-import 'detail_cards.dart';
 
 /// Sekce detailu zakázky podle Janova návrhu (26. 10. 2026) - vlevo menu
 /// s počty, uprostřed vybraná sekce, vpravo pořád průběh. Jako na webu.
@@ -214,9 +213,9 @@ class _Polozka extends StatelessWidget {
   }
 }
 
-/// Dokumenty - jedna karta, tři části: fotodokumentace (náhledy),
-/// diagnostika (protokoly ISPI) a doklady z Heliosu.
-class DokumentyKarta extends ConsumerWidget {
+/// Dokumenty - tři samostatné karty pod sebou: fotodokumentace (náhledy),
+/// ISTA/ISPA protokoly z diagnostiky a doklady z Heliosu.
+class DokumentyKarta extends StatelessWidget {
   const DokumentyKarta({
     super.key,
     required this.orderId,
@@ -227,63 +226,19 @@ class DokumentyKarta extends ConsumerWidget {
   final VoidCallback? onFotodokumentace;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final diagnostika =
-        ref.watch(diagnostikaZakazkyProvider(orderId)).valueOrNull?.length ?? 0;
-    final doklady =
-        ref.watch(dokumentyHeliosuProvider(orderId)).valueOrNull?.length ?? 0;
-
-    Widget nadpis(String text, int pocet, {bool zHeliosu = false}) => Padding(
-      padding: const EdgeInsets.only(bottom: Insets.xs),
-      child: Row(
-        children: [
-          Text(
-            pocet > 0 ? '$text  $pocet' : text,
-            style: AppTextStyles.cardBody.copyWith(
-              color: palette.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (zHeliosu) ...[
-            const SizedBox(width: Insets.sm),
-            const HeliosZnacka(text: 'JEN KE ČTENÍ'),
-          ],
-        ],
-      ),
-    );
-    Widget oddel() => Divider(height: Insets.xl, color: palette.hairline);
-
-    return DetailCard(
+  Widget build(BuildContext context) {
+    return Column(
       key: const Key('dokumenty-karta'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: SectionLabel(
-                  'DOKUMENTY  ${pocetDokumentu(ref, orderId)}',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.md),
-          if (onFotodokumentace != null) ...[
-            FotodokumentaceKarta(
-              orderId: orderId,
-              onOtevrit: onFotodokumentace!,
-              vlozena: true,
-            ),
-            oddel(),
-          ],
-          nadpis('Diagnostika', diagnostika),
-          DiagnostikaKarta(orderId: orderId, vlozena: true),
-          oddel(),
-          nadpis('Doklady', doklady, zHeliosu: true),
-          DokumentyHeliosuKarta(orderId: orderId, vlozena: true),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (onFotodokumentace != null) ...[
+          FotodokumentaceKarta(orderId: orderId, onOtevrit: onFotodokumentace!),
+          const SizedBox(height: Insets.base),
         ],
-      ),
+        DiagnostikaKarta(orderId: orderId),
+        const SizedBox(height: Insets.base),
+        DokumentyHeliosuKarta(orderId: orderId),
+      ],
     );
   }
 }
