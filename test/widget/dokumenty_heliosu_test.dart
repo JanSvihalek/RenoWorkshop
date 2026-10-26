@@ -111,12 +111,13 @@ void main() {
         tester.widget<DetailCard>(find.byKey(Key(klic)));
     expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
     expect(karta('zavady-karta').zHeliosu, isTrue);
-    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(2));
+    expect(karta('ulozenky-pneu').zHeliosu, isTrue);
+    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(3));
     // Ostatní karty (postup, poznámky...) zapisuje dílna - zelené nejsou.
     final zelene = tester
         .widgetList<DetailCard>(find.byType(DetailCard))
         .where((k) => k.zHeliosu);
-    expect(zelene, hasLength(2));
+    expect(zelene, hasLength(3));
   });
 
   testWidgets('na úzkém telefonu se záhlaví Helios karet vejde', (
@@ -139,10 +140,11 @@ void main() {
       (chyba) =>
           chyba.contains('zavady_card.dart') ||
           chyba.contains('dokumenty_heliosu_karta.dart') ||
+          chyba.contains('ulozenky_karta.dart') ||
           chyba.contains('detail_cards.dart'),
     );
     expect(vHeliosu, isEmpty);
-    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(2));
+    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(3));
   });
 
   testWidgets('zakázka bez dokumentů v Heliosu to řekne', (tester) async {

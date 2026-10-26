@@ -22,6 +22,8 @@ import '../../../prijem/domain/entities/prijem.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
+import '../../../ulozenky/data/ulozenky_data_source.dart';
+import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../../domain/entities/dilensky_stav.dart';
@@ -43,7 +45,8 @@ class MockServiceOrderDataSource
         AkceDataSource,
         KampaneDataSource,
         PlanDataSource,
-        UzivateleDataSource {
+        UzivateleDataSource,
+        UlozenkyDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
     this.assetPath = 'assets/mock/service_orders.json',
@@ -751,6 +754,41 @@ class MockServiceOrderDataSource
 
   @override
   Future<void> synchronizuj() => _simulateLatency();
+
+  /// Ukázková uloženka - zimní sada ve skladu, u každého vozu stejná.
+  @override
+  Future<List<UlozenkaPneu>> ulozenkyZakazky(String orderId) async {
+    await _simulateLatency();
+    return [
+      UlozenkaPneu(
+        id: 1,
+        cislo: 'UBSL006451',
+        stav: 'Uložen',
+        zimni: true,
+        pocet: 4,
+        ulozeno: DateTime(2026, 4, 2),
+        umisteni: 'Regál B2',
+        kola: [
+          for (final (pozice, mm) in [
+            ('LP', 6.0),
+            ('PP', 6.0),
+            ('LZ', 4.5),
+            ('PZ', 3.5),
+          ])
+            KoloUlozenky(
+              pozice: pozice,
+              vyrobce: 'GOODYEAR',
+              vzorek: 'UltraGrip Performance 3',
+              rozmer: '255/45 R20',
+              dezen: mm,
+              dot: '2625',
+              indexRychlosti: 'V',
+              indexNosnosti: 105,
+            ),
+        ],
+      ),
+    ];
+  }
 
   /// Ukázková data - bez omezení.
   @override

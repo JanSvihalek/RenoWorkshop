@@ -12,6 +12,7 @@ import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../../orders/presentation/widgets/order_card.dart';
 import '../../../prijem/domain/entities/dezen.dart';
 import '../../../prijem/presentation/widgets/dezen_pneu.dart';
+import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../controllers/vozidla_providers.dart';
 import '../widgets/identifikace_vozidla_karta.dart';
 
@@ -98,6 +99,11 @@ class KartaVozidlaScreen extends ConsumerWidget {
                             zmereno: vozidlo.dezenZmerenAt,
                           ),
                         ),
+                      ],
+                      // Uloženky pneu z Heliosu - jen když nějaké jsou.
+                      if (vozidlo.ulozenky.isNotEmpty) ...[
+                        const SizedBox(height: Insets.lg),
+                        naStred(UlozenkyPneuKarta(ulozenky: vozidlo.ulozenky)),
                       ],
                       const SizedBox(height: Insets.huge),
                       naStred(

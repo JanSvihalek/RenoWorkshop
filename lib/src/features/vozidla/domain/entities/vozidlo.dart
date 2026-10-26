@@ -1,6 +1,7 @@
 import '../../../orders/domain/entities/kampan_vozidla.dart';
 import '../../../orders/domain/entities/service_order.dart';
 import '../../../prijem/domain/entities/dezen.dart';
+import '../../../ulozenky/domain/ulozenka_pneu.dart';
 
 /// Vozidlo nalezené podle SPZ nebo VIN - řádek výsledků hledání.
 class NalezeneVozidlo {
@@ -41,6 +42,7 @@ class KartaVozidla {
     this.kampanePodleStari = const [],
     this.dezen,
     this.dezenZmerenAt,
+    this.ulozenky = const [],
     this.majitel,
     this.kontakt,
     this.zakazky = const [],
@@ -67,6 +69,9 @@ class KartaVozidla {
   /// Poslední dezén pneu změřený při příjmu; `null` = ještě se neměřil.
   final Dezen? dezen;
   final DateTime? dezenZmerenAt;
+
+  /// Uloženky pneu z Heliosu - aktivní nahoře, pak od nejnovější.
+  final List<UlozenkaPneu> ulozenky;
 
   /// Majitel **dnes**. Zákazník na staré zakázce může být jiný - vůz se
   /// mezitím prodal - a každá zakázka si ho nese sama.

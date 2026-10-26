@@ -26,6 +26,8 @@ import '../../../prijem/domain/entities/prijem.dart';
 import '../../../vozidla/data/vozidla_data_source.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../../settings/data/nastaveni_uctu_data_source.dart';
+import '../../../ulozenky/data/ulozenky_data_source.dart';
+import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
@@ -43,6 +45,7 @@ class RestServiceOrderDataSource
     implements
         ServiceOrderDataSource,
         NastaveniUctuDataSource,
+        UlozenkyDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -446,6 +449,19 @@ class RestServiceOrderDataSource
       'users/${Uri.encodeComponent(email)}',
       body: {'role': role, 'planner': ?planovac, 'access': prava},
     );
+  }
+
+  @override
+  Future<List<UlozenkaPneu>> ulozenkyZakazky(String orderId) async {
+    final data = await _send(
+      'GET',
+      'orders/${Uri.encodeComponent(orderId)}/tire-storage',
+    );
+    final polozky = data == null ? null : _asMap(data)['items'];
+    return [
+      for (final u in polozky is List ? polozky : const [])
+        UlozenkaPneu.fromJson(u as Map<String, dynamic>),
+    ];
   }
 
   @override

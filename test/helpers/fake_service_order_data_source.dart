@@ -6,6 +6,8 @@ import 'package:renoworkshop/src/features/akce/domain/kampan_podle_stari.dart';
 import 'package:renoworkshop/src/features/akce/domain/marketingova_akce.dart';
 import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uctu_data_source.dart';
+import 'package:renoworkshop/src/features/ulozenky/data/ulozenky_data_source.dart';
+import 'package:renoworkshop/src/features/ulozenky/domain/ulozenka_pneu.dart';
 import 'package:renoworkshop/src/features/uzivatele/data/uzivatele_data_source.dart';
 import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
@@ -34,6 +36,7 @@ class FakeServiceOrderDataSource
     implements
         ServiceOrderDataSource,
         NastaveniUctuDataSource,
+        UlozenkyDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -70,6 +73,13 @@ class FakeServiceOrderDataSource
 
   /// Hláška, se kterou synchronizace spadne - třeba minutový limit služby.
   String? chybaSynchronizace;
+
+  /// Uloženky pneu podle zakázky - test si je nastaví.
+  Map<String, List<UlozenkaPneu>> ulozenky = {};
+
+  @override
+  Future<List<UlozenkaPneu>> ulozenkyZakazky(String orderId) async =>
+      ulozenky[orderId] ?? const [];
 
   /// Nastavení na účtu - jako služba: změna přepíše poslané klíče,
   /// `null` klíč smaže.

@@ -2,6 +2,7 @@ import '../../orders/domain/entities/kampan_vozidla.dart';
 import '../../orders/data/dtos/service_order_dto.dart';
 import '../domain/entities/vozidlo.dart';
 import '../../prijem/domain/entities/dezen.dart';
+import '../../ulozenky/domain/ulozenka_pneu.dart';
 
 /// Zdroj dat o vozidlech.
 ///
@@ -50,6 +51,10 @@ abstract final class VozidlaJson {
           KampanVozidla.fromJson(k as Map<String, dynamic>),
       ],
       dezen: Dezen.zApi(json['tires']),
+      ulozenky: [
+        for (final u in json['tireStorage'] as List<dynamic>? ?? const [])
+          UlozenkaPneu.fromJson(u as Map<String, dynamic>),
+      ],
       dezenZmerenAt: switch (json['tires']) {
         {'measuredAt': final String kdy} => DateTime.tryParse(kdy),
         _ => null,

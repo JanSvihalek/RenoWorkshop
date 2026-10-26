@@ -13,6 +13,7 @@ import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.dart';
+import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
 import '../../../plan/presentation/plan_karta.dart';
@@ -274,6 +275,9 @@ class _DetailBody extends ConsumerWidget {
     // Zakázkový list a další dokumenty z EDM Heliosu, jen ke čtení.
     final dokumentyHeliosu = DokumentyHeliosuKarta(orderId: order.id);
 
+    // Uloženky pneu vozu z Heliosu, jen ke čtení.
+    final ulozenky = UlozenkyZakazkyKarta(orderId: order.id);
+
     // Na širokém tabletu dva sloupce: vlevo podklady k vozu (závady, příjem,
     // fotky, dokumenty z Heliosu), vpravo průběh opravy (postup, pracovní
     // list). Termíny a pojištění jsou v hlavičce. Přes celou šířku by
@@ -311,12 +315,13 @@ class _DetailBody extends ConsumerWidget {
                     children: [
                       // Každý sloupec se posouvá zvlášť - časová osa bývá
                       // dlouhá a nemá tahat dolů i zbytek.
-                      Expanded(child: _Sloupec(karty: prace)),
+                      Expanded(child: _Sloupec(karty: [...prace, ulozenky])),
                       Expanded(child: _Sloupec(karty: stav)),
                     ],
                   )
-                // Na telefonu jeden sloupec: nejdřív práce, pak stav.
-                : _Sloupec(karty: [...prace, ...stav]),
+                // Na telefonu jeden sloupec: nejdřív práce, pak stav
+                // a uloženky pneu až na konec - průběh opravy je důležitější.
+                : _Sloupec(karty: [...prace, ...stav, ulozenky]),
           ),
         ),
       ],
