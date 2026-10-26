@@ -11,6 +11,7 @@ import 'package:renoworkshop/src/features/orders/presentation/controllers/orders
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/dezen.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
@@ -99,13 +100,13 @@ void main() {
 
   void vyplnVse(String orderId) {
     for (final polozka in vychoziChecklist) {
-      zdroj.prijmy.zmen(
-        orderId,
-        polozka.kod,
-        polozka.typ == TypKontroly.datum
-            ? ZmenaPolozky.datum(DateTime(2027, 5, 31))
-            : ZmenaPolozky.splneno(true),
-      );
+      zdroj.prijmy.zmen(orderId, polozka.kod, switch (polozka.typ) {
+        TypKontroly.datum => ZmenaPolozky.datum(DateTime(2027, 5, 31)),
+        TypKontroly.pneu => ZmenaPolozky.dezen(
+          const Dezen(lp: 6, pp: 6, lz: 5, pz: 5),
+        ),
+        TypKontroly.kontrola => ZmenaPolozky.splneno(true),
+      });
     }
   }
 
@@ -122,12 +123,12 @@ void main() {
 
     await pokracuj(tester);
     expect(krok(tester), 'Krok 3 ze 4 · Kontrola');
-    expect(postup(tester), '0 / 9');
+    expect(postup(tester), '0 / 10');
 
     // Souhrn ukáže, co chybí, a dokončit nejde.
     await pokracuj(tester);
     expect(krok(tester), 'Krok 4 ze 4 · Souhrn');
-    expect(find.text('Chybí zkontrolovat: 9'), findsOneWidget);
+    expect(find.text('Chybí zkontrolovat: 10'), findsOneWidget);
     expect(dokoncit(tester).onPressed, isNull);
 
     // Zpět na kontrolu a vyplnit.
@@ -139,18 +140,48 @@ void main() {
         await klepni(tester, kontrola(polozka.kod));
       }
     }
-    expect(postup(tester), '8 / 9');
+    expect(postup(tester), '8 / 10');
     // Zaškrtnutí se ukládá hned, bez tlačítka Uložit.
     expect(zdroj.prijmy.nacti('ZK-26-0001').pocetVyplnenych, 8);
+
+    // Dezén se měří v okně - u každého kola mm, zimní pod 4 mm červeně.
+    await klepni(tester, kontrola('dezen'));
+    await tester.tap(find.text('Zimní'));
+    await tester.pumpAndSettle();
+    for (final (kolo, mm) in [
+      ('lp', '6,2'),
+      ('pp', '6'),
+      ('lz', '3.5'),
+      ('pz', '5'),
+    ]) {
+      await tester.enterText(find.byKey(Key('dezen-$kolo')), mm);
+    }
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('dezen-ulozit')));
+    await tester.pumpAndSettle();
+    expect(
+      zdroj.prijmy
+          .nacti('ZK-26-0001')
+          .polozky
+          .firstWhere((p) => p.kod == 'dezen')
+          .hodnota,
+      'Z;6.2;6;3.5;5',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('dezen-souhrn-dezen'))).data,
+      'Zimní · LP 6,2 · PP 6,0 · LZ 3,5 · PZ 5,0 mm · Nutná výměna',
+    );
+    expect(postup(tester), '9 / 10');
 
     // STK se nezaškrtává, zadává se datum.
     await klepni(tester, kontrola('stk'));
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
-    expect(postup(tester), '9 / 9');
+    expect(postup(tester), '10 / 10');
 
     await pokracuj(tester);
-    expect(find.text('Zkontrolováno vše (9)'), findsOneWidget);
+    expect(find.text('Zkontrolováno vše (10)'), findsOneWidget);
+    expect(find.byKey(const Key('prijem-souhrn-dezen')), findsOneWidget);
     await tester.tap(find.byKey(const Key('dokoncit-prijem')));
     await tester.pumpAndSettle();
 
@@ -164,7 +195,7 @@ void main() {
     final zmen = zdroj.pocetZmenPrijmu;
     await klepni(tester, kontrola('brzdy'));
     expect(zdroj.pocetZmenPrijmu, zmen);
-    expect(postup(tester), '9 / 9');
+    expect(postup(tester), '10 / 10');
   });
 
   testWidgets('dokončený příjem se otevře na souhrnu a jde znovu otevřít', (
@@ -198,7 +229,7 @@ void main() {
     await klepni(tester, kontrola('brzdy'));
 
     expect(find.text('Server neodpovídá.'), findsOneWidget);
-    expect(postup(tester), '0 / 9');
+    expect(postup(tester), '0 / 10');
   });
 
   testWidgets('nález z kontroly je v souhrnu i v detailu zakázky', (
@@ -252,7 +283,7 @@ void main() {
     expect(
       find.descendant(
         of: karta,
-        matching: find.text('Rozpracovaný · zkontrolováno 1 z 9'),
+        matching: find.text('Rozpracovaný · zkontrolováno 1 z 10'),
       ),
       findsOneWidget,
     );

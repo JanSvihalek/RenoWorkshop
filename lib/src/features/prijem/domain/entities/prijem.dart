@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'dezen.dart';
+
 /// Kde je příjem vozidla u zakázky.
 enum StavPrijmu {
   nezahajen('not_started'),
@@ -16,8 +18,9 @@ enum StavPrijmu {
   );
 }
 
-/// `kontrola` se zaškrtává, `datum` se zapisuje (platnost STK).
-enum TypKontroly { kontrola, datum }
+/// `kontrola` se zaškrtává, `datum` se zapisuje (platnost STK), `pneu`
+/// je dezén u každého kola ([Dezen]).
+enum TypKontroly { kontrola, datum, pneu }
 
 /// Jeden bod checklistu příjmu.
 @immutable
@@ -43,7 +46,8 @@ class PolozkaPrijmu {
   final bool povinna;
   final bool splneno;
 
-  /// U typu [TypKontroly.datum] datum ve tvaru RRRR-MM-DD.
+  /// U typu [TypKontroly.datum] datum ve tvaru RRRR-MM-DD, u
+  /// [TypKontroly.pneu] zápis dezénu ([Dezen.zapis]).
   final String? hodnota;
 
   /// Co technik při kontrole našel.
@@ -53,7 +57,13 @@ class PolozkaPrijmu {
 
   DateTime? get datum => hodnota == null ? null : DateTime.tryParse(hodnota!);
 
-  bool get jeVyplnena => typ == TypKontroly.datum ? datum != null : splneno;
+  Dezen? get dezen => typ == TypKontroly.pneu ? Dezen.precti(hodnota) : null;
+
+  bool get jeVyplnena => switch (typ) {
+    TypKontroly.datum => datum != null,
+    TypKontroly.pneu => dezen?.jeKompletni ?? false,
+    TypKontroly.kontrola => splneno,
+  };
 
   PolozkaPrijmu copyWith({
     bool? splneno,
@@ -76,7 +86,11 @@ class PolozkaPrijmu {
   factory PolozkaPrijmu.fromJson(Map<String, dynamic> json) => PolozkaPrijmu(
     kod: json['code'] as String,
     nazev: json['label'] as String? ?? json['code'] as String,
-    typ: json['type'] == 'date' ? TypKontroly.datum : TypKontroly.kontrola,
+    typ: switch (json['type']) {
+      'date' => TypKontroly.datum,
+      'tires' => TypKontroly.pneu,
+      _ => TypKontroly.kontrola,
+    },
     povinna: json['required'] as bool? ?? true,
     splneno: json['checked'] as bool? ?? false,
     hodnota: json['value'] as String?,
@@ -155,6 +169,10 @@ class ZmenaPolozky {
   /// Datum STK; `null` ho smaže.
   factory ZmenaPolozky.datum(DateTime? datum) =>
       ZmenaPolozky._({'value': datum == null ? null : datumProApi(datum)});
+
+  /// Dezén pneu; `null` ho smaže.
+  factory ZmenaPolozky.dezen(Dezen? dezen) =>
+      ZmenaPolozky._({'value': dezen?.zapis()});
 
   /// Prázdná poznámka se smaže.
   factory ZmenaPolozky.poznamka(String? poznamka) => ZmenaPolozky._({

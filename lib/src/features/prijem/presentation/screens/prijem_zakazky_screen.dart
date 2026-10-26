@@ -17,6 +17,7 @@ import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../domain/entities/prijem.dart';
 import '../../../orders/presentation/widgets/obalka_klice.dart';
 import '../controllers/prijem_providers.dart';
+import '../widgets/dezen_pneu.dart';
 import '../widgets/identifikace_karta.dart';
 
 /// Kroky průvodce v pořadí, jak se vůz přijímá: obejít ho s fotoaparátem,
@@ -82,6 +83,17 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
 
   Future<void> _zmen(String kod, ZmenaPolozky zmena) async {
     _ukazChybu(await _controller.zmen(kod, zmena));
+  }
+
+  /// Bod s hodnotou: datum STK z kalendáře, dezén v okně pro kola.
+  Future<void> _zadejHodnotu(PolozkaPrijmu polozka) async {
+    if (polozka.typ == TypKontroly.pneu) {
+      final dezen = await zmerDezen(context, polozka.dezen);
+      if (dezen == null || dezen == polozka.dezen || !mounted) return;
+      await _zmen(polozka.kod, ZmenaPolozky.dezen(dezen));
+      return;
+    }
+    await _vyberDatum(polozka);
   }
 
   Future<void> _vyberDatum(PolozkaPrijmu polozka) async {
@@ -267,7 +279,7 @@ class _PrijemZakazkyScreenState extends ConsumerState<PrijemZakazkyScreen> {
             prijem: prijem,
             onZaskrtnout: (polozka, hodnota) =>
                 _zmen(polozka.kod, ZmenaPolozky.splneno(hodnota)),
-            onDatum: _vyberDatum,
+            onHodnota: _zadejHodnotu,
             onPoznamka: _upravPoznamku,
           ),
         ],
@@ -590,13 +602,15 @@ class _Checklist extends StatelessWidget {
   const _Checklist({
     required this.prijem,
     required this.onZaskrtnout,
-    required this.onDatum,
+    required this.onHodnota,
     required this.onPoznamka,
   });
 
   final Prijem prijem;
   final void Function(PolozkaPrijmu polozka, bool hodnota) onZaskrtnout;
-  final ValueChanged<PolozkaPrijmu> onDatum;
+
+  /// Datum STK nebo dezén - bod, u kterého se zadává hodnota.
+  final ValueChanged<PolozkaPrijmu> onHodnota;
   final ValueChanged<PolozkaPrijmu> onPoznamka;
 
   @override
@@ -633,7 +647,7 @@ class _Checklist extends StatelessWidget {
               polozka: polozka,
               zamceno: prijem.jeDokoncen,
               onZaskrtnout: (hodnota) => onZaskrtnout(polozka, hodnota),
-              onDatum: () => onDatum(polozka),
+              onHodnota: () => onHodnota(polozka),
               onPoznamka: () => onPoznamka(polozka),
             ),
         ],
@@ -663,6 +677,7 @@ class _SouhrnKontroly extends StatelessWidget {
     final stk = prijem.polozky
         .where((p) => p.typ == TypKontroly.datum && p.datum != null)
         .firstOrNull;
+    final dezen = prijem.polozky.map((p) => p.dezen).nonNulls.firstOrNull;
 
     return DetailCard(
       child: Column(
@@ -714,6 +729,24 @@ class _SouhrnKontroly extends StatelessWidget {
             const SizedBox(height: Insets.md),
             _Radek(stk.nazev, AppDateFormat.date(stk.datum!)),
           ],
+          if (dezen != null) ...[
+            const SizedBox(height: Insets.md),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'DEZÉN PNEU',
+                    style: AppTextStyles.overline.copyWith(
+                      color: palette.muted,
+                    ),
+                  ),
+                ),
+                StitekDezenu(dezen: dezen),
+              ],
+            ),
+            const SizedBox(height: Insets.sm),
+            SchemaDezenu(key: const Key('prijem-souhrn-dezen'), dezen: dezen),
+          ],
           if (nalezy.isNotEmpty) ...[
             const SizedBox(height: Insets.md),
             Text(
@@ -755,20 +788,23 @@ class _Polozka extends StatelessWidget {
     required this.polozka,
     required this.zamceno,
     required this.onZaskrtnout,
-    required this.onDatum,
+    required this.onHodnota,
     required this.onPoznamka,
   });
 
   final PolozkaPrijmu polozka;
   final bool zamceno;
   final ValueChanged<bool> onZaskrtnout;
-  final VoidCallback onDatum;
+  final VoidCallback onHodnota;
   final VoidCallback onPoznamka;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final jeDatum = polozka.typ == TypKontroly.datum;
+    final jePneu = polozka.typ == TypKontroly.pneu;
+    final dezen = polozka.dezen;
+    final barvaPneu = barvaDezenu(dezen?.stav, palette);
     final poznamka = polozka.poznamka;
 
     return InkWell(
@@ -776,7 +812,9 @@ class _Polozka extends StatelessWidget {
       // malého čtverečku netrefí nikdo.
       onTap: zamceno
           ? null
-          : (jeDatum ? onDatum : () => onZaskrtnout(!polozka.splneno)),
+          : (jeDatum || jePneu
+                ? onHodnota
+                : () => onZaskrtnout(!polozka.splneno)),
       borderRadius: BorderRadius.circular(Radii.input),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: Insets.xs),
@@ -786,7 +824,12 @@ class _Polozka extends StatelessWidget {
             SizedBox(
               width: 40,
               height: 40,
-              child: jeDatum
+              child: jePneu
+                  ? Icon(
+                      Icons.tire_repair_rounded,
+                      color: polozka.jeVyplnena ? barvaPneu : palette.muted,
+                    )
+                  : jeDatum
                   ? Icon(
                       polozka.jeVyplnena
                           ? Icons.event_available_rounded
@@ -815,6 +858,21 @@ class _Polozka extends StatelessWidget {
                         color: polozka.povinna ? palette.text : palette.muted,
                       ),
                     ),
+                    if (jePneu) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        dezen == null || !dezen.jeKompletni
+                            ? 'Klepněte a změřte dezén u všech kol'
+                            : '${dezen.popis} · ${dezen.stav!.label}',
+                        key: Key('dezen-souhrn-${polozka.kod}'),
+                        style: AppTextStyles.cardBody.copyWith(
+                          color: dezen == null || !dezen.jeKompletni
+                              ? AppColors.accent
+                              : barvaPneu,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     if (jeDatum) ...[
                       const SizedBox(height: 2),
                       Text(

@@ -43,8 +43,9 @@ const vychoziChecklist = [
   ),
   PolozkaPrijmu(
     kod: 'napravy',
-    nazev: 'Kontrola náprav + stav pneu + spodní kryty vozidla',
+    nazev: 'Kontrola náprav + spodní kryty vozidla',
   ),
+  PolozkaPrijmu(kod: 'dezen', nazev: 'Dezén pneu (mm)', typ: TypKontroly.pneu),
   PolozkaPrijmu(kod: 'kapaliny', nazev: 'Kapaliny: olej, chladicí kapalina'),
 ];
 

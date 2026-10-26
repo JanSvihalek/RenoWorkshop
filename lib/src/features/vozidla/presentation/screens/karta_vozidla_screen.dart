@@ -6,9 +6,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../../core/utils/date_formats.dart';
 import '../../../orders/domain/entities/service_order.dart';
 import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../../orders/presentation/widgets/order_card.dart';
+import '../../../prijem/domain/entities/dezen.dart';
+import '../../../prijem/presentation/widgets/dezen_pneu.dart';
 import '../controllers/vozidla_providers.dart';
 import '../widgets/identifikace_vozidla_karta.dart';
 
@@ -87,6 +90,15 @@ class KartaVozidlaScreen extends ConsumerWidget {
                           onNeniToOno: onNeniToOno,
                         ),
                       ),
+                      if (vozidlo.dezen case final dezen?) ...[
+                        const SizedBox(height: Insets.lg),
+                        naStred(
+                          _DezenVozu(
+                            dezen: dezen,
+                            zmereno: vozidlo.dezenZmerenAt,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: Insets.huge),
                       naStred(
                         SectionLabel('ZAKÁZKY (${vozidlo.zakazky.length})'),
@@ -208,6 +220,43 @@ class _Sdeleni extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Poslední dezén pneu z příjmu - poradce vidí, jak pneu ubývají, a může
+/// nabídnout nové dřív, než přijde zima.
+class _DezenVozu extends StatelessWidget {
+  const _DezenVozu({required this.dezen, required this.zmereno});
+
+  final Dezen dezen;
+  final DateTime? zmereno;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return DetailCard(
+      key: const Key('vozidlo-dezen'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: SectionLabel('DEZÉN PNEU')),
+              StitekDezenu(dezen: dezen),
+            ],
+          ),
+          if (zmereno != null) ...[
+            const SizedBox(height: Insets.xxs),
+            Text(
+              'Změřeno při příjmu ${AppDateFormat.date(zmereno!)}',
+              style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+            ),
+          ],
+          const SizedBox(height: Insets.md),
+          SchemaDezenu(dezen: dezen),
+        ],
       ),
     );
   }

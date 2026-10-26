@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
+import 'package:renoworkshop/src/features/prijem/domain/entities/dezen.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/controllers/prijem_providers.dart';
 
@@ -167,12 +168,13 @@ void main() {
       expect(await controller.dokonci(), isNotNull);
 
       for (final polozka in vychoziChecklist) {
-        await controller.zmen(
-          polozka.kod,
-          polozka.typ == TypKontroly.datum
-              ? ZmenaPolozky.datum(DateTime(2027, 5, 31))
-              : ZmenaPolozky.splneno(true),
-        );
+        await controller.zmen(polozka.kod, switch (polozka.typ) {
+          TypKontroly.datum => ZmenaPolozky.datum(DateTime(2027, 5, 31)),
+          TypKontroly.pneu => ZmenaPolozky.dezen(
+            const Dezen(lp: 6, pp: 6, lz: 5, pz: 5),
+          ),
+          TypKontroly.kontrola => ZmenaPolozky.splneno(true),
+        });
       }
       expect(await controller.dokonci(), isNull);
       expect(

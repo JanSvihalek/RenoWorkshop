@@ -1,5 +1,6 @@
 import '../../../orders/domain/entities/kampan_vozidla.dart';
 import '../../../orders/domain/entities/service_order.dart';
+import '../../../prijem/domain/entities/dezen.dart';
 
 /// Vozidlo nalezené podle SPZ nebo VIN - řádek výsledků hledání.
 class NalezeneVozidlo {
@@ -38,6 +39,8 @@ class KartaVozidla {
     this.tachometr,
     this.prodano,
     this.kampanePodleStari = const [],
+    this.dezen,
+    this.dezenZmerenAt,
     this.majitel,
     this.kontakt,
     this.zakazky = const [],
@@ -60,6 +63,10 @@ class KartaVozidla {
 
   /// Kampaně podle stáří od registrace (FitServis+), které se vozu týkají.
   final List<KampanVozidla> kampanePodleStari;
+
+  /// Poslední dezén pneu změřený při příjmu; `null` = ještě se neměřil.
+  final Dezen? dezen;
+  final DateTime? dezenZmerenAt;
 
   /// Majitel **dnes**. Zákazník na staré zakázce může být jiný - vůz se
   /// mezitím prodal - a každá zakázka si ho nese sama.
