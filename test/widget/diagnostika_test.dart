@@ -43,7 +43,7 @@ void main() {
     expect(velikostSouboru(196000), '191 kB');
   });
 
-  testWidgets('detail: otevře finální report, podrobné po rozbalení', (
+  testWidgets('detail: případ s Final reportem a ostatními soubory', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 1600);
@@ -102,14 +102,15 @@ void main() {
     final karta = find.byKey(const Key('diagnostika-karta'));
     await tester.ensureVisible(karta);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diagnostika-7')));
+    expect(find.text('Případ 21. 10. 2026, 9:15 · Brno'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('diagnostika-hlavni-7')));
     await tester.pumpAndSettle();
     expect(zdroj.stazeneDiagnostiky.last, ('7', 'hlavni'));
     expect(otevrene.last, 'report.pdf');
 
-    await tester.tap(find.byKey(const Key('diagnostika-podrobne-7')));
-    await tester.pumpAndSettle();
+    // Ostatní soubory bez rozbalování, hlavní se neopakuje.
     expect(find.text('Testplan.pdf'), findsOneWidget);
+    expect(find.text('report.pdf'), findsNothing);
     expect(find.text('ISTA-Data · 2,3 MB'), findsOneWidget);
     await tester.tap(find.byKey(const Key('diagnostika-soubor-ista')));
     await tester.pumpAndSettle();

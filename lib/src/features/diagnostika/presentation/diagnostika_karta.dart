@@ -33,7 +33,7 @@ final diagnostikaZakazkyProvider = FutureProvider.autoDispose
       }
     });
 
-/// Soubory protokolu - až po rozbalení podrobných protokolů.
+/// Soubory případu (Final report, ISTA, ISPA, AWP…).
 final souboryDiagnostikyProvider = FutureProvider.autoDispose
     .family<List<SouborDiagnostiky>, (String, String)>((ref, klic) async {
       final zdroj = _zdroj(ref);
@@ -41,9 +41,9 @@ final souboryDiagnostikyProvider = FutureProvider.autoDispose
       return zdroj.souboryProtokolu(klic.$1, klic.$2);
     });
 
-/// Karta Diagnostika v detailu zakázky - protokoly BMW ISPI ze serveru
-/// pobočky. Klepnutí otevře finální report, podrobné protokoly (ISPA,
-/// ISTA) jsou pod rozbalením.
+/// Karta ISTA/ISPA/AWP dokumenty v detailu zakázky - případy BMW ISPI ze
+/// serveru pobočky. Ve složce případu není jen diagnostika, proto „Případ"
+/// a pod ním všechny soubory, Final report první. Jako na webu.
 class DiagnostikaKarta extends ConsumerStatefulWidget {
   const DiagnostikaKarta({super.key, required this.orderId});
 
@@ -56,9 +56,6 @@ class DiagnostikaKarta extends ConsumerStatefulWidget {
 class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
   /// Id souboru, který se právě stahuje - jeden naráz.
   String? _otevira;
-
-  /// Protokol s rozbalenými podrobnými protokoly.
-  String? _rozbaleny;
 
   Future<void> _otevri(String protokolId, String souborId, String nazev) async {
     final zdroj = _zdrojZ(ref);
@@ -124,38 +121,14 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
       obsah = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final p in seznam) ...[
-            _Radek(
+          for (final p in seznam)
+            _Pripad(
               key: Key('diagnostika-${p.id}'),
-              ikona: Icons.monitor_heart_outlined,
-              nazev: 'Případ ${AppDateFormat.dateTime(p.cas)}',
-              popis: p.zdroj,
-              otevira: _otevira == p.hlavniId,
-              onTap: () => _otevri(p.id, p.hlavniId, p.hlavniNazev),
+              orderId: widget.orderId,
+              protokol: p,
+              otevira: _otevira,
+              onOtevri: (id, nazev) => _otevri(p.id, id, nazev),
             ),
-            TextButton.icon(
-              key: Key('diagnostika-podrobne-${p.id}'),
-              onPressed: () =>
-                  setState(() => _rozbaleny = _rozbaleny == p.id ? null : p.id),
-              icon: Icon(
-                _rozbaleny == p.id
-                    ? Icons.expand_less_rounded
-                    : Icons.expand_more_rounded,
-              ),
-              label: Text(
-                _rozbaleny == p.id
-                    ? 'Skrýt podrobné protokoly'
-                    : 'Podrobné protokoly (ISPA, ISTA)',
-              ),
-            ),
-            if (_rozbaleny == p.id)
-              _Podrobne(
-                orderId: widget.orderId,
-                protokol: p,
-                otevira: _otevira,
-                onOtevri: (s) => _otevri(p.id, s.id, s.nazev),
-              ),
-          ],
         ],
       );
     }
@@ -178,8 +151,9 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
   }
 }
 
-class _Podrobne extends ConsumerWidget {
-  const _Podrobne({
+class _Pripad extends ConsumerWidget {
+  const _Pripad({
+    super.key,
     required this.orderId,
     required this.protokol,
     required this.otevira,
@@ -189,54 +163,66 @@ class _Podrobne extends ConsumerWidget {
   final String orderId;
   final ProtokolDiagnostiky protokol;
   final String? otevira;
-  final ValueChanged<SouborDiagnostiky> onOtevri;
+  final void Function(String id, String nazev) onOtevri;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final soubory = ref.watch(
-      souboryDiagnostikyProvider((orderId, protokol.id)),
-    );
+    final p = protokol;
+    final soubory = ref.watch(souboryDiagnostikyProvider((orderId, p.id)));
+    final vse = soubory.valueOrNull ?? const <SouborDiagnostiky>[];
+    final hlavni = vse.where((s) => s.hlavni).firstOrNull;
     Widget text(String t) => Padding(
-      padding: const EdgeInsets.only(left: Insets.xl, bottom: Insets.sm),
+      padding: const EdgeInsets.only(bottom: Insets.sm),
       child: Text(
         t,
         style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
       ),
     );
 
-    return soubory.when(
-      loading: () => text('Načítám soubory…'),
-      error: (chyba, _) => text(
-        chyba is ServiceOrderException
-            ? chyba.message
-            : 'Soubory se nepodařilo načíst.',
-      ),
-      data: (vse) {
-        final podrobne = [
-          for (final s in vse)
-            if (!s.hlavni) s,
-        ];
-        if (podrobne.isEmpty) {
-          return text('Podrobné protokoly ve složce nejsou.');
-        }
-        return Padding(
-          padding: const EdgeInsets.only(left: Insets.xl),
-          child: Column(
-            children: [
-              for (final s in podrobne)
-                _Radek(
-                  key: Key('diagnostika-soubor-${s.id}'),
-                  ikona: Icons.description_outlined,
-                  nazev: s.nazev,
-                  popis: [?s.slozka, velikostSouboru(s.velikost)].join(' · '),
-                  otevira: otevira == s.id,
-                  onTap: () => onOtevri(s),
-                ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: Insets.sm),
+          child: Text(
+            [
+              'Případ ${AppDateFormat.dateTime(p.cas)}',
+              if (p.zdroj.isNotEmpty) p.zdroj,
+            ].join(' · '),
+            style: AppTextStyles.cardBody.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        );
-      },
+        ),
+        // Final report je známý ze seznamu případů, ukáže se hned.
+        _Radek(
+          key: Key('diagnostika-hlavni-${p.id}'),
+          ikona: Icons.picture_as_pdf_outlined,
+          nazev: 'Final report',
+          popis: hlavni == null ? '' : velikostSouboru(hlavni.velikost),
+          otevira: otevira == p.hlavniId,
+          onTap: () => onOtevri(p.hlavniId, p.hlavniNazev),
+        ),
+        for (final s in vse)
+          if (!s.hlavni)
+            _Radek(
+              key: Key('diagnostika-soubor-${s.id}'),
+              ikona: Icons.description_outlined,
+              nazev: s.nazev,
+              popis: [?s.slozka, velikostSouboru(s.velikost)].join(' · '),
+              otevira: otevira == s.id,
+              onTap: () => onOtevri(s.id, s.nazev),
+            ),
+        if (soubory.isLoading) text('Načítám další dokumenty…'),
+        if (soubory.hasError)
+          text(
+            soubory.error is ServiceOrderException
+                ? (soubory.error! as ServiceOrderException).message
+                : 'Další dokumenty se nepodařilo načíst.',
+          ),
+      ],
     );
   }
 }
