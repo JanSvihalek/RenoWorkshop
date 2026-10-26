@@ -280,22 +280,76 @@ void main() {
     await tester.pumpAndSettle();
     await naSekci(tester, 'prijem');
 
-    final karta = find.byKey(const Key('otevrit-prijem'));
-    await tester.ensureVisible(karta);
+    // Souhrn příjmu: stav, nález s poznámkou, celý checklist sbalený.
+    final souhrn = find.byKey(const Key('prijem-souhrn'));
+    await tester.ensureVisible(souhrn);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('prijem-souhrn-stav'))).data,
+      startsWith('Rozpracovaný · 1/10'),
+    );
+    final nalezy = find.byKey(const Key('prijem-nalezy'));
+    expect(
+      find.descendant(of: nalezy, matching: find.text('NÁLEZY  1')),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
-        of: karta,
-        matching: find.text('Rozpracovaný · zkontrolováno 1 z 10'),
+        of: nalezy,
+        matching: find.text('Opotřebené destičky vpředu'),
       ),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: karta, matching: find.text('1 kontrola s poznámkou')),
+      find.descendant(of: souhrn, matching: find.text('Pokračovat v příjmu')),
       findsOneWidget,
     );
 
-    await klepni(tester, karta);
+    await klepni(tester, find.byKey(const Key('otevrit-prijem')));
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
+  });
+
+  testWidgets('detail: souhrn dokončeného příjmu - dezén, STK, checklist', (
+    tester,
+  ) async {
+    await spust(tester);
+    vyplnVse('ZK-26-0001');
+    zdroj.prijmy.zmen(
+      'ZK-26-0001',
+      'brzdy',
+      ZmenaPolozky.poznamka('Destičky na hraně'),
+    );
+    zdroj.prijmy.dokonci('ZK-26-0001');
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(OrdersListScreen),
+        matching: find.byType(TextField),
+      ),
+      '2BK 9485',
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
+    await tester.tap(find.byType(OrderCard));
+    await tester.pumpAndSettle();
+    await naSekci(tester, 'prijem');
+
+    final souhrn = find.byKey(const Key('prijem-souhrn'));
+    await tester.ensureVisible(souhrn);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('prijem-souhrn-stav'))).data,
+      startsWith('Dokončen'),
+    );
+    Finder v(String klic, String text) =>
+        find.descendant(of: find.byKey(Key(klic)), matching: find.text(text));
+    expect(v('prijem-nalezy', 'Destičky na hraně'), findsOneWidget);
+    expect(find.byKey(const Key('prijem-dezen')), findsOneWidget);
+    expect(v('prijem-stk', 'do 31. 5. 2027'), findsOneWidget);
+    expect(
+      find.descendant(of: souhrn, matching: find.text('Otevřít příjem')),
+      findsOneWidget,
+    );
+    // Checklist je sbalený, rozbalí se klepnutím.
+    expect(find.text('Kontrola osvětlení: přední, zadní, SPZ'), findsNothing);
+    await klepni(tester, find.byKey(const Key('prijem-checklist')));
+    expect(find.text('Kontrola osvětlení: přední, zadní, SPZ'), findsOneWidget);
   });
 
   testWidgets('na tabletu jsou kroky vlevo a jde na ně klepnout', (

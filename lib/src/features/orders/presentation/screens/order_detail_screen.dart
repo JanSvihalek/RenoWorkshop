@@ -16,7 +16,7 @@ import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
 import '../../../plan/presentation/plan_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../../prijem/presentation/widgets/prijem_karta.dart';
+import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/plan_klempirny.dart';
@@ -255,10 +255,15 @@ class _DetailBody extends ConsumerWidget {
       onAddNote: smi ? () => _addNote(context, ref) : null,
     );
 
-    // Příjem zapisuje (kontroly, protokol) - jen se zápisem.
-    final prijem = onPrijem == null || !smi
-        ? const _PrijemJenKeCteni()
-        : PrijemKarta(orderId: order.id, onOtevrit: () => onPrijem!(order.id));
+    // Souhrn příjmu - nálezy, dezén, STK, fotky. Zahájit a upravit ho
+    // smí jen kdo má zápis; jinak jen ke čtení.
+    final prijem = PrijemSouhrn(
+      orderId: order.id,
+      onOtevrit: onPrijem == null || !smi ? null : () => onPrijem!(order.id),
+      onFotky: onFotodokumentace == null
+          ? null
+          : () => onFotodokumentace!(order.id),
+    );
 
     // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
     // s odškrtáváním, do které ale nikdy nic neteklo.
@@ -405,30 +410,6 @@ class _TeloDetailuState extends State<_TeloDetailu> {
           ],
         );
       },
-    );
-  }
-}
-
-/// Příjem bez práva zápisu - zahajuje ho, kdo má k zakázce zápis.
-class _PrijemJenKeCteni extends StatelessWidget {
-  const _PrijemJenKeCteni();
-
-  @override
-  Widget build(BuildContext context) {
-    return DetailCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionLabel('PŘÍJEM VOZIDLA'),
-          const SizedBox(height: Insets.sm),
-          Text(
-            'Příjem zahajuje a vyplňuje, kdo má k zakázce zápis.',
-            style: AppTextStyles.cardBody.copyWith(
-              color: context.palette.muted,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
