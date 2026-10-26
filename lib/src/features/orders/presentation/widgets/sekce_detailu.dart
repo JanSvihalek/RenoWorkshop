@@ -214,7 +214,7 @@ class _Polozka extends StatelessWidget {
 }
 
 /// Dokumenty - tři samostatné karty pod sebou: fotodokumentace (náhledy),
-/// ISTA/ISPA protokoly z diagnostiky a doklady z Heliosu.
+/// doklady z Heliosu a ISTA/ISPA/AWP dokumenty ze serveru ISPI.
 class DokumentyKarta extends StatelessWidget {
   const DokumentyKarta({
     super.key,
@@ -235,9 +235,9 @@ class DokumentyKarta extends StatelessWidget {
           FotodokumentaceKarta(orderId: orderId, onOtevrit: onFotodokumentace!),
           const SizedBox(height: Insets.base),
         ],
-        DiagnostikaKarta(orderId: orderId),
-        const SizedBox(height: Insets.base),
         DokumentyHeliosuKarta(orderId: orderId),
+        const SizedBox(height: Insets.base),
+        DiagnostikaKarta(orderId: orderId),
       ],
     );
   }
