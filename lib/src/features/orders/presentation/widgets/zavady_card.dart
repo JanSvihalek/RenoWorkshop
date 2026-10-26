@@ -146,7 +146,9 @@ class _RadekZavady extends StatelessWidget {
                       color: poznamka.isEmpty ? palette.muted : palette.text,
                     ),
                   ),
-                if (zavada.kod case final kod?) ...[
+                // Kód z Heliosu bývá jen pořadové číslo - to už je vlevo.
+                if (zavada.kod case final kod?
+                    when !RegExp(r'^\d+$').hasMatch(kod.trim())) ...[
                   const SizedBox(height: 2),
                   Text(
                     'Závada $kod',

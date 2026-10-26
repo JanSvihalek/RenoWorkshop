@@ -77,8 +77,9 @@ void main() {
     );
     expect(nazev.style!.fontWeight, FontWeight.w600);
     expect(poznamka.style!.fontSize, lessThan(nazev.style!.fontSize!));
-    // Závada bez popisu ukáže aspoň poznámku.
-    expect(find.text('Závada 001'), findsOneWidget);
+    // Kód z Heliosu je jen pořadové číslo (001) - to už je vlevo, znovu
+    // se neukazuje.
+    expect(find.text('Závada 001'), findsNothing);
     expect(find.text('1.'), findsOneWidget);
     expect(find.text('2.'), findsOneWidget);
     // Jen ke čtení - žádné zaškrtávátko, závady zapisuje poradce v Heliosu.
