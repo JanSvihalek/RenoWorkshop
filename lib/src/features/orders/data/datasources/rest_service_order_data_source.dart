@@ -28,6 +28,8 @@ import '../../../vozidla/domain/entities/vozidlo.dart';
 import '../../../settings/data/nastaveni_uctu_data_source.dart';
 import '../../../ulozenky/data/ulozenky_data_source.dart';
 import '../../../ulozenky/domain/ulozenka_pneu.dart';
+import '../../../diagnostika/data/diagnostika_data_source.dart';
+import '../../../diagnostika/domain/diagnostika.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
@@ -46,6 +48,7 @@ class RestServiceOrderDataSource
         ServiceOrderDataSource,
         NastaveniUctuDataSource,
         UlozenkyDataSource,
+        DiagnostikaDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -449,6 +452,54 @@ class RestServiceOrderDataSource
       'users/${Uri.encodeComponent(email)}',
       body: {'role': role, 'planner': ?planovac, 'access': prava},
     );
+  }
+
+  String _cestaDiagnostiky(String orderId) =>
+      'orders/${Uri.encodeComponent(orderId)}/diagnostics';
+
+  @override
+  Future<List<ProtokolDiagnostiky>> protokolyZakazky(String orderId) async {
+    final data = await _send('GET', _cestaDiagnostiky(orderId));
+    final polozky = data == null ? null : _asMap(data)['items'];
+    return [
+      for (final p in polozky is List ? polozky : const [])
+        ProtokolDiagnostiky.fromJson(p as Map<String, dynamic>),
+    ];
+  }
+
+  @override
+  Future<List<SouborDiagnostiky>> souboryProtokolu(
+    String orderId,
+    String protokolId,
+  ) async {
+    final data = await _send(
+      'GET',
+      '${_cestaDiagnostiky(orderId)}/${Uri.encodeComponent(protokolId)}/files',
+    );
+    final polozky = data == null ? null : _asMap(data)['items'];
+    return [
+      for (final s in polozky is List ? polozky : const [])
+        SouborDiagnostiky.fromJson(s as Map<String, dynamic>),
+    ];
+  }
+
+  @override
+  Future<Uint8List> stahniSouborDiagnostiky(
+    String orderId,
+    String protokolId,
+    String souborId,
+  ) async {
+    final data = await _send(
+      'GET',
+      '${_cestaDiagnostiky(orderId)}/${Uri.encodeComponent(protokolId)}'
+          '/files/${Uri.encodeComponent(souborId)}',
+      binarni: true,
+      timeout: const Duration(minutes: 3),
+    );
+    if (data is! Uint8List) {
+      throw const ServiceOrderException('Protokol už na serveru pobočky není.');
+    }
+    return data;
   }
 
   @override

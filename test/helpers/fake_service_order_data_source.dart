@@ -8,6 +8,8 @@ import 'package:renoworkshop/src/features/akce/domain/technicka_kampan.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uctu_data_source.dart';
 import 'package:renoworkshop/src/features/ulozenky/data/ulozenky_data_source.dart';
 import 'package:renoworkshop/src/features/ulozenky/domain/ulozenka_pneu.dart';
+import 'package:renoworkshop/src/features/diagnostika/data/diagnostika_data_source.dart';
+import 'package:renoworkshop/src/features/diagnostika/domain/diagnostika.dart';
 import 'package:renoworkshop/src/features/uzivatele/data/uzivatele_data_source.dart';
 import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
@@ -37,6 +39,7 @@ class FakeServiceOrderDataSource
         ServiceOrderDataSource,
         NastaveniUctuDataSource,
         UlozenkyDataSource,
+        DiagnostikaDataSource,
         VozidlaDataSource,
         FotkyDataSource,
         PrijemDataSource,
@@ -73,6 +76,33 @@ class FakeServiceOrderDataSource
 
   /// Hláška, se kterou synchronizace spadne - třeba minutový limit služby.
   String? chybaSynchronizace;
+
+  /// Diagnostika podle zakázky a soubory protokolů - test si je nastaví.
+  Map<String, List<ProtokolDiagnostiky>> diagnostika = {};
+  Map<String, List<SouborDiagnostiky>> souboryDiagnostiky = {};
+
+  /// Co appka stáhla - (protokol, soubor).
+  final stazeneDiagnostiky = <(String, String)>[];
+
+  @override
+  Future<List<ProtokolDiagnostiky>> protokolyZakazky(String orderId) async =>
+      diagnostika[orderId] ?? const [];
+
+  @override
+  Future<List<SouborDiagnostiky>> souboryProtokolu(
+    String orderId,
+    String protokolId,
+  ) async => souboryDiagnostiky[protokolId] ?? const [];
+
+  @override
+  Future<Uint8List> stahniSouborDiagnostiky(
+    String orderId,
+    String protokolId,
+    String souborId,
+  ) async {
+    stazeneDiagnostiky.add((protokolId, souborId));
+    return Uint8List.fromList([37, 80, 68, 70]);
+  }
 
   /// Uloženky pneu podle zakázky - test si je nastaví.
   Map<String, List<UlozenkaPneu>> ulozenky = {};
