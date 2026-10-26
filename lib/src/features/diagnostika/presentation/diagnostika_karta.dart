@@ -202,7 +202,7 @@ class _Pripad extends ConsumerWidget {
         _Radek(
           key: Key('diagnostika-hlavni-${p.id}'),
           ikona: Icons.picture_as_pdf_outlined,
-          nazev: 'Final report',
+          nazev: '${p.hlavniNazev} (Final report)',
           popis: hlavni == null ? '' : velikostSouboru(hlavni.velikost),
           otevira: otevira == p.hlavniId,
           onTap: () => onOtevri(p.hlavniId, p.hlavniNazev),

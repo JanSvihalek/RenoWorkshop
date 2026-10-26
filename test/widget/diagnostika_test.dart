@@ -109,6 +109,7 @@ void main() {
     expect(otevrene.last, 'report.pdf');
 
     // Ostatní soubory bez rozbalování, hlavní se neopakuje.
+    expect(find.text('report.pdf (Final report)'), findsOneWidget);
     expect(find.text('Testplan.pdf'), findsOneWidget);
     expect(find.text('report.pdf'), findsNothing);
     expect(find.text('ISTA-Data · 2,3 MB'), findsOneWidget);
