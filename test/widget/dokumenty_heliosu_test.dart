@@ -12,6 +12,7 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 import 'package:renoworkshop/src/features/orders/presentation/widgets/detail_cards.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 /// Prohlížeč bez zařízení - jen si pamatuje, co se otevřelo.
 class _FalesnaPrace implements PraceSDokumenty {
@@ -72,6 +73,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Dokumenty Helios jsou v záložce Dokumenty.
+    await naZalozku(tester, 'dokumenty');
   }
 
   Finder vKarte(Finder finder) => find.descendant(
@@ -109,15 +112,23 @@ void main() {
 
     DetailCard karta(String klic) =>
         tester.widget<DetailCard>(find.byKey(Key(klic)));
-    expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
-    expect(karta('zavady-karta').zHeliosu, isTrue);
-    expect(karta('ulozenky-pneu').zHeliosu, isTrue);
-    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(3));
-    // Ostatní karty (postup, poznámky...) zapisuje dílna - zelené nejsou.
-    final zelene = tester
+    // Ostatní karty (postup, poznámky, příjem...) zapisuje dílna - zelené
+    // nejsou. V každé záložce právě jedna z Heliosu.
+    Iterable<DetailCard> zelene() => tester
         .widgetList<DetailCard>(find.byType(DetailCard))
         .where((k) => k.zHeliosu);
-    expect(zelene, hasLength(3));
+
+    expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
+    expect(zelene(), hasLength(1));
+    expect(find.byKey(const Key('helios-znacka')), findsOneWidget);
+
+    await naZalozku(tester, 'prace');
+    expect(karta('zavady-karta').zHeliosu, isTrue);
+    expect(zelene(), hasLength(1));
+
+    await naZalozku(tester, 'vuz');
+    expect(karta('ulozenky-pneu').zHeliosu, isTrue);
+    expect(zelene(), hasLength(1));
   });
 
   testWidgets('na úzkém telefonu se záhlaví Helios karet vejde', (
@@ -134,6 +145,12 @@ void main() {
     await otevriDetail(tester, dokumenty: [zakazkovyList]);
     tester.view.physicalSize = const Size(360, 3000);
     await tester.pumpAndSettle();
+    // Karty z Heliosu jsou ve všech třech záložkách.
+    var znacek = find.byKey(const Key('helios-znacka')).evaluate().length;
+    for (final zalozka in ['prace', 'vuz']) {
+      await naZalozku(tester, zalozka);
+      znacek += find.byKey(const Key('helios-znacka')).evaluate().length;
+    }
 
     FlutterError.onError = puvodni;
     final vHeliosu = chyby.where(
@@ -144,7 +161,7 @@ void main() {
           chyba.contains('detail_cards.dart'),
     );
     expect(vHeliosu, isEmpty);
-    expect(find.byKey(const Key('helios-znacka')), findsNWidgets(3));
+    expect(znacek, 3);
   });
 
   testWidgets('zakázka bez dokumentů v Heliosu to řekne', (tester) async {

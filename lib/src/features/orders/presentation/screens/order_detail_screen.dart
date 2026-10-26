@@ -13,6 +13,7 @@ import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../fotodokumentace/presentation/widgets/dokumenty_heliosu_karta.dart';
+import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../diagnostika/presentation/diagnostika_karta.dart';
 import '../../../fotodokumentace/presentation/widgets/fotodokumentace_karta.dart';
@@ -282,57 +283,155 @@ class _DetailBody extends ConsumerWidget {
     // Protokoly z diagnostiky (BMW ISPI) ze serveru pobočky.
     final diagnostika = DiagnostikaKarta(orderId: order.id);
 
-    // Na širokém tabletu dva sloupce: vlevo podklady k vozu (závady, příjem,
-    // fotky, dokumenty z Heliosu), vpravo průběh opravy (postup, pracovní
-    // list). Termíny a pojištění jsou v hlavičce. Přes celou šířku by
-    // karty byly nepřehledně roztažené.
     // Plán klempírny a lakovny - u klempířských zakázek vždy, u ostatních
     // jen když plán mají.
     final klempirna = order.lzePlanovatKlempirnu || order.planKlempirny != null
         ? PlanKarta(order: order)
         : null;
 
-    final prace = <Widget>[zavady, ?prijem, ?fotky, dokumentyHeliosu];
-    final stav = <Widget>[?predmet, ?klempirna, postup, poznamky];
-
-    return Column(
-      children: [
-        _DetailHeader(
-          order: order,
-          onBack: onBack,
-          zobrazitZpet: zobrazitZpet,
-          jenCteni: !smi,
-          onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
-          onPriraditObalku: smi
-              ? () => zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
-              : null,
-          onUvolnitObalku: smi
-              ? () => uvolnitObalku(context, ref, order)
-              : null,
-        ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) =>
-                constraints.maxWidth >= _sirkaProDvaSloupce
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Každý sloupec se posouvá zvlášť - časová osa bývá
-                      // dlouhá a nemá tahat dolů i zbytek.
-                      Expanded(
-                        child: _Sloupec(
-                          karty: [...prace, diagnostika, ulozenky],
-                        ),
-                      ),
-                      Expanded(child: _Sloupec(karty: stav)),
-                    ],
-                  )
-                // Na telefonu jeden sloupec: nejdřív práce, pak stav
-                // a uloženky pneu až na konec - průběh opravy je důležitější.
-                : _Sloupec(karty: [...prace, ...stav, diagnostika, ulozenky]),
+    // Tři záložky podle toho, na co se člověk ptá: co se na voze dělá
+    // (Práce), v jakém stavu vůz je (Vůz) a co k zakázce leží (Dokumenty).
+    // Otevírá se vždy Práce - i po přepnutí na jinou zakázku (klíč).
+    return DefaultTabController(
+      key: ValueKey(order.id),
+      length: 3,
+      child: Column(
+        children: [
+          _DetailHeader(
+            order: order,
+            onBack: onBack,
+            zobrazitZpet: zobrazitZpet,
+            jenCteni: !smi,
+            onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
+            onPriraditObalku: smi
+                ? () =>
+                      zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
+                : null,
+            onUvolnitObalku: smi
+                ? () => uvolnitObalku(context, ref, order)
+                : null,
           ),
+          _Zalozky(orderId: order.id),
+          Expanded(
+            child: TabBarView(
+              children: [
+                // Časová osa postupu bývá dlouhá - na širokém displeji má
+                // vlastní sloupec.
+                _ObsahZalozky(
+                  jedenSloupec: [
+                    zavady,
+                    ?predmet,
+                    postup,
+                    ?klempirna,
+                    poznamky,
+                  ],
+                  vlevo: [zavady, ?klempirna, poznamky],
+                  vpravo: [?predmet, postup],
+                ),
+                _ObsahZalozky(
+                  jedenSloupec: [?prijem, diagnostika, ulozenky],
+                  vlevo: [?prijem, ulozenky],
+                  vpravo: [diagnostika],
+                ),
+                _ObsahZalozky(
+                  jedenSloupec: [?fotky, dokumentyHeliosu],
+                  vlevo: [?fotky],
+                  vpravo: [dokumentyHeliosu],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lišta záložek Práce · Vůz · Dokumenty. U Vozu a Dokumentů počet, ať je
+/// vidět, kde něco je, bez proklikávání.
+class _Zalozky extends ConsumerWidget {
+  const _Zalozky({required this.orderId});
+
+  final String orderId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    int pocet<T>(AsyncValue<List<T>> hodnota, [bool Function(T)? jen]) {
+      final seznam = hodnota.valueOrNull ?? const [];
+      return jen == null ? seznam.length : seznam.where(jen).length;
+    }
+
+    // Vůz: protokoly diagnostiky a uloženky, které u nás leží.
+    final vuz =
+        pocet(ref.watch(diagnostikaZakazkyProvider(orderId))) +
+        pocet(
+          ref.watch(ulozenkyZakazkyProvider(orderId)),
+          (UlozenkaPneu u) => u.aktivni,
+        );
+    // Dokumenty: fotky, dokumenty ve složce zakázky a z Heliosu.
+    final dokumenty =
+        pocet(ref.watch(fotkyZakazkyProvider(orderId))) +
+        pocet(ref.watch(dokumentyZakazkyProvider(orderId))) +
+        pocet(ref.watch(dokumentyHeliosuProvider(orderId)));
+
+    String popisek(String nazev, int n) => n == 0 ? nazev : '$nazev · $n';
+
+    return Material(
+      color: palette.card,
+      child: TabBar(
+        key: const Key('detail-zalozky'),
+        labelColor: AppColors.accent,
+        unselectedLabelColor: palette.muted,
+        indicatorColor: AppColors.accent,
+        labelStyle: AppTextStyles.cardBody.copyWith(
+          fontWeight: FontWeight.w700,
         ),
-      ],
+        unselectedLabelStyle: AppTextStyles.cardBody,
+        dividerColor: palette.hairline,
+        tabs: [
+          const Tab(key: Key('zalozka-prace'), text: 'Práce'),
+          Tab(key: const Key('zalozka-vuz'), text: popisek('Vůz', vuz)),
+          Tab(
+            key: const Key('zalozka-dokumenty'),
+            text: popisek('Dokumenty', dokumenty),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Obsah záložky: na širokém tabletu dva sloupce, na telefonu jeden.
+/// Když je jedna strana prázdná (příjem jen ke čtení…), jeden sloupec.
+class _ObsahZalozky extends StatelessWidget {
+  const _ObsahZalozky({
+    required this.jedenSloupec,
+    required this.vlevo,
+    required this.vpravo,
+  });
+
+  /// Pořadí na telefonu.
+  final List<Widget> jedenSloupec;
+  final List<Widget> vlevo;
+  final List<Widget> vpravo;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          constraints.maxWidth >= _sirkaProDvaSloupce &&
+              vlevo.isNotEmpty &&
+              vpravo.isNotEmpty
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Každý sloupec se posouvá zvlášť.
+                Expanded(child: _Sloupec(karty: vlevo)),
+                Expanded(child: _Sloupec(karty: vpravo)),
+              ],
+            )
+          : _Sloupec(karty: jedenSloupec),
     );
   }
 }

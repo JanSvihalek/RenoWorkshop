@@ -24,6 +24,7 @@ import 'package:renoworkshop/src/features/settings/presentation/controllers/nast
 import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 /// Galerie a fotoaparát bez zařízení: vrátí připravené JPEGy.
 class _FalesneZiskani implements ZiskaniFotek {
@@ -141,10 +142,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// V detailu je nad fotkami i karta příjmu - karta fotek bývá pod okrajem
-  /// a seznam ji do té doby nepostaví.
+  /// Karta fotek je v záložce Dokumenty; na nízkém displeji může být pod
+  /// okrajem a seznam ji do té doby nepostaví.
   Future<Finder> naKartuFotek(WidgetTester tester) async {
     final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
+    if (karta.evaluate().isEmpty) await naZalozku(tester, 'dokumenty');
     await tester.scrollUntilVisible(
       karta,
       200,

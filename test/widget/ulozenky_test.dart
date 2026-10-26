@@ -13,6 +13,7 @@ import 'package:renoworkshop/src/features/settings/presentation/controllers/nast
 import 'package:renoworkshop/src/features/ulozenky/domain/ulozenka_pneu.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 /// Uloženky pneu z Heliosu - karta v detailu zakázky.
 void main() {
@@ -105,12 +106,12 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
+    // Počet v záložce: jen uloženka, která u nás leží (ukončená ne).
+    expect(find.text('Vůz · 1'), findsOneWidget);
+    await naZalozku(tester, 'vuz');
     final karta = find.byKey(const Key('ulozenky-pneu'));
-    await tester.scrollUntilVisible(
-      karta,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(karta);
+    await tester.pumpAndSettle();
     Finder vKarte(String text) =>
         find.descendant(of: karta, matching: find.text(text));
     expect(vKarte('UCLII002727'), findsOneWidget);

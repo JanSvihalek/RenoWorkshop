@@ -22,6 +22,7 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/skener_scr
 import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
@@ -277,6 +278,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
+    await naZalozku(tester, 'vuz');
 
     final karta = find.byKey(const Key('otevrit-prijem'));
     await tester.ensureVisible(karta);

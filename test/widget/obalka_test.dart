@@ -12,6 +12,7 @@ import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dar
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 /// Obálka s klíčem v hlavičce detailu zakázky a v příjmu: přiřadit
 /// (skenerem nebo číslem), uvolnit, obálka jiné zakázky.
@@ -210,6 +211,7 @@ void main() {
 
   testWidgets('v příjmu je obálka na začátku kontroly', (tester) async {
     await otevriDetail(tester);
+    await naZalozku(tester, 'vuz');
     final prijem = find.byKey(const Key('otevrit-prijem'));
     await tester.ensureVisible(prijem);
     await tester.pumpAndSettle();

@@ -16,6 +16,7 @@ import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dar
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
+import '../helpers/zalozky.dart';
 
 /// Diagnostické protokoly BMW ISPI v detailu zakázky.
 void main() {
@@ -97,12 +98,10 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
+    await naZalozku(tester, 'vuz');
     final karta = find.byKey(const Key('diagnostika-karta'));
-    await tester.scrollUntilVisible(
-      karta,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(karta);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('diagnostika-7')));
     await tester.pumpAndSettle();
     expect(zdroj.stazeneDiagnostiky.last, ('7', 'hlavni'));
