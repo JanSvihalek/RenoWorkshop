@@ -98,7 +98,7 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    await naZalozku(tester, 'vuz');
+    await naSekci(tester, 'dokumenty');
     final karta = find.byKey(const Key('diagnostika-karta'));
     await tester.ensureVisible(karta);
     await tester.pumpAndSettle();

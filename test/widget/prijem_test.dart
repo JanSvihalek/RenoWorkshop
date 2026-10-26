@@ -278,7 +278,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
     await tester.tap(find.byType(OrderCard));
     await tester.pumpAndSettle();
-    await naZalozku(tester, 'vuz');
+    await naSekci(tester, 'prijem');
 
     final karta = find.byKey(const Key('otevrit-prijem'));
     await tester.ensureVisible(karta);

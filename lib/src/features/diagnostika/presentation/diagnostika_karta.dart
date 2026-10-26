@@ -45,9 +45,16 @@ final souboryDiagnostikyProvider = FutureProvider.autoDispose
 /// pobočky. Klepnutí otevře finální report, podrobné protokoly (ISPA,
 /// ISTA) jsou pod rozbalením.
 class DiagnostikaKarta extends ConsumerStatefulWidget {
-  const DiagnostikaKarta({super.key, required this.orderId});
+  const DiagnostikaKarta({
+    super.key,
+    required this.orderId,
+    this.vlozena = false,
+  });
 
   final String orderId;
+
+  /// Jen obsah, bez karty a nadpisu - část karty Dokumenty.
+  final bool vlozena;
 
   @override
   ConsumerState<DiagnostikaKarta> createState() => _DiagnostikaKartaState();
@@ -160,6 +167,9 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
       );
     }
 
+    if (widget.vlozena) {
+      return KeyedSubtree(key: const Key('diagnostika-karta'), child: obsah);
+    }
     return DetailCard(
       key: const Key('diagnostika-karta'),
       child: Column(

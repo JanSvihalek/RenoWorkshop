@@ -65,8 +65,26 @@ class ZavadyCard extends StatelessWidget {
               'V Heliosu nejsou u zakázky zapsané žádné závady.',
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             ),
-          for (final (poradi, zavada) in zavady.indexed)
-            _RadekZavady(poradi: poradi + 1, zavada: zavada),
+          // Na širší kartě (tablet, web) ve dvou sloupcích - jako návrh.
+          if (zavady.isNotEmpty)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final dvaSloupce = constraints.maxWidth >= 520;
+                final sirka = dvaSloupce
+                    ? (constraints.maxWidth - Insets.xl) / 2
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: Insets.xl,
+                  children: [
+                    for (final (poradi, zavada) in zavady.indexed)
+                      SizedBox(
+                        width: sirka,
+                        child: _RadekZavady(poradi: poradi + 1, zavada: zavada),
+                      ),
+                  ],
+                );
+              },
+            ),
         ],
       ),
     );

@@ -20,9 +20,16 @@ import '../prace_s_dokumenty.dart';
 /// Dokumentů u zakázky bývá pár, proto jsou rovnou v kartě, bez další
 /// obrazovky.
 class DokumentyHeliosuKarta extends ConsumerStatefulWidget {
-  const DokumentyHeliosuKarta({super.key, required this.orderId});
+  const DokumentyHeliosuKarta({
+    super.key,
+    required this.orderId,
+    this.vlozena = false,
+  });
 
   final String orderId;
+
+  /// Jen obsah, bez karty a nadpisu - část Doklady karty Dokumenty.
+  final bool vlozena;
 
   @override
   ConsumerState<DokumentyHeliosuKarta> createState() =>
@@ -121,6 +128,9 @@ class _DokumentyHeliosuKartaState extends ConsumerState<DokumentyHeliosuKarta> {
       );
     }
 
+    if (widget.vlozena) {
+      return KeyedSubtree(key: const Key('dokumenty-heliosu'), child: obsah);
+    }
     return DetailCard(
       key: const Key('dokumenty-heliosu'),
       // Zelená jako všechno z Heliosu - dokumenty vznikají tam.

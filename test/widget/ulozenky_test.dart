@@ -106,9 +106,15 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    // Počet v záložce: jen uloženka, která u nás leží (ukončená ne).
-    expect(find.text('Vůz · 1'), findsOneWidget);
-    await naZalozku(tester, 'vuz');
+    // Počet v menu: jen uloženka, která u nás leží (ukončená ne).
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('sekce-ulozenky')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    await naSekci(tester, 'ulozenky');
     final karta = find.byKey(const Key('ulozenky-pneu'));
     await tester.ensureVisible(karta);
     await tester.pumpAndSettle();
@@ -117,8 +123,11 @@ void main() {
     expect(vKarte('UCLII002727'), findsOneWidget);
     expect(vKarte('Zimní'), findsOneWidget);
     expect(vKarte('Z této zakázky'), findsOneWidget);
-    expect(vKarte('uloženo 2. 4. 2026 · Regál A3 · 4 ks'), findsOneWidget);
-    expect(vKarte('3,5 mm'), findsOneWidget);
+    expect(vKarte('uloženo 2. 4. 2026 · 4 ks · Regál A3'), findsOneWidget);
+    // Kola v dlaždicích: LP 5,5, PZ 3,5 (zimní pod 4 mm červeně).
+    expect(vKarte('5,5'), findsOneWidget);
+    expect(vKarte('3,5'), findsOneWidget);
+    expect(vKarte('Rez.'), findsNWidgets(1));
     // Ukončená je schovaná, dokud se nerozbalí.
     expect(vKarte('UCLII001000'), findsNothing);
     await tester.tap(find.byKey(const Key('ulozenky-starsi')));

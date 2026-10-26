@@ -146,7 +146,7 @@ void main() {
   /// okrajem a seznam ji do té doby nepostaví.
   Future<Finder> naKartuFotek(WidgetTester tester) async {
     final karta = find.byKey(const Key('otevrit-fotodokumentaci'));
-    if (karta.evaluate().isEmpty) await naZalozku(tester, 'dokumenty');
+    if (karta.evaluate().isEmpty) await naSekci(tester, 'dokumenty');
     await tester.scrollUntilVisible(
       karta,
       200,

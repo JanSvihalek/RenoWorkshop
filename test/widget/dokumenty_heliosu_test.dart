@@ -73,8 +73,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // Dokumenty Helios jsou v záložce Dokumenty.
-    await naZalozku(tester, 'dokumenty');
+    // Doklady z Heliosu jsou v sekci Dokumenty.
+    await naSekci(tester, 'dokumenty');
   }
 
   Finder vKarte(Finder finder) => find.descendant(
@@ -87,12 +87,18 @@ void main() {
   ) async {
     await otevriDetail(tester, dokumenty: [zakazkovyList]);
 
-    expect(vKarte(find.text('DOKUMENTY HELIOS')), findsOneWidget);
+    // Část Doklady karty Dokumenty, s počtem a štítkem Helios.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('dokumenty-karta')),
+        matching: find.text('Doklady  1'),
+      ),
+      findsOneWidget,
+    );
     expect(
       vKarte(find.text('Zak-list-Z1212607793-29.09.2026-10-39-50_1.pdf')),
       findsOneWidget,
     );
-    expect(vKarte(find.text('1 dokument')), findsOneWidget);
     expect(vKarte(find.textContaining('29. 9. 2026')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('dokument-heliosu-helios-478338')));
@@ -113,20 +119,20 @@ void main() {
     DetailCard karta(String klic) =>
         tester.widget<DetailCard>(find.byKey(Key(klic)));
     // Ostatní karty (postup, poznámky, příjem...) zapisuje dílna - zelené
-    // nejsou. V každé záložce právě jedna z Heliosu.
+    // nejsou.
     Iterable<DetailCard> zelene() => tester
         .widgetList<DetailCard>(find.byType(DetailCard))
         .where((k) => k.zHeliosu);
 
-    expect(karta('dokumenty-heliosu').zHeliosu, isTrue);
-    expect(zelene(), hasLength(1));
+    // Dokumenty: karta je smíšená, doklady z Heliosu mají štítek.
+    expect(zelene(), isEmpty);
     expect(find.byKey(const Key('helios-znacka')), findsOneWidget);
 
-    await naZalozku(tester, 'prace');
+    await naSekci(tester, 'zavady');
     expect(karta('zavady-karta').zHeliosu, isTrue);
     expect(zelene(), hasLength(1));
 
-    await naZalozku(tester, 'vuz');
+    await naSekci(tester, 'ulozenky');
     expect(karta('ulozenky-pneu').zHeliosu, isTrue);
     expect(zelene(), hasLength(1));
   });
@@ -145,10 +151,10 @@ void main() {
     await otevriDetail(tester, dokumenty: [zakazkovyList]);
     tester.view.physicalSize = const Size(360, 3000);
     await tester.pumpAndSettle();
-    // Karty z Heliosu jsou ve všech třech záložkách.
+    // Data z Heliosu jsou v Dokumentech (doklady), závadách a uloženkách.
     var znacek = find.byKey(const Key('helios-znacka')).evaluate().length;
-    for (final zalozka in ['prace', 'vuz']) {
-      await naZalozku(tester, zalozka);
+    for (final sekce in ['zavady', 'ulozenky']) {
+      await naSekci(tester, sekce);
       znacek += find.byKey(const Key('helios-znacka')).evaluate().length;
     }
 

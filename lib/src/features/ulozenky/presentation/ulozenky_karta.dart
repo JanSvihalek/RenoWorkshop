@@ -87,7 +87,9 @@ class _UlozenkyPneuKartaState extends State<UlozenkyPneuKarta> {
             children: [
               Expanded(
                 child: SectionLabel(
-                  'ULOŽENKY PNEU',
+                  aktivni.isEmpty
+                      ? 'ULOŽENKY PNEU'
+                      : 'ULOŽENKY PNEU  ${aktivni.length}',
                   barva: AppColors.heliosZelena(context),
                 ),
               ),
@@ -111,10 +113,7 @@ class _UlozenkyPneuKartaState extends State<UlozenkyPneuKarta> {
           else if (vse.isEmpty)
             text('Vůz u nás nemá žádnou uloženku pneu.')
           else ...[
-            for (final (i, u) in aktivni.indexed) ...[
-              if (i > 0) Divider(color: palette.hairline),
-              _Ulozenka(ulozenka: u),
-            ],
+            _Dlazdice(ulozenky: aktivni),
             if (starsi.isNotEmpty) ...[
               TextButton.icon(
                 key: const Key('ulozenky-starsi'),
@@ -127,8 +126,7 @@ class _UlozenkyPneuKartaState extends State<UlozenkyPneuKarta> {
                 label: Text('Ukončené a zrušené (${starsi.length})'),
               ),
               if (_starsi)
-                for (final u in starsi)
-                  Opacity(opacity: 0.7, child: _Ulozenka(ulozenka: u)),
+                Opacity(opacity: 0.7, child: _Dlazdice(ulozenky: starsi)),
             ],
           ],
         ],
@@ -137,29 +135,71 @@ class _UlozenkyPneuKartaState extends State<UlozenkyPneuKarta> {
   }
 }
 
+/// Uloženky jako dlaždice - na širší kartě dvě vedle sebe.
+class _Dlazdice extends StatelessWidget {
+  const _Dlazdice({required this.ulozenky});
+
+  final List<UlozenkaPneu> ulozenky;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final vedleSebe = constraints.maxWidth >= 480;
+        final sirka = vedleSebe
+            ? (constraints.maxWidth - Insets.md) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: Insets.md,
+          runSpacing: Insets.md,
+          children: [
+            for (final u in ulozenky)
+              SizedBox(
+                width: sirka,
+                child: _Ulozenka(ulozenka: u),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Jedna uloženka: číslo, sezóna a stav, pneu, údaje a kola s dezénem.
 class _Ulozenka extends StatelessWidget {
   const _Ulozenka({required this.ulozenka});
 
   final UlozenkaPneu ulozenka;
 
+  static const _poradiKol = ['LP', 'LZ', 'PP', 'PZ', 'Rezerva'];
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final u = ulozenka;
+    final prvni = u.kola.firstOrNull;
     final udaje = [
+      ?prvni?.rozmer,
+      if (prvni?.dot != null) 'DOT ${prvni!.dot}',
       if (u.ulozeno != null) 'uloženo ${AppDateFormat.date(u.ulozeno!)}',
-      ?u.umisteni,
       if (u.pocet != null) '${u.pocet} ks',
+      ?u.umisteni,
       if (u.vraceno != null)
         'vráceno ${AppDateFormat.date(u.vraceno!)}'
       else if (u.vratitDo != null)
         'vrátit ${AppDateFormat.date(u.vratitDo!)}',
     ];
     final pravidla = Dezen(zimni: u.zimni ?? false);
+    final kola = {for (final k in u.kola) k.pozice: k};
 
-    return Padding(
+    return Container(
       key: Key('ulozenka-${u.cislo}'),
-      padding: const EdgeInsets.symmetric(vertical: Insets.xs),
+      padding: const EdgeInsets.all(Insets.md),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: palette.hairline),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -185,6 +225,16 @@ class _Ulozenka extends StatelessWidget {
                 const _Stitek('Z této zakázky', barva: AppColors.readyGreen),
             ],
           ),
+          if (prvni != null && prvni.pneu.isNotEmpty) ...[
+            const SizedBox(height: Insets.sm),
+            Text(
+              prvni.pneu,
+              style: AppTextStyles.cardBody.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
           if (udaje.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
@@ -192,60 +242,26 @@ class _Ulozenka extends StatelessWidget {
               style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
             ),
           ],
-          for (final k in u.kola)
-            Padding(
-              padding: const EdgeInsets.only(top: Insets.xs),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 56,
-                    child: Text(
-                      k.pozice,
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (k.pneu.isNotEmpty)
-                          Text(
-                            k.pneu,
-                            style: AppTextStyles.metaSmall.copyWith(
-                              color: palette.text,
-                            ),
+          const SizedBox(height: Insets.sm),
+          Row(
+            children: [
+              for (final (i, pozice) in _poradiKol.indexed) ...[
+                if (i > 0) const SizedBox(width: Insets.xs),
+                Expanded(
+                  child: _Kolo(
+                    nazev: pozice == 'Rezerva' ? 'Rez.' : pozice,
+                    dezen: kola[pozice]?.dezen,
+                    barva: kola[pozice]?.dezen == null
+                        ? palette.muted
+                        : barvaDezenu(
+                            pravidla.stavKola(kola[pozice]!.dezen!),
+                            palette,
                           ),
-                        if (k.udaje.isNotEmpty || k.poskozeni != null)
-                          Text(
-                            [
-                              if (k.udaje.isNotEmpty) k.udaje,
-                              ?k.poskozeni,
-                            ].join(' · '),
-                            style: AppTextStyles.metaSmall.copyWith(
-                              color: palette.muted,
-                            ),
-                          ),
-                      ],
-                    ),
                   ),
-                  if (k.dezen != null)
-                    Text(
-                      '${formatMm(k.dezen!)} mm',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: barvaDezenu(
-                          pravidla.stavKola(k.dezen!),
-                          palette,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
+          ),
           if (u.poznamka != null) ...[
             const SizedBox(height: Insets.xs),
             Text(
@@ -256,6 +272,54 @@ class _Ulozenka extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Kolo uloženky - pozice a dezén v mm.
+class _Kolo extends StatelessWidget {
+  const _Kolo({required this.nazev, required this.dezen, required this.barva});
+
+  final String nazev;
+  final double? dezen;
+  final Color barva;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: Insets.xs),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: BorderRadius.circular(Radii.input),
+      ),
+      child: Column(
+        children: [
+          Text(
+            nazev,
+            style: AppTextStyles.metaSmall.copyWith(
+              fontSize: 11,
+              color: palette.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            dezen == null ? '–' : formatMm(dezen!),
+            style: AppTextStyles.cardBody.copyWith(
+              color: barva,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (dezen != null)
+            Text(
+              'mm',
+              style: AppTextStyles.metaSmall.copyWith(
+                fontSize: 10,
+                color: palette.muted,
+              ),
+            ),
         ],
       ),
     );

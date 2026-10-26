@@ -9,8 +9,8 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 import '../helpers/fake_service_order_data_source.dart';
 import '../helpers/zalozky.dart';
 
-/// Detail má záložky Práce · Vůz · Dokumenty. Na širokém tabletu má obsah
-/// záložky dva sloupce, na telefonu i v rozděleném zobrazení jeden.
+/// Detail: vlevo menu sekcí, uprostřed sekce, vpravo průběh (postup,
+/// poznámky). Užší displej má průběh pod sekcí, telefon menu nahoře.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -44,57 +44,53 @@ void main() {
   final fotkyKarta = find.byKey(const Key('otevrit-fotodokumentaci'));
   final postupKarta = find.byKey(const Key('pridat-stav'));
 
-  testWidgets('záložky Práce, Vůz, Dokumenty - otevírá se Práce', (
+  testWidgets('sekce Závady, Příjem, Dokumenty, Uloženky - otevírá se Závady', (
     tester,
   ) async {
     await otevri(tester, const Size(800, 1400));
 
-    // Práce: závady, postup, poznámky. Příjem a fotky jsou jinde.
+    // Závady a pod nimi pořád průběh (postup, poznámky).
     expect(find.text('ZÁVADY/ÚKONY'), findsOneWidget);
     expect(postupKarta, findsOneWidget);
     expect(find.byKey(const Key('otevrit-prijem')), findsNothing);
     expect(fotkyKarta, findsNothing);
 
-    await naZalozku(tester, 'vuz');
+    await naSekci(tester, 'prijem');
     expect(find.byKey(const Key('otevrit-prijem')), findsOneWidget);
-    expect(find.byKey(const Key('diagnostika-karta')), findsOneWidget);
-    expect(find.byKey(const Key('ulozenky-pneu')), findsOneWidget);
-    expect(postupKarta, findsNothing);
+    expect(postupKarta, findsOneWidget);
 
-    await naZalozku(tester, 'dokumenty');
+    await naSekci(tester, 'dokumenty');
     expect(fotkyKarta, findsOneWidget);
+    expect(find.byKey(const Key('diagnostika-karta')), findsOneWidget);
     expect(find.byKey(const Key('dokumenty-heliosu')), findsOneWidget);
+
+    await naSekci(tester, 'ulozenky');
+    expect(find.byKey(const Key('ulozenky-pneu')), findsOneWidget);
   });
 
-  testWidgets('na širokém tabletu je postup vpravo od závad', (tester) async {
+  testWidgets('na širokém tabletu menu, sekce a průběh vedle sebe', (
+    tester,
+  ) async {
     await otevri(tester, const Size(1280, 1400));
 
-    final zavady = tester.getRect(find.text('ZÁVADY/ÚKONY'));
+    final menu = tester.getRect(find.byKey(const Key('sekce-zavady')));
+    final zavady = tester.getRect(find.byKey(const Key('zavady-karta')));
     final postup = tester.getRect(postupKarta);
-    // Každá karta je ve své polovině obrazovky.
-    expect(zavady.right, lessThan(640));
-    expect(postup.left, greaterThan(640));
-
-    // Dokumenty: fotky vlevo, dokumenty Helios vpravo.
-    await naZalozku(tester, 'dokumenty');
-    expect(tester.getRect(fotkyKarta).right, lessThan(640));
-    expect(
-      tester.getRect(find.byKey(const Key('dokumenty-heliosu'))).left,
-      greaterThan(640),
-    );
+    expect(menu.right, lessThanOrEqualTo(zavady.left));
+    expect(zavady.right, lessThanOrEqualTo(postup.left));
+    // Průběh je v pravém sloupci.
+    expect(postup.left, greaterThan(900));
   });
 
-  testWidgets('na telefonu jsou karty záložky pod sebou', (tester) async {
-    await otevri(tester, const Size(800, 1400));
+  testWidgets('na telefonu je menu nahoře a karty pod sebou', (tester) async {
+    await otevri(tester, const Size(500, 1400));
 
-    final zavady = tester.getRect(find.text('ZÁVADY/ÚKONY'));
+    final menu = tester.getRect(find.byKey(const Key('sekce-zavady')));
+    final zavady = tester.getRect(find.byKey(const Key('zavady-karta')));
     final postup = tester.getRect(postupKarta);
-    // Jeden sloupec přes celou šířku: závady, pod nimi postup.
+    expect(menu.bottom, lessThanOrEqualTo(zavady.top));
     expect(zavady.top, lessThan(postup.top));
-    expect(
-      tester.getRect(find.byKey(const Key('zavady-karta'))).width,
-      greaterThan(700),
-    );
+    expect(zavady.width, greaterThan(450));
   });
 
   final udaje = find.byKey(const Key('hlavicka-udaje'));

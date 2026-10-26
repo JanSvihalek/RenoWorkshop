@@ -21,10 +21,14 @@ class FotodokumentaceKarta extends ConsumerWidget {
     super.key,
     required this.orderId,
     required this.onOtevrit,
+    this.vlozena = false,
   });
 
   final String orderId;
   final VoidCallback onOtevrit;
+
+  /// Část karty Dokumenty: bez vlastní karty, s náhledy fotek.
+  final bool vlozena;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -69,13 +73,26 @@ class FotodokumentaceKarta extends ConsumerWidget {
         key: const Key('otevrit-fotodokumentaci'),
         onTap: onOtevrit,
         behavior: HitTestBehavior.opaque,
-        child: DetailCard(
+        child: _Obal(
+          vlozena: vlozena,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Expanded(child: SectionLabel('FOTODOKUMENTACE')),
+                  Expanded(
+                    child: vlozena
+                        ? Text(
+                            nahrane.isEmpty
+                                ? 'Fotodokumentace'
+                                : 'Fotodokumentace  ${nahrane.length}',
+                            style: AppTextStyles.cardBody.copyWith(
+                              color: palette.text,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : const SectionLabel('FOTODOKUMENTACE'),
+                  ),
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 22,
@@ -83,6 +100,10 @@ class FotodokumentaceKarta extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (vlozena && nahrane.isNotEmpty) ...[
+                const SizedBox(height: Insets.sm),
+                _Nahledy(fotky: nahrane),
+              ],
               const SizedBox(height: Insets.sm),
               Row(
                 children: [
@@ -122,6 +143,115 @@ class FotodokumentaceKarta extends ConsumerWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Vlastní karta, nebo jen obsah uvnitř karty Dokumenty.
+class _Obal extends StatelessWidget {
+  const _Obal({required this.vlozena, required this.child});
+
+  final bool vlozena;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      vlozena ? child : DetailCard(child: child);
+}
+
+/// Prvních pár náhledů a dlaždice „+N Zobrazit vše". Klepnutí kamkoli
+/// otevře fotodokumentaci.
+class _Nahledy extends StatelessWidget {
+  const _Nahledy({required this.fotky});
+
+  final List<Fotka> fotky;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Čtverečky kolem 64 px, poslední místo pro „+N".
+        const mezera = Insets.sm;
+        final mist = ((constraints.maxWidth + mezera) / (64 + mezera))
+            .floor()
+            .clamp(3, 8);
+        final strana = (constraints.maxWidth - mezera * (mist - 1)) / mist;
+        final zbyva = fotky.length > mist ? fotky.length - (mist - 1) : 0;
+        final viditelne = fotky.take(zbyva > 0 ? mist - 1 : mist).toList();
+        return Row(
+          children: [
+            for (final (i, f) in viditelne.indexed) ...[
+              if (i > 0) const SizedBox(width: mezera),
+              _Nahled(fotka: f, strana: strana),
+            ],
+            if (zbyva > 0) ...[
+              const SizedBox(width: mezera),
+              Container(
+                key: const Key('fotky-zobrazit-vse'),
+                width: strana,
+                height: strana,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(Radii.input),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '+$zbyva',
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Zobrazit vše',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _Nahled extends ConsumerWidget {
+  const _Nahled({required this.fotka, required this.strana});
+
+  final Fotka fotka;
+  final double strana;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final obrazek = ref.watch(obrazekFotkyProvider(fotka.id));
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Radii.input),
+      child: Container(
+        width: strana,
+        height: strana,
+        color: palette.plate,
+        child: obrazek.when(
+          data: (bajty) => Image.memory(
+            bajty,
+            fit: BoxFit.cover,
+            cacheWidth: 200,
+            gaplessPlayback: true,
+          ),
+          loading: () => const SizedBox.shrink(),
+          error: (_, _) =>
+              Icon(Icons.broken_image_outlined, color: palette.muted),
         ),
       ),
     );

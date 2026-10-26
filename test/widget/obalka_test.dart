@@ -211,7 +211,7 @@ void main() {
 
   testWidgets('v příjmu je obálka na začátku kontroly', (tester) async {
     await otevriDetail(tester);
-    await naZalozku(tester, 'vuz');
+    await naSekci(tester, 'prijem');
     final prijem = find.byKey(const Key('otevrit-prijem'));
     await tester.ensureVisible(prijem);
     await tester.pumpAndSettle();
