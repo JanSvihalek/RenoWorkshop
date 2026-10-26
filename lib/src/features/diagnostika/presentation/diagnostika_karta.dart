@@ -167,8 +167,8 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
         children: [
           SectionLabel(
             seznam.isEmpty
-                ? 'ISTA/ISPA PROTOKOLY'
-                : 'ISTA/ISPA PROTOKOLY  ${seznam.length}',
+                ? 'ISTA/ISPA/AWP DOKUMENTY'
+                : 'ISTA/ISPA/AWP DOKUMENTY  ${seznam.length}',
           ),
           const SizedBox(height: Insets.sm),
           obsah,
