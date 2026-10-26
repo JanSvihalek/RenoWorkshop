@@ -49,15 +49,16 @@ void main() {
   ) async {
     await otevri(tester, const Size(800, 1400));
 
-    // Závady a pod nimi pořád průběh (postup, poznámky).
+    // Závady a s nimi průběh (postup, poznámky) - patří k sobě.
     expect(find.text('ZÁVADY/ÚKONY'), findsOneWidget);
     expect(postupKarta, findsOneWidget);
     expect(find.byKey(const Key('otevrit-prijem')), findsNothing);
     expect(fotkyKarta, findsNothing);
 
+    // Ostatní sekce už průběh nemají.
     await naSekci(tester, 'prijem');
     expect(find.byKey(const Key('otevrit-prijem')), findsOneWidget);
-    expect(postupKarta, findsOneWidget);
+    expect(postupKarta, findsNothing);
 
     await naSekci(tester, 'dokumenty');
     expect(fotkyKarta, findsOneWidget);
@@ -68,19 +69,25 @@ void main() {
     expect(find.byKey(const Key('ulozenky-pneu')), findsOneWidget);
   });
 
-  testWidgets('na širokém tabletu menu, sekce a průběh vedle sebe', (
-    tester,
-  ) async {
-    await otevri(tester, const Size(1280, 1400));
+  testWidgets(
+    'na širokém tabletu jsou v závadách postup vedle, jinde celá šířka',
+    (tester) async {
+      await otevri(tester, const Size(1280, 1400));
 
-    final menu = tester.getRect(find.byKey(const Key('sekce-zavady')));
-    final zavady = tester.getRect(find.byKey(const Key('zavady-karta')));
-    final postup = tester.getRect(postupKarta);
-    expect(menu.right, lessThanOrEqualTo(zavady.left));
-    expect(zavady.right, lessThanOrEqualTo(postup.left));
-    // Průběh je v pravém sloupci.
-    expect(postup.left, greaterThan(900));
-  });
+      final menu = tester.getRect(find.byKey(const Key('sekce-zavady')));
+      final zavady = tester.getRect(find.byKey(const Key('zavady-karta')));
+      final postup = tester.getRect(postupKarta);
+      expect(menu.right, lessThanOrEqualTo(zavady.left));
+      expect(zavady.right, lessThanOrEqualTo(postup.left));
+
+      // Dokumenty přes celou šířku vedle menu.
+      await naSekci(tester, 'dokumenty');
+      expect(
+        tester.getRect(find.byKey(const Key('dokumenty-karta'))).width,
+        greaterThan(900),
+      );
+    },
+  );
 
   testWidgets('na telefonu je menu nahoře a karty pod sebou', (tester) async {
     await otevri(tester, const Size(500, 1400));

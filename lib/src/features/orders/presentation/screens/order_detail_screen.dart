@@ -317,12 +317,12 @@ class _DetailBody extends ConsumerWidget {
 }
 
 /// Tělo detailu podle Janova návrhu (26. 10. 2026): vlevo menu sekcí
-/// s počty, uprostřed vybraná sekce, vpravo pořád průběh - klempírna,
-/// postup a poznámky. Otevírá se vždy na závadách. Jako na webu.
+/// s počty, vedle vybraná sekce přes celou šířku. Průběh (klempírna,
+/// postup, poznámky) je v sekci Závady/úkony - patří k závadám.
+/// Otevírá se vždy na závadách. Jako na webu.
 ///
-///   široký tablet    menu · sekce · průběh
-///   užší             menu · sekce a pod ní průběh
-///   telefon          menu nahoře vodorovně, pod ním sekce a průběh
+///   tablet     menu vlevo; v závadách průběh vedle, když je místo
+///   telefon    menu nahoře vodorovně, pod ním sekce
 class _TeloDetailu extends StatefulWidget {
   const _TeloDetailu({
     super.key,
@@ -335,6 +335,8 @@ class _TeloDetailu extends StatefulWidget {
   final String orderId;
   final int pocetZavad;
   final Map<SekceDetailu, Widget> sekce;
+
+  /// Klempírna, postup a poznámky - v sekci Závady/úkony.
   final List<Widget> prubeh;
 
   @override
@@ -357,37 +359,39 @@ class _TeloDetailuState extends State<_TeloDetailu> {
     );
     final cara = BorderSide(color: palette.hairline);
 
+    // Závady s průběhem (klempírna, postup, poznámky) - patří k sobě.
+    // Na širokém displeji vedle sebe, jinak pod sebou. Ostatní sekce
+    // mají celou šířku.
+    final obsah = _vybrana == SekceDetailu.zavady
+        ? LayoutBuilder(
+            builder: (context, constraints) =>
+                constraints.maxWidth >= _sirkaZavadVedlePrubehu
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Každý sloupec se posouvá zvlášť - časová osa
+                      // postupu bývá dlouhá.
+                      Expanded(child: _Sloupec(karty: [sekce])),
+                      Expanded(child: _Sloupec(karty: widget.prubeh)),
+                    ],
+                  )
+                : _Sloupec(karty: [sekce, ...widget.prubeh]),
+          )
+        : _Sloupec(karty: [sekce]);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final sirka = constraints.maxWidth;
-        if (sirka >= _sirkaProTriSloupce) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 220,
-                decoration: BoxDecoration(border: Border(right: cara)),
-                child: menu(svisle: true),
-              ),
-              Expanded(child: _Sloupec(karty: [sekce])),
-              Container(
-                width: 360,
-                decoration: BoxDecoration(border: Border(left: cara)),
-                child: _Sloupec(karty: widget.prubeh),
-              ),
-            ],
-          );
-        }
         if (sirka >= _sirkaProMenuVlevo) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 200,
+                width: sirka >= _sirkaProSirokeMenu ? 220 : 200,
                 decoration: BoxDecoration(border: Border(right: cara)),
                 child: menu(svisle: true),
               ),
-              Expanded(child: _Sloupec(karty: [sekce, ...widget.prubeh])),
+              Expanded(child: obsah),
             ],
           );
         }
@@ -397,7 +401,7 @@ class _TeloDetailuState extends State<_TeloDetailu> {
               decoration: BoxDecoration(border: Border(bottom: cara)),
               child: menu(svisle: false),
             ),
-            Expanded(child: _Sloupec(karty: [sekce, ...widget.prubeh])),
+            Expanded(child: obsah),
           ],
         );
       },
@@ -433,12 +437,15 @@ class _PrijemJenKeCteni extends StatelessWidget {
 /// schovaná. Data i API zůstávají - vrátí se přepnutím na `true`.
 const bool _zobrazitPredmetOpravy = false;
 
-/// Od téhle šířky detailu tři sloupce: menu, sekce a průběh vedle sebe.
-/// V rozděleném zobrazení vedle seznamu na to místo nezbude.
-const double _sirkaProTriSloupce = 1000;
-
 /// Od téhle šířky je menu vlevo; na telefonu vodorovně nahoře.
 const double _sirkaProMenuVlevo = 640;
+
+/// Od téhle šířky detailu má menu 220 px, jinak 200.
+const double _sirkaProSirokeMenu = 1000;
+
+/// Od téhle šířky sekce jsou v závadách průběh (postup, poznámky) vedle
+/// závad, jinak pod nimi.
+const double _sirkaZavadVedlePrubehu = 700;
 
 /// Karty pod sebou s mezerami a odsazením.
 class _Sloupec extends StatelessWidget {
