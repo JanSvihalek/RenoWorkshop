@@ -82,14 +82,21 @@ class StitekDezenu extends StatelessWidget {
   }
 }
 
-/// Změření dezénu - okno zespodu. Vrací nový dezén, nebo `null` (zrušeno).
+/// Změření dezénu - okno uprostřed obrazovky. Vrací nový dezén, nebo
+/// `null` (zrušeno).
 Future<Dezen?> zmerDezen(BuildContext context, Dezen? puvodni) =>
-    showModalBottomSheet<Dezen>(
+    showDialog<Dezen>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (_) => _OknoDezenu(puvodni: puvodni ?? const Dezen()),
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(Insets.lg),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          // Při otevřené klávesnici se obsah posouvá, ať je Uložit vidět.
+          child: SingleChildScrollView(
+            child: _OknoDezenu(puvodni: puvodni ?? const Dezen()),
+          ),
+        ),
+      ),
     );
 
 class _OknoDezenu extends StatefulWidget {
@@ -197,12 +204,7 @@ class _OknoDezenuState extends State<_OknoDezenu> {
     }
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        Insets.xl,
-        0,
-        Insets.xl,
-        Insets.xl + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: const EdgeInsets.all(Insets.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -244,10 +246,27 @@ class _OknoDezenuState extends State<_OknoDezenu> {
             vpravoVzadu: pole('PZ'),
           ),
           const SizedBox(height: Insets.xl),
-          FilledButton(
-            key: const Key('dezen-ulozit'),
-            onPressed: _platne ? () => Navigator.of(context).pop(_dezen) : null,
-            child: Text(_platne ? 'Uložit' : 'Dezén nejvýš 20 mm'),
+          // Tlačítka mají v motivu plnou šířku - v řádku každé půlku.
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  key: const Key('dezen-zrusit'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Zrušit'),
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              Expanded(
+                child: FilledButton(
+                  key: const Key('dezen-ulozit'),
+                  onPressed: _platne
+                      ? () => Navigator.of(context).pop(_dezen)
+                      : null,
+                  child: Text(_platne ? 'Uložit' : 'Nejvýš 20 mm'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
