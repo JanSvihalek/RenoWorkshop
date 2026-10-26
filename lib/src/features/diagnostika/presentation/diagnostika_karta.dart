@@ -128,7 +128,7 @@ class _DiagnostikaKartaState extends ConsumerState<DiagnostikaKarta> {
             _Radek(
               key: Key('diagnostika-${p.id}'),
               ikona: Icons.monitor_heart_outlined,
-              nazev: 'Diagnostika ${AppDateFormat.dateTime(p.cas)}',
+              nazev: 'Případ ${AppDateFormat.dateTime(p.cas)}',
               popis: p.zdroj,
               otevira: _otevira == p.hlavniId,
               onTap: () => _otevri(p.id, p.hlavniId, p.hlavniNazev),
