@@ -29,6 +29,10 @@ abstract interface class FotkyDataSource {
   /// přímou adresou: telefon na sdílenou složku nesahá.
   Future<Uint8List> stahniFotku(String id);
 
+  /// `GET /photos/{id}/thumbnail` - zmenšený náhled (desítky kB) pro
+  /// mřížky. Celá fotka se stahuje až v prohlížení.
+  Future<Uint8List> stahniNahled(String id);
+
   /// `DELETE /photos/{id}`.
   Future<void> smazFotku(String id);
 

@@ -945,6 +945,10 @@ class MockServiceOrderDataSource
     return bajty;
   }
 
+  /// Ukázková data náhledy nezmenšují - fotky v mocku jsou malé.
+  @override
+  Future<Uint8List> stahniNahled(String id) => stahniFotku(id);
+
   @override
   Future<void> smazFotku(String id) async {
     _bajtyFotek.remove(id);

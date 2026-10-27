@@ -600,6 +600,18 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<Uint8List> stahniNahled(String id) async {
+    final data = await _send(
+      'GET',
+      'photos/${Uri.encodeComponent(id)}/thumbnail',
+      binarni: true,
+    );
+    // 404: služba bez náhledů (starší verze) - celá fotka jako dřív.
+    if (data is! Uint8List) return stahniFotku(id);
+    return data;
+  }
+
+  @override
   Future<void> smazFotku(String id) async {
     await _send('DELETE', 'photos/${Uri.encodeComponent(id)}');
   }

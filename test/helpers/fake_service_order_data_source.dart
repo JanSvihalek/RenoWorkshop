@@ -276,6 +276,9 @@ class FakeServiceOrderDataSource
   Future<Uint8List> stahniFotku(String id) async => bajtyFotek[id]!;
 
   @override
+  Future<Uint8List> stahniNahled(String id) async => bajtyFotek[id]!;
+
+  @override
   Future<void> smazFotku(String id) async {
     bajtyFotek.remove(id);
     for (final seznam in fotky.values) {

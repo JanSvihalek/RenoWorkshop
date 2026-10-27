@@ -242,6 +242,9 @@ class _StrankaState extends ConsumerState<_Stranka> {
   @override
   Widget build(BuildContext context) {
     final obrazek = ref.watch(obrazekFotkyProvider(widget.fotka.id));
+    // Náhled je z mřížky obvykle už stažený - ukáže se hned, než dorazí
+    // celá fotka.
+    final nahled = ref.watch(nahledFotkyProvider(widget.fotka.id)).valueOrNull;
 
     return Center(
       child: obrazek.when(
@@ -251,7 +254,21 @@ class _StrankaState extends ConsumerState<_Stranka> {
           onInteractionEnd: _konecZmeny,
           child: Image.memory(bajty, fit: BoxFit.contain),
         ),
-        loading: () => const CircularProgressIndicator(color: Colors.white),
+        loading: () => nahled == null
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.memory(
+                    nahled,
+                    key: const Key('prohlizeni-nahled'),
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                  const CircularProgressIndicator(color: Colors.white),
+                ],
+              ),
         error: (_, _) => const Text(
           'Fotku se nepodařilo načíst.',
           style: TextStyle(color: Colors.white70),

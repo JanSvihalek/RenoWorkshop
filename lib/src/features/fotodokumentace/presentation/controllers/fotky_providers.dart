@@ -76,6 +76,13 @@ final obrazekFotkyProvider = FutureProvider.autoDispose
       return ref.watch(fotkyDataSourceProvider).stahniFotku(id);
     });
 
+/// Zmenšený náhled fotky pro mřížky a dlaždice - desítky kB místo celé
+/// fotky. Celá ([obrazekFotkyProvider]) jen v prohlížení.
+final nahledFotkyProvider = FutureProvider.autoDispose
+    .family<Uint8List, String>((ref, id) {
+      return ref.watch(fotkyDataSourceProvider).stahniNahled(id);
+    });
+
 /// Příprava fotky k nahrání (srovnání, zmenšení, JPEG). Vlastní provider,
 /// ať testy nemusí pouštět izolát.
 final pripravaFotkyProvider = Provider<Future<Uint8List?> Function(Uint8List)>(

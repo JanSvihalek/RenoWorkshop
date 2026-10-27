@@ -525,7 +525,7 @@ class _Nahled extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final obrazek = ref.watch(obrazekFotkyProvider(fotka.id));
+    final obrazek = ref.watch(nahledFotkyProvider(fotka.id));
     return Column(
       children: [
         ClipRRect(

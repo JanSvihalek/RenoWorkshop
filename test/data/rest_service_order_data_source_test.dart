@@ -402,6 +402,33 @@ void main() {
       expect(bajty, [0xff, 0xd8, 0xff, 0xe0]);
     });
 
+    test(
+      'náhled se stahuje z /thumbnail, starší služba bez něj vrátí celou fotku',
+      () async {
+        final cesty = <String>[];
+        var sNahledy = true;
+        final client = MockClient((request) async {
+          cesty.add(request.url.path);
+          if (request.url.path.endsWith('/thumbnail') && !sNahledy) {
+            return http.Response('', 404);
+          }
+          return http.Response.bytes(
+            request.url.path.endsWith('/thumbnail') ? [1, 2] : [1, 2, 3, 4],
+            200,
+            headers: {'content-type': 'image/jpeg'},
+          );
+        });
+
+        expect(await _zdroj(client).stahniNahled('f1'), [1, 2]);
+        expect(cesty.single, endsWith('/photos/f1/thumbnail'));
+
+        cesty.clear();
+        sNahledy = false;
+        expect(await _zdroj(client).stahniNahled('f1'), [1, 2, 3, 4]);
+        expect(cesty.last, endsWith('/photos/f1'));
+      },
+    );
+
     test('nenastavené úložiště se ohlásí zprávou ze serveru', () async {
       final client = MockClient(
         (request) async => http.Response(
