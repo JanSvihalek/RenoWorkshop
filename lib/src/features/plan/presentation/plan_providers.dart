@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../akce/presentation/akce_providers.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../orders/domain/entities/order_filter.dart';
+import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../data/plan_data_source.dart';
 import '../domain/prehled_planu.dart';
@@ -15,6 +16,11 @@ final planDataSourceProvider = Provider<PlanDataSource>((ref) {
     'Zdroj dat ${zdroj.runtimeType} neumí plán klempírny (PlanDataSource).',
   );
 });
+
+/// Typy úkonů do nabídky - mění se zřídka, načtou se jednou za běh.
+final typyUkonuProvider = FutureProvider<List<TypUkonu>>(
+  (ref) => ref.watch(planDataSourceProvider).nactiTypyUkonu(),
+);
 
 /// Kolik týdnů plán ukazuje - týden, nebo 14 dní.
 final planTydnuProvider = StateProvider<int>((ref) => 1);

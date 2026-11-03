@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:renoworkshop/src/features/orders/data/datasources/rest_service_order_data_source.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/orders/domain/repositories/service_order_repository.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
@@ -400,6 +401,60 @@ void main() {
 
       final bajty = await _zdroj(client).stahniFotku('f1');
       expect(bajty, [0xff, 0xd8, 0xff, 0xe0]);
+    });
+
+    test('úkony plánu: adresy, tělo zápisu a typy do nabídky', () async {
+      final volani = <String>[];
+      Object? telo;
+      final client = MockClient((request) async {
+        volani.add('${request.method} ${request.url.path}');
+        if (request.url.path.endsWith('/bodyshop-plan/types')) {
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode([
+                {'code': 'lakovna', 'label': 'Lakovna', 'color': '#BE123C'},
+              ]),
+            ),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (request.body.isNotEmpty) telo = jsonDecode(request.body);
+        return http.Response.bytes(
+          utf8.encode(jsonEncode(_zakazka(id: 'Z 1'))),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+      final zdroj = _zdroj(client);
+      final ukon = VstupUkonu(
+        typKod: 'lakovna',
+        od: DateTime(2026, 10, 12),
+        do_: DateTime(2026, 10, 14),
+        kodLaku: '416',
+        hotovo: true,
+      );
+
+      await zdroj.pridejUkonPlanu('Z 1', ukon);
+      expect(telo, {
+        'type': 'lakovna',
+        'from': '2026-10-12',
+        'to': '2026-10-14',
+        'paintCode': '416',
+        'note': '',
+        'status': 'hotovo',
+      });
+      await zdroj.upravUkonPlanu('Z 1', 7, ukon);
+      await zdroj.smazUkonPlanu('Z 1', 7);
+      final typy = await zdroj.nactiTypyUkonu();
+
+      expect(typy.single.nazev, 'Lakovna');
+      expect(volani[0], endsWith('/orders/Z%201/bodyshop-plan/blocks'));
+      expect(volani[0], startsWith('POST'));
+      expect(volani[1], startsWith('PUT'));
+      expect(volani[1], endsWith('/orders/Z%201/bodyshop-plan/blocks/7'));
+      expect(volani[2], startsWith('DELETE'));
+      expect(volani[2], endsWith('/orders/Z%201/bodyshop-plan/blocks/7'));
     });
 
     test(

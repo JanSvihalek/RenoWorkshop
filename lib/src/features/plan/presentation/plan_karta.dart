@@ -31,8 +31,14 @@ String pocetDni(int n) =>
         ? 'dny'
         : 'dní'}';
 
-/// Karta Klempírna / lakovna v detailu zakázky: plán, nebo zaplánování,
-/// a cesta do plánovače. U klempířských zakázek vždy, u ostatních jen
+/// Barva úkonu `#RRGGBB` z číselníku; nečitelná je jako barva aplikace.
+Color barvaUkonu(TypUkonu typ) {
+  final hodnota = int.tryParse(typ.barva.replaceFirst('#', ''), radix: 16);
+  return hodnota == null ? AppColors.accent : Color(0xFF000000 | hodnota);
+}
+
+/// Karta Klempírna / lakovna v detailu zakázky: úkony v plánu, nebo
+/// zaplánování, a cesta do plánovače. U klempířských zakázek vždy, u ostatních jen
 /// když plán už mají.
 class PlanKarta extends ConsumerWidget {
   const PlanKarta({super.key, required this.order});
@@ -45,12 +51,13 @@ class PlanKarta extends ConsumerWidget {
     final plan = order.planKlempirny;
     // Plán jen s plánovačem „Plánovat" u pobočky zakázky.
     final smi = ref.watch(smiPlanovatProvider(order.branch?.code));
-    void otevri() => naplanovatKlempirnu(
+    void otevri({UkonPlanu? ukon}) => naplanovatKlempirnu(
       context,
       ref,
       zakazkaId: order.id,
       spz: order.licensePlate,
       plan: plan,
+      ukon: ukon,
       barva: order.barvaVozu,
     );
 
@@ -64,11 +71,11 @@ class PlanKarta extends ConsumerWidget {
               const Expanded(child: SectionLabel('KLEMPÍRNA / LAKOVNA')),
               if (plan != null && smi)
                 GestureDetector(
-                  key: const Key('plan-upravit'),
+                  key: const Key('plan-pridat-ukon'),
                   onTap: otevri,
                   behavior: HitTestBehavior.opaque,
                   child: Text(
-                    'Upravit',
+                    'Přidat úkon',
                     style: AppTextStyles.cardBody.copyWith(
                       color: AppColors.accent,
                       fontWeight: FontWeight.w600,
@@ -93,7 +100,11 @@ class PlanKarta extends ConsumerWidget {
               ),
             ],
           ] else
-            _Plan(plan: plan, kodLaku: kodLakuZakazky(plan, order.barvaVozu)),
+            _Plan(
+              plan: plan,
+              kodLaku: kodLakuZakazky(plan, order.barvaVozu),
+              onUkon: smi ? (ukon) => otevri(ukon: ukon) : null,
+            ),
           if (ref.watch(vidiPlanovacProvider)) ...[
             const SizedBox(height: Insets.sm),
             TextButton.icon(
@@ -110,17 +121,20 @@ class PlanKarta extends ConsumerWidget {
 }
 
 class _Plan extends StatelessWidget {
-  const _Plan({required this.plan, required this.kodLaku});
+  const _Plan({required this.plan, required this.kodLaku, this.onUkon});
 
   final PlanKlempirny plan;
   final String? kodLaku;
+
+  /// Bez něj (jen čtení) úkony nejde otevřít k úpravě.
+  final ValueChanged<UkonPlanu>? onUkon;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
           spacing: Insets.md,
@@ -128,31 +142,90 @@ class _Plan extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
-              '${obdobiPlanu(plan.od, plan.do_)} · ${pocetDni(plan.dni)}',
+              obdobiPlanu(plan.od, plan.do_),
               style: AppTextStyles.cardBody.copyWith(
                 color: palette.text,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            StavPlanuZnacka(hotovo: plan.hotovo),
             if (kodLaku != null) KodLaku(kod: kodLaku!),
           ],
         ),
-        if (plan.poznamka.trim().isNotEmpty) ...[
+        for (final ukon in plan.ukony) ...[
           const SizedBox(height: Insets.sm),
-          Text(
-            plan.poznamka,
-            style: AppTextStyles.noteText.copyWith(color: palette.text),
-          ),
-        ],
-        if (plan.zaplanoval != null) ...[
-          const SizedBox(height: Insets.xs),
-          Text(
-            'Zaplánoval ${plan.zaplanoval}',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-          ),
+          _Ukon(ukon: ukon, onTap: onUkon == null ? null : () => onUkon!(ukon)),
         ],
       ],
+    );
+  }
+}
+
+/// Jeden úkon v kartě: proužek v barvě typu, dny, stav a poznámka.
+class _Ukon extends StatelessWidget {
+  const _Ukon({required this.ukon, this.onTap});
+
+  final UkonPlanu ukon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return InkWell(
+      key: Key('plan-ukon-${ukon.id}'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Insets.md,
+          vertical: Insets.sm,
+        ),
+        decoration: BoxDecoration(
+          color: barvaUkonu(ukon.typ).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            left: BorderSide(color: barvaUkonu(ukon.typ), width: 4),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: Insets.sm,
+              runSpacing: Insets.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  ukon.typ.nazev,
+                  style: AppTextStyles.cardBody.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                StavPlanuZnacka(hotovo: ukon.hotovo),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${obdobiPlanu(ukon.od, ukon.do_)} · ${pocetDni(ukon.dni)}',
+              style: AppTextStyles.metaSmall.copyWith(color: palette.text),
+            ),
+            if (ukon.poznamka.trim().isNotEmpty) ...[
+              const SizedBox(height: Insets.xs),
+              Text(
+                ukon.poznamka,
+                style: AppTextStyles.noteText.copyWith(color: palette.text),
+              ),
+            ],
+            if (ukon.zaplanoval != null) ...[
+              const SizedBox(height: Insets.xs),
+              Text(
+                'Zaplánoval ${ukon.zaplanoval}',
+                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

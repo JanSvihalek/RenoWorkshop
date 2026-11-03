@@ -84,16 +84,20 @@ abstract interface class ServiceOrderDataSource {
   /// `GET /envelopes/{code}` - komu obálka patří. `null` = v evidenci není.
   Future<NalezenaObalka?> najdiObalku(String kod);
 
-  /// `PUT /orders/{id}/bodyshop-plan` - zaplánovat na klempírnu/lakovnu
-  /// nebo plán upravit. Zakázka jiného než klempířského útvaru je
+  /// `POST /orders/{id}/bodyshop-plan/blocks` - přidat úkon na klempírnu/
+  /// lakovnu. Zakázka jiného než klempířského útvaru je
   /// [ServiceOrderException] s hláškou.
-  Future<ServiceOrderDto?> ulozPlanKlempirny(
+  Future<ServiceOrderDto?> pridejUkonPlanu(String orderId, VstupUkonu ukon);
+
+  /// `PUT /orders/{id}/bodyshop-plan/blocks/{ukonId}` - upravit úkon.
+  Future<ServiceOrderDto?> upravUkonPlanu(
     String orderId,
-    PlanKlempirny plan,
+    int ukonId,
+    VstupUkonu ukon,
   );
 
-  /// `DELETE /orders/{id}/bodyshop-plan` - zrušit plán.
-  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId);
+  /// `DELETE /orders/{id}/bodyshop-plan/blocks/{ukonId}` - smazat úkon.
+  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId);
 
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.

@@ -76,11 +76,18 @@ abstract interface class ServiceOrderRepository {
   /// Komu naskenovaná obálka patří. `null` = obálka v evidenci není.
   Future<NalezenaObalka?> najdiObalku(String kod);
 
-  /// Zaplánuje zakázku na klempírnu/lakovnu, nebo plán upraví.
-  Future<ServiceOrder> ulozPlanKlempirny(String orderId, PlanKlempirny plan);
+  /// Přidá zakázce úkon na klempírně/lakovně.
+  Future<ServiceOrder> pridejUkonPlanu(String orderId, VstupUkonu ukon);
 
-  /// Zruší plán zakázky na klempírně.
-  Future<ServiceOrder> zrusPlanKlempirny(String orderId);
+  /// Upraví úkon v plánu zakázky.
+  Future<ServiceOrder> upravUkonPlanu(
+    String orderId,
+    int ukonId,
+    VstupUkonu ukon,
+  );
+
+  /// Smaže úkon z plánu zakázky.
+  Future<ServiceOrder> smazUkonPlanu(String orderId, int ukonId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

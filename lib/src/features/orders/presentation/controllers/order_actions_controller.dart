@@ -115,13 +115,21 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  /// Zaplánuje zakázku na klempírnu/lakovnu, nebo plán upraví. Chyba
-  /// (třeba zakázka jiného útvaru) jde do [chyba].
-  Future<String?> ulozPlanKlempirny(String orderId, PlanKlempirny plan) async {
+  /// Přidá zakázce úkon na klempírně/lakovně, nebo upraví úkon [ukonId].
+  /// Chyba (třeba zakázka jiného útvaru) se vrátí jako text.
+  Future<String?> ulozUkonPlanu(
+    String orderId,
+    VstupUkonu ukon, {
+    int? ukonId,
+  }) async {
     state = const AsyncLoading();
     try {
-      await _repository.ulozPlanKlempirny(orderId, plan);
-      _zaloguj('plan_klempirny_ulozen', orderId, detail: plan.kodLaku);
+      if (ukonId == null) {
+        await _repository.pridejUkonPlanu(orderId, ukon);
+      } else {
+        await _repository.upravUkonPlanu(orderId, ukonId, ukon);
+      }
+      _zaloguj('plan_ukon_ulozen', orderId, detail: ukon.typKod);
       _poZmenePlanu(orderId);
       state = const AsyncData(null);
       return null;
@@ -131,11 +139,11 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  Future<String?> zrusPlanKlempirny(String orderId) async {
+  Future<String?> smazUkonPlanu(String orderId, int ukonId) async {
     state = const AsyncLoading();
     try {
-      await _repository.zrusPlanKlempirny(orderId);
-      _zaloguj('plan_klempirny_zrusen', orderId);
+      await _repository.smazUkonPlanu(orderId, ukonId);
+      _zaloguj('plan_ukon_smazan', orderId);
       _poZmenePlanu(orderId);
       state = const AsyncData(null);
       return null;

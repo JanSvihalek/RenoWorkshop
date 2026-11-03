@@ -35,8 +35,9 @@ const cestaPlanovace = '/planovac';
 
 /// Plánovač klempírny a lakovny - jako portál plánu na webu: po pracovních
 /// dnech jako časová osa. Řádek je zakázka s průběhem na dílně (dílenský
-/// stav), pruh její blok od-do. Klepnutí na pruh plán upraví, na den
-/// zaplánuje, na zakázku otevře detail, na stav zapíše nový.
+/// stav), pruhy její úkony od-do, překrývající se pod sebou. Klepnutí na
+/// pruh úkon upraví, na den přidá nový, na zakázku otevře detail, na stav
+/// zapíše nový.
 class PlanScreen extends ConsumerWidget {
   const PlanScreen({
     super.key,
@@ -268,7 +269,7 @@ class _Nadpis extends StatelessWidget {
           ),
         ),
         Text(
-          'zakázky klempířských středisek · klepnutím na den zaplánujete',
+          'zakázky klempířských středisek · klepnutím na den přidáte úkon',
           style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
         ),
       ],
@@ -538,7 +539,7 @@ class _ZahlaviDnu extends ConsumerWidget {
 bool _jeDnes(DateTime d, DateTime dnes) =>
     d.year == dnes.year && d.month == dnes.month && d.day == dnes.day;
 
-/// Řádek zakázky: vlevo vůz a zákazník, vpravo pruh přes dny plánu.
+/// Řádek zakázky: vlevo vůz a zákazník, vpravo pruhy úkonů přes dny plánu.
 class _Radek extends ConsumerWidget {
   const _Radek({
     required this.polozka,
@@ -556,26 +557,29 @@ class _Radek extends ConsumerWidget {
 
   static const _vyska = 102.0;
 
+  /// Výška pruhu a krok mezi linkami pod sebou.
+  static const _vyskaPruhu = 30.0;
+  static const _krokLinky = 34.0;
+
+  /// Nad pruhy odsazení, pod nimi pás, kde se klepnutím přidá další úkon.
+  static const _nadPruhy = 8.0;
+  static const _pasPridani = 26.0;
+
+  /// Na užším pruhu by se kód laku a název úkonu nevešly.
+  static const _sirkaProKod = 130.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final dnes = ref.watch(dnesProvider);
     final plan = polozka.plan;
-    // Které zobrazené dny blok zabírá - víkendy v ose nejsou.
-    final prvni = plan == null
-        ? -1
-        : dny.indexWhere((d) => !d.isBefore(plan.od));
-    final posledni = plan == null
-        ? -1
-        : dny.lastIndexWhere((d) => !d.isAfter(plan.do_));
-    final viditelny = prvni != -1 && posledni >= prvni;
+    final (:pruhy, :linek) = pruhyVOse(plan?.ukony ?? const [], dny);
     // Plán i dílenský stav mění, kdo u pobočky v plánovači plánuje. Detail
     // zakázky jen s právem k jejímu pořadači.
     final smi = ref.watch(smiPlanovatProvider(polozka.pobockaKod));
     final detail = ref.watch(smiCistProvider(polozka.zakazka?.poradac?.kod));
-    // Bez bloku v období jde na den klepnout: nový plán ho má předvyplněný,
-    // existující plán jinde se otevře k úpravě.
-    void otevri(DateTime den) => naplanovatKlempirnu(
+    // Klepnutí na den přidá úkon s tím dnem předvyplněným.
+    void pridej(DateTime den) => naplanovatKlempirnu(
       context,
       ref,
       zakazkaId: polozka.zakazkaId,
@@ -587,7 +591,7 @@ class _Radek extends ConsumerWidget {
 
     return Container(
       key: Key('plan-radek-${polozka.zakazkaId}'),
-      height: _vyska,
+      height: math.max(_vyska, _nadPruhy + linek * _krokLinky + _pasPridani),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: palette.hairline)),
       ),
@@ -680,28 +684,30 @@ class _Radek extends ConsumerWidget {
                             left: BorderSide(color: palette.hairline),
                           ),
                         ),
-                        child: viditelny
-                            ? null
-                            : InkWell(
-                                key: Key(
-                                  'plan-den-${polozka.zakazkaId}-${d.day}',
-                                ),
-                                onTap: smi ? () => otevri(d) : null,
-                                child: plan == null && smi
-                                    ? Icon(
-                                        Icons.add_rounded,
-                                        size: 18,
-                                        color: palette.muted.withValues(
-                                          alpha: 0.45,
-                                        ),
-                                      )
-                                    : null,
-                              ),
+                        child: InkWell(
+                          key: Key('plan-den-${polozka.zakazkaId}-${d.day}'),
+                          onTap: smi ? () => pridej(d) : null,
+                          child: smi
+                              ? Align(
+                                  // S plánem dole v pásu pod pruhy.
+                                  alignment: plan == null
+                                      ? Alignment.center
+                                      : Alignment.bottomCenter,
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    size: 18,
+                                    color: palette.muted.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                   ],
                 ),
                 // Plán mimo zobrazené dny - aspoň kdy je.
-                if (plan != null && !viditelny)
+                if (plan != null && pruhy.isEmpty)
                   Positioned.fill(
                     child: IgnorePointer(
                       child: Center(
@@ -719,18 +725,20 @@ class _Radek extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (viditelny)
+                for (final p in pruhy)
                   Positioned(
-                    left: prvni * den + 4,
-                    width: (posledni - prvni + 1) * den - 8,
-                    top: 10,
-                    bottom: 10,
+                    left: p.prvni * den + 4,
+                    width: (p.posledni - p.prvni + 1) * den - 8,
+                    top: _nadPruhy + p.linka * _krokLinky,
+                    height: _vyskaPruhu,
                     child: _Pruh(
                       polozka: polozka,
                       smi: smi,
-                      plan: plan!,
-                      useknutyZleva: plan.od.isBefore(dny[prvni]),
-                      useknutyZprava: plan.do_.isAfter(dny[posledni]),
+                      ukon: p.ukon,
+                      sKodem:
+                          (p.posledni - p.prvni + 1) * den - 8 >= _sirkaProKod,
+                      useknutyZleva: p.ukon.od.isBefore(dny[p.prvni]),
+                      useknutyZprava: p.ukon.do_.isAfter(dny[p.posledni]),
                     ),
                   ),
               ],
@@ -742,44 +750,50 @@ class _Radek extends ConsumerWidget {
   }
 }
 
-/// Blok zakázky na ose: modrý naplánovaný, zelený hotový.
+/// Úkon na ose v barvě svého typu; hotový je se zaškrtnutím a bledší.
 class _Pruh extends ConsumerWidget {
   const _Pruh({
     required this.polozka,
-    required this.plan,
+    required this.ukon,
+    required this.sKodem,
     required this.useknutyZleva,
     required this.useknutyZprava,
     this.smi = true,
   });
 
   final PolozkaPlanu polozka;
-  final PlanKlempirny plan;
+  final UkonPlanu ukon;
 
-  /// Jen čtení - klepnutím se plán neotevře k úpravě.
+  /// Kód laku se na pruh vejde (a jde o lakovnu - viz build).
+  final bool sKodem;
+
+  /// Jen čtení - klepnutím se úkon neotevře k úpravě.
   final bool smi;
   final bool useknutyZleva;
   final bool useknutyZprava;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final barva = plan.hotovo ? AppColors.readyGreen : AppColors.accent;
+    final barva = barvaUkonu(ukon.typ);
+    final poznamka = ukon.poznamka.trim();
     const r = Radius.circular(8);
 
     return Material(
-      color: barva,
+      color: ukon.hotovo ? barva.withValues(alpha: 0.75) : barva,
       borderRadius: BorderRadius.horizontal(
         left: useknutyZleva ? Radius.zero : r,
         right: useknutyZprava ? Radius.zero : r,
       ),
       child: InkWell(
-        key: Key('plan-pruh-${polozka.zakazkaId}'),
+        key: Key('plan-pruh-${polozka.zakazkaId}-${ukon.id}'),
         onTap: smi
             ? () => naplanovatKlempirnu(
                 context,
                 ref,
                 zakazkaId: polozka.zakazkaId,
                 spz: polozka.spz,
-                plan: plan,
+                plan: polozka.plan,
+                ukon: ukon,
                 barva: polozka.barva,
               )
             : null,
@@ -787,19 +801,21 @@ class _Pruh extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
           child: Row(
             children: [
-              if (plan.hotovo) ...[
+              if (ukon.hotovo) ...[
                 const Icon(Icons.check_rounded, size: 16, color: Colors.white),
                 const SizedBox(width: Insets.xs),
               ],
-              if (polozka.kodLaku case final kod?) ...[
+              // Kód laku jen na lakovně - jinde by překážel názvu úkonu.
+              if (polozka.kodLaku case final kod?
+                  when sKodem && ukon.typ.jeLakovna) ...[
                 KodLaku(kod: kod, naPruhu: true),
                 const SizedBox(width: Insets.sm),
               ],
               Expanded(
                 child: Text(
-                  plan.poznamka.trim().isNotEmpty
-                      ? plan.poznamka.trim()
-                      : obdobiPlanu(plan.od, plan.do_),
+                  poznamka.isEmpty
+                      ? ukon.typ.nazev
+                      : '${ukon.typ.nazev} · $poznamka',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.metaSmall.copyWith(

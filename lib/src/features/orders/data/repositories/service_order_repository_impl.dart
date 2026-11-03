@@ -150,13 +150,25 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
-  Future<ServiceOrder> ulozPlanKlempirny(String orderId, PlanKlempirny plan) {
-    return _mutate(orderId, () => _dataSource.ulozPlanKlempirny(orderId, plan));
+  Future<ServiceOrder> pridejUkonPlanu(String orderId, VstupUkonu ukon) {
+    return _mutate(orderId, () => _dataSource.pridejUkonPlanu(orderId, ukon));
   }
 
   @override
-  Future<ServiceOrder> zrusPlanKlempirny(String orderId) {
-    return _mutate(orderId, () => _dataSource.zrusPlanKlempirny(orderId));
+  Future<ServiceOrder> upravUkonPlanu(
+    String orderId,
+    int ukonId,
+    VstupUkonu ukon,
+  ) {
+    return _mutate(
+      orderId,
+      () => _dataSource.upravUkonPlanu(orderId, ukonId, ukon),
+    );
+  }
+
+  @override
+  Future<ServiceOrder> smazUkonPlanu(String orderId, int ukonId) {
+    return _mutate(orderId, () => _dataSource.smazUkonPlanu(orderId, ukonId));
   }
 
   @override

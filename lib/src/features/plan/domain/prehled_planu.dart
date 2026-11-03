@@ -17,8 +17,8 @@ class PobockaPlanu {
   int get hashCode => Object.hash(kod, nazev);
 }
 
-/// Řádek plánu: zakázka klempířského útvaru a její blok na klempírně,
-/// pokud už ho má.
+/// Řádek plánu: zakázka klempířského útvaru a její úkony na klempírně,
+/// pokud už nějaké má.
 class PolozkaPlanu {
   const PolozkaPlanu({
     required this.zakazkaId,
@@ -122,9 +122,9 @@ class SpolecnyKod {
   final List<PolozkaPlanu> polozky;
 }
 
-/// Kódy laku, které mají v období aspoň dvě zakázky, od nejčastějšího.
-/// Velikost písmen ani mezery okolo nehrají roli; zakázky bez plánu nebo
-/// s plánem mimo období se nepočítají.
+/// Kódy laku, které mají v období aspoň dvě zakázky s úkonem na lakovně,
+/// od nejčastějšího. Velikost písmen ani mezery okolo nehrají roli; zakázky
+/// bez plánu nebo bez lakovny v období se nepočítají.
 List<SpolecnyKod> spolecneKody(
   List<PolozkaPlanu> polozky,
   DateTime od,
@@ -132,8 +132,10 @@ List<SpolecnyKod> spolecneKody(
 ) {
   final podleKodu = <String, List<PolozkaPlanu>>{};
   for (final p in polozky) {
-    final plan = p.plan;
-    if (plan == null || !plan.prekryva(od, do_)) continue;
+    final lakuje =
+        p.plan?.ukony.any((u) => u.typ.jeLakovna && u.prekryva(od, do_)) ??
+        false;
+    if (!lakuje) continue;
     final kod = p.kodLaku;
     if (kod == null) continue;
     (podleKodu[kod] ??= []).add(p);
@@ -156,6 +158,79 @@ List<DateTime> pracovniDny(DateTime zacatek, int tydnu) => [
     for (var d = 0; d < 5; d++)
       DateTime(zacatek.year, zacatek.month, zacatek.day + t * 7 + d),
 ];
+
+/// Úkon na ose: které zobrazené dny zabírá a v které lince pod sebou jede.
+class PruhUkonu {
+  const PruhUkonu({
+    required this.ukon,
+    required this.prvni,
+    required this.posledni,
+    required this.linka,
+  });
+
+  final UkonPlanu ukon;
+
+  /// Indexy do zobrazených dnů (víkendy v ose nejsou).
+  final int prvni;
+  final int posledni;
+  final int linka;
+}
+
+/// Pruhy úkonů v zobrazených dnech: bez překryvu jedou v jedné lince, při
+/// překryvu jde další o linku níž. Úkon jen přes víkend na ose není.
+({List<PruhUkonu> pruhy, int linek}) pruhyVOse(
+  List<UkonPlanu> ukony,
+  List<DateTime> dny,
+) {
+  final viditelne = [
+    for (final u in ukony)
+      if (dny.indexWhere((d) => !d.isBefore(u.od)) case final prvni
+          when prvni != -1)
+        if (dny.lastIndexWhere((d) => !d.isAfter(u.do_)) case final posledni
+            when posledni >= prvni)
+          (ukon: u, prvni: prvni, posledni: posledni),
+  ]..sort((a, b) => a.prvni.compareTo(b.prvni));
+  final konce = <int>[];
+  final pruhy = <PruhUkonu>[];
+  for (final v in viditelne) {
+    var linka = konce.indexWhere((konec) => konec < v.prvni);
+    if (linka == -1) {
+      linka = konce.length;
+      konce.add(v.posledni);
+    } else {
+      konce[linka] = v.posledni;
+    }
+    pruhy.add(
+      PruhUkonu(
+        ukon: v.ukon,
+        prvni: v.prvni,
+        posledni: v.posledni,
+        linka: linka,
+      ),
+    );
+  }
+  return (pruhy: pruhy, linek: konce.length);
+}
+
+/// Výchozí typ nového úkonu: po posledním naplánovaném jde další v pořadí
+/// číselníku (Demontáž → Klempířské práce → ...), jinak první.
+TypUkonu? vychoziTypUkonu(List<TypUkonu> typy, PlanKlempirny? plan) {
+  if (typy.isEmpty) return null;
+  final posledni = plan == null || plan.ukony.isEmpty
+      ? null
+      : plan.ukony.last.typ.kod;
+  final i = typy.indexWhere((t) => t.kod == posledni);
+  return i + 1 < typy.length ? typy[i + 1] : typy.first;
+}
+
+/// První pracovní den po konci plánu - kam nejspíš patří další úkon.
+DateTime navazujiciDen(PlanKlempirny plan) {
+  var d = DateTime(plan.do_.year, plan.do_.month, plan.do_.day + 1);
+  while (d.weekday > 5) {
+    d = DateTime(d.year, d.month, d.day + 1);
+  }
+  return d;
+}
 
 /// Řádky plánu rozdělené pro osu: s blokem v období (od začátku bloku),
 /// s plánem jindy a bez plánu (od nejdéle čekající).

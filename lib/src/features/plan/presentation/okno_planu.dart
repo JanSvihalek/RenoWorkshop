@@ -11,20 +11,24 @@ import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/presentation/controllers/order_actions_controller.dart';
 import '../../orders/presentation/widgets/okno_zapisu.dart';
+import '../domain/prehled_planu.dart';
+import 'plan_providers.dart';
 
-/// Okno plánu zakázky na klempírně/lakovně - z detailu zakázky i z pruhu
-/// v záložce Plán. Bez [plan] se zakládá nový.
+/// Okno úkonu zakázky na klempírně/lakovně - z detailu zakázky i z plánovače.
+/// Bez [ukon] se přidává nový. [plan] je celý plán zakázky: kód laku je
+/// společný a nový úkon z něj bere výchozí typ a den.
 Future<void> naplanovatKlempirnu(
   BuildContext context,
   WidgetRef ref, {
   required String zakazkaId,
   String? spz,
   PlanKlempirny? plan,
+  UkonPlanu? ukon,
 
   /// Barva vozu z Heliosu - předvyplní kód laku.
   BarvaVozu? barva,
 
-  /// Den, na který se klepnulo v plánu - nový plán ho má předvyplněný.
+  /// Den, na který se klepnulo v plánu - nový úkon ho má předvyplněný.
   DateTime? den,
 }) {
   return showDialog<void>(
@@ -33,6 +37,7 @@ Future<void> naplanovatKlempirnu(
       zakazkaId: zakazkaId,
       spz: spz,
       plan: plan,
+      ukon: ukon,
       barva: barva,
       den: den,
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
@@ -45,6 +50,7 @@ class _OknoPlanu extends ConsumerStatefulWidget {
     required this.zakazkaId,
     required this.spz,
     required this.plan,
+    required this.ukon,
     required this.barva,
     required this.den,
     required this.autor,
@@ -53,6 +59,7 @@ class _OknoPlanu extends ConsumerStatefulWidget {
   final String zakazkaId;
   final String? spz;
   final PlanKlempirny? plan;
+  final UkonPlanu? ukon;
   final BarvaVozu? barva;
   final DateTime? den;
   final String autor;
@@ -62,18 +69,15 @@ class _OknoPlanu extends ConsumerStatefulWidget {
 }
 
 class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
-  late DateTimeRange? _obdobi = switch ((widget.plan, widget.den)) {
-    (final plan?, _) => DateTimeRange(start: plan.od, end: plan.do_),
-    (null, final den?) => DateTimeRange(start: den, end: den),
-    _ => null,
-  };
+  late DateTimeRange? _obdobi = _vychoziObdobi();
   late final _kod = TextEditingController(
     text: widget.plan?.kodLaku ?? widget.barva?.kod ?? '',
   );
   late final _poznamka = TextEditingController(
-    text: widget.plan?.poznamka ?? '',
+    text: widget.ukon?.poznamka ?? '',
   );
-  late bool _hotovo = widget.plan?.hotovo ?? false;
+  late bool _hotovo = widget.ukon?.hotovo ?? false;
+  late String? _vybranyTyp = widget.ukon?.typ.kod;
   bool _uklada = false;
   String? _chyba;
 
@@ -84,7 +88,21 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     super.dispose();
   }
 
-  bool get _lzeUlozit => !_uklada && _obdobi != null;
+  /// Úkon má svoje dny, klepnutí v plánu den vybralo, u detailu zakázky
+  /// navazuje další úkon na konec plánu.
+  DateTimeRange? _vychoziObdobi() {
+    if (widget.ukon case final u?) {
+      return DateTimeRange(start: u.od, end: u.do_);
+    }
+    final den =
+        widget.den ??
+        (widget.plan == null ? null : navazujiciDen(widget.plan!));
+    return den == null ? null : DateTimeRange(start: den, end: den);
+  }
+
+  /// Vybraný typ, jinak výchozí pro nový úkon. `null`, dokud se typy načítají.
+  String? _typ(List<TypUkonu> typy) =>
+      _vybranyTyp ?? vychoziTypUkonu(typy, widget.plan)?.kod;
 
   Future<void> _vyberObdobi() async {
     final dnes = ref.read(dnesProvider);
@@ -94,14 +112,14 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
       lastDate: dnes.add(const Duration(days: 365)),
       initialDateRange: _obdobi,
       currentDate: dnes,
-      helpText: 'Klempírna / lakovna od – do',
+      helpText: 'Úkon od – do',
       // Ne „Hotovo" - tak se v okně jmenuje stav plánu.
       saveText: 'Použít',
     );
     if (vybrano != null && mounted) setState(() => _obdobi = vybrano);
   }
 
-  /// Uloží nebo zruší plán; chyba zůstane v okně.
+  /// Uloží nebo smaže úkon; chyba zůstane v okně.
   Future<void> _proved(Future<String?> Function() akce) async {
     setState(() {
       _uklada = true;
@@ -119,32 +137,40 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     }
   }
 
-  Future<void> _uloz() async {
+  Future<void> _uloz(String typ) async {
     final obdobi = _obdobi;
-    if (!_lzeUlozit || obdobi == null) return;
+    if (_uklada || obdobi == null) return;
     final kod = _kod.text.trim().toUpperCase();
     await _proved(
       () => ref
           .read(orderActionsProvider.notifier)
-          .ulozPlanKlempirny(
+          .ulozUkonPlanu(
             widget.zakazkaId,
-            PlanKlempirny(
+            VstupUkonu(
+              typKod: typ,
               od: obdobi.start,
               do_: obdobi.end,
               kodLaku: kod.isEmpty ? null : kod,
               poznamka: _poznamka.text.trim(),
               hotovo: _hotovo,
             ),
+            ukonId: widget.ukon?.id,
           ),
     );
   }
 
-  Future<void> _zrus() async {
+  Future<void> _smaz(UkonPlanu ukon) async {
+    final posledni = (widget.plan?.ukony.length ?? 0) <= 1;
     final ano = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog.adaptive(
-        title: const Text('Zrušit plán?'),
-        content: const Text('Zakázka zmizí z plánu klempírny.'),
+        title: const Text('Smazat úkon?'),
+        content: Text(
+          posledni
+              ? 'Je to poslední úkon. Zakázka zůstane v plánovači mezi '
+                    'zakázkami bez plánu.'
+              : 'Ostatní úkony zakázky zůstanou v plánu.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -153,7 +179,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           TextButton(
             key: const Key('plan-zrusit-potvrdit'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Zrušit plán'),
+            child: const Text('Smazat úkon'),
           ),
         ],
       ),
@@ -162,7 +188,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     await _proved(
       () => ref
           .read(orderActionsProvider.notifier)
-          .zrusPlanKlempirny(widget.zakazkaId),
+          .smazUkonPlanu(widget.zakazkaId, ukon.id),
     );
   }
 
@@ -170,22 +196,81 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final obdobi = _obdobi;
+    final nacitani = ref.watch(typyUkonuProvider);
+    final nabidka = nacitani.valueOrNull ?? const <TypUkonu>[];
+    final ukon = widget.ukon;
+    final stavajici = ukon?.typ;
+    // Vyřazený typ v nabídce není, starému úkonu ale zůstává.
+    final typy = [
+      ...nabidka,
+      if (stavajici != null && !nabidka.any((n) => n.kod == stavajici.kod))
+        stavajici,
+    ];
+    final typ = _typ(nabidka);
     final cervena = context.isDarkMode
         ? const Color(0xFFFF7A7A)
         : AppColors.danger;
 
     return OknoZapisu(
-      nadpis: widget.plan == null
-          ? 'Zaplánovat na klempírnu/lakovnu'
-          : 'Upravit plán',
+      nadpis: ukon != null
+          ? 'Upravit úkon'
+          : widget.plan != null
+          ? 'Přidat úkon'
+          : 'Zaplánovat na klempírnu/lakovnu',
       kam: 'klempírna / lakovna',
       spz: widget.spz,
       cisloZakazky: widget.zakazkaId,
       autor: widget.autor,
-      potvrdit: widget.plan == null ? 'Zaplánovat' : 'Uložit',
+      potvrdit: ukon != null
+          ? 'Uložit'
+          : widget.plan != null
+          ? 'Přidat'
+          : 'Zaplánovat',
       potvrditKey: const Key('plan-ulozit'),
-      onPotvrdit: _lzeUlozit ? _uloz : null,
+      onPotvrdit: !_uklada && obdobi != null && typ != null
+          ? () => _uloz(typ)
+          : null,
       obsah: [
+        const PopisekPole('ÚKON'),
+        // Pole si pamatuje jen první hodnotu - proto až s načtenými typy.
+        if (typ == null)
+          DropdownButtonFormField<String>(
+            key: const Key('plan-typ-nacita'),
+            isExpanded: true,
+            hint: const Text('Načítám…'),
+            items: const [],
+            onChanged: null,
+          )
+        else
+          DropdownButtonFormField<String>(
+            key: const Key('plan-typ'),
+            initialValue: typ,
+            isExpanded: true,
+            items: [
+              for (final t in typy)
+                DropdownMenuItem(value: t.kod, child: Text(t.nazev)),
+            ],
+            onChanged: (v) => setState(() => _vybranyTyp = v),
+          ),
+        if (nacitani.hasError && typ == null) ...[
+          const SizedBox(height: Insets.xs),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Typy úkonů se nepodařilo načíst.',
+                  style: AppTextStyles.metaSmall.copyWith(color: cervena),
+                ),
+              ),
+              TextButton(
+                key: const Key('plan-typy-znovu'),
+                onPressed: () => ref.invalidate(typyUkonuProvider),
+                child: const Text('Zkusit znovu'),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: Insets.base),
         const PopisekPole('OD – DO'),
         Align(
           alignment: Alignment.centerLeft,
@@ -216,14 +301,17 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           napoveda: 'Např. 416, C4P',
           maxDelka: 20,
         ),
-        if (widget.barva case final barva?) ...[
-          const SizedBox(height: Insets.xs),
+        const SizedBox(height: Insets.xs),
+        Text(
+          'Společný pro celou zakázku.',
+          style: AppTextStyles.meta.copyWith(color: context.palette.muted),
+        ),
+        if (widget.barva case final barva?)
           Text(
             'Z Heliosu: ${barva.popis}',
             key: const Key('plan-barva-z-heliosu'),
             style: AppTextStyles.meta.copyWith(color: context.palette.muted),
           ),
-        ],
         const SizedBox(height: Insets.base),
         const PopisekPole('POZNÁMKA'),
         PoleZapisu(
@@ -249,7 +337,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
             ),
           ),
           subtitle: Text(
-            'Klempírna a lakovna mají vůz za sebou.',
+            'Tento úkon má vůz za sebou.',
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
           ),
         ),
@@ -261,16 +349,16 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
             style: AppTextStyles.metaSmall.copyWith(color: cervena),
           ),
         ],
-        if (widget.plan != null) ...[
+        if (ukon != null) ...[
           const SizedBox(height: Insets.sm),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               key: const Key('plan-zrusit'),
-              onPressed: _uklada ? null : _zrus,
+              onPressed: _uklada ? null : () => _smaz(ukon),
               style: TextButton.styleFrom(foregroundColor: cervena),
               icon: const Icon(Icons.event_busy_outlined, size: 20),
-              label: const Text('Zrušit plán'),
+              label: const Text('Smazat úkon'),
             ),
           ),
         ],

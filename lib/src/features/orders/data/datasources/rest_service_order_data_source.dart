@@ -223,25 +223,48 @@ class RestServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> ulozPlanKlempirny(
+  Future<ServiceOrderDto?> pridejUkonPlanu(
     String orderId,
-    PlanKlempirny plan,
+    VstupUkonu ukon,
   ) async {
     final data = await _send(
-      'PUT',
-      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan',
-      body: plan.toJson(),
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan/blocks',
+      body: ukon.toJson(),
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }
 
   @override
-  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+  Future<ServiceOrderDto?> upravUkonPlanu(
+    String orderId,
+    int ukonId,
+    VstupUkonu ukon,
+  ) async {
     final data = await _send(
-      'DELETE',
-      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan',
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan/blocks/$ukonId',
+      body: ukon.toJson(),
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+    final data = await _send(
+      'DELETE',
+      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan/blocks/$ukonId',
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<List<TypUkonu>> nactiTypyUkonu() async {
+    final data = await _send('GET', 'bodyshop-plan/types');
+    return [
+      for (final t in data as List<dynamic>? ?? const [])
+        TypUkonu.fromJson(_asMap(t)),
+    ];
   }
 
   @override

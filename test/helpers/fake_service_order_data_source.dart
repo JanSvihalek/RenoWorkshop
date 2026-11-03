@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:renoworkshop/src/features/akce/data/akce_data_source.dart';
@@ -15,6 +16,7 @@ import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/plan/data/plan_data_source.dart';
+import 'package:renoworkshop/src/features/plan/data/plan_v_pameti.dart';
 import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/kampan_vozidla.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/obalka_klice.dart';
@@ -758,9 +760,9 @@ class FakeServiceOrderDataSource
   (DateTime, DateTime)? obdobiPlanu;
 
   @override
-  Future<ServiceOrderDto?> ulozPlanKlempirny(
+  Future<ServiceOrderDto?> pridejUkonPlanu(
     String orderId,
-    PlanKlempirny plan,
+    VstupUkonu ukon,
   ) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
@@ -770,15 +772,53 @@ class FakeServiceOrderDataSource
       );
     }
     return _orders[index] = _orders[index].copyWith(
-      bodyshopPlan: {...plan.toJson(), 'plannedBy': 'Jan Dvořák'},
+      bodyshopPlan: pridejUkonVPameti(
+        _orders[index].bodyshopPlan,
+        ukon,
+        autor: 'Jan Dvořák',
+      ),
     );
   }
 
   @override
-  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+  Future<ServiceOrderDto?> upravUkonPlanu(
+    String orderId,
+    int ukonId,
+    VstupUkonu ukon,
+  ) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
-    return _orders[index] = _orders[index].copyWith(vymazatPlan: true);
+    return _orders[index] = _orders[index].copyWith(
+      bodyshopPlan: upravUkonVPameti(
+        _orders[index].bodyshopPlan!,
+        ukonId,
+        ukon,
+      ),
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    final plan = smazUkonVPameti(_orders[index].bodyshopPlan!, ukonId);
+    return _orders[index] = _orders[index].copyWith(
+      bodyshopPlan: plan,
+      vymazatPlan: plan == null,
+    );
+  }
+
+  /// Dokud se nedokončí, typy úkonů se „načítají" - pomalá síť.
+  Completer<void>? cekaniNaTypy;
+
+  /// Selhání načtení typů úkonů.
+  bool typySelzou = false;
+
+  @override
+  Future<List<TypUkonu>> nactiTypyUkonu() async {
+    await cekaniNaTypy?.future;
+    if (typySelzou) throw const ServiceOrderException('Server neodpovídá.');
+    return typyUkonuVPameti;
   }
 
   @override

@@ -4,6 +4,7 @@ import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
 import '../../../plan/data/plan_data_source.dart';
+import '../../../plan/data/plan_v_pameti.dart';
 import '../../../plan/domain/prehled_planu.dart';
 import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/plan_klempirny.dart';
@@ -89,15 +90,28 @@ class MockServiceOrderDataSource
     for (var i = 0; i < orders.length; i++) {
       if (!_klempirna(orders[i])) continue;
       final od = po.add(Duration(days: n * 2));
+      final lakovna = typyUkonuVPameti.firstWhere((t) => t.kod == 'lakovna');
       orders[i] = orders[i].copyWith(
         canPlanBodyshop: true,
         bodyshopPlan: n < 2
-            ? PlanKlempirny(
-                od: od,
-                do_: od.add(const Duration(days: 2)),
-                kodLaku: n == 0 ? '416' : 'C4P',
-                zaplanoval: 'Dílna',
-              ).toJson()
+            ? PlanKlempirny.zUkonu([
+                // První vůz má dva úkony přes sebe, ať je vidět i ten případ.
+                if (n == 0)
+                  UkonPlanu(
+                    id: 2,
+                    typ: typyUkonuVPameti.first,
+                    od: od,
+                    do_: od,
+                    zaplanoval: 'Dílna',
+                  ),
+                UkonPlanu(
+                  id: 1,
+                  typ: lakovna,
+                  od: od,
+                  do_: od.add(const Duration(days: 2)),
+                  zaplanoval: 'Dílna',
+                ),
+              ], kodLaku: n == 0 ? '416' : 'C4P').toJson()
             : null,
       );
       n++;
@@ -105,9 +119,9 @@ class MockServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> ulozPlanKlempirny(
+  Future<ServiceOrderDto?> pridejUkonPlanu(
     String orderId,
-    PlanKlempirny plan,
+    VstupUkonu ukon,
   ) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
@@ -119,18 +133,44 @@ class MockServiceOrderDataSource
       );
     }
     return orders[index] = orders[index].copyWith(
-      bodyshopPlan: {...plan.toJson(), 'plannedBy': 'Dílna'},
+      bodyshopPlan: pridejUkonVPameti(
+        orders[index].bodyshopPlan,
+        ukon,
+        autor: 'Dílna',
+      ),
     );
   }
 
   @override
-  Future<ServiceOrderDto?> zrusPlanKlempirny(String orderId) async {
+  Future<ServiceOrderDto?> upravUkonPlanu(
+    String orderId,
+    int ukonId,
+    VstupUkonu ukon,
+  ) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
     final index = _indexOf(orders, orderId);
     if (index == -1) return null;
-    return orders[index] = orders[index].copyWith(vymazatPlan: true);
+    return orders[index] = orders[index].copyWith(
+      bodyshopPlan: upravUkonVPameti(orders[index].bodyshopPlan!, ukonId, ukon),
+    );
   }
+
+  @override
+  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    final plan = smazUkonVPameti(orders[index].bodyshopPlan!, ukonId);
+    return orders[index] = orders[index].copyWith(
+      bodyshopPlan: plan,
+      vymazatPlan: plan == null,
+    );
+  }
+
+  @override
+  Future<List<TypUkonu>> nactiTypyUkonu() async => typyUkonuVPameti;
 
   @override
   Future<PrehledPlanu> nactiPlan(DateTime od, DateTime do_) async {
