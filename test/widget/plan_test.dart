@@ -708,6 +708,16 @@ void main() {
         find.descendant(of: pruh, matching: find.byType(IntrinsicHeight)),
         findsNWidgets(8 ~/ sloupcu),
       );
+      // VIN se vždy vejde celé - je to první sloupec s pevnou šířkou.
+      final vin = find.descendant(
+        of: pruh,
+        matching: find.text('WBATEST0000000001'),
+      );
+      expect(vin, findsOneWidget);
+      expect(
+        tester.getRect(vin).right,
+        lessThanOrEqualTo(tester.getRect(pruh).left + detail * 0.55),
+      );
       expect(tester.takeException(), isNull);
     });
   }

@@ -14,7 +14,11 @@ import '../helpers/zalozky.dart';
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
-  Future<void> otevri(WidgetTester tester, Size velikost) async {
+  Future<void> otevri(
+    WidgetTester tester,
+    Size velikost, {
+    ThemeData? tema,
+  }) async {
     tester.view.physicalSize = velikost;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -28,7 +32,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: AppTheme.light(),
+          theme: tema ?? AppTheme.light(),
           home: OrderDetailScreen(
             orderId: 'ZK-26-0001',
             onBack: () {},
@@ -120,6 +124,23 @@ void main() {
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
     // Karty s termíny v těle detailu už nejsou.
     expect(find.text('PŘIJATO'), findsOneWidget);
+  });
+
+  testWidgets('v tmavém vzhledu nejsou buňky hlavičky šedé', (tester) async {
+    await otevri(tester, const Size(1280, 800), tema: AppTheme.dark());
+
+    final pozadi = tester
+        .widgetList<Container>(
+          find.descendant(of: udaje, matching: find.byType(Container)),
+        )
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .map((d) => d.color)
+        .nonNulls;
+    expect(pozadi, isNotEmpty);
+    for (final barva in pozadi) {
+      expect(barva.a, lessThan(0.2));
+    }
   });
 
   testWidgets('na telefonu jsou termíny v hlavičce pod vozem', (tester) async {

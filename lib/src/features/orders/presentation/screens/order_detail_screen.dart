@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -783,6 +785,7 @@ class _DetailHeader extends ConsumerWidget {
               ),
               _PruhUdaju(
                 order: order,
+                sirka: sirka,
                 sloupcu: sirka >= _sirkaJednaRada
                     ? 8
                     : sirka >= _sirkaCtyriSloupce
@@ -860,6 +863,7 @@ class _CipZarazeni extends StatelessWidget {
 class _PruhUdaju extends ConsumerWidget {
   const _PruhUdaju({
     required this.order,
+    required this.sirka,
     required this.sloupcu,
     required this.onZpracovatel,
     required this.onZadatMisto,
@@ -868,6 +872,9 @@ class _PruhUdaju extends ConsumerWidget {
   });
 
   final ServiceOrder order;
+
+  /// Šířka pruhu.
+  final double sirka;
   final int sloupcu;
   final VoidCallback? onZpracovatel;
   final VoidCallback? onZadatMisto;
@@ -931,7 +938,13 @@ class _PruhUdaju extends ConsumerWidget {
         Insets.md,
       ),
       decoration: BoxDecoration(
-        color: pozadi ?? palette.hlavickaPrvek.withValues(alpha: 0.5),
+        // Polovina krytí barvy, ne pevná hodnota: v tmavém vzhledu je
+        // hlavickaPrvek bílá s 10 % a pevných 50 % by z buňky udělalo šedou.
+        color:
+            pozadi ??
+            palette.hlavickaPrvek.withValues(
+              alpha: palette.hlavickaPrvek.a * 0.5,
+            ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -971,8 +984,12 @@ class _PruhUdaju extends ConsumerWidget {
       bunka(
         'VIN',
         [
-          // Podle VIN se vůz dohledává a často se přepisuje jinam.
-          SelectableText(order.vin, maxLines: 1, style: mono),
+          // Vždy celé: na úzkém displeji se raději zmenší, než aby se uřízlo.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(order.vin, maxLines: 1, softWrap: false, style: mono),
+          ),
           // První registrace (`prodej_datum` z Heliosu), stáří v měsících
           // a hned vedle štítek FitServis+, když do něj vůz spadá.
           Wrap(
@@ -1113,6 +1130,20 @@ class _PruhUdaju extends ConsumerWidget {
       ),
     ];
 
+    // První sloupec má pevnou šířku podle 17 znaků VIN, ostatní se dělí
+    // o zbytek. Strop je kvůli velkému písmu - sousední buňky musí mít kde být.
+    final vin = TextPainter(
+      text: TextSpan(text: 'W' * 17, style: mono),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final sirkaVin = min(
+      vin.width.ceilToDouble() + Insets.base + Insets.md + 2,
+      sirka * (sloupcu == 2 ? 0.55 : 0.35),
+    );
+    vin.dispose();
+
     // Čáry mřížky jsou mezery mezi buňkami s vlastním pozadím.
     return Container(
       key: const Key('hlavicka-udaje'),
@@ -1128,12 +1159,21 @@ class _PruhUdaju extends ConsumerWidget {
                 children: [
                   for (var j = i; j < i + sloupcu; j++) ...[
                     if (j > i) const SizedBox(width: 1),
-                    Expanded(
-                      child: ColoredBox(
-                        color: palette.hlavicka,
-                        child: bunky[j],
+                    if (j == i)
+                      SizedBox(
+                        width: sirkaVin,
+                        child: ColoredBox(
+                          color: palette.hlavicka,
+                          child: bunky[j],
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ColoredBox(
+                          color: palette.hlavicka,
+                          child: bunky[j],
+                        ),
                       ),
-                    ),
                   ],
                 ],
               ),
