@@ -124,7 +124,7 @@ void main() {
     expect(akce.bottom, lessThanOrEqualTo(rect.top));
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
     // Karty s termíny v těle detailu už nejsou.
-    expect(find.text('PŘIJATO'), findsOneWidget);
+    expect(find.text('TERMÍN'), findsOneWidget);
   });
 
   testWidgets('SPZ je v hlavičce v rámečku značky', (tester) async {

@@ -1,4 +1,4 @@
-import 'dart:math' show min;
+import 'dart:math' show max, min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -493,19 +493,33 @@ class _TeloDetailuState extends State<_TeloDetailu> {
             ],
           );
         }
-        return Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(border: Border(bottom: cara)),
-              child: menu(svisle: false),
+        // Hlavička na malém telefonu může být vyšší než displej - tělo pak
+        // má nulovou výšku, dokud se neodroluje, a menu by přeteklo.
+        final vyska = max(constraints.maxHeight, _nejmensiVyskaTela);
+        return ClipRect(
+          child: OverflowBox(
+            minHeight: vyska,
+            maxHeight: vyska,
+            alignment: Alignment.topCenter,
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(border: Border(bottom: cara)),
+                  child: menu(svisle: false),
+                ),
+                Expanded(child: obsah),
+              ],
             ),
-            Expanded(child: obsah),
-          ],
+          ),
         );
       },
     );
   }
 }
+
+/// Výška, se kterou se tělo detailu na telefonu rozvrhne, i když je z něj
+/// zatím vidět míň.
+const double _nejmensiVyskaTela = 200;
 
 /// Předmět opravy se zatím nepoužívá (21. 9. 2026), karta je v detailu
 /// schovaná. Data i API zůstávají - vrátí se přepnutím na `true`.
@@ -837,8 +851,6 @@ class _DetailHeader extends ConsumerWidget {
                 onPriraditObalku: onPriraditObalku,
                 onUvolnitObalku: onUvolnitObalku,
               ),
-              if (order.prebirajici case final kontakt?)
-                _RadekPrebirajiciho(kontakt: kontakt),
             ],
           );
         },
@@ -847,106 +859,26 @@ class _DetailHeader extends ConsumerWidget {
   }
 }
 
-/// Kdo vůz přebírá - klepnutím se rovnou volá nebo píše e-mail.
-class _RadekPrebirajiciho extends ConsumerWidget {
-  const _RadekPrebirajiciho({required this.kontakt});
-
-  final Prebirajici kontakt;
-
-  Future<void> _otevri(
-    BuildContext context,
-    WidgetRef ref,
-    Uri odkaz,
-    String hodnota,
-  ) async {
-    final zpravy = ScaffoldMessenger.of(context);
-    var povedlo = false;
-    try {
-      povedlo = await ref.read(otevritOdkazProvider)(odkaz);
-    } catch (_) {
-      // Bez aplikace na telefon nebo poštu - hláška níž.
-    }
-    if (povedlo) return;
-    zpravy
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Na tomhle zařízení to nejde otevřít: $hodnota'),
-        ),
-      );
+/// Otevře volání nebo e-mail; zařízení, které to neumí, to oznámí.
+Future<void> _otevriKontakt(
+  BuildContext context,
+  WidgetRef ref,
+  Uri odkaz,
+  String hodnota,
+) async {
+  final zpravy = ScaffoldMessenger.of(context);
+  var povedlo = false;
+  try {
+    povedlo = await ref.read(otevritOdkazProvider)(odkaz);
+  } catch (_) {
+    // Bez aplikace na telefon nebo poštu - hláška níž.
   }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final telefon = odkazTelefon(kontakt.telefon);
-    final email = odkazEmail(kontakt.email);
-
-    Widget odkaz(Key key, IconData ikona, String text, Uri cil) =>
-        OutlinedButton.icon(
-          key: key,
-          onPressed: () => _otevri(context, ref, cil, text),
-          icon: Icon(ikona, size: 18),
-          label: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 36),
-            padding: const EdgeInsets.symmetric(horizontal: Insets.md),
-            foregroundColor: palette.naHlavicce,
-            side: BorderSide(color: palette.hlavickaOkraj),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            textStyle: AppTextStyles.chip,
-          ),
-        );
-
-    return Container(
-      key: const Key('prebirajici'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: Insets.base,
-        vertical: Insets.xs,
-      ),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: palette.hlavickaOkraj)),
-      ),
-      child: Wrap(
-        spacing: Insets.md,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Text(
-            'KONTAKT',
-            style: AppTextStyles.overline.copyWith(
-              fontSize: 10.5,
-              color: palette.naHlavicceTlumene,
-            ),
-          ),
-          if (kontakt.jmeno.isNotEmpty)
-            Text(
-              kontakt.jmeno,
-              style: AppTextStyles.cardBody.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: palette.naHlavicce,
-              ),
-            ),
-          if (telefon != null)
-            odkaz(
-              const Key('prebirajici-telefon'),
-              Icons.call_outlined,
-              kontakt.telefon!,
-              telefon,
-            ),
-          if (email != null)
-            odkaz(
-              const Key('prebirajici-email'),
-              Icons.mail_outline,
-              kontakt.email!,
-              email,
-            ),
-        ],
-      ),
+  if (povedlo) return;
+  zpravy
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(content: Text('Na tomhle zařízení to nejde otevřít: $hodnota')),
     );
-  }
 }
 
 /// Od téhle šířky jsou stavy a tlačítka vedle vozu a buňky v jedné řadě.
@@ -1129,6 +1061,37 @@ class _PruhUdaju extends ConsumerWidget {
     ].join(' · ');
     final obalka = order.obalka;
 
+    final kontakt = order.prebirajici;
+    final maKontakt =
+        odkazTelefon(kontakt?.telefon) != null ||
+        odkazEmail(kontakt?.email) != null;
+    // Celý řádek je klepací, ať se do něj dá trefit prstem.
+    Widget odkazKontaktu(Key key, IconData ikona, String popis, Uri cil) =>
+        InkWell(
+          key: key,
+          onTap: () => _otevriKontakt(context, ref, cil, popis),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              children: [
+                Icon(ikona, size: 14, color: AppColors.accent),
+                const SizedBox(width: Insets.xs),
+                Expanded(
+                  child: Text(
+                    popis,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
     final bunky = <Widget>[
       bunka(
         'VIN',
@@ -1194,6 +1157,31 @@ class _PruhUdaju extends ConsumerWidget {
                 onTap: onKartaVozu,
               ),
       ),
+      KeyedSubtree(
+        key: const Key('kontakt'),
+        child: bunka('KONTAKT', [
+          if (kontakt == null || kontakt.jmeno.isEmpty && !maKontakt)
+            Text('Nezadán', style: tlumene)
+          else if (kontakt.jmeno.isNotEmpty)
+            text(kontakt.jmeno),
+          if (kontakt?.telefon case final cislo?)
+            if (odkazTelefon(cislo) case final cil?)
+              odkazKontaktu(
+                const Key('prebirajici-telefon'),
+                Icons.call_outlined,
+                cislo,
+                cil,
+              ),
+          if (kontakt?.email case final adresa?)
+            if (odkazEmail(adresa) case final cil?)
+              odkazKontaktu(
+                const Key('prebirajici-email'),
+                Icons.mail_outline,
+                adresa,
+                cil,
+              ),
+        ]),
+      ),
       bunka(ServiceOrder.rolePopisek.toUpperCase(), [
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),
@@ -1208,32 +1196,25 @@ class _PruhUdaju extends ConsumerWidget {
           Text(kdo == null ? 'Technik nepřiřazen' : 'Technik', style: pod),
         ]),
       ),
-      // Bez času: hodina příjmu nikoho nezajímá.
-      bunka('PŘIJATO', [
-        text(
-          order.receivedAt == null
-              ? null
-              : AppDateFormat.date(order.receivedAt!),
-          styl: mono,
-        ),
-        if (order.receivedAt != null)
-          Text(predKolika(order.receivedAt!, dnes), style: pod),
-      ]),
+      // Termín a příjem v jednom - ušetřený chlívek má Kontakt. Bez času:
+      // hodina příjmu nikoho nezajímá.
       bunka('TERMÍN', [
         text(
           order.dueAt == null ? null : AppDateFormat.date(order.dueAt!),
           styl: poTerminu == null ? mono : mono.copyWith(color: poTerminu),
         ),
-        Text(
-          poTerminu != null
-              ? 'Po termínu'
-              : switch (order.dueAt) {
-                  final termin? when zaKolik(termin, dnes).isNotEmpty =>
-                    zaKolik(termin, dnes),
-                  _ => 'Dokončení',
-                },
-          style: poTerminu == null ? pod : pod.copyWith(color: poTerminu),
-        ),
+        Text(switch ([
+          if (poTerminu != null)
+            'Po termínu'
+          else if (order.dueAt case final termin?
+              when zaKolik(termin, dnes).isNotEmpty)
+            zaKolik(termin, dnes),
+          if (order.receivedAt case final prijato?)
+            'přijato ${AppDateFormat.dayMonthSmart(prijato, now: dnes)}',
+        ].join(' · ')) {
+          '' => 'Dokončení',
+          final popis => popis,
+        }, style: poTerminu == null ? pod : pod.copyWith(color: poTerminu)),
       ]),
       // Místo se zapisuje spolu s dílenským stavem - proto přes jeho okno.
       bunka(

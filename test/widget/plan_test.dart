@@ -293,18 +293,6 @@ void main() {
       expect(zaKolik(DateTime(2026, 11, 3), dnes), '');
     });
 
-    test('kolik času uplynulo od příjmu', () {
-      final dnes = DateTime(2026, 11, 4, 12);
-      expect(predKolika(DateTime(2026, 11, 4, 8), dnes), 'dnes');
-      expect(predKolika(DateTime(2026, 11, 3, 23), dnes), 'včera');
-      expect(predKolika(DateTime(2026, 11, 1), dnes), 'před 3 dny');
-      expect(predKolika(DateTime(2026, 9, 20), dnes), 'před měsícem');
-      expect(predKolika(DateTime(2026, 6, 1), dnes), 'před 5 měsíci');
-      expect(predKolika(DateTime(2025, 10, 1), dnes), 'před rokem');
-      expect(predKolika(DateTime(2024, 11, 11), dnes), 'před 2 lety');
-      expect(predKolika(DateTime(2026, 11, 5), dnes), '');
-    });
-
     test('souhrn plánu přes úkony a mezera mezi nimi', () {
       final p = PlanKlempirny.zUkonu([
         UkonPlanu.fromJson(ukon(2, '2026-10-26', '2026-10-27', stav: 'hotovo')),

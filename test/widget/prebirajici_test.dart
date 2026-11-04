@@ -9,7 +9,7 @@ import 'package:renoworkshop/src/features/orders/presentation/screens/order_deta
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Přebírající v hlavičce detailu: klepnutím se volá nebo píše e-mail.
+/// Chlívek Kontakt (přebírající z Heliosu): klepnutím se volá nebo píše e-mail.
 void main() {
   setUpAll(() => initializeDateFormatting('cs_CZ'));
 
@@ -76,10 +76,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('bez přebírajícího se řádek neukáže', (tester) async {
+  testWidgets('bez kontaktu je Nezadán, chlívek v mřížce zůstane', (
+    tester,
+  ) async {
     await otevri(tester, null);
 
-    expect(find.byKey(const Key('prebirajici')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('kontakt')),
+        matching: find.text('Nezadán'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Kontakt je za zákazníkem, příjem je u termínu', (tester) async {
+    await otevri(tester, kontakt, velikost: const Size(1600, 900));
+
+    final zakaznik = tester.getRect(find.text('ZÁKAZNÍK'));
+    final chlivek = tester.getRect(find.text('KONTAKT'));
+    final zodpovida = tester.getRect(find.text('ZODPOVÍDÁ'));
+    expect(chlivek.left, greaterThan(zakaznik.left));
+    expect(chlivek.left, lessThan(zodpovida.left));
+    expect(find.text('PŘIJATO'), findsNothing);
+    expect(find.textContaining('přijato'), findsOneWidget);
   });
 
   testWidgets('bez telefonu a e-mailu je jen jméno', (tester) async {
