@@ -15,6 +15,7 @@ import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
+import 'package:renoworkshop/src/features/settings/presentation/screens/settings_screen.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -787,6 +788,15 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-admin')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('uzivatel-pridat')), findsOneWidget);
+  });
+
+  testWidgets('plánovač: z hlavičky se jde do nastavení', (tester) async {
+    await spust(tester, zakazky: [buildOrderDto()]);
+    await otevriPlanovac(tester);
+    await tester.tap(find.byKey(const Key('plan-nastaveni')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(find.text('Plán klempírny a lakovny'), findsNothing);
   });
 
   testWidgets('plánovač: šipka zpět vrátí do zakázek', (tester) async {

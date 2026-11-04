@@ -254,6 +254,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           onBack: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.orders),
           onOpenOrder: (id) => context.push(AppRoutes.orderDetail(id)),
+          onOpenSettings: () => context.go(AppRoutes.settings),
         ),
       ),
       GoRoute(

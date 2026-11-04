@@ -43,10 +43,12 @@ class PlanScreen extends ConsumerWidget {
     super.key,
     required this.onBack,
     required this.onOpenOrder,
+    required this.onOpenSettings,
   });
 
   final VoidCallback onBack;
   final ValueChanged<String> onOpenOrder;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,6 +69,7 @@ class PlanScreen extends ConsumerWidget {
               dny: dny,
               pobocky: prehled.valueOrNull?.pobocky,
               onBack: onBack,
+              onOpenSettings: onOpenSettings,
             ),
             Expanded(
               child: !ref.watch(vidiPlanovacProvider)
@@ -106,11 +109,13 @@ class _Ovladani extends ConsumerWidget {
     required this.dny,
     required this.pobocky,
     required this.onBack,
+    required this.onOpenSettings,
   });
 
   final List<DateTime> dny;
   final List<PobockaPlanu>? pobocky;
   final VoidCallback onBack;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -154,6 +159,12 @@ class _Ovladani extends ConsumerWidget {
               ),
               const SizedBox(width: Insets.xs),
               Flexible(child: _Nadpis(palette: palette)),
+              IconButton(
+                key: const Key('plan-nastaveni'),
+                tooltip: 'Nastavení',
+                onPressed: onOpenSettings,
+                icon: const Icon(Icons.settings_outlined),
+              ),
               // Admin jako v portálu plánu na webu - jen pro admina.
               if (ref.watch(mojePravaProvider).valueOrNull?.jeAdmin ?? false)
                 IconButton(
