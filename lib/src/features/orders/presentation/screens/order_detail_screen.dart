@@ -914,7 +914,7 @@ class _RadekPrebirajiciho extends ConsumerWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            'PŘEBÍRAJÍCÍ',
+            'KONTAKT',
             style: AppTextStyles.overline.copyWith(
               fontSize: 10.5,
               color: palette.naHlavicceTlumene,
