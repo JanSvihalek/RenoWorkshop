@@ -740,16 +740,29 @@ class _PruhUdaju extends ConsumerWidget {
   final VoidCallback? onPriraditObalku;
   final VoidCallback? onUvolnitObalku;
 
-  /// Nejužší sloupec, do kterého se údaj vejde bez lámání.
-  static const _sirkaSloupce = 150.0;
+  /// Nejužší sloupec - delší hodnoty se zalomí na dva řádky. Na tabletu na
+  /// šířku se tak všechny buňky vejdou do jedné řady.
+  static const _sirkaSloupce = 125.0;
+
+  /// Datum je krátké - buňka s ním stačí užší než ostatní.
+  static const _vahaData = 0.75;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final dnes = ref.watch(dnesProvider);
     final naTelefonu = sirka < _sirkaProUdajeVedle;
+    // VIN za dva, data jen tak široká, aby se do nich vešla. Vejde-li se to,
+    // jedna řada; jinak po sloupcích a zalomí se.
+    final vah = 2 + 2 * _vahaData + (order.pojisteniPopisek == null ? 5 : 6);
+    final naVahu = (sirka / vah).floorToDouble();
     final sloupcu = (sirka / _sirkaSloupce).floor().clamp(2, 10);
-    final jeden = naTelefonu ? 170.0 : sirka / sloupcu;
+    final jeden = naTelefonu
+        ? 170.0
+        : naVahu >= _sirkaSloupce
+        ? naVahu
+        : sirka / sloupcu;
+    final datum = naTelefonu ? 130.0 : jeden * _vahaData;
     // Na navy hlavičce by plná červená zanikla.
     final poTerminu = order.isOverdue()
         ? (context.isDarkMode ? const Color(0xFFFF7A7A) : AppColors.danger)
@@ -904,14 +917,14 @@ class _PruhUdaju extends ConsumerWidget {
         ),
         if (order.receivedAt != null)
           Text(predKolika(order.receivedAt!, dnes), style: pod),
-      ]),
+      ], sirkaBunky: datum),
       bunka('TERMÍN', [
         text(
           order.dueAt == null ? null : AppDateFormat.date(order.dueAt!),
           poTerminu,
         ),
         Text(poTerminu != null ? 'Po termínu' : 'Dokončení', style: pod),
-      ]),
+      ], sirkaBunky: datum),
       if (order.pojisteniPopisek != null)
         bunka('POJIŠŤOVNA', [
           text(order.pojistovna),
@@ -989,10 +1002,13 @@ class _KolonkaObalky extends StatelessWidget {
       key: const Key('obalka'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        // V úzké buňce se tlačítko zalomí pod číslo.
+        Wrap(
+          spacing: Insets.md,
+          runSpacing: Insets.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Flexible(
+            SizedBox(
               // Číslo jako na štítku obálky - velké, podle něj se obálka
               // hledá na tabuli s klíči.
               child: obalka == null
@@ -1005,7 +1021,6 @@ class _KolonkaObalky extends StatelessWidget {
                     )
                   : CisloObalky(obalka: obalka!, barva: palette.naHlavicce),
             ),
-            const SizedBox(width: Insets.lg),
             if ((kod == null ? onPriradit : onUvolnit) != null)
               _TlacitkoObalky(
                 key: Key(
