@@ -44,3 +44,16 @@ String predKolika(DateTime datum, DateTime dnes) {
   final roky = (mesice / 12).round();
   return roky == 1 ? 'před rokem' : 'před $roky lety';
 }
+
+/// „dnes", „zítra", „za 3 dny", „za 5 dní"; prošlý den prázdně.
+String zaKolik(DateTime datum, DateTime dnes) {
+  final dny = DateTime(
+    datum.year,
+    datum.month,
+    datum.day,
+  ).difference(DateTime(dnes.year, dnes.month, dnes.day)).inDays;
+  if (dny < 0) return '';
+  if (dny == 0) return 'dnes';
+  if (dny == 1) return 'zítra';
+  return 'za $dny ${dny <= 4 ? 'dny' : 'dní'}';
+}

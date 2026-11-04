@@ -102,7 +102,7 @@ void main() {
 
   final udaje = find.byKey(const Key('hlavicka-udaje'));
 
-  testWidgets('na tabletu jsou údaje v pruhu pod vozem a akce vedle něj', (
+  testWidgets('na šířku jsou údaje v pruhu pod vozem a akce vedle něj', (
     tester,
   ) async {
     await otevri(tester, const Size(1280, 800));
@@ -115,7 +115,8 @@ void main() {
       findsOneWidget,
     );
     final akce = tester.getRect(find.byKey(const Key('nastavit-stav')));
-    expect(akce.top, lessThan(spz.bottom));
+    expect(akce.left, greaterThan(spz.right));
+    expect(akce.bottom, lessThanOrEqualTo(rect.top));
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
     // Karty s termíny v těle detailu už nejsou.
     expect(find.text('PŘIJATO'), findsOneWidget);

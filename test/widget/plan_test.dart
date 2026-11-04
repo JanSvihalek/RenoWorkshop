@@ -284,6 +284,15 @@ void main() {
       );
     });
 
+    test('kolik zbývá do termínu', () {
+      final dnes = DateTime(2026, 11, 4, 12);
+      expect(zaKolik(DateTime(2026, 11, 4, 18), dnes), 'dnes');
+      expect(zaKolik(DateTime(2026, 11, 5), dnes), 'zítra');
+      expect(zaKolik(DateTime(2026, 11, 7), dnes), 'za 3 dny');
+      expect(zaKolik(DateTime(2026, 11, 9), dnes), 'za 5 dní');
+      expect(zaKolik(DateTime(2026, 11, 3), dnes), '');
+    });
+
     test('kolik času uplynulo od příjmu', () {
       final dnes = DateTime(2026, 11, 4, 12);
       expect(predKolika(DateTime(2026, 11, 4, 8), dnes), 'dnes');
@@ -659,8 +668,11 @@ void main() {
 
     expect(find.text('Dílna: Klempířské práce'), findsOneWidget);
     expect(
-      tester.widget<Text>(find.byKey(const Key('hlavicka-zarazeni'))).data,
-      contains('Středisko 11211'),
+      find.descendant(
+        of: find.byKey(const Key('hlavicka-zarazeni')),
+        matching: find.textContaining('11211', findRichText: true),
+      ),
+      findsOneWidget,
     );
 
     await tester.tap(find.byKey(const Key('nastavit-stav')));
@@ -671,6 +683,34 @@ void main() {
 
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
   });
+
+  // Rozhoduje šířka detailu, ne okna - vedle seznamu je detail užší.
+  for (final sirka in const [1600.0, 1180.0, 820.0, 390.0]) {
+    testWidgets('hlavička na šířce $sirka: údaje v mřížce, nic nepřeteče', (
+      tester,
+    ) async {
+      await spust(
+        tester,
+        velikost: Size(sirka, 900),
+        zakazky: [buildOrderDto(utvar: '11211')],
+      );
+      await tester.tap(find.text('1AA 1111'));
+      await tester.pumpAndSettle();
+      final pruh = find.byKey(const Key('hlavicka-udaje'));
+      expect(pruh, findsOneWidget);
+      final detail = tester.getSize(pruh).width;
+      final sloupcu = detail >= 1250
+          ? 8
+          : detail >= 560
+          ? 4
+          : 2;
+      expect(
+        find.descendant(of: pruh, matching: find.byType(IntrinsicHeight)),
+        findsNWidgets(8 ~/ sloupcu),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('hlavička: kdo zakázku zpracovává, Převzít už nevidí', (
     tester,

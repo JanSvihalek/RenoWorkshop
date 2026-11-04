@@ -70,13 +70,21 @@ void main() {
     await tester.pumpAndSettle();
 
     // Pojištění je v hlavičce, vidět hned po otevření.
-    final udaje = find.byKey(const Key('hlavicka-udaje'));
+    final stitky = find.byKey(const Key('hlavicka-zarazeni'));
     expect(
-      find.descendant(of: udaje, matching: find.text('POJIŠŤOVNA')),
+      find.descendant(
+        of: stitky,
+        matching: find.textContaining('Kooperativa', findRichText: true),
+      ),
       findsOneWidget,
     );
-    expect(find.text('Kooperativa'), findsOneWidget);
-    expect(find.text('PU 4201234567'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: stitky,
+        matching: find.textContaining('4201234567', findRichText: true),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('hledání najde zakázku podle čísla pojistné události', (

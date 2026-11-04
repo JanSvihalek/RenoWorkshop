@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/platform/platform_info.dart';
@@ -18,7 +19,6 @@ import '../../../plan/presentation/plan_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
 import '../../domain/entities/dilensky_stav.dart';
-import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
@@ -323,43 +323,64 @@ class _DetailBody extends ConsumerWidget {
     // Uloženky pneu vozu z Heliosu, jen ke čtení.
     final ulozenky = UlozenkyZakazkyKarta(orderId: order.id);
 
-    return Column(
-      children: [
-        _DetailHeader(
-          order: order,
-          onBack: onBack,
-          zobrazitZpet: zobrazitZpet,
-          jenCteni: !smi,
-          onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
-          onNastavitStav: smiStav ? () => _pridejStav(context, ref) : null,
-          onPrevzit: smi && !uzJeMoje
-              ? () => ref
-                    .read(orderActionsProvider.notifier)
-                    .prevezmiZakazku(order.id)
-              : null,
-          onPriraditObalku: smi
-              ? () => zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
-              : null,
-          onUvolnitObalku: smi
-              ? () => uvolnitObalku(context, ref, order)
-              : null,
-        ),
-        Expanded(
-          // Klíč: po přepnutí na jinou zakázku zase na závadách.
-          child: _TeloDetailu(
-            key: ValueKey(order.id),
-            orderId: order.id,
-            pocetZavad: order.zavady.length,
-            sekce: {
-              SekceDetailu.zavady: zavady,
-              SekceDetailu.prijem: prijem,
-              SekceDetailu.dokumenty: dokumenty,
-              SekceDetailu.ulozenky: ulozenky,
-            },
-            prubeh: [?predmet, postup, poznamky],
-          ),
-        ),
-      ],
+    final hlavicka = _DetailHeader(
+      order: order,
+      onBack: onBack,
+      zobrazitZpet: zobrazitZpet,
+      jenCteni: !smi,
+      onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
+      onNastavitStav: smiStav ? () => _pridejStav(context, ref) : null,
+      onPrevzit: smi && !uzJeMoje
+          ? () => ref
+                .read(orderActionsProvider.notifier)
+                .prevezmiZakazku(order.id)
+          : null,
+      onPriraditObalku: smi
+          ? () => zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
+          : null,
+      onUvolnitObalku: smi ? () => uvolnitObalku(context, ref, order) : null,
+    );
+
+    // Klíč: po přepnutí na jinou zakázku zase na závadách.
+    final telo = _TeloDetailu(
+      key: ValueKey(order.id),
+      orderId: order.id,
+      pocetZavad: order.zavady.length,
+      sekce: {
+        SekceDetailu.zavady: zavady,
+        SekceDetailu.prijem: prijem,
+        SekceDetailu.dokumenty: dokumenty,
+        SekceDetailu.ulozenky: ulozenky,
+      },
+      prubeh: [postup, ?predmet, poznamky],
+    );
+
+    // Na telefonu hlavička roluje spolu s obsahem - osm buněk po dvou by
+    // jinak zabralo většinu displeje. Šířeji zůstává nahoře.
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          constraints.maxWidth < _sirkaCtyriSloupce
+          ? ColoredBox(
+              color: context.palette.hlavicka,
+              child: SafeArea(
+                bottom: false,
+                child: NestedScrollView(
+                  headerSliverBuilder: (context, _) => [
+                    SliverToBoxAdapter(child: hlavicka),
+                  ],
+                  body: ColoredBox(
+                    color: context.palette.background,
+                    child: telo,
+                  ),
+                ),
+              ),
+            )
+          : Column(
+              children: [
+                hlavicka,
+                Expanded(child: telo),
+              ],
+            ),
     );
   }
 }
@@ -536,23 +557,27 @@ class _DetailHeader extends ConsumerWidget {
 
     // V rozděleném zobrazení není kam se vracet - detail je vedle seznamu,
     // ne nad ním.
-    final zpet = Semantics(
-      button: true,
-      label: 'Zpět na seznam zakázek',
-      child: GestureDetector(
-        onTap: onBack,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 38,
-          height: 38,
-          child: Align(
-            alignment: Alignment.centerLeft,
+    final zpet = Padding(
+      padding: const EdgeInsets.only(right: Insets.md),
+      child: Semantics(
+        button: true,
+        label: 'Zpět na seznam zakázek',
+        child: GestureDetector(
+          onTap: onBack,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: palette.hlavickaOkraj),
+            ),
             child: Icon(
               // iOS chevron, Android arrow.
               isIOS
                   ? Icons.arrow_back_ios_new_rounded
                   : Icons.arrow_back_rounded,
-              size: isIOS ? 20 : 22,
+              size: isIOS ? 18 : 20,
               color: palette.naHlavicce,
             ),
           ),
@@ -560,23 +585,17 @@ class _DetailHeader extends ConsumerWidget {
       ),
     );
 
-    final zarazeni = [
-      order.id,
-      if (order.typZakazky case final typ?)
-        '${typ.kod.split('/').first} · ${typ.nazev}',
-      if (order.department != null) 'Středisko ${order.departmentLabel}',
+    final pobocka = [
       order.branchLabel,
       if (order.poradac case final poradac?) poradac.nazev,
-      if (order.barvaVozu case final barva?) 'Barva ${barva.popis}',
-    ].join('  ·  ');
+    ].join(' · ');
 
     final vuz = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 11,
-          runSpacing: Insets.xs,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
               order.licensePlate,
@@ -584,24 +603,47 @@ class _DetailHeader extends ConsumerWidget {
                 color: palette.naHlavicce,
               ),
             ),
-            Text(
-              order.model,
-              style: TextStyle(
-                fontFamily: AppFonts.sans,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: palette.naHlavicceTlumene,
+            const SizedBox(width: Insets.md),
+            Flexible(
+              child: Text(
+                order.model,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.sans,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: palette.naHlavicceTlumene,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: Insets.xs),
-        Text(
-          zarazeni,
+        const SizedBox(height: Insets.sm),
+        Wrap(
           key: const Key('hlavicka-zarazeni'),
-          style: AppTextStyles.metaSmall.copyWith(
-            color: palette.naHlavicceTlumene,
-          ),
+          spacing: Insets.xs,
+          runSpacing: Insets.xs,
+          children: [
+            _CipZarazeni(hodnota: order.id, cislo: true),
+            if (order.typZakazky case final typ?)
+              _CipZarazeni(
+                popisek: 'List',
+                hodnota: '${typ.kod.split('/').first} · ${typ.nazev}',
+              ),
+            if (order.department != null)
+              _CipZarazeni(
+                popisek: 'Středisko',
+                hodnota: order.departmentLabel,
+              ),
+            _CipZarazeni(popisek: 'Pobočka', hodnota: pobocka),
+            if (order.barvaVozu case final barva?)
+              _CipZarazeni(popisek: 'Barva', hodnota: barva.popis),
+            if (order.pojistovna case final pojistovna?)
+              _CipZarazeni(popisek: 'Pojišťovna', hodnota: pojistovna),
+            if (order.cisloPojistneUdalosti case final cislo?)
+              _CipZarazeni(popisek: 'PU', hodnota: cislo),
+          ],
         ),
       ],
     );
@@ -638,24 +680,29 @@ class _DetailHeader extends ConsumerWidget {
       ],
     );
 
-    final akce = Wrap(
-      spacing: Insets.sm,
-      runSpacing: Insets.sm,
-      children: [
-        if (onNastavitStav != null)
-          _TlacitkoObalky(
+    final nastavit = onNastavitStav == null
+        ? null
+        : _TlacitkoHlavicky(
             key: const Key('nastavit-stav'),
             text: 'Nastavit stav',
             zvyraznene: false,
             onTap: onNastavitStav!,
-          ),
-        if (onPrevzit != null)
-          _TlacitkoObalky(
+          );
+    final prevzit = onPrevzit == null
+        ? null
+        : _TlacitkoHlavicky(
             key: const Key('prevzit-hlavicka'),
             text: 'Převzít zakázku',
             zvyraznene: true,
             onTap: onPrevzit!,
-          ),
+          );
+    final akce = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ?nastavit,
+        if (nastavit != null && prevzit != null)
+          const SizedBox(width: Insets.sm),
+        ?prevzit,
       ],
     );
 
@@ -663,47 +710,84 @@ class _DetailHeader extends ConsumerWidget {
       decoration: dekoraceHlavicky(palette),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final vedle = constraints.maxWidth >= _sirkaProUdajeVedle;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  Insets.xxl,
-                  MediaQuery.paddingOf(context).top + Insets.md,
-                  Insets.xxl,
-                  Insets.base,
-                ),
-                child: vedle
-                    ? Row(
+          final sirka = constraints.maxWidth;
+          final horni = sirka >= _sirkaJednaRada
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (zobrazitZpet) zpet,
+                    Expanded(child: vuz),
+                    const SizedBox(width: Insets.xl),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: sirka * 0.4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          if (zobrazitZpet) zpet,
-                          Flexible(child: vuz),
-                          const SizedBox(width: Insets.xl),
+                          stavy,
+                          const SizedBox(height: Insets.sm),
+                          akce,
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (zobrazitZpet) zpet,
+                        Expanded(child: vuz),
+                      ],
+                    ),
+                    const SizedBox(height: Insets.md),
+                    if (sirka >= _sirkaCtyriSloupce)
+                      Row(
+                        children: [
                           Expanded(child: stavy),
                           const SizedBox(width: Insets.base),
                           akce,
                         ],
                       )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              if (zobrazitZpet) zpet,
-                              Expanded(child: vuz),
-                            ],
-                          ),
-                          const SizedBox(height: Insets.md),
-                          stavy,
-                          const SizedBox(height: Insets.md),
-                          akce,
-                        ],
-                      ),
+                    else ...[
+                      stavy,
+                      if (nastavit != null || prevzit != null) ...[
+                        const SizedBox(height: Insets.md),
+                        // Mobil: přes celou šířku, Převzít větší.
+                        Row(
+                          children: [
+                            if (nastavit != null)
+                              Expanded(flex: 20, child: nastavit),
+                            if (nastavit != null && prevzit != null)
+                              const SizedBox(width: Insets.sm),
+                            if (prevzit != null)
+                              Expanded(flex: 23, child: prevzit),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ],
+                );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Insets.xl,
+                  MediaQuery.paddingOf(context).top + Insets.md,
+                  Insets.xl,
+                  Insets.base,
+                ),
+                child: horni,
               ),
               _PruhUdaju(
                 order: order,
-                sirka: constraints.maxWidth,
+                sloupcu: sirka >= _sirkaJednaRada
+                    ? 8
+                    : sirka >= _sirkaCtyriSloupce
+                    ? 4
+                    : 2,
                 onZpracovatel: onZpracovatel,
                 onZadatMisto: onNastavitStav,
                 onPriraditObalku: onPriraditObalku,
@@ -717,16 +801,66 @@ class _DetailHeader extends ConsumerWidget {
   }
 }
 
-/// Od téhle šířky jsou stavy a tlačítka hlavičky na jednom řádku s vozem.
-const double _sirkaProUdajeVedle = 820;
+/// Od téhle šířky jsou stavy a tlačítka vedle vozu a buňky v jedné řadě.
+const double _sirkaJednaRada = 1250;
 
-/// Pruh údajů pod hlavičkou - VIN, lidé, termíny, kde vůz stojí a obálka.
-/// Na tabletu tolik sloupců, kolik se jich vejde. Na telefonu jeden řádek
-/// posouvaný do stran - pod sebou by zabral místo samotnému detailu.
+/// Od téhle šířky jsou buňky po čtyřech, stavy a tlačítka na jednom řádku.
+/// Míň je mobil - po dvou a tlačítka přes celou šířku.
+const double _sirkaCtyriSloupce = 560;
+
+/// Štítek zařazení v hlavičce: popisek a hodnota, číslo zakázky s výplní.
+class _CipZarazeni extends StatelessWidget {
+  const _CipZarazeni({this.popisek, required this.hodnota, this.cislo = false});
+
+  final String? popisek;
+  final String hodnota;
+  final bool cislo;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final styl = AppTextStyles.metaSmall;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Insets.sm, vertical: 2),
+      decoration: BoxDecoration(
+        color: cislo ? palette.hlavickaPrvek : null,
+        borderRadius: BorderRadius.circular(7),
+        border: cislo ? null : Border.all(color: palette.hlavickaOkraj),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            if (popisek != null)
+              TextSpan(
+                text: '$popisek  ',
+                style: styl.copyWith(color: palette.naHlavicceTlumene),
+              ),
+            TextSpan(
+              text: hodnota,
+              style:
+                  (cislo
+                          ? AppTextStyles.monoLabel.copyWith(fontSize: 12)
+                          : styl)
+                      .copyWith(
+                        color: palette.naHlavicce,
+                        fontWeight: FontWeight.w600,
+                      ),
+            ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+/// Pruh údajů pod hlavičkou: vždy osm buněk - rozložení 8, 4 a 2 sloupce
+/// nenechá díru. Pojištění je mezi štítky nahoře.
 class _PruhUdaju extends ConsumerWidget {
   const _PruhUdaju({
     required this.order,
-    required this.sirka,
+    required this.sloupcu,
     required this.onZpracovatel,
     required this.onZadatMisto,
     required this.onPriraditObalku,
@@ -734,35 +868,16 @@ class _PruhUdaju extends ConsumerWidget {
   });
 
   final ServiceOrder order;
-  final double sirka;
+  final int sloupcu;
   final VoidCallback? onZpracovatel;
   final VoidCallback? onZadatMisto;
   final VoidCallback? onPriraditObalku;
   final VoidCallback? onUvolnitObalku;
 
-  /// Nejužší sloupec - delší hodnoty se zalomí na dva řádky. Na tabletu na
-  /// šířku se tak všechny buňky vejdou do jedné řady.
-  static const _sirkaSloupce = 125.0;
-
-  /// Datum je krátké - buňka s ním stačí užší než ostatní.
-  static const _vahaData = 0.75;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final dnes = ref.watch(dnesProvider);
-    final naTelefonu = sirka < _sirkaProUdajeVedle;
-    // VIN za dva, data jen tak široká, aby se do nich vešla. Vejde-li se to,
-    // jedna řada; jinak po sloupcích a zalomí se.
-    final vah = 2 + 2 * _vahaData + (order.pojisteniPopisek == null ? 5 : 6);
-    final naVahu = (sirka / vah).floorToDouble();
-    final sloupcu = (sirka / _sirkaSloupce).floor().clamp(2, 10);
-    final jeden = naTelefonu
-        ? 170.0
-        : naVahu >= _sirkaSloupce
-        ? naVahu
-        : sirka / sloupcu;
-    final datum = naTelefonu ? 130.0 : jeden * _vahaData;
     // Na navy hlavičce by plná červená zanikla.
     final poTerminu = order.isOverdue()
         ? (context.isDarkMode ? const Color(0xFFFF7A7A) : AppColors.danger)
@@ -776,53 +891,66 @@ class _PruhUdaju extends ConsumerWidget {
       fontWeight: FontWeight.w600,
       color: palette.naHlavicce,
     );
+    final mono = AppTextStyles.monoLabel.copyWith(
+      fontSize: 14,
+      color: palette.naHlavicce,
+    );
     final pod = AppTextStyles.metaSmall.copyWith(
       color: palette.naHlavicceTlumene,
     );
-    Widget text(String? t, [Color? barva]) => t == null
+    Widget text(String? t, {TextStyle? styl}) => t == null
         ? Text('Neuvedeno', style: tlumene)
         : Text(
             t,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: barva == null ? hodnota : hodnota.copyWith(color: barva),
+            style: styl ?? hodnota,
           );
-    Widget odkaz(String t) => Text(
-      t,
-      style: AppTextStyles.metaSmall.copyWith(
-        color: AppColors.accent,
-        fontWeight: FontWeight.w600,
+    Widget odkaz(String t, {Key? key, VoidCallback? onTap}) => GestureDetector(
+      key: key,
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Text(
+        t,
+        style: AppTextStyles.metaSmall.copyWith(
+          color: AppColors.accent,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
     Widget bunka(
       String popisek,
       List<Widget> obsah, {
-      double sirkaBunky = 0,
+      Widget? akce,
       Color? pozadi,
     }) => Container(
-      width: sirkaBunky == 0 ? jeden : sirkaBunky,
       padding: const EdgeInsets.fromLTRB(
         Insets.base,
         Insets.md,
-        Insets.sm,
+        Insets.md,
         Insets.md,
       ),
       decoration: BoxDecoration(
-        color: pozadi,
-        border: Border(
-          top: BorderSide(color: palette.hlavickaOkraj),
-          right: BorderSide(color: palette.hlavickaOkraj),
-        ),
+        color: pozadi ?? palette.hlavickaPrvek.withValues(alpha: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            popisek,
-            style: AppTextStyles.overline.copyWith(
-              fontSize: 10.5,
-              color: palette.naHlavicceTlumene,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  popisek,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.overline.copyWith(
+                    fontSize: 10.5,
+                    color: palette.naHlavicceTlumene,
+                  ),
+                ),
+              ),
+              ?akce,
+            ],
           ),
           const SizedBox(height: 3),
           ...obsah,
@@ -837,48 +965,58 @@ class _PruhUdaju extends ConsumerWidget {
       if (order.bayAt != null) 'od ${AppDateFormat.dateTime(order.bayAt!)}',
       ?order.bayBy,
     ].join(' · ');
+    final obalka = order.obalka;
 
     final bunky = <Widget>[
-      bunka('VIN', [
-        // Podle VIN se vůz dohledává a často se přepisuje jinam.
-        SelectableText(
-          order.vin,
-          maxLines: 1,
-          style: AppTextStyles.monoLabel.copyWith(
-            fontSize: 14,
-            color: palette.naHlavicce,
-          ),
-        ),
-        const SizedBox(height: 2),
-        // První registrace (`prodej_datum` z Heliosu), stáří v měsících
-        // a hned vedle štítek FitServis+, když do něj vůz spadá.
-        Wrap(
-          key: const Key('prvni-registrace'),
-          spacing: Insets.xs,
-          runSpacing: Insets.xs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text('1. reg.', style: pod),
-            Text(
-              registrace == null
-                  ? 'v Heliosu neuvedena'
-                  : registraceSeStarim(registrace, dnes, AppDateFormat.date),
-              style: pod,
-            ),
-            for (final kampan in order.kampanePodleStari)
-              StitekKampane(
-                key: Key('kampan-stari-${kampan.id}'),
-                druh: DruhStitku.podleStari,
-                maly: true,
-                popisek: kampan.nazev,
-                nadpis: kampan.nazev,
-                podrobnosti: kampan.text.trim().isEmpty
-                    ? 'Vůz do kampaně spadá podle stáří od první registrace.'
-                    : kampan.text.trim(),
+      bunka(
+        'VIN',
+        [
+          // Podle VIN se vůz dohledává a často se přepisuje jinam.
+          SelectableText(order.vin, maxLines: 1, style: mono),
+          // První registrace (`prodej_datum` z Heliosu), stáří v měsících
+          // a hned vedle štítek FitServis+, když do něj vůz spadá.
+          Wrap(
+            key: const Key('prvni-registrace'),
+            spacing: Insets.xs,
+            runSpacing: Insets.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('1. reg.', style: pod),
+              Text(
+                registrace == null
+                    ? 'v Heliosu neuvedena'
+                    : registraceSeStarim(registrace, dnes, AppDateFormat.date),
+                style: pod,
               ),
-          ],
-        ),
-      ], sirkaBunky: naTelefonu ? 260 : jeden * 2),
+              for (final kampan in order.kampanePodleStari)
+                StitekKampane(
+                  key: Key('kampan-stari-${kampan.id}'),
+                  druh: DruhStitku.podleStari,
+                  maly: true,
+                  popisek: kampan.nazev,
+                  nadpis: kampan.nazev,
+                  podrobnosti: kampan.text.trim().isEmpty
+                      ? 'Vůz do kampaně spadá podle stáří od první registrace.'
+                      : kampan.text.trim(),
+                ),
+            ],
+          ),
+        ],
+        akce: order.vin.isEmpty
+            ? null
+            : odkaz(
+                'Kopírovat',
+                key: const Key('kopirovat-vin'),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: order.vin));
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(content: Text('VIN zkopírován')),
+                    );
+                },
+              ),
+      ),
       bunka('ZÁKAZNÍK', [
         text(order.customerName),
         Text('Vlastník vozidla', style: pod),
@@ -893,18 +1031,7 @@ class _PruhUdaju extends ConsumerWidget {
         key: const Key('zpracovatel'),
         onTap: onZpracovatel,
         child: bunka('ZPRACOVÁVÁ', [
-          Wrap(
-            spacing: Insets.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (kdo == null)
-                Text('Nikdo', style: tlumene)
-              else
-                Text(kdo.jmeno, style: hodnota),
-              if (onZpracovatel != null)
-                odkaz(kdo == null ? 'Převzít' : 'Změnit'),
-            ],
-          ),
+          if (kdo == null) Text('Nikdo', style: tlumene) else text(kdo.jmeno),
           Text(kdo == null ? 'Technik nepřiřazen' : 'Technik', style: pod),
         ]),
       ),
@@ -914,135 +1041,113 @@ class _PruhUdaju extends ConsumerWidget {
           order.receivedAt == null
               ? null
               : AppDateFormat.date(order.receivedAt!),
+          styl: mono,
         ),
         if (order.receivedAt != null)
           Text(predKolika(order.receivedAt!, dnes), style: pod),
-      ], sirkaBunky: datum),
+      ]),
       bunka('TERMÍN', [
         text(
           order.dueAt == null ? null : AppDateFormat.date(order.dueAt!),
-          poTerminu,
+          styl: poTerminu == null ? mono : mono.copyWith(color: poTerminu),
         ),
-        Text(poTerminu != null ? 'Po termínu' : 'Dokončení', style: pod),
-      ], sirkaBunky: datum),
-      if (order.pojisteniPopisek != null)
-        bunka('POJIŠŤOVNA', [
-          text(order.pojistovna),
+        Text(
+          poTerminu != null
+              ? 'Po termínu'
+              : switch (order.dueAt) {
+                  final termin? when zaKolik(termin, dnes).isNotEmpty =>
+                    zaKolik(termin, dnes),
+                  _ => 'Dokončení',
+                },
+          style: poTerminu == null ? pod : pod.copyWith(color: poTerminu),
+        ),
+      ]),
+      // Místo se zapisuje spolu s dílenským stavem - proto přes jeho okno.
+      bunka(
+        'KDE STOJÍ',
+        [
+          if (misto == null) Text('Neuvedeno', style: tlumene) else text(misto),
           Text(
-            order.cisloPojistneUdalosti == null
-                ? 'PU neuvedena'
-                : 'PU ${order.cisloPojistneUdalosti}',
+            mistoOd.isEmpty ? 'Parkovací místo' : mistoOd,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: pod,
           ),
-        ]),
-      // Místo se zapisuje spolu s dílenským stavem - proto přes jeho okno.
-      bunka('KDE STOJÍ', [
-        Wrap(
-          spacing: Insets.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (misto == null)
-              Text('Neuvedeno', style: tlumene)
-            else
-              Text(misto, style: hodnota),
-            if (onZadatMisto != null)
-              GestureDetector(
+        ],
+        akce: misto != null || onZadatMisto == null
+            ? null
+            : odkaz(
+                'Zadat',
                 key: const Key('kde-stoji-zadat'),
                 onTap: onZadatMisto,
-                behavior: HitTestBehavior.opaque,
-                child: odkaz(misto == null ? 'Zadat' : 'Změnit'),
               ),
+      ),
+      // Obálka s klíčem - náhrada desek s kapsičkou. Číslo jako na štítku
+      // obálky - velké, podle něj se hledá na tabuli s klíči.
+      KeyedSubtree(
+        key: const Key('obalka'),
+        child: bunka(
+          'OBÁLKA S KLÍČEM',
+          [
+            if (obalka == null)
+              Text('Nepřiřazena', style: tlumene)
+            else
+              CisloObalky(obalka: obalka, barva: palette.naHlavicce),
+            if (obalka == null) Text('Klíč bez obálky', style: pod),
           ],
+          pozadi: AppColors.accent.withValues(alpha: 0.1),
+          akce: switch ((obalka, onPriraditObalku, onUvolnitObalku)) {
+            (null, final priradit?, _) => odkaz(
+              'Přiřadit',
+              key: const Key('obalka-priradit-hlavicka'),
+              onTap: priradit,
+            ),
+            (_?, _, final uvolnit?) => odkaz(
+              'Uvolnit',
+              key: const Key('obalka-uvolnit-hlavicka'),
+              onTap: uvolnit,
+            ),
+            _ => null,
+          },
         ),
-        Text(mistoOd.isEmpty ? 'Parkovací místo' : mistoOd, style: pod),
-      ]),
-      // Obálka s klíčem - náhrada desek s kapsičkou.
-      bunka('OBÁLKA S KLÍČEM', [
-        _KolonkaObalky(
-          obalka: order.obalka,
-          onPriradit: onPriraditObalku,
-          onUvolnit: onUvolnitObalku,
-        ),
-      ], pozadi: AppColors.accent.withValues(alpha: 0.1)),
+      ),
     ];
 
-    return naTelefonu
-        ? SingleChildScrollView(
-            key: const Key('hlavicka-udaje'),
-            scrollDirection: Axis.horizontal,
-            child: IntrinsicHeight(
+    // Čáry mřížky jsou mezery mezi buňkami s vlastním pozadím.
+    return Container(
+      key: const Key('hlavicka-udaje'),
+      color: palette.hlavickaOkraj,
+      padding: const EdgeInsets.only(top: 1),
+      child: Column(
+        children: [
+          for (var i = 0; i < bunky.length; i += sloupcu) ...[
+            if (i > 0) const SizedBox(height: 1),
+            IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: bunky,
-              ),
-            ),
-          )
-        : Wrap(key: const Key('hlavicka-udaje'), children: bunky);
-  }
-}
-
-/// Obálka s klíčem: kód obálky a Uvolnit, nebo Přiřadit.
-class _KolonkaObalky extends StatelessWidget {
-  const _KolonkaObalky({
-    required this.obalka,
-    required this.onPriradit,
-    required this.onUvolnit,
-  });
-
-  final ObalkaKlice? obalka;
-  final VoidCallback? onPriradit;
-  final VoidCallback? onUvolnit;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final kod = obalka?.kod;
-
-    return Column(
-      key: const Key('obalka'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // V úzké buňce se tlačítko zalomí pod číslo.
-        Wrap(
-          spacing: Insets.md,
-          runSpacing: Insets.xs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              // Číslo jako na štítku obálky - velké, podle něj se obálka
-              // hledá na tabuli s klíči.
-              child: obalka == null
-                  ? Text(
-                      'Nepřiřazena',
-                      style: AppTextStyles.cardBody.copyWith(
-                        fontSize: 15,
-                        color: palette.naHlavicceTlumene,
+                children: [
+                  for (var j = i; j < i + sloupcu; j++) ...[
+                    if (j > i) const SizedBox(width: 1),
+                    Expanded(
+                      child: ColoredBox(
+                        color: palette.hlavicka,
+                        child: bunky[j],
                       ),
-                    )
-                  : CisloObalky(obalka: obalka!, barva: palette.naHlavicce),
-            ),
-            if ((kod == null ? onPriradit : onUvolnit) != null)
-              _TlacitkoObalky(
-                key: Key(
-                  kod == null
-                      ? 'obalka-priradit-hlavicka'
-                      : 'obalka-uvolnit-hlavicka',
-                ),
-                text: kod == null ? 'Přiřadit' : 'Uvolnit',
-                zvyraznene: kod == null,
-                onTap: (kod == null ? onPriradit : onUvolnit)!,
+                    ),
+                  ],
+                ],
               ),
+            ),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/// Malé tlačítko v hlavičce - Přiřadit plné, Uvolnit jen obrys, ať se
-/// na něj neklepne omylem místo něčeho jiného.
-class _TlacitkoObalky extends StatelessWidget {
-  const _TlacitkoObalky({
+/// Tlačítko v hlavičce - hlavní akce plná, ostatní jen obrys.
+class _TlacitkoHlavicky extends StatelessWidget {
+  const _TlacitkoHlavicky({
     super.key,
     required this.text,
     required this.zvyraznene,
@@ -1057,12 +1162,11 @@ class _TlacitkoObalky extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final styl = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, 36)),
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: Insets.base),
       ),
       tapTargetSize: MaterialTapTargetSize.padded,
-      visualDensity: VisualDensity.compact,
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
