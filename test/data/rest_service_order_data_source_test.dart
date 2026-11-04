@@ -403,6 +403,31 @@ void main() {
       expect(bajty, [0xff, 0xd8, 0xff, 0xe0]);
     });
 
+    test('každý požadavek říká, že je z aplikace a jaké verze', () async {
+      late http.Request zachyceno;
+      final client = MockClient((request) async {
+        zachyceno = request;
+        return http.Response(
+          '[]',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      await _zdroj(client).fetchOrders();
+      expect(zachyceno.headers['X-Klient'], 'aplikace');
+      // Verze se ještě nenačetla - hlavička chybí, požadavek jde dál.
+      expect(zachyceno.headers.containsKey('X-Klient-Verze'), isFalse);
+
+      await RestServiceOrderDataSource(
+        baseUrl: Uri.parse('https://rendcapp.renocar.local/renoworkshop/api/'),
+        tokenProvider: () async => 'testovaci-token',
+        client: client,
+        verze: () => '2.4.14 (1)',
+      ).fetchOrders();
+      expect(zachyceno.headers['X-Klient-Verze'], '2.4.14 (1)');
+    });
+
     test('úkony plánu: adresy, tělo zápisu a typy do nabídky', () async {
       final volani = <String>[];
       Object? telo;

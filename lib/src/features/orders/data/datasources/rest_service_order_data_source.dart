@@ -63,10 +63,12 @@ class RestServiceOrderDataSource
     http.Client? client,
     this.timeout = const Duration(seconds: 15),
     void Function(String nazev, String detail)? onChyba,
+    String? Function()? verze,
   }) : _baseUrl = baseUrl,
        _tokenProvider = tokenProvider,
        _client = client ?? http.Client(),
-       _onChyba = onChyba;
+       _onChyba = onChyba,
+       _verze = verze;
 
   final Uri _baseUrl;
   final Future<String?> Function() _tokenProvider;
@@ -75,6 +77,9 @@ class RestServiceOrderDataSource
   /// Výpadek sítě nebo chyba serveru - pro log událostí. Ve službě se
   /// nepovedený požadavek zapíše sám, ale ten, který k ní nedošel, ne.
   final void Function(String nazev, String detail)? _onChyba;
+
+  /// Verze aplikace do logů služby - načítá se až po startu, proto funkce.
+  final String? Function()? _verze;
 
   /// Chyby při odesílání logu se nehlásí do logu - jinak by bez sítě
   /// každý pokus přidal další záznam.
@@ -785,7 +790,13 @@ class RestServiceOrderDataSource
     Duration? timeout,
   }) async {
     final request = http.Request(method, _baseUrl.resolve(path))
-      ..headers['Accept'] = binarni ? '*/*' : 'application/json';
+      ..headers['Accept'] = binarni ? '*/*' : 'application/json'
+      // Odkud požadavek přišel - služba si to zapíše do logů, ať jde
+      // aplikace odlišit od webu a poznat verze u testerů.
+      ..headers['X-Klient'] = 'aplikace';
+    if (_verze?.call() case final verze?) {
+      request.headers['X-Klient-Verze'] = verze;
+    }
 
     final token = await _tokenProvider();
     if (token != null && token.isNotEmpty) {

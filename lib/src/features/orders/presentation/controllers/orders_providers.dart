@@ -18,6 +18,7 @@ import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/presentation/controllers/stav_serveru.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../../../app/log_udalosti_provider.dart';
@@ -51,6 +52,7 @@ final Provider<ServiceOrderDataSource> serviceOrderDataSourceProvider =
             FirebaseAuth.instance.currentUser?.getIdToken(),
         onChyba: (nazev, detail) =>
             ref.read(logUdalostiProvider).chyba(nazev, detail),
+        verze: () => ref.read(verzeAplikaceProvider).valueOrNull,
       );
       ref.onDispose(dataSource.dispose);
       return dataSource;
