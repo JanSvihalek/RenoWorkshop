@@ -117,16 +117,6 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
   }
 
-  /// Totéž, co udělá skener: vyplní hledání a řekne, že přišlo z fotoaparátu.
-  Future<void> naskenuj(WidgetTester tester, String kod) async {
-    final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(OrdersListScreen)),
-    );
-    kontejner.read(otevritJedinouZakazkuProvider.notifier).state = true;
-    kontejner.read(orderFilterProvider.notifier).setQuery(kod);
-    await tester.pumpAndSettle();
-  }
-
   Future<void> klepni(WidgetTester tester, Finder cil) async {
     await tester.ensureVisible(cil);
     await tester.pumpAndSettle();
@@ -284,13 +274,49 @@ void main() {
     expect(find.byType(OrderDetailScreen), findsOneWidget);
   });
 
-  testWidgets('sken: jediná otevřená zakázka se otevře rovnou', (tester) async {
+  Future<void> naskenuj(WidgetTester tester, KodVozidla kod) async {
+    await vyhledat(tester);
+    tester.widget<SkenerScreen>(find.byType(SkenerScreen)).onNalezeno(kod);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('sken jen hledá: jediná zakázka se sama neotevře', (
+    tester,
+  ) async {
     await spust(tester, zakazky: [rozdelana]);
 
-    await naskenuj(tester, '2BK 9485');
+    await naskenuj(
+      tester,
+      const KodVozidla(druh: DruhKodu.spz, hodnota: '2BK 9485'),
+    );
 
-    expect(find.byType(KartaVozidlaScreen), findsNothing);
-    expect(find.byType(OrderDetailScreen), findsOneWidget);
+    expect(find.byType(OrderDetailScreen), findsNothing);
+    expect(find.byType(OrderCard), findsWidgets);
+  });
+
+  testWidgets('sken obálky jen hledá: najde její zakázku v seznamu', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          id: 'ZK-26-0005',
+          licensePlate: '7AB 1234',
+          keyEnvelope: {'code': 'KBSL-023', 'color': null},
+        ),
+        buildOrderDto(id: 'ZK-26-0006', licensePlate: '8CD 5678'),
+      ],
+    );
+
+    await naskenuj(
+      tester,
+      const KodVozidla(druh: DruhKodu.obalka, hodnota: 'KBSL-023'),
+    );
+
+    expect(find.byType(OrderDetailScreen), findsNothing);
+    expect(find.text('7AB 1234'), findsOneWidget);
+    expect(find.text('8CD 5678'), findsNothing);
   });
 
   testWidgets('na tabletu se karta vozu otevře přes celou obrazovku', (

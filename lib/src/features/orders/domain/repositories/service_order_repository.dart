@@ -73,9 +73,6 @@ abstract interface class ServiceOrderRepository {
   /// Uvolní obálku zakázky - klíč z ní odešel jinak než se zákazníkem.
   Future<ServiceOrder> uvolniObalku(String orderId);
 
-  /// Komu naskenovaná obálka patří. `null` = obálka v evidenci není.
-  Future<NalezenaObalka?> najdiObalku(String kod);
-
   /// Přidá zakázce úkon na klempírně/lakovně.
   Future<ServiceOrder> pridejUkonPlanu(String orderId, VstupUkonu ukon);
 

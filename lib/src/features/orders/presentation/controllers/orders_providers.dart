@@ -380,10 +380,8 @@ class OrderFilterController extends Notifier<OrderFilter> {
   }
 }
 
-/// Hledání vyplnil skener - jediná nalezená zakázka se otevře rovnou.
-///
-/// U příjmu vozu je to nejčastější cesta: naskenovat SPZ a nafotit. Při
-/// psaní rukou se zakázka sama neotvírá, výsledek se mění s každým znakem.
+/// Zakázka se načetla z Heliosu kvůli prázdnému výsledku hledání - jediná
+/// nalezená se otevře rovnou. Skener ani psaní rukou zakázku samy neotvírají.
 final otevritJedinouZakazkuProvider = StateProvider<bool>((ref) => false);
 
 /// Zakázka otevřená v pravém sloupci rozděleného zobrazení na tabletu.

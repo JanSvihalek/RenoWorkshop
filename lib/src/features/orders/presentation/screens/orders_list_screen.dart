@@ -128,7 +128,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       ..showSnackBar(SnackBar(content: Text(zprava)));
   }
 
-  /// Po naskenování otevře jedinou nalezenou zakázku. Příznak se shodí
+  /// Po načtení z Heliosu otevře jedinou nalezenou zakázku. Příznak se shodí
   /// v každém případě, ať se zakázka neotevře sama později při psaní.
   void _otevriJedinou(List<ServiceOrder> nalezene) {
     WidgetsBinding.instance.addPostFrameCallback((_) {

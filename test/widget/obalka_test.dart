@@ -151,8 +151,7 @@ void main() {
       find.descendant(of: kolonka, matching: find.text('KBSL-023')),
       findsOneWidget,
     );
-    final nalezena = await zdroj.najdiObalku('KBSL-023');
-    expect(nalezena?.zakazkaId, 'ZK-26-0001');
+    expect(zdroj.zakazkaSObalkou('KBSL-023'), 'ZK-26-0001');
   });
 
   testWidgets('obálka v evidenci není - hláška, nic se nezmění', (

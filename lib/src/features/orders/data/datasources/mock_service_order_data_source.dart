@@ -651,20 +651,6 @@ class MockServiceOrderDataSource
   }
 
   @override
-  Future<NalezenaObalka?> najdiObalku(String kod) async {
-    final orders = await _ensureLoaded();
-    await _simulateLatency();
-    final zakazka = orders
-        .where((o) => o.keyEnvelope?['code'] == kod)
-        .firstOrNull;
-    return NalezenaObalka(
-      kod: kod,
-      zakazkaId: zakazka?.id,
-      spz: zakazka?.licensePlate,
-    );
-  }
-
-  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();

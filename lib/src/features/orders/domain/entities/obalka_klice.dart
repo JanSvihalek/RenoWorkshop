@@ -82,32 +82,3 @@ String? kodObalky(String text) {
   }
   return 'K$pobocka-${cislo.padLeft(3, '0')}';
 }
-
-/// Komu naskenovaná obálka patří - odpověď na `GET /envelopes/:code`.
-class NalezenaObalka {
-  const NalezenaObalka({
-    required this.kod,
-    this.zakazkaId,
-    this.spz,
-    this.aktivni = true,
-  });
-
-  final String kod;
-
-  /// Rozdělaná zakázka, které obálka patří. `null` = obálka je volná.
-  final String? zakazkaId;
-  final String? spz;
-
-  /// Vyřazená obálka (ztracená, zničená).
-  final bool aktivni;
-
-  factory NalezenaObalka.fromJson(Map<String, dynamic> json) {
-    final zakazka = json['order'] as Map<String, dynamic>?;
-    return NalezenaObalka(
-      kod: json['code'] as String,
-      zakazkaId: zakazka?['id'] as String?,
-      spz: zakazka?['licensePlate'] as String?,
-      aktivni: json['active'] as bool? ?? true,
-    );
-  }
-}

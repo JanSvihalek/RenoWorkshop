@@ -81,9 +81,6 @@ abstract interface class ServiceOrderDataSource {
   /// `DELETE /orders/{id}/envelope` - uvolní obálku zakázky.
   Future<ServiceOrderDto?> uvolniObalku(String orderId);
 
-  /// `GET /envelopes/{code}` - komu obálka patří. `null` = v evidenci není.
-  Future<NalezenaObalka?> najdiObalku(String kod);
-
   /// `POST /orders/{id}/bodyshop-plan/blocks` - přidat úkon na klempírnu/
   /// lakovnu. Zakázka jiného než klempířského útvaru je
   /// [ServiceOrderException] s hláškou.

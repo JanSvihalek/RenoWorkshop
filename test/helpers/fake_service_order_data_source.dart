@@ -852,20 +852,11 @@ class FakeServiceOrderDataSource
     );
   }
 
-  @override
-  Future<NalezenaObalka?> najdiObalku(String kod) async {
-    if (neznameObalky.contains(kod)) return null;
-    final zakazka = _orders
-        .where(
-          (o) => !_archivIds.contains(o.id) && o.keyEnvelope?['code'] == kod,
-        )
-        .firstOrNull;
-    return NalezenaObalka(
-      kod: kod,
-      zakazkaId: zakazka?.id,
-      spz: zakazka?.licensePlate,
-    );
-  }
+  /// Rozdělaná zakázka, které obálka patří - pro kontrolu v testu.
+  String? zakazkaSObalkou(String kod) => _orders
+      .where((o) => !_archivIds.contains(o.id) && o.keyEnvelope?['code'] == kod)
+      .firstOrNull
+      ?.id;
 
   @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {

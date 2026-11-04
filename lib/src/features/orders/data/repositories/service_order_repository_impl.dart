@@ -1,5 +1,4 @@
 import '../../domain/entities/plan_klempirny.dart';
-import '../../domain/entities/obalka_klice.dart';
 import 'dart:async';
 
 import '../../domain/entities/dilensky_stav.dart';
@@ -170,10 +169,6 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   Future<ServiceOrder> smazUkonPlanu(String orderId, int ukonId) {
     return _mutate(orderId, () => _dataSource.smazUkonPlanu(orderId, ukonId));
   }
-
-  @override
-  Future<NalezenaObalka?> najdiObalku(String kod) =>
-      _dataSource.najdiObalku(kod);
 
   @override
   Future<List<NabidkaStavu>> nabidkaStavu() => _dataSource.nabidkaStavu();

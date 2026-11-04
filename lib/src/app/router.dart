@@ -9,9 +9,6 @@ import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../core/layout/rozlozeni.dart';
 import '../core/widgets/workshop_scaffold.dart';
-import '../features/orders/domain/entities/kod_vozidla.dart';
-import '../features/orders/domain/entities/obalka_klice.dart';
-import '../features/orders/domain/repositories/service_order_repository.dart';
 import '../features/orders/presentation/controllers/orders_providers.dart';
 import '../features/orders/presentation/screens/order_detail_screen.dart';
 import '../features/orders/presentation/screens/orders_list_screen.dart';
@@ -109,14 +106,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 context.pop(kod.hodnota);
                 return;
               }
-              // Naskenovaná obálka s klíčem otevře svou zakázku.
-              if (kod.druh == DruhKodu.obalka) {
-                _otevriZakazkuObalky(context, ref, kod.hodnota);
-                return;
-              }
-              // Jediná nalezená zakázka se otevře rovnou - u příjmu se
-              // tak po naskenování SPZ jde přímo k detailu a fotkám.
-              ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
+              // Cokoli jiného jen hledá v seznamu zakázek (SPZ, VIN i kód
+              // obálky) - zakázka se sama neotevře.
               ref.read(orderFilterProvider.notifier).setQuery(kod.hodnota);
               context.go(AppRoutes.orders);
             },
@@ -295,41 +286,5 @@ class _AuthRefreshNotifier extends ChangeNotifier {
   void dispose() {
     _subscription.close();
     super.dispose();
-  }
-}
-
-/// Naskenovaná obálka s klíčem: otevře zakázku, které patří, místo
-/// skeneru. Volná nebo neznámá obálka - zpět a hláška.
-Future<void> _otevriZakazkuObalky(
-  BuildContext context,
-  WidgetRef ref,
-  String kod,
-) async {
-  final router = GoRouter.of(context);
-  final zpravy = ScaffoldMessenger.of(context);
-
-  void zpet(String text) {
-    router.canPop() ? router.pop() : router.go(AppRoutes.orders);
-    zpravy
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
-  }
-
-  try {
-    final nalezena = await ref
-        .read(serviceOrderRepositoryProvider)
-        .najdiObalku(kod);
-    final zakazka = nalezena?.zakazkaId;
-    if (zakazka != null) {
-      router.pushReplacement(AppRoutes.orderDetail(zakazka));
-      return;
-    }
-    zpet(switch (nalezena) {
-      null => 'Obálka $kod v evidenci není.',
-      NalezenaObalka(aktivni: false) => 'Obálka $kod je vyřazená.',
-      _ => 'Obálka $kod je volná - nepatří žádné rozdělané zakázce.',
-    });
-  } on ServiceOrderException catch (chyba) {
-    zpet(chyba.message);
   }
 }

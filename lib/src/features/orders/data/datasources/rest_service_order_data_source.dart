@@ -8,7 +8,6 @@ import '../../../../core/log/log_udalosti.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/moje_prava.dart';
-import '../../domain/entities/obalka_klice.dart';
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../../akce/data/akce_data_source.dart';
@@ -383,12 +382,6 @@ class RestServiceOrderDataSource
       'orders/${Uri.encodeComponent(orderId)}/envelope',
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
-  }
-
-  @override
-  Future<NalezenaObalka?> najdiObalku(String kod) async {
-    final data = await _send('GET', 'envelopes/${Uri.encodeComponent(kod)}');
-    return data == null ? null : NalezenaObalka.fromJson(_asMap(data));
   }
 
   @override
