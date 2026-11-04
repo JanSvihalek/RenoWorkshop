@@ -46,29 +46,6 @@ enum UmisteniSpouste {
   }
 }
 
-/// Záložka, na které se aplikace otevře po spuštění.
-///
-/// Kdo dělá hlavně příjem, nechce pokaždé začínat seznamem zakázek.
-/// Nastavení mezi nabídkou není - po startu ho nikdo nepotřebuje.
-enum UvodniZalozka {
-  zakazky('Zakázky'),
-  vozidlo('Vozidlo');
-
-  const UvodniZalozka(this.label);
-
-  final String label;
-
-  static UvodniZalozka zNazvu(String? nazev) {
-    // Příjem a Vozidla byly do 1.6 dvě záložky - kdo měl úvodní jednu
-    // z nich, otevře se na Vozidle, které je nahradilo.
-    if (nazev == 'prijem' || nazev == 'vozidla') return UvodniZalozka.vozidlo;
-    for (final zalozka in values) {
-      if (zalozka.name == nazev) return zalozka;
-    }
-    return UvodniZalozka.zakazky;
-  }
-}
-
 /// Jak se ukazuje seznam zakázek.
 ///
 /// Karty jsou na dílně v ruce čitelnější, tabulka ukáže víc zakázek naráz
@@ -111,10 +88,8 @@ class Nastaveni {
     this.vychoziStavHelios,
     this.slozkaFotek,
     this.ukladatFotkyDoZarizeni = false,
-    this.skenovatPoOtevreni = true,
     this.samoRozpoznatSpz = false,
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
-    this.uvodniZalozka = UvodniZalozka.zakazky,
     this.ukazkovaData = false,
   });
 
@@ -122,11 +97,6 @@ class Nastaveni {
 
   /// Kde je spoušť na obrazovce skeneru SPZ a VINu.
   final UmisteniSpouste spoust;
-
-  /// Po klepnutí na záložku Vozidlo rovnou otevřít skener.
-  /// Obojí vždycky začíná SPZ, takže je to o dvě klepnutí míň; kdo píše
-  /// radši ručně, si to vypne.
-  final bool skenovatPoOtevreni;
 
   /// Skener čte obraz průběžně a SPZ vyhledá sám, bez spouště - jakmile
   /// ji v rámečku přečte víckrát po sobě stejně. VIN se dál fotí spouští.
@@ -184,9 +154,6 @@ class Nastaveni {
   /// obrazovku i na tabletu - vedle tabulky by se nevešel.
   final ZobrazeniZakazek zobrazeniZakazek;
 
-  /// Kam se aplikace otevře po spuštění a po přihlášení.
-  final UvodniZalozka uvodniZalozka;
-
   /// Smyšlené zakázky místo Heliosu, i když build služba má. Mimo firemní
   /// síť se na server nedostane - takhle jde appku aspoň projít
   /// a ukázat. Nic z toho se do Heliosu ani na server nezapíše.
@@ -219,10 +186,8 @@ class Nastaveni {
     String? slozkaFotek,
     bool zrusSlozkuFotek = false,
     bool? ukladatFotkyDoZarizeni,
-    bool? skenovatPoOtevreni,
     bool? samoRozpoznatSpz,
     ZobrazeniZakazek? zobrazeniZakazek,
-    UvodniZalozka? uvodniZalozka,
     bool? ukazkovaData,
   }) {
     return Nastaveni(
@@ -250,10 +215,8 @@ class Nastaveni {
       slozkaFotek: zrusSlozkuFotek ? null : (slozkaFotek ?? this.slozkaFotek),
       ukladatFotkyDoZarizeni:
           ukladatFotkyDoZarizeni ?? this.ukladatFotkyDoZarizeni,
-      skenovatPoOtevreni: skenovatPoOtevreni ?? this.skenovatPoOtevreni,
       samoRozpoznatSpz: samoRozpoznatSpz ?? this.samoRozpoznatSpz,
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
-      uvodniZalozka: uvodniZalozka ?? this.uvodniZalozka,
       ukazkovaData: ukazkovaData ?? this.ukazkovaData,
     );
   }
@@ -273,10 +236,8 @@ class Nastaveni {
           other.vychoziZpracovatelJmeno == vychoziZpracovatelJmeno &&
           other.slozkaFotek == slozkaFotek &&
           other.ukladatFotkyDoZarizeni == ukladatFotkyDoZarizeni &&
-          other.skenovatPoOtevreni == skenovatPoOtevreni &&
           other.samoRozpoznatSpz == samoRozpoznatSpz &&
           other.zobrazeniZakazek == zobrazeniZakazek &&
-          other.uvodniZalozka == uvodniZalozka &&
           other.ukazkovaData == ukazkovaData);
 
   @override
@@ -292,10 +253,8 @@ class Nastaveni {
     vychoziZpracovatelJmeno,
     slozkaFotek,
     ukladatFotkyDoZarizeni,
-    skenovatPoOtevreni,
     samoRozpoznatSpz,
     zobrazeniZakazek,
-    uvodniZalozka,
     ukazkovaData,
   ]);
 }

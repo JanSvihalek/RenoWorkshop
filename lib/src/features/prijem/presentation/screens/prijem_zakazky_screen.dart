@@ -18,13 +18,13 @@ import '../../domain/entities/prijem.dart';
 import '../../../orders/presentation/widgets/obalka_klice.dart';
 import '../controllers/prijem_providers.dart';
 import '../widgets/dezen_pneu.dart';
-import '../widgets/identifikace_karta.dart';
+import '../widgets/ukazatel_kroku_prijmu.dart';
 
 /// Kroky průvodce v pořadí, jak se vůz přijímá: obejít ho s fotoaparátem,
 /// projít technické kontroly a dokončit.
 ///
-/// Krok 1 - že je to opravdu ten vůz - je karta Identifikace na obrazovce
-/// hledání, proto se tu čísluje od dvojky.
+/// Krok 1 - že je to opravdu ten vůz - je detail zakázky, odkud se příjem
+/// zahajuje, proto se tu čísluje od dvojky.
 enum KrokPrijmu {
   fotky('Fotodokumentace'),
   kontrola('Kontrola'),
@@ -348,8 +348,8 @@ class _BocniKroky extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Identifikace proběhla na obrazovce hledání - tady už jen
-          // připomíná, že je to krok 1.
+          // Identifikace proběhla v detailu zakázky - tady už jen připomíná,
+          // že je to krok 1.
           Padding(
             key: const Key('prijem-krok-identifikace'),
             padding: const EdgeInsets.only(bottom: Insets.xs),

@@ -3,11 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../layout/rozlozeni.dart';
-import '../navigace/pozadavek_skeneru.dart';
 import '../../features/orders/presentation/controllers/orders_providers.dart';
 import '../../features/plan/presentation/prepinac_aplikaci.dart';
-import '../../features/settings/presentation/controllers/nastaveni_controller.dart';
-import '../../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'ukazkova_data_pruh.dart';
 import 'workshop_bottom_nav.dart';
 import 'workshop_side_nav.dart';
@@ -23,24 +20,8 @@ class WorkshopScaffold extends ConsumerWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  /// Přepnutí záložky. Vozidlo začíná SPZ, takže se na něm rovnou
-  /// nabídne skener - jen při klepnutí na záložku, ne při návratu
-  /// z detailu nebo ze samotného skeneru.
-  ///
-  /// Hledání se klepnutím na záložku vymaže - kdo se na ni vrací, jde na
-  /// další vůz a starý výsledek by jen mátl. Musí to být dřív než
-  /// požadavek na skener: s rozepsaným hledáním se skener sám neotvírá.
-  void _prepni(WidgetRef ref, int index) {
-    final tab = WorkshopTab.values[index];
-    if (tab == WorkshopTab.vozidlo) {
-      ref.read(otevritJedineVozidloProvider.notifier).state = false;
-      ref.read(dotazVozidlaProvider.notifier).state = '';
-    }
-    final skenovat =
-        ref.read(nastaveniProvider).skenovatPoOtevreni &&
-        tab == WorkshopTab.vozidlo;
-    ref.read(pozadavekSkeneruProvider.notifier).state = skenovat ? tab : null;
-
+  /// Přepnutí záložky.
+  void _prepni(int index) {
     navigationShell.goBranch(
       index,
       // Druhé kliknutí na už otevřenou záložku ji vrátí na začátek.
@@ -62,7 +43,7 @@ class WorkshopScaffold extends ConsumerWidget {
           children: [
             WorkshopSideNav(
               active: aktivni,
-              onSelect: (tab) => _prepni(ref, tab.index),
+              onSelect: (tab) => _prepni(tab.index),
               onAplikace: () => zobrazPrepinacAplikaci(context, ref),
               zobrazitAdmin: admin,
             ),
@@ -88,7 +69,7 @@ class WorkshopScaffold extends ConsumerWidget {
           const UkazkovaDataPruh(dolniOkraj: false),
           WorkshopBottomNav(
             active: aktivni,
-            onSelect: (tab) => _prepni(ref, tab.index),
+            onSelect: (tab) => _prepni(tab.index),
             zobrazitAdmin: admin,
           ),
         ],

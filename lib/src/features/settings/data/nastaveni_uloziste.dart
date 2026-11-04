@@ -34,9 +34,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicSlozkaFotek = 'nastaveni.slozkaFotek';
   static const _klicUkladatDoZarizeni = 'nastaveni.ukladatFotkyDoZarizeni';
   static const _klicZobrazeni = 'nastaveni.zobrazeniZakazek';
-  static const _klicSkenovatPoOtevreni = 'nastaveni.skenovatPoOtevreni';
   static const _klicSamoRozpoznatSpz = 'nastaveni.samoRozpoznatSpz';
-  static const _klicUvodniZalozka = 'nastaveni.uvodniZalozka';
   static const _klicUkazkovaData = 'nastaveni.ukazkovaData';
 
   @override
@@ -55,12 +53,10 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       ),
       slozkaFotek: _prazdneJakoNull(_prefs.getString(_klicSlozkaFotek)),
       ukladatFotkyDoZarizeni: _prefs.getBool(_klicUkladatDoZarizeni) ?? false,
-      skenovatPoOtevreni: _prefs.getBool(_klicSkenovatPoOtevreni) ?? true,
       samoRozpoznatSpz: _prefs.getBool(_klicSamoRozpoznatSpz) ?? false,
       zobrazeniZakazek: ZobrazeniZakazek.zNazvu(
         _prefs.getString(_klicZobrazeni),
       ),
-      uvodniZalozka: UvodniZalozka.zNazvu(_prefs.getString(_klicUvodniZalozka)),
       ukazkovaData: _prefs.getBool(_klicUkazkovaData) ?? false,
     );
   }
@@ -88,9 +84,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       nastaveni.ukladatFotkyDoZarizeni,
     );
     await _prefs.setString(_klicZobrazeni, nastaveni.zobrazeniZakazek.name);
-    await _prefs.setBool(_klicSkenovatPoOtevreni, nastaveni.skenovatPoOtevreni);
     await _prefs.setBool(_klicSamoRozpoznatSpz, nastaveni.samoRozpoznatSpz);
-    await _prefs.setString(_klicUvodniZalozka, nastaveni.uvodniZalozka.name);
     await _prefs.setBool(_klicUkazkovaData, nastaveni.ukazkovaData);
   }
 

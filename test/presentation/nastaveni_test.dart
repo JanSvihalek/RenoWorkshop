@@ -163,45 +163,6 @@ void main() {
       );
     });
 
-    test('úvodní záložka přežije restart, neznámá jsou Zakázky', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      await SharedPreferencesNastaveni(
-        prefs,
-      ).uloz(const Nastaveni(uvodniZalozka: UvodniZalozka.vozidlo));
-
-      expect(
-        SharedPreferencesNastaveni(prefs).nacti().uvodniZalozka,
-        UvodniZalozka.vozidlo,
-      );
-
-      SharedPreferences.setMockInitialValues({
-        'nastaveni.uvodniZalozka': 'nastaveni',
-      });
-      expect(
-        SharedPreferencesNastaveni(
-          await SharedPreferences.getInstance(),
-        ).nacti().uvodniZalozka,
-        UvodniZalozka.zakazky,
-      );
-    });
-
-    test('úvodní Příjem nebo Vozidla z dřívějška otevře Vozidlo', () async {
-      for (final stara in ['prijem', 'vozidla']) {
-        SharedPreferences.setMockInitialValues({
-          'nastaveni.uvodniZalozka': stara,
-        });
-        expect(
-          SharedPreferencesNastaveni(
-            await SharedPreferences.getInstance(),
-          ).nacti().uvodniZalozka,
-          UvodniZalozka.vozidlo,
-          reason: stara,
-        );
-      }
-      expect(UvodniZalozka.values.map((z) => z.label), ['Zakázky', 'Vozidlo']);
-    });
-
     test('zrušený útvar se z úložiště smaže', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

@@ -176,7 +176,6 @@ Map<String, Object?> castiAplikace(
   'ordersFilter': filtrZakazekDoUctu(n, _mapa(zaklad['ordersFilter'])),
   'planner': pohledDoUctu(pohled, _mapa(zaklad['planner'])),
   'photoFolder': n.slozkaFotek,
-  'startTab': n.uvodniZalozka.name,
 };
 
 /// Nastavení z účtu do nastavení telefonu.
@@ -185,10 +184,6 @@ Nastaveni nastaveniZUctu(Nastaveni n, Map<String, Object?> ucet) {
   return s.copyWith(
     slozkaFotek: _text(ucet, 'photoFolder'),
     zrusSlozkuFotek: _text(ucet, 'photoFolder') == null,
-    uvodniZalozka: switch (_text(ucet, 'startTab')) {
-      final nazev? => UvodniZalozka.zNazvu(nazev),
-      null => n.uvodniZalozka,
-    },
   );
 }
 

@@ -502,6 +502,8 @@ class MockServiceOrderDataSource
     final orders = _cache;
     if (orders == null) return;
     final ted = DateTime.now();
+    // Číslo vozu jako v _vozidlaZeZakazek: pořadí podle SPZ od jedné.
+    final spzVozu = {for (final o in orders) o.licensePlate}.toList()..sort();
     for (var i = 0; i < orders.length; i++) {
       final vin = orders[i].vin.toUpperCase();
       final registrace = DateTime.parse(_registrace(i));
@@ -509,6 +511,7 @@ class MockServiceOrderDataSource
           (ted.year - registrace.year) * 12 + ted.month - registrace.month;
       orders[i] = orders[i].copyWith(
         firstRegisteredAt: _registrace(i),
+        vehicleId: spzVozu.indexOf(orders[i].licensePlate) + 1,
         vehicleColor: _barvy[i % _barvy.length],
         ageCampaigns: [
           for (final k in _kampaneStari)

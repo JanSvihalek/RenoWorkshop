@@ -953,9 +953,13 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? bodyshopPlan,
   bool canPlanBodyshop = false,
   Map<String, dynamic>? vehicleColor,
+  int? vehicleId,
+  bool isActive = true,
 }) {
   return ServiceOrderDto(
     id: id,
+    vehicleId: vehicleId,
+    isActive: isActive,
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,

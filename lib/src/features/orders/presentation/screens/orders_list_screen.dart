@@ -16,6 +16,9 @@ import '../../domain/repositories/service_order_repository.dart';
 import '../controllers/orders_providers.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_search_field.dart';
+import '../../../vozidla/domain/entities/vozidlo.dart';
+import '../../../vozidla/presentation/controllers/vozidla_providers.dart';
+import '../../../vozidla/presentation/widgets/radek_vozidla.dart';
 import '../widgets/orders_empty_state.dart';
 import '../widgets/filtr_lista.dart';
 import '../widgets/tabulka_zakazek.dart';
@@ -33,6 +36,7 @@ class OrdersListScreen extends ConsumerStatefulWidget {
     required this.onScanCode,
     this.onOpenAkce,
     this.onOpenKampane,
+    this.onOpenVozidlo,
   });
 
   final void Function(ServiceOrder order) onOpenOrder;
@@ -54,6 +58,9 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 
   /// Přehled technických kampaní - druhý řádek pruhu. Bez něj se neukáže.
   final VoidCallback? onOpenKampane;
+
+  /// Karta vozu - číslo vozu a jestli se našel skenerem.
+  final void Function(int id, bool naskenovano)? onOpenVozidlo;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -81,7 +88,10 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   void _onQueryChanged(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), () {
-      if (mounted) ref.read(orderFilterProvider.notifier).setQuery(query);
+      if (!mounted) return;
+      // Psaní rukou nikdy neotvírá kartu vozu samo.
+      ref.read(otevritJedineVozidloProvider.notifier).state = false;
+      ref.read(orderFilterProvider.notifier).setQuery(query);
     });
     setState(() {});
   }
@@ -131,10 +141,28 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     });
   }
 
-  /// Stažení prstem: dílnu i archiv znovu ze serveru.
+  /// Po naskenování: vůz bez otevřené zakázky a jediný v evidenci se otevře
+  /// rovnou. S otevřenou zakázkou rozhoduje [_otevriJedinou].
+  void _otevriJedineVozidlo(
+    List<ServiceOrder> nalezene,
+    AsyncValue<List<NalezeneVozidlo>>? vozidla,
+  ) {
+    if (nalezene.isEmpty && vozidla != null && vozidla.isLoading) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !ref.read(otevritJedineVozidloProvider)) return;
+      ref.read(otevritJedineVozidloProvider.notifier).state = false;
+      final seznam = vozidla?.valueOrNull;
+      if (nalezene.isEmpty && seznam != null && seznam.length == 1) {
+        widget.onOpenVozidlo?.call(seznam.single.id, true);
+      }
+    });
+  }
+
+  /// Stažení prstem: dílnu, archiv i vozidla znovu ze serveru.
   Future<void> _obnovit() async {
     ref.invalidate(ordersStreamProvider);
     ref.invalidate(archivProvider);
+    ref.invalidate(hledaniVozidelProvider);
   }
 
   /// Zruší filtry lišty, ale nechá hledaný text - kvůli němu se hledá.
@@ -161,6 +189,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     // Od tří znaků se hledá i v archivu - výsledky jsou pak ve dvou
     // částech, na dílně a v archivu.
     final hledaVArchivu = filter.query.trim().length >= 3;
+    final vozidla = hledaVArchivu
+        ? ref.watch(hledaniVozidelProvider(filter.query))
+        : null;
 
     // Hledání vyplněné zvenčí (skener) se musí objevit i v poli - seznam
     // zůstává otevřený pod skenerem a pole by jinak ukazovalo starý text.
@@ -173,6 +204,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
 
     if (ref.watch(otevritJedinouZakazkuProvider) && orders.hasValue) {
       _otevriJedinou(orders.requireValue);
+    }
+    if (ref.watch(otevritJedineVozidloProvider) && orders.hasValue) {
+      _otevriJedineVozidlo(orders.requireValue, vozidla);
     }
 
     return Scaffold(
@@ -220,6 +254,12 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                         tabulka: zobrazeni == ZobrazeniZakazek.tabulka,
                         naDilne: data,
                         archiv: ref.watch(archivKHledaniProvider),
+                        vozidla: vozidla!,
+                        onOpenVozidlo: (id) =>
+                            widget.onOpenVozidlo?.call(id, false),
+                        onZnovuVozidla: () => ref.invalidate(
+                          hledaniVozidelProvider(filter.query),
+                        ),
                         vybranaId: widget.vybranaId,
                         onOpenOrder: widget.onOpenOrder,
                         // `activeCount` počítá i hledaný text.
@@ -405,6 +445,9 @@ class _VysledkyHledani extends StatelessWidget {
     required this.nacitaZHeliosu,
     required this.onNacistZHeliosu,
     required this.onZnovuArchiv,
+    required this.vozidla,
+    required this.onOpenVozidlo,
+    required this.onZnovuVozidla,
   });
 
   /// Řádková tabulka místo karet - podle zobrazení zvoleného v hlavičce.
@@ -424,6 +467,11 @@ class _VysledkyHledani extends StatelessWidget {
   final bool nacitaZHeliosu;
   final VoidCallback onNacistZHeliosu;
   final VoidCallback onZnovuArchiv;
+
+  /// Vozy z evidence Heliosu podle SPZ a VIN - i bez jediné zakázky.
+  final AsyncValue<List<NalezeneVozidlo>> vozidla;
+  final void Function(int id) onOpenVozidlo;
+  final VoidCallback onZnovuVozidla;
 
   @override
   Widget build(BuildContext context) {
@@ -481,12 +529,55 @@ class _VysledkyHledani extends StatelessWidget {
         ...zArchivu,
     ];
 
+    // Hledání podle jména zákazníka vozidla nezná - prázdná část by jen
+    // překážela, proto se bez výsledku neukáže.
+    final zEvidence = vozidla.valueOrNull ?? const <NalezeneVozidlo>[];
+    Widget nadpisVozidel(int? pocet) => _NadpisSekce(
+      key: const Key('sekce-vozidla'),
+      ikona: Icons.directions_car_outlined,
+      text: 'Vozidla z evidence',
+      pocet: pocet,
+    );
+    final evidence = <Widget>[
+      if (vozidla.isLoading) ...[
+        nadpisVozidel(null),
+        const _RadekArchivu(
+          key: Key('vozidla-hleda'),
+          text: 'Hledám ve vozidlech…',
+          nacita: true,
+        ),
+      ] else if (vozidla.hasError) ...[
+        nadpisVozidel(null),
+        _RadekArchivu(
+          key: const Key('vozidla-chyba'),
+          text: vozidla.error is ServiceOrderException
+              ? (vozidla.error! as ServiceOrderException).message
+              : 'Ve vozidlech se nepodařilo hledat.',
+          barva: AppColors.danger,
+          akce: TextButton(
+            onPressed: onZnovuVozidla,
+            child: const Text('Zkusit znovu'),
+          ),
+        ),
+      ] else if (zEvidence.isNotEmpty) ...[
+        nadpisVozidel(zEvidence.length),
+        for (final vozidlo in zEvidence)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Insets.md),
+            child: RadekVozidla(
+              vozidlo: vozidlo,
+              onTap: () => onOpenVozidlo(vozidlo.id),
+            ),
+          ),
+      ],
+    ];
+
     if (tabulka) {
       return TabulkaZakazek.sPolozkami(
         key: const Key('tabulka-hledani'),
         onOpenOrder: onOpenOrder,
         polozky: [
-          for (final polozka in [...dilna, ...ukoncene])
+          for (final polozka in [...dilna, ...ukoncene, ...evidence])
             polozka is ServiceOrder
                 ? RadekTabulky(polozka)
                 : VlozkaTabulky(polozka as Widget),
@@ -517,6 +608,8 @@ class _VysledkyHledani extends StatelessWidget {
         for (final polozka in dilna) prvek(polozka),
         const SizedBox(height: Insets.lg),
         for (final polozka in ukoncene) prvek(polozka),
+        if (evidence.isNotEmpty) const SizedBox(height: Insets.lg),
+        ...evidence,
       ],
     );
   }

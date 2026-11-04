@@ -292,17 +292,6 @@ class _VzhledASpusteni extends ConsumerWidget {
             onZmena: ovladani.zmenVzhled,
           ),
         ),
-        _Radek(
-          titul: 'Úvodní záložka',
-          popis: 'Po spuštění a po přihlášení.',
-          dole: _Prepinac<UvodniZalozka>(
-            key: const Key('uvodni-zalozka'),
-            hodnoty: UvodniZalozka.values,
-            vybrana: nastaveni.uvodniZalozka,
-            popisek: (zalozka) => zalozka.label,
-            onZmena: ovladani.zmenUvodniZalozku,
-          ),
-        ),
       ],
     );
   }
@@ -322,20 +311,10 @@ class _SkenerAFotoaparat extends ConsumerWidget {
       radky: [
         _Radek(
           titul: 'Poloha spouště',
-          popis: 'Platí pro focení, sken SPZ/VIN a tlačítko Zahájit příjem.',
+          popis: 'Platí pro focení a sken SPZ/VIN.',
           dole: _VolbaSpouste(
             vybrana: nastaveni.spoust,
             onZmena: ovladani.zmenSpoust,
-          ),
-        ),
-        _Radek(
-          titul: 'Skenovat hned po otevření',
-          popis: 'Záložka Vozidlo otevře rovnou skener SPZ.',
-          vpravo: Switch.adaptive(
-            key: const Key('skenovat-po-otevreni'),
-            value: nastaveni.skenovatPoOtevreni,
-            activeTrackColor: AppColors.accent,
-            onChanged: ovladani.zmenSkenovaniPoOtevreni,
           ),
         ),
         _Radek(

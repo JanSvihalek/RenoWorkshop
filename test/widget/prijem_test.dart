@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renoworkshop/src/features/vozidla/presentation/controllers/vozidla_providers.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
@@ -13,13 +12,10 @@ import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/dezen.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
-import 'package:renoworkshop/src/features/vozidla/presentation/screens/vozidlo_screen.dart';
 import 'package:renoworkshop/src/features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import 'package:renoworkshop/src/features/settings/presentation/controllers/nastaveni_controller.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
-import 'package:renoworkshop/src/features/orders/presentation/screens/skener_screen.dart';
-import 'package:renoworkshop/src/features/prijem/presentation/widgets/identifikace_karta.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 import '../helpers/zalozky.dart';
@@ -37,10 +33,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          // Skener se tu otevírá klepnutím na lupu, ne sám po přepnutí
-          // záložky - to zkouší skener_po_otevreni_test.dart.
           nastaveniUlozisteProvider.overrideWithValue(
-            PametoveNastaveni(const Nastaveni(skenovatPoOtevreni: false)),
+            PametoveNastaveni(const Nastaveni()),
           ),
           authRepositoryProvider.overrideWithValue(
             PlaceholderAuthRepository(
@@ -58,19 +52,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Nezahájený příjem tlačítkem v hlavičce detailu, jiný ze sekce Příjem.
   Future<void> otevriPrijem(WidgetTester tester) async {
-    await tester.tap(find.text('Vozidlo'));
+    await tester.tap(find.text('2BK 9485'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(VozidloScreen),
-        matching: find.byType(TextField),
-      ),
-      '2bk 94',
-    );
-    await tester.pumpAndSettle(const Duration(milliseconds: 300));
-    // Krok 1: karta s nalezenou zakázkou - potvrdit, že je to ten vůz.
-    await tester.tap(find.byKey(const Key('zahajit-prijem-ZK-26-0001')));
+    final hlavicka = find.byKey(const Key('zahajit-prijem-hlavicka'));
+    if (hlavicka.evaluate().isNotEmpty) {
+      await tester.tap(hlavicka);
+    } else {
+      await naSekci(tester, 'prijem');
+      final otevrit = find.byKey(const Key('otevrit-prijem'));
+      await tester.ensureVisible(otevrit);
+      await tester.pumpAndSettle();
+      await tester.tap(otevrit);
+    }
     await tester.pumpAndSettle();
   }
 
@@ -115,7 +110,7 @@ void main() {
     await spust(tester);
     await otevriPrijem(tester);
 
-    // Krok 1 (identifikace) byl karta na obrazovce hledání.
+    // Krok 1 (identifikace) je detail zakázky, odkud se příjem zahajuje.
     expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
     expect(krok(tester), 'Krok 2 ze 4 · Fotodokumentace');
     expect(find.byType(FotodokumentaceObsah), findsOneWidget);
@@ -266,18 +261,7 @@ void main() {
     // Detail zakázky ze seznamu.
     tester.state<NavigatorState>(find.byType(Navigator).last).pop();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Zakázky'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(OrdersListScreen),
-        matching: find.byType(TextField),
-      ),
-      '2BK 9485',
-    );
-    await tester.pumpAndSettle(const Duration(milliseconds: 300));
-    await tester.tap(find.byType(OrderCard));
-    await tester.pumpAndSettle();
+    // Z průvodce je zpátky v detailu zakázky, odkud se otevřel.
     await naSekci(tester, 'prijem');
 
     // Souhrn příjmu: stav, nález s poznámkou, celý checklist sbalený.
@@ -372,83 +356,5 @@ void main() {
     await tester.tap(find.byKey(const Key('prijem-krok-kontrola')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prijem-postup')), findsOneWidget);
-  });
-
-  testWidgets('po naskenování se ukáže karta k potvrzení, ne rovnou průvodce', (
-    tester,
-  ) async {
-    await spust(tester);
-    await tester.tap(find.text('Vozidlo'));
-    await tester.pumpAndSettle();
-
-    final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(VozidloScreen)),
-    );
-    kontejner.read(otevritJedineVozidloProvider.notifier).state = true;
-    kontejner.read(dotazVozidlaProvider.notifier).state = '2BK 9485';
-    await tester.pumpAndSettle();
-
-    // U stejných modelů nebo po přeregistraci SPZ se hodí podívat, že je
-    // to opravdu ten vůz - průvodce se neotevře sám.
-    expect(find.byType(PrijemZakazkyScreen), findsNothing);
-    expect(find.byType(IdentifikaceKarta), findsOneWidget);
-    expect(find.text('Nalezena otevřená zakázka'), findsOneWidget);
-    expect(find.text('NASKENOVÁNO · SPZ'), findsOneWidget);
-    expect(find.text('WBATEST0000000001'), findsOneWidget);
-  });
-
-  testWidgets('rozpracovaný příjem karta řekne a nabídne pokračovat', (
-    tester,
-  ) async {
-    await spust(tester);
-    zdroj.prijmy.zmen('ZK-26-0001', 'brzdy', ZmenaPolozky.splneno(true));
-    await tester.tap(find.text('Vozidlo'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(VozidloScreen),
-        matching: find.byType(TextField),
-      ),
-      '2bk 94',
-    );
-    await tester.pumpAndSettle(const Duration(milliseconds: 300));
-
-    expect(find.textContaining('Příjem rozpracovaný'), findsOneWidget);
-    expect(find.text('Pokračovat v příjmu'), findsOneWidget);
-    expect(find.text('ZADÁNO RUČNĚ'), findsOneWidget);
-  });
-
-  testWidgets('Není to ono vymaže hledání a znovu otevře skener', (
-    tester,
-  ) async {
-    await spust(tester);
-    await tester.tap(find.text('Vozidlo'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(VozidloScreen),
-        matching: find.byType(TextField),
-      ),
-      '2bk 94',
-    );
-    await tester.pumpAndSettle(const Duration(milliseconds: 300));
-
-    await tester.ensureVisible(find.byKey(const Key('neni-to-ono')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('neni-to-ono')));
-    // Ne pumpAndSettle - kamera se v testu nespustí a kolečko by se točilo.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-
-    expect(find.byType(SkenerScreen), findsOneWidget);
-    final kontejner = ProviderScope.containerOf(
-      tester.element(find.byType(SkenerScreen)),
-    );
-    expect(kontejner.read(dotazVozidlaProvider), isEmpty);
-  });
-
-  test('počet nalezených zakázek česky', () {
-    expect(pocetOtevrenychZakazek(2), 'Nalezeny 2 otevřené zakázky');
-    expect(pocetOtevrenychZakazek(5), 'Nalezeno 5 otevřených zakázek');
   });
 }

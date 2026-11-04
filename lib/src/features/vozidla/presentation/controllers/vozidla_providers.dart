@@ -20,11 +20,11 @@ final vozidlaDataSourceProvider = Provider<VozidlaDataSource>((ref) {
 /// a z dvou znaků SPZ by se stejně vrátilo cokoli.
 const nejkratsiDotazVozidla = 3;
 
-/// Co se hledá. Drží se mimo obrazovku, ať ho může vyplnit skener
-/// a ať přepnutí záložky nezahodí rozepsanou SPZ.
-final dotazVozidlaProvider = StateProvider<String>((ref) => '');
+/// SPZ tak, jak se porovnává: velká písmena, bez mezer a pomlček.
+String kodSpz(String spz) => spz.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
 
-/// Dotaz přišel ze skeneru: jediný výsledek se má rovnou otevřít.
+/// Hledání vyplnil skener: vůz bez otevřené zakázky a jediný v evidenci se
+/// má rovnou otevřít.
 ///
 /// U psaní rukou schválně ne - při psaní `2BK` by karta vyskočila dřív,
 /// než člověk dopíše, a zase by se musel vracet.
@@ -33,7 +33,7 @@ final otevritJedineVozidloProvider = StateProvider<bool>((ref) => false);
 final hledaniVozidelProvider = FutureProvider.autoDispose
     .family<List<NalezeneVozidlo>, String>((ref, dotaz) async {
       final ocisteny = dotaz.trim();
-      if (ocisteny.length < nejkratsiDotazVozidla) return const [];
+      if (kodSpz(ocisteny).length < nejkratsiDotazVozidla) return const [];
       try {
         return await ref
             .watch(vozidlaDataSourceProvider)

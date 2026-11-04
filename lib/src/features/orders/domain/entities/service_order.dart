@@ -46,6 +46,8 @@ class ServiceOrder {
     this.zavady = const [],
     this.technickeKampane = const [],
     this.prvniRegistrace,
+    this.vozidloId,
+    this.jeAktivni = true,
     this.kampanePodleStari = const [],
     this.barvaVozu,
     this.planKlempirny,
@@ -148,6 +150,13 @@ class ServiceOrder {
   /// Technické kampaně BMW (svolávací akce), které se vozu týkají -
   /// dohledá je server podle VINu.
   final List<KampanVozidla> technickeKampane;
+
+  /// Vůz v evidenci - podle něj se otevírá karta vozu. `null` = zakázka
+  /// vůz v evidenci nemá, nebo ho starší služba neposílá.
+  final int? vozidloId;
+
+  /// `false` = zakázka je ukončená (archiv).
+  final bool jeAktivni;
 
   /// První registrace vozu (`prodej_datum` z Heliosu). `null` = Helios
   /// ji nemá.
@@ -277,6 +286,8 @@ class ServiceOrder {
       zavady: zavady,
       technickeKampane: technickeKampane,
       prvniRegistrace: prvniRegistrace,
+      vozidloId: vozidloId,
+      jeAktivni: jeAktivni,
       kampanePodleStari: kampanePodleStari,
       barvaVozu: barvaVozu,
       planKlempirny: planKlempirny,

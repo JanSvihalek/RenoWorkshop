@@ -28,12 +28,16 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
     required this.onScanCode,
     required this.onFotodokumentace,
     required this.onPrijem,
+    this.onOpenVozidlo,
     this.onSkenujObalku,
   });
 
   final VoidCallback onScanCode;
   final ValueChanged<String> onFotodokumentace;
   final ValueChanged<String> onPrijem;
+
+  /// Karta vozu - číslo vozu a jestli se našel skenerem.
+  final void Function(int id, bool naskenovano)? onOpenVozidlo;
   final SkenujObalku? onSkenujObalku;
 
   @override
@@ -74,6 +78,7 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
               onScanCode: onScanCode,
               onOpenAkce: () => otevri(DruhPanelu.akce),
               onOpenKampane: () => otevri(DruhPanelu.kampane),
+              onOpenVozidlo: onOpenVozidlo,
             ),
           ),
           Container(width: 1, color: palette.hairline),
@@ -101,6 +106,9 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                       onFotodokumentace: onFotodokumentace,
                       onSkenujObalku: onSkenujObalku,
                       onPrijem: onPrijem,
+                      onOpenVozidlo: onOpenVozidlo == null
+                          ? null
+                          : (id) => onOpenVozidlo!(id, false),
                     ),
                   ),
           ),

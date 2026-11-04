@@ -19,6 +19,8 @@ import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
 import '../../../plan/presentation/plan_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../prijem/domain/entities/prijem.dart';
+import '../../../prijem/presentation/controllers/prijem_providers.dart';
 import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
@@ -43,6 +45,7 @@ class OrderDetailScreen extends ConsumerWidget {
     this.zobrazitZpet = true,
     this.onFotodokumentace,
     this.onPrijem,
+    this.onOpenVozidlo,
     this.onSkenujObalku,
   });
 
@@ -57,6 +60,9 @@ class OrderDetailScreen extends ConsumerWidget {
 
   /// Otevření příjmu vozidla. Bez něj se karta příjmu nezobrazí.
   final ValueChanged<String>? onPrijem;
+
+  /// Otevře kartu vozu podle jeho čísla.
+  final ValueChanged<int>? onOpenVozidlo;
 
   /// V rozděleném zobrazení na tabletu není kam se vracet - detail je
   /// vedle seznamu, ne nad ním.
@@ -95,6 +101,7 @@ class OrderDetailScreen extends ConsumerWidget {
             zobrazitZpet: zobrazitZpet,
             onFotodokumentace: onFotodokumentace,
             onPrijem: onPrijem,
+            onOpenVozidlo: onOpenVozidlo,
             onSkenujObalku: onSkenujObalku,
           );
         },
@@ -110,6 +117,7 @@ class _DetailBody extends ConsumerWidget {
     required this.zobrazitZpet,
     required this.onFotodokumentace,
     required this.onPrijem,
+    required this.onOpenVozidlo,
     required this.onSkenujObalku,
   });
 
@@ -118,6 +126,9 @@ class _DetailBody extends ConsumerWidget {
   final bool zobrazitZpet;
   final ValueChanged<String>? onFotodokumentace;
   final ValueChanged<String>? onPrijem;
+
+  /// Otevře kartu vozu podle jeho čísla.
+  final ValueChanged<int>? onOpenVozidlo;
   final SkenujObalku? onSkenujObalku;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) =>
@@ -325,8 +336,22 @@ class _DetailBody extends ConsumerWidget {
     // Uloženky pneu vozu z Heliosu, jen ke čtení.
     final ulozenky = UlozenkyZakazkyKarta(orderId: order.id);
 
+    // Kdo příjem dělá, nemá chodit přes sekci: dokud nezačal, je tlačítko
+    // v hlavičce. U ukončené zakázky se už nezačíná.
+    final prijemNezacal =
+        ref.watch(prijemZakazkyProvider(order.id)).valueOrNull?.stav ==
+        StavPrijmu.nezahajen;
+
     final hlavicka = _DetailHeader(
       order: order,
+      onZahajitPrijem:
+          onPrijem != null && smi && order.jeAktivni && prijemNezacal
+          ? () => onPrijem!(order.id)
+          : null,
+      onKartaVozu: switch ((onOpenVozidlo, order.vozidloId)) {
+        (final otevri?, final id?) => () => otevri(id),
+        _ => null,
+      },
       onBack: onBack,
       zobrazitZpet: zobrazitZpet,
       jenCteni: !smi,
@@ -524,6 +549,8 @@ class _DetailHeader extends ConsumerWidget {
     required this.order,
     required this.onBack,
     required this.zobrazitZpet,
+    required this.onZahajitPrijem,
+    required this.onKartaVozu,
     required this.onZpracovatel,
     required this.onNastavitStav,
     required this.onPrevzit,
@@ -535,6 +562,12 @@ class _DetailHeader extends ConsumerWidget {
   final ServiceOrder order;
   final VoidCallback onBack;
   final bool zobrazitZpet;
+
+  /// Zahájit příjem - jen dokud nezačal. `null` tlačítko schová.
+  final VoidCallback? onZahajitPrijem;
+
+  /// Otevře kartu vozu. `null` = vůz bez evidence, odkaz se neukáže.
+  final VoidCallback? onKartaVozu;
 
   /// Klepnutí na řádek zpracovatele - otevře jeho výběr.
   final VoidCallback? onZpracovatel;
@@ -695,17 +728,23 @@ class _DetailHeader extends ConsumerWidget {
         : _TlacitkoHlavicky(
             key: const Key('prevzit-hlavicka'),
             text: 'Převzít zakázku',
-            zvyraznene: true,
+            // Hlavní akce je vždy jen jedna.
+            zvyraznene: onZahajitPrijem == null,
             onTap: onPrevzit!,
           );
-    final akce = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ?nastavit,
-        if (nastavit != null && prevzit != null)
-          const SizedBox(width: Insets.sm),
-        ?prevzit,
-      ],
+    final zahajit = onZahajitPrijem == null
+        ? null
+        : _TlacitkoHlavicky(
+            key: const Key('zahajit-prijem-hlavicka'),
+            text: 'Zahájit příjem',
+            zvyraznene: true,
+            onTap: onZahajitPrijem!,
+          );
+    final akce = Wrap(
+      alignment: WrapAlignment.end,
+      spacing: Insets.sm,
+      runSpacing: Insets.sm,
+      children: [?nastavit, ?prevzit, ?zahajit],
     );
 
     return Container(
@@ -745,15 +784,19 @@ class _DetailHeader extends ConsumerWidget {
                     ),
                     const SizedBox(height: Insets.md),
                     if (sirka >= _sirkaCtyriSloupce)
-                      Row(
-                        children: [
-                          Expanded(child: stavy),
-                          const SizedBox(width: Insets.base),
-                          akce,
-                        ],
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: Insets.base,
+                        runSpacing: Insets.sm,
+                        children: [stavy, akce],
                       )
                     else ...[
                       stavy,
+                      if (zahajit != null) ...[
+                        const SizedBox(height: Insets.md),
+                        zahajit,
+                      ],
                       if (nastavit != null || prevzit != null) ...[
                         const SizedBox(height: Insets.md),
                         // Mobil: přes celou šířku, Převzít větší.
@@ -786,6 +829,7 @@ class _DetailHeader extends ConsumerWidget {
               _PruhUdaju(
                 order: order,
                 sirka: sirka,
+                onKartaVozu: onKartaVozu,
                 sloupcu: sirka >= _sirkaJednaRada
                     ? 8
                     : sirka >= _sirkaCtyriSloupce
@@ -864,6 +908,7 @@ class _PruhUdaju extends ConsumerWidget {
   const _PruhUdaju({
     required this.order,
     required this.sirka,
+    required this.onKartaVozu,
     required this.sloupcu,
     required this.onZpracovatel,
     required this.onZadatMisto,
@@ -875,6 +920,9 @@ class _PruhUdaju extends ConsumerWidget {
 
   /// Šířka pruhu.
   final double sirka;
+
+  /// Otevře kartu vozu - majitel a všechny zakázky.
+  final VoidCallback? onKartaVozu;
   final int sloupcu;
   final VoidCallback? onZpracovatel;
   final VoidCallback? onZadatMisto;
@@ -1034,10 +1082,17 @@ class _PruhUdaju extends ConsumerWidget {
                 },
               ),
       ),
-      bunka('ZÁKAZNÍK', [
-        text(order.customerName),
-        Text('Vlastník vozidla', style: pod),
-      ]),
+      bunka(
+        'ZÁKAZNÍK',
+        [text(order.customerName), Text('Vlastník vozidla', style: pod)],
+        akce: onKartaVozu == null
+            ? null
+            : odkaz(
+                'Karta vozu',
+                key: const Key('karta-vozu'),
+                onTap: onKartaVozu,
+              ),
+      ),
       bunka(ServiceOrder.rolePopisek.toUpperCase(), [
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),

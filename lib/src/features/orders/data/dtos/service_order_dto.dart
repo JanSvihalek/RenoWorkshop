@@ -48,6 +48,8 @@ class ServiceOrderDto {
     this.defects = const [],
     this.technicalCampaigns = const [],
     this.firstRegisteredAt,
+    this.vehicleId,
+    this.isActive = true,
     this.ageCampaigns = const [],
     this.vehicleColor,
     this.bodyshopPlan,
@@ -128,6 +130,12 @@ class ServiceOrderDto {
   /// Technické kampaně k VINu. Starší API je neposílá - pak prázdné.
   final List<KampanVozidla> technicalCampaigns;
 
+  /// Vůz v evidenci. Starší API ho neposílá.
+  final int? vehicleId;
+
+  /// `false` = ukončená zakázka. Starší API neposílá - pak aktivní.
+  final bool isActive;
+
   /// `YYYY-MM-DD` první registrace vozu, `null` = neznámá.
   final String? firstRegisteredAt;
 
@@ -190,6 +198,8 @@ class ServiceOrderDto {
               )
               .toList(),
       firstRegisteredAt: json['firstRegisteredAt'] as String?,
+      vehicleId: (json['vehicleId'] as num?)?.toInt(),
+      isActive: json['isActive'] as bool? ?? true,
       ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
           .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -231,6 +241,8 @@ class ServiceOrderDto {
     'defects': defects.map((zavada) => zavada.toJson()).toList(),
     'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
     'firstRegisteredAt': firstRegisteredAt,
+    'vehicleId': vehicleId,
+    'isActive': isActive,
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
     'vehicleColor': vehicleColor,
     'bodyshopPlan': bodyshopPlan,
@@ -280,6 +292,8 @@ class ServiceOrderDto {
     prvniRegistrace: firstRegisteredAt == null
         ? null
         : DateTime.tryParse(firstRegisteredAt!),
+    vozidloId: vehicleId,
+    jeAktivni: isActive,
     kampanePodleStari: ageCampaigns,
     barvaVozu: BarvaVozu.zJson(vehicleColor),
     planKlempirny: bodyshopPlan == null
@@ -311,6 +325,7 @@ class ServiceOrderDto {
     bool vymazatObalku = false,
     List<KampanVozidla>? technicalCampaigns,
     String? firstRegisteredAt,
+    int? vehicleId,
     List<KampanVozidla>? ageCampaigns,
     Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
@@ -357,6 +372,8 @@ class ServiceOrderDto {
       defects: defects,
       technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
       firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
+      vehicleId: vehicleId ?? this.vehicleId,
+      isActive: isActive,
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),

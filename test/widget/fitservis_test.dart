@@ -53,7 +53,7 @@ void main() {
       ProviderScope(
         overrides: [
           nastaveniUlozisteProvider.overrideWithValue(
-            PametoveNastaveni(const Nastaveni(skenovatPoOtevreni: false)),
+            PametoveNastaveni(const Nastaveni()),
           ),
           authRepositoryProvider.overrideWithValue(
             PlaceholderAuthRepository(

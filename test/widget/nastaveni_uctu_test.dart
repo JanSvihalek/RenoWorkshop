@@ -86,10 +86,10 @@ void main() {
     test('posílají se jen změněné klíče', () {
       expect(
         zmenyNastaveni(
-          {'startTab': 'zakazky', 'photoFolder': 'BSL'},
-          {'startTab': 'vozidlo', 'photoFolder': 'BSL'},
+          {'planner': 1, 'photoFolder': 'BSL'},
+          {'planner': 2, 'photoFolder': 'BSL'},
         ),
-        {'startTab': 'vozidlo'},
+        {'planner': 2},
       );
     });
   });
@@ -106,12 +106,7 @@ void main() {
         ProviderScope(
           overrides: [
             nastaveniUlozisteProvider.overrideWithValue(
-              PametoveNastaveni(
-                const Nastaveni(
-                  skenovatPoOtevreni: false,
-                  vychoziUtvar: '11211',
-                ),
-              ),
+              PametoveNastaveni(const Nastaveni(vychoziUtvar: '11211')),
             ),
             authRepositoryProvider.overrideWithValue(
               PlaceholderAuthRepository(
@@ -144,7 +139,6 @@ void main() {
           'filter': {'paintCode': '475'},
         },
         'photoFolder': 'BSL',
-        'startTab': 'zakazky',
       };
       await spust(tester);
 
@@ -173,7 +167,6 @@ void main() {
       await spust(tester);
       expect(zdroj.zmenyNastaveniUctu, hasLength(1));
       expect(zdroj.nastaveniUctu['ordersFilter'], {'department': '11211'});
-      expect(zdroj.nastaveniUctu['startTab'], 'zakazky');
     });
   });
 }

@@ -11,22 +11,18 @@ class OrderSearchField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onChanged,
-    this.focusNode,
     this.onScan,
     this.hintText = 'SPZ, zákazník, číslo zakázky',
     this.naTmavem = true,
   });
 
   final TextEditingController controller;
-
-  /// Kvůli „Zadat ručně" ve skeneru - pole si po jeho zavření vezme fokus.
-  final FocusNode? focusNode;
   final ValueChanged<String> onChanged;
 
   /// Načtení VINu nebo SPZ fotoaparátem. Když chybí, ikona se nezobrazí.
   final VoidCallback? onScan;
 
-  /// Co pole hledá - seznam zakázek hledá širší, vozidla jen SPZ a VIN.
+  /// Co pole hledá.
   final String hintText;
 
   /// Pole leží na tmavomodré hlavičce (telefon), nebo na šedém podkladu
@@ -56,7 +52,6 @@ class OrderSearchField extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: TextField(
-              focusNode: focusNode,
               controller: controller,
               onChanged: onChanged,
               textInputAction: TextInputAction.search,
