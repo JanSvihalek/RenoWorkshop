@@ -50,6 +50,7 @@ class ServiceOrderDto {
     this.firstRegisteredAt,
     this.vehicleId,
     this.isActive = true,
+    this.handoverContact,
     this.ageCampaigns = const [],
     this.vehicleColor,
     this.bodyshopPlan,
@@ -136,6 +137,9 @@ class ServiceOrderDto {
   /// `false` = ukončená zakázka. Starší API neposílá - pak aktivní.
   final bool isActive;
 
+  /// Kdo vůz přebírá. Starší API neposílá.
+  final Map<String, dynamic>? handoverContact;
+
   /// `YYYY-MM-DD` první registrace vozu, `null` = neznámá.
   final String? firstRegisteredAt;
 
@@ -200,6 +204,7 @@ class ServiceOrderDto {
       firstRegisteredAt: json['firstRegisteredAt'] as String?,
       vehicleId: (json['vehicleId'] as num?)?.toInt(),
       isActive: json['isActive'] as bool? ?? true,
+      handoverContact: json['handoverContact'] as Map<String, dynamic>?,
       ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
           .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -243,6 +248,7 @@ class ServiceOrderDto {
     'firstRegisteredAt': firstRegisteredAt,
     'vehicleId': vehicleId,
     'isActive': isActive,
+    'handoverContact': handoverContact,
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
     'vehicleColor': vehicleColor,
     'bodyshopPlan': bodyshopPlan,
@@ -294,6 +300,9 @@ class ServiceOrderDto {
         : DateTime.tryParse(firstRegisteredAt!),
     vozidloId: vehicleId,
     jeAktivni: isActive,
+    prebirajici: handoverContact == null
+        ? null
+        : Prebirajici.zJson(handoverContact!),
     kampanePodleStari: ageCampaigns,
     barvaVozu: BarvaVozu.zJson(vehicleColor),
     planKlempirny: bodyshopPlan == null
@@ -326,6 +335,7 @@ class ServiceOrderDto {
     List<KampanVozidla>? technicalCampaigns,
     String? firstRegisteredAt,
     int? vehicleId,
+    Map<String, dynamic>? handoverContact,
     List<KampanVozidla>? ageCampaigns,
     Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
@@ -374,6 +384,7 @@ class ServiceOrderDto {
       firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
       vehicleId: vehicleId ?? this.vehicleId,
       isActive: isActive,
+      handoverContact: handoverContact ?? this.handoverContact,
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),

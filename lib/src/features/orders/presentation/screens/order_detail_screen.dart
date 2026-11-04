@@ -19,6 +19,7 @@ import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
 import '../../../plan/presentation/plan_karta.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../../core/utils/kontakt_odkazy.dart';
 import '../../../prijem/domain/entities/prijem.dart';
 import '../../../prijem/presentation/controllers/prijem_providers.dart';
 import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
@@ -836,9 +837,113 @@ class _DetailHeader extends ConsumerWidget {
                 onPriraditObalku: onPriraditObalku,
                 onUvolnitObalku: onUvolnitObalku,
               ),
+              if (order.prebirajici case final kontakt?)
+                _RadekPrebirajiciho(kontakt: kontakt),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Kdo vůz přebírá - klepnutím se rovnou volá nebo píše e-mail.
+class _RadekPrebirajiciho extends ConsumerWidget {
+  const _RadekPrebirajiciho({required this.kontakt});
+
+  final Prebirajici kontakt;
+
+  Future<void> _otevri(
+    BuildContext context,
+    WidgetRef ref,
+    Uri odkaz,
+    String hodnota,
+  ) async {
+    final zpravy = ScaffoldMessenger.of(context);
+    var povedlo = false;
+    try {
+      povedlo = await ref.read(otevritOdkazProvider)(odkaz);
+    } catch (_) {
+      // Bez aplikace na telefon nebo poštu - hláška níž.
+    }
+    if (povedlo) return;
+    zpravy
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Na tomhle zařízení to nejde otevřít: $hodnota'),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final telefon = odkazTelefon(kontakt.telefon);
+    final email = odkazEmail(kontakt.email);
+
+    Widget odkaz(Key key, IconData ikona, String text, Uri cil) =>
+        OutlinedButton.icon(
+          key: key,
+          onPressed: () => _otevri(context, ref, cil, text),
+          icon: Icon(ikona, size: 18),
+          label: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 36),
+            padding: const EdgeInsets.symmetric(horizontal: Insets.md),
+            foregroundColor: palette.naHlavicce,
+            side: BorderSide(color: palette.hlavickaOkraj),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            textStyle: AppTextStyles.chip,
+          ),
+        );
+
+    return Container(
+      key: const Key('prebirajici'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.base,
+        vertical: Insets.xs,
+      ),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: palette.hlavickaOkraj)),
+      ),
+      child: Wrap(
+        spacing: Insets.md,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'PŘEBÍRAJÍCÍ',
+            style: AppTextStyles.overline.copyWith(
+              fontSize: 10.5,
+              color: palette.naHlavicceTlumene,
+            ),
+          ),
+          if (kontakt.jmeno.isNotEmpty)
+            Text(
+              kontakt.jmeno,
+              style: AppTextStyles.cardBody.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: palette.naHlavicce,
+              ),
+            ),
+          if (telefon != null)
+            odkaz(
+              const Key('prebirajici-telefon'),
+              Icons.call_outlined,
+              kontakt.telefon!,
+              telefon,
+            ),
+          if (email != null)
+            odkaz(
+              const Key('prebirajici-email'),
+              Icons.mail_outline,
+              kontakt.email!,
+              email,
+            ),
+        ],
       ),
     );
   }

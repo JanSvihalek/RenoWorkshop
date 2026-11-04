@@ -14,6 +14,21 @@ import 'zpracovatel.dart';
 ///
 /// Čistý Dart bez závislosti na Flutteru ani na formátu API. Mapování z/na
 /// JSON řeší `ServiceOrderDto` v datové vrstvě.
+/// Kdo vůz přebírá - kontaktní osoba z Heliosu (`hlv.prebirajici`).
+class Prebirajici {
+  const Prebirajici({required this.jmeno, this.telefon, this.email});
+
+  factory Prebirajici.zJson(Map<String, dynamic> json) => Prebirajici(
+    jmeno: json['name'] as String? ?? '',
+    telefon: json['phone'] as String?,
+    email: json['email'] as String?,
+  );
+
+  final String jmeno;
+  final String? telefon;
+  final String? email;
+}
+
 class ServiceOrder {
   const ServiceOrder({
     required this.id,
@@ -48,6 +63,7 @@ class ServiceOrder {
     this.prvniRegistrace,
     this.vozidloId,
     this.jeAktivni = true,
+    this.prebirajici,
     this.kampanePodleStari = const [],
     this.barvaVozu,
     this.planKlempirny,
@@ -157,6 +173,9 @@ class ServiceOrder {
 
   /// `false` = zakázka je ukončená (archiv).
   final bool jeAktivni;
+
+  /// Kdo vůz přebírá - kontakt pro zavolání nebo e-mail.
+  final Prebirajici? prebirajici;
 
   /// První registrace vozu (`prodej_datum` z Heliosu). `null` = Helios
   /// ji nemá.
@@ -288,6 +307,7 @@ class ServiceOrder {
       prvniRegistrace: prvniRegistrace,
       vozidloId: vozidloId,
       jeAktivni: jeAktivni,
+      prebirajici: prebirajici,
       kampanePodleStari: kampanePodleStari,
       barvaVozu: barvaVozu,
       planKlempirny: planKlempirny,

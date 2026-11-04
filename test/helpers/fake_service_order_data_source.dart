@@ -946,11 +946,13 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? vehicleColor,
   int? vehicleId,
   bool isActive = true,
+  Map<String, dynamic>? handoverContact,
 }) {
   return ServiceOrderDto(
     id: id,
     vehicleId: vehicleId,
     isActive: isActive,
+    handoverContact: handoverContact,
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,

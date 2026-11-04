@@ -512,6 +512,15 @@ class MockServiceOrderDataSource
       orders[i] = orders[i].copyWith(
         firstRegisteredAt: _registrace(i),
         vehicleId: spzVozu.indexOf(orders[i].licensePlate) + 1,
+        // Ukázkový kontakt - jen u každé druhé, jako v Heliosu.
+        handoverContact: i.isEven
+            ? {
+                'id': i + 1,
+                'name': orders[i].customerName,
+                'phone': '+420 600 000 ${(100 + i) % 1000}',
+                'email': 'kontakt$i@example.cz',
+              }
+            : null,
         vehicleColor: _barvy[i % _barvy.length],
         ageCampaigns: [
           for (final k in _kampaneStari)
