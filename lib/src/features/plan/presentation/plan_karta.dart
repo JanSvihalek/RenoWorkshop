@@ -7,7 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/dimens.dart';
 import '../../../core/utils/date_formats.dart';
-import '../../akce/presentation/kampane_panel.dart' show barvaKampani;
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
@@ -23,6 +22,16 @@ String obdobiPlanu(DateTime od, DateTime do_) {
       ? AppDateFormat.dayMonth(od)
       : AppDateFormat.date(od);
   return '$zacatek – ${AppDateFormat.date(do_)}';
+}
+
+/// „3. 11." jeden den, „4.–5. 11." v měsíci, jinak „30. 10. – 2. 11.".
+String kratkeObdobiPlanu(DateTime od, DateTime do_) {
+  if (od.year == do_.year && od.month == do_.month) {
+    return od.day == do_.day
+        ? AppDateFormat.dayMonth(od)
+        : '${od.day}.–${AppDateFormat.dayMonth(do_)}';
+  }
+  return '${AppDateFormat.dayMonth(od)} – ${AppDateFormat.dayMonth(do_)}';
 }
 
 /// „1 den", „3 dny", „5 dní".
@@ -129,7 +138,8 @@ class PlanVPrubehu extends ConsumerWidget {
             ),
           ],
         ] else
-          for (final ukon in plan.ukony) ...[
+          for (final (i, ukon) in plan.ukony.indexed) ...[
+            if (i > 0) Divider(height: 1, color: palette.hairline),
             _Ukon(
               ukon: ukon,
               stav: stavUkonu(ukon, aktualni),
@@ -138,7 +148,6 @@ class PlanVPrubehu extends ConsumerWidget {
                   ? () => pridatStavZakazce(context, ref, order, ukon: ukon.typ)
                   : null,
             ),
-            const SizedBox(height: Insets.sm),
           ],
         if (ref.watch(vidiPlanovacProvider))
           Align(
@@ -155,8 +164,8 @@ class PlanVPrubehu extends ConsumerWidget {
   }
 }
 
-/// Jeden úkon v průběhu: proužek v barvě typu, dny, poznámka, a vpravo stav
-/// nebo Zahájit.
+/// Jeden úkon v průběhu: ikona stavu, název, dny, poznámka a vpravo stav
+/// nebo Zahájit. Neutrálně - barvy úkonů patří na osu plánovače.
 class _Ukon extends StatelessWidget {
   const _Ukon({
     required this.ukon,
@@ -175,21 +184,22 @@ class _Ukon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final barva = barvaUkonu(ukon.typ);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        Insets.md,
-        Insets.sm,
-        Insets.sm,
-        Insets.sm,
-      ),
-      decoration: BoxDecoration(
-        color: barva.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border(left: BorderSide(color: barva, width: 4)),
-      ),
+    final probiha = stav == StavUkonu.probiha;
+    final popisek = AppTextStyles.metaSmall.copyWith(color: palette.muted);
+    final radek = Padding(
+      padding: const EdgeInsets.symmetric(vertical: Insets.sm),
       child: Row(
         children: [
+          Icon(
+            switch (stav) {
+              StavUkonu.hotovo => Icons.check_rounded,
+              StavUkonu.probiha => Icons.play_arrow_rounded,
+              StavUkonu.ceka => Icons.radio_button_unchecked,
+            },
+            size: 20,
+            color: probiha ? palette.text : palette.muted,
+          ),
+          const SizedBox(width: Insets.md),
           Expanded(
             child: InkWell(
               key: Key('plan-ukon-${ukon.id}'),
@@ -197,37 +207,30 @@ class _Ukon extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    ukon.typ.nazev,
-                    style: AppTextStyles.cardBody.copyWith(
-                      color: palette.text,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${obdobiPlanu(ukon.od, ukon.do_)} · ${pocetDni(ukon.dni)}',
-                    style: AppTextStyles.metaSmall.copyWith(
-                      color: palette.text,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: ukon.typ.nazev,
+                          style: AppTextStyles.cardBody.copyWith(
+                            color: stav == StavUkonu.hotovo
+                                ? palette.muted2
+                                : palette.text,
+                            fontWeight: probiha
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '  ${kratkeObdobiPlanu(ukon.od, ukon.do_)}',
+                          style: popisek,
+                        ),
+                      ],
                     ),
                   ),
                   if (ukon.poznamka.trim().isNotEmpty) ...[
-                    const SizedBox(height: Insets.xs),
-                    Text(
-                      ukon.poznamka,
-                      style: AppTextStyles.noteText.copyWith(
-                        color: palette.text,
-                      ),
-                    ),
-                  ],
-                  if (ukon.zaplanoval != null) ...[
-                    const SizedBox(height: Insets.xs),
-                    Text(
-                      'Zaplánoval ${ukon.zaplanoval}',
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
+                    const SizedBox(height: 2),
+                    Text(ukon.poznamka, style: popisek),
                   ],
                 ],
               ),
@@ -235,11 +238,17 @@ class _Ukon extends StatelessWidget {
           ),
           const SizedBox(width: Insets.sm),
           switch (stav) {
-            StavUkonu.hotovo => const StavPlanuZnacka(hotovo: true),
-            StavUkonu.probiha => const _Probiha(),
+            StavUkonu.hotovo => Text('Hotovo', style: popisek),
+            StavUkonu.probiha => Text(
+              'Probíhá',
+              style: popisek.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             StavUkonu.ceka =>
               onZahajit == null
-                  ? const StavPlanuZnacka(hotovo: false)
+                  ? Text('Naplánováno', style: popisek)
                   : OutlinedButton(
                       key: Key('plan-zahajit-${ukon.id}'),
                       onPressed: onZahajit,
@@ -249,72 +258,9 @@ class _Ukon extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Úkon, který odpovídá aktuálnímu dílenskému stavu.
-class _Probiha extends StatelessWidget {
-  const _Probiha();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Insets.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: AppColors.accent,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: Insets.xs),
-          Text(
-            'PROBÍHÁ',
-            style: AppTextStyles.overline.copyWith(
-              fontSize: 10,
-              color: AppColors.accent,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Naplánováno / Hotovo.
-class StavPlanuZnacka extends StatelessWidget {
-  const StavPlanuZnacka({super.key, required this.hotovo});
-
-  final bool hotovo;
-
-  @override
-  Widget build(BuildContext context) {
-    final barva = hotovo ? AppColors.readyGreen : barvaKampani(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Insets.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: barva.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: barva.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        hotovo ? 'HOTOVO' : 'NAPLÁNOVÁNO',
-        style: AppTextStyles.overline.copyWith(
-          fontSize: 10,
-          color: barva,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
+    return ukon.zaplanoval == null
+        ? radek
+        : Tooltip(message: 'Zaplánoval ${ukon.zaplanoval}', child: radek);
   }
 }
 

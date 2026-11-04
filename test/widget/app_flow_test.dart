@@ -281,8 +281,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Dva nezávislé pohledy na tutéž zakázku: ERP a dílna.
-    expect(find.text('Zpracováváno'), findsOneWidget);
-    expect(find.text('Klempířské práce'), findsWidgets);
+    expect(find.text('Helios: Zpracováváno'), findsOneWidget);
+    expect(find.text('Dílna: Klempířské práce'), findsOneWidget);
   });
 
   testWidgets('archiv se hledá sám, jakmile je co hledat', (tester) async {

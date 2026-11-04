@@ -27,3 +27,20 @@ String registraceSeStarim(
       ? datum(registrace)
       : '${datum(registrace)} · ${pocetMesicu(stari)}';
 }
+
+/// „dnes", „včera", „před 3 dny", „před měsícem", „před 2 lety".
+String predKolika(DateTime datum, DateTime dnes) {
+  final dny = DateTime(
+    dnes.year,
+    dnes.month,
+    dnes.day,
+  ).difference(DateTime(datum.year, datum.month, datum.day)).inDays;
+  if (dny < 0) return '';
+  if (dny == 0) return 'dnes';
+  if (dny == 1) return 'včera';
+  if (dny < 30) return 'před $dny dny';
+  final mesice = stariVMesicich(datum, dnes);
+  if (mesice < 12) return mesice <= 1 ? 'před měsícem' : 'před $mesice měsíci';
+  final roky = (mesice / 12).round();
+  return roky == 1 ? 'před rokem' : 'před $roky lety';
+}

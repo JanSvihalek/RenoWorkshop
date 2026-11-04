@@ -60,7 +60,7 @@ void main() {
     // Dřív detail hledal jen mezi zakázkami na dílně a ukončená skončila
     // hláškou "nebyla nalezena" - přitom kvůli ní archiv vůbec existuje.
     expect(find.textContaining('nebyla nalezena'), findsNothing);
-    expect(find.text('Ukončeno'), findsWidgets);
+    expect(find.text('Helios: Ukončeno'), findsWidgets);
   });
 
   testWidgets('stav přidaný ukončené zakázce se v detailu hned ukáže', (

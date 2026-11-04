@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
+import 'package:renoworkshop/src/core/utils/stari_vozu.dart';
 import 'package:renoworkshop/src/features/akce/presentation/akce_providers.dart';
 import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.dart';
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
@@ -283,6 +284,18 @@ void main() {
       );
     });
 
+    test('kolik času uplynulo od příjmu', () {
+      final dnes = DateTime(2026, 11, 4, 12);
+      expect(predKolika(DateTime(2026, 11, 4, 8), dnes), 'dnes');
+      expect(predKolika(DateTime(2026, 11, 3, 23), dnes), 'včera');
+      expect(predKolika(DateTime(2026, 11, 1), dnes), 'před 3 dny');
+      expect(predKolika(DateTime(2026, 9, 20), dnes), 'před měsícem');
+      expect(predKolika(DateTime(2026, 6, 1), dnes), 'před 5 měsíci');
+      expect(predKolika(DateTime(2025, 10, 1), dnes), 'před rokem');
+      expect(predKolika(DateTime(2024, 11, 11), dnes), 'před 2 lety');
+      expect(predKolika(DateTime(2026, 11, 5), dnes), '');
+    });
+
     test('souhrn plánu přes úkony a mezera mezi nimi', () {
       final p = PlanKlempirny.zUkonu([
         UkonPlanu.fromJson(ukon(2, '2026-10-26', '2026-10-27', stav: 'hotovo')),
@@ -360,7 +373,8 @@ void main() {
     expect(ulozeny['to'], '2026-10-16');
     expect(ulozeny['paintCode'], 'C4P');
     expect(ulozeny['status'], 'naplanovano');
-    expect(find.text('14. 10. – 16. 10. 2026 · 3 dny'), findsOneWidget);
+    expect(find.text('LAKOVNA  14.–16. 10.', findRichText: true), findsNothing);
+    expect(find.text('14. 10. – 16. 10. 2026'), findsOneWidget);
     // Zaplánování stav nezapíše - úkon čeká na Zahájit.
     expect(find.byKey(const Key('plan-zahajit-1')), findsOneWidget);
     expect(
@@ -597,14 +611,16 @@ void main() {
     expect(find.text('PRŮBĚH OPRAVY'), findsOneWidget);
     expect(find.text('POSTUP ZAKÁZKY'), findsNothing);
     expect(find.text('TEĎ'), findsOneWidget);
-    expect(find.text('PROBÍHÁ'), findsOneWidget);
-    expect(find.text('HOTOVO'), findsOneWidget);
+    expect(find.text('Probíhá'), findsOneWidget);
+    expect(find.text('Hotovo'), findsOneWidget);
     // Probíhající ani hotový se znovu zahájit nedá, čekající ano.
     expect(find.byKey(const Key('plan-zahajit-1')), findsNothing);
     expect(find.byKey(const Key('plan-zahajit-2')), findsNothing);
     final zahajit = find.byKey(const Key('plan-zahajit-3'));
     expect(zahajit, findsOneWidget);
-    // Aktuální stav je tečka, ne fajfka - neříká, že je hotovo.
+    // Aktuální stav je ikona kroku, ne fajfka - neříká, že je hotovo.
+    expect(find.byKey(const Key('stav-ikona')), findsOneWidget);
+    expect(find.byIcon(Icons.hardware), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(StatusTimeline),
@@ -632,6 +648,51 @@ void main() {
     await tester.tap(historie);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('hlavička: stavy, zařazení, Nastavit stav a Převzít zakázku', (
+    tester,
+  ) async {
+    await spust(tester, zakazky: [buildOrderDto(utvar: '11211')]);
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dílna: Klempířské práce'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('hlavicka-zarazeni'))).data,
+      contains('Středisko 11211'),
+    );
+
+    await tester.tap(find.byKey(const Key('nastavit-stav')));
+    await tester.pumpAndSettle();
+    expect(find.text('Přidat stav'), findsWidgets);
+    await tester.tap(find.text('Zrušit').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
+  });
+
+  testWidgets('hlavička: kdo zakázku zpracovává, Převzít už nevidí', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          utvar: '11211',
+          assignee: {
+            'id': 501,
+            'name': 'Dvořák Jan',
+            // Velikost písmen nehraje roli.
+            'email': 'Jan.Dvorak@renocar.cz',
+          },
+        ),
+      ],
+    );
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('nastavit-stav')), findsOneWidget);
+    expect(find.byKey(const Key('prevzit-hlavicka')), findsNothing);
   });
 
   testWidgets('zakázka mimo klempírnu má dál jen postup stavů', (tester) async {
@@ -726,11 +787,16 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    expect(find.text('DEMONTAZ'), findsOneWidget);
-    expect(find.text('LAKOVNA'), findsOneWidget);
-    expect(find.text('HOTOVO'), findsOneWidget);
+    expect(
+      find.text('DEMONTAZ  12.–13. 10.', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text('Hotovo'), findsOneWidget);
     expect(find.byKey(const Key('plan-zahajit-2')), findsOneWidget);
-    expect(find.text('14. 10. – 16. 10. 2026 · 3 dny'), findsOneWidget);
+    expect(
+      find.text('LAKOVNA  14.–16. 10.', findRichText: true),
+      findsOneWidget,
+    );
 
     // Nový úkon navazuje na konec plánu - z pátku na pondělí.
     await tester.tap(find.byKey(const Key('plan-pridat-ukon')));

@@ -7,14 +7,14 @@ import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import 'order_status_visuals.dart';
 
-/// Svislá časová osa dílenských stavů — co se na zakázce dělo.
+/// Dílenské stavy - co se na zakázce dělo.
 ///
 /// Není to sled předem daných kroků, ale **historie toho, co kdo zapsal**.
 /// U opravy po bouračce, která běží měsíce, je hlavní informace právě to,
 /// kdy se co stalo a jak dlouho se na co čekalo.
 ///
-/// Nejnovější je nahoře. Aktuální stav má plnou tečku, starší fajfku -
-/// fajfka říká „za námi", ne že je aktuální stav hotový.
+/// Nejnovější je nahoře. Aktuální stav má výraznou ikonu kroku, starší šedé
+/// řádky s malou fajfkou - barvu nese jen to, na co se dá klepnout.
 class StatusTimeline extends StatelessWidget {
   const StatusTimeline({
     super.key,
@@ -30,7 +30,7 @@ class StatusTimeline extends StatelessWidget {
   /// jen starší.
   final bool sAktualnim;
 
-  /// Stání / box, kde vozidlo právě stojí (meta u posledního kroku).
+  /// Stání / box, kde vozidlo právě stojí (meta u aktuálního stavu).
   final String bay;
 
   /// Smaže záznam. `null` schová mazání úplně.
@@ -50,129 +50,112 @@ class StatusTimeline extends StatelessWidget {
     return Column(
       children: [
         for (var index = 0; index < historie.length; index++)
-          _TimelineRow(
-            stav: historie[index],
-            // Platný je poslední zapsaný, tedy ten nahoře.
-            jeAktualni: sAktualnim && index == 0,
-            jePosledniVSeznamu: index == historie.length - 1,
-            bay: bay,
-            onSmazat: onSmazat,
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: index == historie.length - 1 ? 0 : Insets.base,
+            ),
+            child: _Radek(
+              stav: historie[index],
+              // Platný je poslední zapsaný, tedy ten nahoře.
+              jeAktualni: sAktualnim && index == 0,
+              bay: bay,
+              onSmazat: onSmazat,
+            ),
           ),
       ],
     );
   }
 }
 
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
+class _Radek extends StatelessWidget {
+  const _Radek({
     required this.stav,
     required this.jeAktualni,
-    required this.jePosledniVSeznamu,
     required this.bay,
     required this.onSmazat,
   });
 
   final DilenskyStav stav;
   final bool jeAktualni;
-  final bool jePosledniVSeznamu;
   final String bay;
   final void Function(DilenskyStav stav)? onSmazat;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final barva = jeAktualni ? stav.color : palette.muted;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: Sizes.timelineDot,
-                height: Sizes.timelineDot,
-                decoration: BoxDecoration(
-                  color: jeAktualni ? barva : Colors.transparent,
-                  border: Border.all(color: barva, width: 2),
-                  shape: BoxShape.circle,
-                ),
-                child: jeAktualni
-                    ? null
-                    : Icon(Icons.check, size: 12, color: barva),
-              ),
-              if (!jePosledniVSeznamu)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: palette.hairline2,
-                    margin: const EdgeInsets.symmetric(vertical: 2),
-                  ),
-                ),
-            ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (jeAktualni)
+          Container(
+            key: const Key('stav-ikona'),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: palette.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: palette.hairline),
+            ),
+            child: Icon(stav.ikonaKroku, size: 22, color: palette.text),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(Icons.check, size: 16, color: palette.muted),
           ),
-          const SizedBox(width: Insets.base),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: jePosledniVSeznamu ? 0 : Insets.lg,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        SizedBox(width: jeAktualni ? Insets.base : Insets.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          stav.nazev,
-                          style: AppTextStyles.cardBody.copyWith(
-                            color: palette.text,
-                            fontWeight: jeAktualni
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                      // Mazání jen u záznamů, které prošly serverem -
-                      // bez id není co smazat.
-                      if (onSmazat != null && stav.id != null)
-                        GestureDetector(
-                          onTap: () => onSmazat!(stav),
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: Insets.sm),
-                            child: Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18,
-                              color: palette.muted,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  // Co k tomu kroku patří - kde vůz stojí, na co se čeká.
-                  if (stav.poznamka != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      stav.poznamka!,
+                  Expanded(
+                    child: Text(
+                      stav.nazev,
                       style: AppTextStyles.cardBody.copyWith(
-                        color: palette.muted2,
+                        color: jeAktualni ? palette.text : palette.muted2,
+                        fontWeight: jeAktualni
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 2),
-                  Text(
-                    _popisek(),
-                    style: AppTextStyles.metaSmall.copyWith(
-                      color: palette.muted,
-                    ),
                   ),
+                  // Mazání jen u záznamů, které prošly serverem -
+                  // bez id není co smazat.
+                  if (onSmazat != null && stav.id != null)
+                    GestureDetector(
+                      onTap: () => onSmazat!(stav),
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: Insets.sm),
+                        child: Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: palette.muted,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ),
+              // Co k tomu kroku patří - kde vůz stojí, na co se čeká.
+              if (stav.poznamka != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  stav.poznamka!,
+                  style: AppTextStyles.cardBody.copyWith(color: palette.muted2),
+                ),
+              ],
+              const SizedBox(height: 2),
+              Text(
+                _popisek(),
+                style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -41,6 +41,7 @@ void main() {
   }
 
   Future<void> otevriVyber(WidgetTester tester) async {
+    await tester.ensureVisible(find.byKey(const Key('zpracovatel')));
     await tester.tap(find.byKey(const Key('zpracovatel')));
     await tester.pumpAndSettle();
   }
@@ -50,9 +51,11 @@ void main() {
   testWidgets('zakázku bez zpracovatele jde převzít', (tester) async {
     await otevri(tester);
     expect(
-      find.descendant(of: radek, matching: find.textContaining('nikdo')),
+      find.descendant(of: radek, matching: find.textContaining('Nikdo')),
       findsOneWidget,
     );
+
+    expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
 
     await otevriVyber(tester);
     await tester.tap(find.byKey(const Key('prevzit-zakazku')));
@@ -138,7 +141,7 @@ void main() {
     await tester.tap(find.byKey(const Key('uvolnit-zakazku')));
     await tester.pumpAndSettle();
     expect(
-      find.descendant(of: radek, matching: find.textContaining('nikdo')),
+      find.descendant(of: radek, matching: find.textContaining('Nikdo')),
       findsOneWidget,
     );
   });
@@ -153,7 +156,7 @@ void main() {
 
     expect(find.textContaining('host@renocar.cz'), findsOneWidget);
     expect(
-      find.descendant(of: radek, matching: find.textContaining('nikdo')),
+      find.descendant(of: radek, matching: find.textContaining('Nikdo')),
       findsOneWidget,
     );
   });

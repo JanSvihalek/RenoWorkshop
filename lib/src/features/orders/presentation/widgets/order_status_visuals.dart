@@ -37,4 +37,25 @@ extension DilenskyStavVisuals on DilenskyStav {
 
   IconData get icon =>
       kod == null ? Icons.edit_note_outlined : Icons.check_circle_outline;
+
+  /// Ikona kroku na dílně. Vlastní text má tužku; stav přidaný do číselníku
+  /// bez vlastní ikony neutrální značku - doplní se v další verzi.
+  IconData get ikonaKroku => switch (kod) {
+    null => Icons.edit_note,
+    'prijato' => Icons.directions_car,
+    'prohlidka' => Icons.photo_camera,
+    'rozpocet' => Icons.request_quote,
+    'ceka_pojistovna' => Icons.hourglass_empty,
+    'objednano' => Icons.shopping_cart,
+    'ceka_dily' => Icons.inventory_2,
+    'demontaz' => Icons.handyman,
+    'klempirna' => Icons.hardware,
+    'priprava_lak' => Icons.cleaning_services,
+    'lakovna' => Icons.format_paint,
+    'montaz' => Icons.build,
+    'kontrola' => Icons.fact_check,
+    'pripraveno' => Icons.key,
+    'vyzvednuto' => Icons.done_all,
+    _ => Icons.radio_button_checked,
+  };
 }

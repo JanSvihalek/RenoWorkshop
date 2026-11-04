@@ -76,8 +76,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Kooperativa'), findsOneWidget);
-    expect(find.text('POJISTNÁ UDÁLOST'), findsOneWidget);
-    expect(find.text('4201234567'), findsOneWidget);
+    expect(find.text('PU 4201234567'), findsOneWidget);
   });
 
   testWidgets('hledání najde zakázku podle čísla pojistné události', (

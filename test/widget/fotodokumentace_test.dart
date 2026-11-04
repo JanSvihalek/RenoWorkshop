@@ -549,7 +549,7 @@ void main() {
       expect(zdroj.pocetSynchronizaci, 1);
       // Kvůli ní se načítalo - otevře se rovnou.
       expect(find.byType(OrderDetailScreen), findsOneWidget);
-      expect(find.text('ZK-26-0003'), findsWidgets);
+      expect(find.textContaining('ZK-26-0003'), findsWidgets);
     });
 
     testWidgets('bez hledaného textu se Helios nenabízí', (tester) async {

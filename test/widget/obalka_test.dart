@@ -80,16 +80,14 @@ void main() {
     tester,
   ) async {
     await otevriDetail(tester);
-    expect(
-      find.descendant(of: kolonka, matching: find.text('OBÁLKA S KLÍČEM')),
-      findsOneWidget,
-    );
+    expect(find.text('OBÁLKA S KLÍČEM'), findsOneWidget);
     expect(
       find.descendant(of: kolonka, matching: find.text('Nepřiřazena')),
       findsOneWidget,
     );
     expect(uvolnit, findsNothing);
 
+    await tester.ensureVisible(priradit);
     await tester.tap(priradit);
     await tester.pumpAndSettle();
     expect(find.text('Obálka s klíčem'), findsOneWidget);
@@ -115,6 +113,7 @@ void main() {
 
   testWidgets('nesmyslné číslo se nepřiřadí', (tester) async {
     await otevriDetail(tester);
+    await tester.ensureVisible(priradit);
     await tester.tap(priradit);
     await tester.pumpAndSettle();
 
@@ -129,6 +128,7 @@ void main() {
 
   testWidgets('obálka jiné zakázky se přesune až po potvrzení', (tester) async {
     await otevriDetail(tester);
+    await tester.ensureVisible(priradit);
     await tester.tap(priradit);
     await tester.pumpAndSettle();
     await tester.enterText(pole, '23');
@@ -160,6 +160,7 @@ void main() {
   ) async {
     await otevriDetail(tester);
     zdroj.neznameObalky = {'KBSL-150'};
+    await tester.ensureVisible(priradit);
     await tester.tap(priradit);
     await tester.pumpAndSettle();
     await tester.enterText(pole, '150');
@@ -185,6 +186,7 @@ void main() {
     );
     expect(priradit, findsNothing);
 
+    await tester.ensureVisible(uvolnit);
     await tester.tap(uvolnit);
     await tester.pumpAndSettle();
     expect(find.text('Uvolnit obálku KBSL-011?'), findsOneWidget);
@@ -197,6 +199,7 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(uvolnit);
     await tester.tap(uvolnit);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('obalka-uvolnit-potvrdit')));
