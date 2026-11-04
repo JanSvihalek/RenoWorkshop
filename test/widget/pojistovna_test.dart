@@ -27,6 +27,7 @@ void main() {
             buildOrderDto(
               id: 'ZK-26-0001',
               licensePlate: '8AB 4721',
+              canPlanBodyshop: true,
               insurer: const {'id': 60001, 'name': 'Kooperativa'},
               insuranceClaimNumber: '4201234567',
             ),
@@ -64,27 +65,30 @@ void main() {
     );
   });
 
-  testWidgets('detail ukáže pojišťovnu', (tester) async {
+  testWidgets('klempířská zakázka má pojišťovnu v chlívku', (tester) async {
     await prihlas(tester);
     await tester.tap(find.text('8AB 4721'));
     await tester.pumpAndSettle();
 
-    // Pojištění je v hlavičce, vidět hned po otevření.
-    final stitky = find.byKey(const Key('hlavicka-zarazeni'));
+    final chlivek = find.byKey(const Key('pojisteni'));
     expect(
-      find.descendant(
-        of: stitky,
-        matching: find.textContaining('Kooperativa', findRichText: true),
-      ),
+      find.descendant(of: chlivek, matching: find.text('Kooperativa')),
       findsOneWidget,
     );
     expect(
-      find.descendant(
-        of: stitky,
-        matching: find.textContaining('4201234567', findRichText: true),
-      ),
+      find.descendant(of: chlivek, matching: find.text('PU 4201234567')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('jiná než klempířská zakázka chlívek pojišťovny nemá', (
+    tester,
+  ) async {
+    await prihlas(tester);
+    await tester.tap(find.text('2SC 9014'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pojisteni')), findsNothing);
   });
 
   testWidgets('hledání najde zakázku podle čísla pojistné události', (

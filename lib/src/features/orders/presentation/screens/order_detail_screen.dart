@@ -785,10 +785,6 @@ class _DetailHeader extends ConsumerWidget {
         'Řada ${typ.kod.split('/').first} ${typ.nazev}',
       if (order.department != null) 'Stř. ${order.departmentLabel}',
     ].join(' · ');
-    final pojisteni = [
-      ?order.pojistovna,
-      if (order.cisloPojistneUdalosti case final cislo?) 'PU $cislo',
-    ].join(' · ');
     final zakazka = Column(
       key: const Key('hlavicka-zarazeni'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,7 +794,6 @@ class _DetailHeader extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(order.id, maxLines: 1, style: mono),
         if (zarazeni.isNotEmpty) Text(zarazeni, maxLines: 2, style: pod),
-        if (pojisteni.isNotEmpty) Text(pojisteni, maxLines: 2, style: pod),
       ],
     );
 
@@ -984,7 +979,7 @@ class _DetailHeader extends ConsumerWidget {
                 order: order,
                 onKartaVozu: onKartaVozu,
                 sloupcu: sirka >= _sirkaJednaRada
-                    ? 7
+                    ? (order.lzePlanovatKlempirnu ? 8 : 7)
                     : sirka >= _sirkaCtyriSloupce
                     ? 4
                     : 2,
@@ -1094,7 +1089,8 @@ class _RadekStavu extends StatelessWidget {
   );
 }
 
-/// Pruh údajů pod hlavičkou: sedm chlívků v řadě, po čtyřech nebo po dvou.
+/// Pruh údajů pod hlavičkou: sedm chlívků, klempířská zakázka osm - v řadě,
+/// po čtyřech nebo po dvou.
 class _PruhUdaju extends ConsumerWidget {
   const _PruhUdaju({
     required this.order,
@@ -1252,6 +1248,26 @@ class _PruhUdaju extends ConsumerWidget {
               odkazKontaktu(const Key('prebirajici-telefon'), cislo, cil),
         ]),
       ),
+      // Klempířská zakázka = středisko je v plánu klempírny.
+      if (order.lzePlanovatKlempirnu)
+        KeyedSubtree(
+          key: const Key('pojisteni'),
+          child: bunka('POJIŠŤOVNA', [
+            if (order.pojistovna case final pojistovna?)
+              text(pojistovna)
+            else
+              Text('Neuvedena', style: tlumene),
+            Text(
+              switch (order.cisloPojistneUdalosti) {
+                final cislo? => 'PU $cislo',
+                null => 'Číslo PU neuvedeno',
+              },
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: pod,
+            ),
+          ]),
+        ),
       bunka(ServiceOrder.rolePopisek.toUpperCase(), [
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),
