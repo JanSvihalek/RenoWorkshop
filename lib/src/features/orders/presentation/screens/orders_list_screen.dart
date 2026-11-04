@@ -59,8 +59,8 @@ class OrdersListScreen extends ConsumerStatefulWidget {
   /// Přehled technických kampaní - druhý řádek pruhu. Bez něj se neukáže.
   final VoidCallback? onOpenKampane;
 
-  /// Karta vozu - číslo vozu a jestli se našel skenerem.
-  final void Function(int id, bool naskenovano)? onOpenVozidlo;
+  /// Karta vozu podle čísla vozu.
+  final ValueChanged<int>? onOpenVozidlo;
 
   @override
   ConsumerState<OrdersListScreen> createState() => _OrdersListScreenState();
@@ -88,10 +88,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   void _onQueryChanged(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), () {
-      if (!mounted) return;
-      // Psaní rukou nikdy neotvírá kartu vozu samo.
-      ref.read(otevritJedineVozidloProvider.notifier).state = false;
-      ref.read(orderFilterProvider.notifier).setQuery(query);
+      if (mounted) ref.read(orderFilterProvider.notifier).setQuery(query);
     });
     setState(() {});
   }
@@ -138,23 +135,6 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       if (!mounted || !ref.read(otevritJedinouZakazkuProvider)) return;
       ref.read(otevritJedinouZakazkuProvider.notifier).state = false;
       if (nalezene.length == 1) widget.onOpenOrder(nalezene.single);
-    });
-  }
-
-  /// Po naskenování: vůz bez otevřené zakázky a jediný v evidenci se otevře
-  /// rovnou. S otevřenou zakázkou rozhoduje [_otevriJedinou].
-  void _otevriJedineVozidlo(
-    List<ServiceOrder> nalezene,
-    AsyncValue<List<NalezeneVozidlo>>? vozidla,
-  ) {
-    if (nalezene.isEmpty && vozidla != null && vozidla.isLoading) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !ref.read(otevritJedineVozidloProvider)) return;
-      ref.read(otevritJedineVozidloProvider.notifier).state = false;
-      final seznam = vozidla?.valueOrNull;
-      if (nalezene.isEmpty && seznam != null && seznam.length == 1) {
-        widget.onOpenVozidlo?.call(seznam.single.id, true);
-      }
     });
   }
 
@@ -205,9 +185,6 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     if (ref.watch(otevritJedinouZakazkuProvider) && orders.hasValue) {
       _otevriJedinou(orders.requireValue);
     }
-    if (ref.watch(otevritJedineVozidloProvider) && orders.hasValue) {
-      _otevriJedineVozidlo(orders.requireValue, vozidla);
-    }
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -255,8 +232,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                         naDilne: data,
                         archiv: ref.watch(archivKHledaniProvider),
                         vozidla: vozidla!,
-                        onOpenVozidlo: (id) =>
-                            widget.onOpenVozidlo?.call(id, false),
+                        onOpenVozidlo: (id) => widget.onOpenVozidlo?.call(id),
                         onZnovuVozidla: () => ref.invalidate(
                           hledaniVozidelProvider(filter.query),
                         ),

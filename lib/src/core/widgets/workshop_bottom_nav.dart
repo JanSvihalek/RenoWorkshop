@@ -18,11 +18,15 @@ class WorkshopBottomNav extends StatelessWidget {
     super.key,
     required this.active,
     required this.onSelect,
+    required this.onVyhledat,
     this.zobrazitAdmin = false,
   });
 
   final WorkshopTab active;
   final ValueChanged<WorkshopTab> onSelect;
+
+  /// Položka Vyhledat - jen otevře skener, výsledek je v seznamu zakázek.
+  final VoidCallback onVyhledat;
 
   /// Záložka Admin - jen pro admina.
   final bool zobrazitAdmin;
@@ -48,6 +52,15 @@ class WorkshopBottomNav extends StatelessWidget {
     ),
   ];
 
+  /// Není to záložka, ale akce - proto chybí mezi větvemi routeru. `tab` se
+  /// u ní nepoužívá.
+  static const _vyhledat = _NavItem(
+    WorkshopTab.orders,
+    'Vyhledat',
+    Icons.document_scanner_outlined,
+    Icons.document_scanner_outlined,
+  );
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -70,7 +83,7 @@ class WorkshopBottomNav extends StatelessWidget {
           ),
           child: Row(
             children: [
-              for (final item in _items)
+              for (final item in _items) ...[
                 if (item.tab != WorkshopTab.admin || zobrazitAdmin)
                   Expanded(
                     child: _NavButton(
@@ -81,6 +94,16 @@ class WorkshopBottomNav extends StatelessWidget {
                           : () => onSelect(item.tab),
                     ),
                   ),
+                if (item.tab == WorkshopTab.orders)
+                  Expanded(
+                    child: _NavButton(
+                      key: const Key('nav-vyhledat'),
+                      item: _vyhledat,
+                      isActive: false,
+                      onTap: onVyhledat,
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -100,6 +123,7 @@ class _NavItem {
 
 class _NavButton extends StatelessWidget {
   const _NavButton({
+    super.key,
     required this.item,
     required this.isActive,
     required this.onTap,

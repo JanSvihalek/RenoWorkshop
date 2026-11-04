@@ -36,8 +36,8 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
   final ValueChanged<String> onFotodokumentace;
   final ValueChanged<String> onPrijem;
 
-  /// Karta vozu - číslo vozu a jestli se našel skenerem.
-  final void Function(int id, bool naskenovano)? onOpenVozidlo;
+  /// Karta vozu podle čísla vozu.
+  final ValueChanged<int>? onOpenVozidlo;
   final SkenujObalku? onSkenujObalku;
 
   @override
@@ -106,9 +106,7 @@ class RozdeleneZakazkyScreen extends ConsumerWidget {
                       onFotodokumentace: onFotodokumentace,
                       onSkenujObalku: onSkenujObalku,
                       onPrijem: onPrijem,
-                      onOpenVozidlo: onOpenVozidlo == null
-                          ? null
-                          : (id) => onOpenVozidlo!(id, false),
+                      onOpenVozidlo: onOpenVozidlo,
                     ),
                   ),
           ),

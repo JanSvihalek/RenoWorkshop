@@ -24,7 +24,6 @@ import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
-import '../features/vozidla/presentation/controllers/vozidla_providers.dart';
 import '../features/vozidla/presentation/screens/karta_vozidla_screen.dart';
 import 'log_udalosti_provider.dart';
 
@@ -55,10 +54,7 @@ abstract final class AppRoutes {
   /// Skener obálky s klíčem - vrátí její kód tomu, kdo ho otevřel.
   static const String skenerObalky = '$skener?cil=obalka';
 
-  /// `naskenovano` jen do popisku na kartě - vůz se našel podle SPZ
-  /// z fotoaparátu.
-  static String kartaVozidla(int id, {bool naskenovano = false}) =>
-      naskenovano ? '$vozidla/$id?sken=1' : '$vozidla/$id';
+  static String kartaVozidla(int id) => '$vozidla/$id';
 
   static String orderDetail(String orderId) => '$orders/$orderId';
 
@@ -121,8 +117,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               // Jediná nalezená zakázka se otevře rovnou - u příjmu se
               // tak po naskenování SPZ jde přímo k detailu a fotkám.
               ref.read(otevritJedinouZakazkuProvider.notifier).state = true;
-              // Vůz bez otevřené zakázky, jediný v evidenci: rovnou jeho karta.
-              ref.read(otevritJedineVozidloProvider.notifier).state = true;
               ref.read(orderFilterProvider.notifier).setQuery(kod.hodnota);
               context.go(AppRoutes.orders);
             },
@@ -132,8 +126,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Záložky jsou ve společném rámu: přepnutí mění jen obsah, lišta
       // zůstává stát a každá záložka si drží svůj stav.
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            WorkshopScaffold(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) => WorkshopScaffold(
+          navigationShell: navigationShell,
+          onVyhledat: () => context.push(AppRoutes.skener),
+        ),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -157,12 +153,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                                 context.push(AppRoutes.prijemZakazky(id)),
                             onSkenujObalku: () =>
                                 context.push<String>(AppRoutes.skenerObalky),
-                            onOpenVozidlo: (id, naskenovano) => context.push(
-                              AppRoutes.kartaVozidla(
-                                id,
-                                naskenovano: naskenovano,
-                              ),
-                            ),
+                            onOpenVozidlo: (id) =>
+                                context.push(AppRoutes.kartaVozidla(id)),
                           )
                         : OrdersListScreen(
                             onOpenOrder: (order) =>
@@ -171,12 +163,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                             onOpenAkce: () => context.push(AppRoutes.akce),
                             onOpenKampane: () =>
                                 context.push(AppRoutes.kampane),
-                            onOpenVozidlo: (id, naskenovano) => context.push(
-                              AppRoutes.kartaVozidla(
-                                id,
-                                naskenovano: naskenovano,
-                              ),
-                            ),
+                            onOpenVozidlo: (id) =>
+                                context.push(AppRoutes.kartaVozidla(id)),
                           );
                   },
                 ),
@@ -259,25 +247,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => Consumer(
           builder: (context, ref, _) => KartaVozidlaScreen(
             vozidloId: int.tryParse(state.pathParameters['vozidloId']!) ?? -1,
-            naskenovano: state.uri.queryParameters['sken'] == '1',
             onBack: () =>
                 context.canPop() ? context.pop() : context.go(AppRoutes.orders),
             onOpenOrder: (order) =>
                 context.push(AppRoutes.orderDetail(order.id)),
-            // Není to ten vůz: hledání pryč, zpět na seznam a znovu skener.
-            // Má smysl jen po naskenování.
-            onNeniToOno: state.uri.queryParameters['sken'] == '1'
-                ? () {
-                    ref.read(otevritJedineVozidloProvider.notifier).state =
-                        false;
-                    ref.read(orderFilterProvider.notifier).setQuery('');
-                    final router = GoRouter.of(context);
-                    router.canPop()
-                        ? router.pop()
-                        : router.go(AppRoutes.orders);
-                    router.push(AppRoutes.skener);
-                  }
-                : null,
           ),
         ),
       ),

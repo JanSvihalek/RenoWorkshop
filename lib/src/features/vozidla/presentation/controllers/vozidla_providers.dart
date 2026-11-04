@@ -23,13 +23,6 @@ const nejkratsiDotazVozidla = 3;
 /// SPZ tak, jak se porovnává: velká písmena, bez mezer a pomlček.
 String kodSpz(String spz) => spz.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
 
-/// Hledání vyplnil skener: vůz bez otevřené zakázky a jediný v evidenci se
-/// má rovnou otevřít.
-///
-/// U psaní rukou schválně ne - při psaní `2BK` by karta vyskočila dřív,
-/// než člověk dopíše, a zase by se musel vracet.
-final otevritJedineVozidloProvider = StateProvider<bool>((ref) => false);
-
 final hledaniVozidelProvider = FutureProvider.autoDispose
     .family<List<NalezeneVozidlo>, String>((ref, dotaz) async {
       final ocisteny = dotaz.trim();

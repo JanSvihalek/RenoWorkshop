@@ -16,20 +16,9 @@ import '../../domain/entities/vozidlo.dart';
 /// identifikace v příjmu, ať technik hned vidí, že je to ten vůz, a nemusí
 /// kvůli motoru nebo telefonu na majitele nic dalšího otevírat.
 class IdentifikaceVozidlaKarta extends StatelessWidget {
-  const IdentifikaceVozidlaKarta({
-    super.key,
-    required this.vozidlo,
-    required this.naskenovano,
-    this.onNeniToOno,
-  });
+  const IdentifikaceVozidlaKarta({super.key, required this.vozidlo});
 
   final KartaVozidla vozidlo;
-
-  /// Hledání přišlo ze skeneru, ne z klávesnice - jen do popisku.
-  final bool naskenovano;
-
-  /// `null` tlačítko schová.
-  final VoidCallback? onNeniToOno;
 
   @override
   Widget build(BuildContext context) {
@@ -66,32 +55,10 @@ class IdentifikaceVozidlaKarta extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                naskenovano ? 'NASKENOVÁNO' : 'ZADÁNO RUČNĚ',
-                style: AppTextStyles.monoLabel.copyWith(
-                  color: palette.muted,
-                  fontSize: 11,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: Insets.base),
           _Karta(vozidlo: vozidlo),
-          if (onNeniToOno != null) ...[
-            const SizedBox(height: Insets.base),
-            SizedBox(
-              height: Sizes.ctaHeight,
-              child: OutlinedButton(
-                key: const Key('neni-to-ono'),
-                onPressed: onNeniToOno,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: palette.text,
-                  side: BorderSide(color: palette.hairline2),
-                ),
-                child: const Text('Není to ono - skenovat znovu'),
-              ),
-            ),
-          ],
         ],
       ),
     );

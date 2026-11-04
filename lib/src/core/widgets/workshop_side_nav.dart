@@ -20,12 +20,16 @@ class WorkshopSideNav extends StatelessWidget {
     super.key,
     required this.active,
     required this.onSelect,
+    required this.onVyhledat,
     this.onAplikace,
     this.zobrazitAdmin = false,
   });
 
   final WorkshopTab active;
   final ValueChanged<WorkshopTab> onSelect;
+
+  /// Položka Vyhledat - jen otevře skener, výsledek je v seznamu zakázek.
+  final VoidCallback onVyhledat;
 
   /// Přepínač aplikací (Zakázky / Plán klempírny) - pod záložkami,
   /// oddělený, protože vede jinam než do appky. `null` = není.
@@ -103,6 +107,16 @@ class WorkshopSideNav extends StatelessWidget {
                   onTap: () => onSelect(tab),
                 ),
                 const SizedBox(height: Insets.sm),
+                if (tab == WorkshopTab.orders) ...[
+                  _Polozka(
+                    key: const Key('nav-vyhledat'),
+                    popisek: 'Vyhledat',
+                    ikona: Icons.document_scanner_outlined,
+                    jeAktivni: false,
+                    onTap: onVyhledat,
+                  ),
+                  const SizedBox(height: Insets.sm),
+                ],
               ],
             if (onAplikace case final otevri?) ...[
               const SizedBox(height: Insets.sm),

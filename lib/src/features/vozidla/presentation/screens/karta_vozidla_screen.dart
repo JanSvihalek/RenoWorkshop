@@ -27,8 +27,6 @@ class KartaVozidlaScreen extends ConsumerWidget {
     required this.vozidloId,
     required this.onBack,
     required this.onOpenOrder,
-    this.naskenovano = false,
-    this.onNeniToOno,
   });
 
   final int vozidloId;
@@ -37,12 +35,6 @@ class KartaVozidlaScreen extends ConsumerWidget {
   /// Otevře detail zakázky a počká na návrat - karta se pak načte znovu,
   /// ať je vidět stav, který mezitím někdo přidal.
   final Future<void> Function(ServiceOrder order) onOpenOrder;
-
-  /// Vůz se našel podle naskenované SPZ - jen do popisku na kartě.
-  final bool naskenovano;
-
-  /// Nalezený vůz to není: zpět k hledání a znovu skener.
-  final VoidCallback? onNeniToOno;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,13 +76,7 @@ class KartaVozidlaScreen extends ConsumerWidget {
                       Insets.giant,
                     ),
                     children: [
-                      naStred(
-                        IdentifikaceVozidlaKarta(
-                          vozidlo: vozidlo,
-                          naskenovano: naskenovano,
-                          onNeniToOno: onNeniToOno,
-                        ),
-                      ),
+                      naStred(IdentifikaceVozidlaKarta(vozidlo: vozidlo)),
                       if (vozidlo.dezen case final dezen?) ...[
                         const SizedBox(height: Insets.lg),
                         naStred(

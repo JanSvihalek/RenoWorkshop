@@ -16,9 +16,16 @@ import 'workshop_side_nav.dart';
 /// drží svůj stav (posun seznamu, filtry zakázek), protože záložky
 /// nejsou zanoření: člověk se mezi nimi přepíná tam a zpět.
 class WorkshopScaffold extends ConsumerWidget {
-  const WorkshopScaffold({super.key, required this.navigationShell});
+  const WorkshopScaffold({
+    super.key,
+    required this.navigationShell,
+    required this.onVyhledat,
+  });
 
   final StatefulNavigationShell navigationShell;
+
+  /// Položka Vyhledat v navigaci - otevře skener.
+  final VoidCallback onVyhledat;
 
   /// Přepnutí záložky.
   void _prepni(int index) {
@@ -44,6 +51,7 @@ class WorkshopScaffold extends ConsumerWidget {
             WorkshopSideNav(
               active: aktivni,
               onSelect: (tab) => _prepni(tab.index),
+              onVyhledat: onVyhledat,
               onAplikace: () => zobrazPrepinacAplikaci(context, ref),
               zobrazitAdmin: admin,
             ),
@@ -70,6 +78,7 @@ class WorkshopScaffold extends ConsumerWidget {
           WorkshopBottomNav(
             active: aktivni,
             onSelect: (tab) => _prepni(tab.index),
+            onVyhledat: onVyhledat,
             zobrazitAdmin: admin,
           ),
         ],
