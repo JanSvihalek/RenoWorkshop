@@ -182,9 +182,10 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    // Zakázky jen čte, plánovat ale smí - plánovač je zvlášť.
+    // Zakázky jen čte, plánovat ale smí - plánovač je zvlášť. Stav zapsat
+    // může taky, jinak by úkon z plánu nešel zahájit (služba to povoluje).
     expect(find.byKey(const Key('jen-cteni')), findsOneWidget);
-    expect(find.byKey(const Key('pridat-stav')), findsNothing);
+    expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
     expect(find.byKey(const Key('zaplanovat-klempirnu')), findsOneWidget);
   });
 

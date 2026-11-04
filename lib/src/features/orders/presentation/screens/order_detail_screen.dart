@@ -203,6 +203,15 @@ class _DetailBody extends ConsumerWidget {
     final isBusy = ref.watch(orderActionsProvider).isLoading;
     // Jen čtení (právo R k pořadači) - bez akcí, které zapisují.
     final smi = ref.watch(smiZapisovatProvider(order.poradac?.kod));
+    // Stav jde zapsat i z plánovače - plánovač má práva zvlášť od pořadačů.
+    final smiStav = smi || ref.watch(smiPlanovatProvider(order.branch?.code));
+    // Klempířská zakázka: v jedné kartě co je teď, plán a sbalená historie.
+    // Ostatní jen postup stavů.
+    final sPlanem = order.lzePlanovatKlempirnu || order.planKlempirny != null;
+    final historie = order.historieStavu;
+    final onSmazat = smi
+        ? (DilenskyStav stav) => _smazStav(context, ref, stav)
+        : null;
 
     final postup = DetailCard(
       padding: const EdgeInsets.fromLTRB(
@@ -216,8 +225,12 @@ class _DetailBody extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Expanded(child: SectionLabel('POSTUP ZAKÁZKY')),
-              if (smi)
+              Expanded(
+                child: SectionLabel(
+                  sPlanem ? 'PRŮBĚH OPRAVY' : 'POSTUP ZAKÁZKY',
+                ),
+              ),
+              if (smiStav)
                 _PridatStavOdkaz(
                   isBusy: isBusy,
                   onTap: () => _pridejStav(context, ref),
@@ -234,11 +247,41 @@ class _DetailBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: Insets.base),
-          StatusTimeline(
-            historie: order.historieStavu,
-            bay: order.bay ?? '',
-            onSmazat: smi ? (stav) => _smazStav(context, ref, stav) : null,
-          ),
+          if (!sPlanem)
+            StatusTimeline(
+              historie: historie,
+              bay: order.bay ?? '',
+              onSmazat: onSmazat,
+            )
+          else ...[
+            if (historie.isNotEmpty) const SectionLabel('TEĎ'),
+            if (historie.isNotEmpty) const SizedBox(height: Insets.sm),
+            StatusTimeline(
+              historie: historie.take(1).toList(),
+              bay: order.bay ?? '',
+              onSmazat: onSmazat,
+            ),
+            const Divider(height: Insets.xxl),
+            PlanVPrubehu(order: order),
+            if (historie.length > 1) ...[
+              const Divider(height: Insets.lg),
+              SbalitelnaSkupina(
+                key: const Key('prubeh-historie'),
+                nazev: 'Historie stavů',
+                pocet: historie.length - 1,
+                rozbalena: false,
+                children: [
+                  StatusTimeline(
+                    historie: historie.skip(1).toList(),
+                    bay: '',
+                    sAktualnim: false,
+                    onSmazat: onSmazat,
+                  ),
+                  const SizedBox(height: Insets.sm),
+                ],
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -280,12 +323,6 @@ class _DetailBody extends ConsumerWidget {
     // Uloženky pneu vozu z Heliosu, jen ke čtení.
     final ulozenky = UlozenkyZakazkyKarta(orderId: order.id);
 
-    // Plán klempírny a lakovny - u klempířských zakázek vždy, u ostatních
-    // jen když plán mají.
-    final klempirna = order.lzePlanovatKlempirnu || order.planKlempirny != null
-        ? PlanKarta(order: order)
-        : null;
-
     return Column(
       children: [
         _DetailHeader(
@@ -313,7 +350,7 @@ class _DetailBody extends ConsumerWidget {
               SekceDetailu.dokumenty: dokumenty,
               SekceDetailu.ulozenky: ulozenky,
             },
-            prubeh: [?klempirna, ?predmet, postup, poznamky],
+            prubeh: [?predmet, postup, poznamky],
           ),
         ),
       ],
@@ -322,8 +359,8 @@ class _DetailBody extends ConsumerWidget {
 }
 
 /// Tělo detailu podle Janova návrhu (26. 10. 2026): vlevo menu sekcí
-/// s počty, vedle vybraná sekce přes celou šířku. Průběh (klempírna,
-/// postup, poznámky) je v sekci Závady/úkony - patří k závadám.
+/// s počty, vedle vybraná sekce přes celou šířku. Průběh (plán, postup,
+/// poznámky) je v sekci Závady/úkony - patří k závadám.
 /// Otevírá se vždy na závadách. Jako na webu.
 ///
 ///   tablet     menu vlevo; v závadách průběh vedle, když je místo
@@ -341,7 +378,7 @@ class _TeloDetailu extends StatefulWidget {
   final int pocetZavad;
   final Map<SekceDetailu, Widget> sekce;
 
-  /// Klempírna, postup a poznámky - v sekci Závady/úkony.
+  /// Průběh opravy a poznámky - v sekci Závady/úkony.
   final List<Widget> prubeh;
 
   @override

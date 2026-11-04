@@ -11,6 +11,7 @@ import '../../../fotodokumentace/domain/entities/fotka.dart';
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ziskani_fotek.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
@@ -56,6 +57,9 @@ Future<VybranyStav?> vyberStav(
   required String spz,
   required String cisloZakazky,
   required String autor,
+
+  /// Zahájení úkonu z plánu - stav je předvybraný podle jeho typu.
+  TypUkonu? ukon,
 }) {
   return showDialog<VybranyStav>(
     context: context,
@@ -64,6 +68,7 @@ Future<VybranyStav?> vyberStav(
       spz: spz,
       cisloZakazky: cisloZakazky,
       autor: autor,
+      ukon: ukon,
     ),
   );
 }
@@ -77,19 +82,21 @@ class _PridatStavOkno extends ConsumerStatefulWidget {
     required this.spz,
     required this.cisloZakazky,
     required this.autor,
+    this.ukon,
   });
 
   final String? misto;
   final String spz;
   final String cisloZakazky;
   final String autor;
+  final TypUkonu? ukon;
 
   @override
   ConsumerState<_PridatStavOkno> createState() => _PridatStavOknoState();
 }
 
 class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
-  final _vlastni = TextEditingController();
+  late final _vlastni = TextEditingController(text: widget.ukon?.nazev ?? '');
   final _poznamka = TextEditingController();
   late final _misto = TextEditingController(text: widget.misto ?? '');
 
@@ -107,11 +114,21 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
     super.dispose();
   }
 
-  bool get _jeVlastni => _vybrany == _jiny;
+  /// Vybraný stav, u zahájení úkonu jinak ten podle jeho typu. Typ, který
+  /// v číselníku stavů není, se zapíše jako vlastní text.
+  String? get _zvoleny {
+    if (_vybrany != null) return _vybrany;
+    final ukon = widget.ukon;
+    final stavy = ref.read(nabidkaStavuProvider).valueOrNull;
+    if (ukon == null || stavy == null) return null;
+    return stavy.any((s) => s.kod == ukon.kod) ? ukon.kod : _jiny;
+  }
+
+  bool get _jeVlastni => _zvoleny == _jiny;
 
   /// Přidat jde, teprve když je co uložit.
   bool get _lzePridat =>
-      _vybrany != null && (!_jeVlastni || _vlastni.text.trim().isNotEmpty);
+      _zvoleny != null && (!_jeVlastni || _vlastni.text.trim().isNotEmpty);
 
   void _potvrd() {
     if (!_lzePridat) return;
@@ -120,7 +137,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
 
     Navigator.of(context).pop(
       VybranyStav(
-        kod: _jeVlastni ? null : _vybrany,
+        kod: _jeVlastni ? null : _zvoleny,
         nazev: _jeVlastni ? _vlastni.text.trim() : null,
         poznamka: poznamka.isEmpty ? null : poznamka,
         // Beze změny se místo neposílá - ať se u něj nepřepisuje čas
@@ -136,12 +153,14 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
     final nabidka = ref.watch(nabidkaStavuProvider);
 
     return OknoZapisu(
-      nadpis: 'Přidat stav',
+      nadpis: widget.ukon == null
+          ? 'Přidat stav'
+          : 'Zahájit: ${widget.ukon!.nazev}',
       kam: 'do postupu zakázky',
       spz: widget.spz,
       cisloZakazky: widget.cisloZakazky,
       autor: widget.autor,
-      potvrdit: 'Přidat',
+      potvrdit: widget.ukon == null ? 'Přidat' : 'Zahájit',
       onPotvrdit: _lzePridat ? _potvrd : null,
       obsah: [
         const PopisekPole('STAV'),
@@ -165,7 +184,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
                 )
               : _VyberStavu(
                   stavy: stavy,
-                  vybrany: _vybrany,
+                  vybrany: _zvoleny,
                   onZmena: (kod) => setState(() => _vybrany = kod),
                 ),
         ),
@@ -379,8 +398,9 @@ class _NabidkaChybi extends StatelessWidget {
 Future<void> pridatStavZakazce(
   BuildContext context,
   WidgetRef ref,
-  ServiceOrder order,
-) async {
+  ServiceOrder order, {
+  TypUkonu? ukon,
+}) async {
   // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
   // nepíše u každého kroku znovu.
   final vybrany = await vyberStav(
@@ -389,6 +409,7 @@ Future<void> pridatStavZakazce(
     spz: order.licensePlate,
     cisloZakazky: order.id,
     autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+    ukon: ukon,
   );
   if (vybrany == null || !context.mounted) return;
 

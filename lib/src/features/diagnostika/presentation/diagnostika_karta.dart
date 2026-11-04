@@ -207,16 +207,21 @@ class _Pripad extends ConsumerWidget {
           otevira: otevira == p.hlavniId,
           onTap: () => onOtevri(p.hlavniId, p.hlavniNazev),
         ),
-        for (final s in vse)
-          if (!s.hlavni)
-            _Radek(
-              key: Key('diagnostika-soubor-${s.id}'),
-              ikona: Icons.description_outlined,
-              nazev: s.nazev,
-              popis: [?s.slozka, velikostSouboru(s.velikost)].join(' · '),
-              otevira: otevira == s.id,
-              onTap: () => onOtevri(s.id, s.nazev),
-            ),
+        ...SbalitelnaSkupina.kdyzDlouhy(
+          nazev: 'Další soubory',
+          children: [
+            for (final s in vse)
+              if (!s.hlavni)
+                _Radek(
+                  key: Key('diagnostika-soubor-${s.id}'),
+                  ikona: Icons.description_outlined,
+                  nazev: s.nazev,
+                  popis: [?s.slozka, velikostSouboru(s.velikost)].join(' · '),
+                  otevira: otevira == s.id,
+                  onTap: () => onOtevri(s.id, s.nazev),
+                ),
+          ],
+        ),
         if (soubory.isLoading) text('Načítám další dokumenty…'),
         if (soubory.hasError)
           text(

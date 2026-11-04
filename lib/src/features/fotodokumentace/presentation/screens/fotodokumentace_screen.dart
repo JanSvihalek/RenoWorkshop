@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../orders/presentation/widgets/detail_cards.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -691,12 +692,17 @@ class _DokumentyKategorie extends StatelessWidget {
             ),
           ),
         if (seznam.isNotEmpty) const SizedBox(height: Insets.xs),
-        for (final dokument in seznam)
-          _RadekDokumentu(
-            dokument: dokument,
-            otevira: oteviraId == dokument.id,
-            onTap: () => onOtevrit(dokument),
-          ),
+        ...SbalitelnaSkupina.kdyzDlouhy(
+          nazev: 'Dokumenty',
+          children: [
+            for (final dokument in seznam)
+              _RadekDokumentu(
+                dokument: dokument,
+                otevira: oteviraId == dokument.id,
+                onTap: () => onOtevrit(dokument),
+              ),
+          ],
+        ),
       ],
     );
   }

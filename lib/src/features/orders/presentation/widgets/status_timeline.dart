@@ -13,16 +13,22 @@ import 'order_status_visuals.dart';
 /// U opravy po bouračce, která běží měsíce, je hlavní informace právě to,
 /// kdy se co stalo a jak dlouho se na co čekalo.
 ///
-/// Nejnovější je nahoře.
+/// Nejnovější je nahoře. Aktuální stav má plnou tečku, starší fajfku -
+/// fajfka říká „za námi", ne že je aktuální stav hotový.
 class StatusTimeline extends StatelessWidget {
   const StatusTimeline({
     super.key,
     required this.historie,
     required this.bay,
     this.onSmazat,
+    this.sAktualnim = true,
   });
 
   final List<DilenskyStav> historie;
+
+  /// Je první záznam aktuální stav? `false` u sbalené historie, kde jsou
+  /// jen starší.
+  final bool sAktualnim;
 
   /// Stání / box, kde vozidlo právě stojí (meta u posledního kroku).
   final String bay;
@@ -47,7 +53,7 @@ class StatusTimeline extends StatelessWidget {
           _TimelineRow(
             stav: historie[index],
             // Platný je poslední zapsaný, tedy ten nahoře.
-            jeAktualni: index == 0,
+            jeAktualni: sAktualnim && index == 0,
             jePosledniVSeznamu: index == historie.length - 1,
             bay: bay,
             onSmazat: onSmazat,
@@ -92,8 +98,8 @@ class _TimelineRow extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: jeAktualni
-                    ? const Icon(Icons.check, size: 12, color: Colors.white)
-                    : null,
+                    ? null
+                    : Icon(Icons.check, size: 12, color: barva),
               ),
               if (!jePosledniVSeznamu)
                 Expanded(

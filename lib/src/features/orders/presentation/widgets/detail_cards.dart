@@ -57,6 +57,105 @@ class DetailCard extends StatelessWidget {
   }
 }
 
+/// Od kolika položek se skupina otevírá sbalená.
+const sbalitOd = 13;
+
+/// Skupina, která jde sbalit - nadpis s počtem. Velká se otevírá sbalená, ať
+/// u vozu s desítkami souborů není dlouhý seznam. Jako na webu.
+class SbalitelnaSkupina extends StatefulWidget {
+  const SbalitelnaSkupina({
+    super.key,
+    required this.nazev,
+    required this.pocet,
+    required this.children,
+    this.rozbalena,
+  });
+
+  final String nazev;
+  final int pocet;
+  final List<Widget> children;
+
+  /// Na začátku rozbalená? Bez něj podle počtu ([sbalitOd]).
+  final bool? rozbalena;
+
+  /// Jediný seznam v kartě - skupina s nadpisem až když je dlouhý.
+  static List<Widget> kdyzDlouhy({
+    Key? key,
+    required String nazev,
+    required List<Widget> children,
+  }) => children.length < sbalitOd
+      ? children
+      : [
+          SbalitelnaSkupina(
+            key: key,
+            nazev: nazev,
+            pocet: children.length,
+            children: children,
+          ),
+        ];
+
+  @override
+  State<SbalitelnaSkupina> createState() => _SbalitelnaSkupinaState();
+}
+
+class _SbalitelnaSkupinaState extends State<SbalitelnaSkupina> {
+  late bool _rozbalena = widget.rozbalena ?? widget.pocet < sbalitOd;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          button: true,
+          expanded: _rozbalena,
+          label: widget.nazev,
+          child: InkWell(
+            key: Key('skupina-${widget.nazev}'),
+            onTap: () => setState(() => _rozbalena = !_rozbalena),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Insets.sm),
+              child: Row(
+                children: [
+                  AnimatedRotation(
+                    turns: _rozbalena ? 0.25 : 0,
+                    duration: const Duration(milliseconds: 150),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: palette.muted,
+                    ),
+                  ),
+                  const SizedBox(width: Insets.xs),
+                  Flexible(
+                    child: Text(
+                      widget.nazev,
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Insets.sm),
+                  Text(
+                    '${widget.pocet}',
+                    style: AppTextStyles.metaSmall.copyWith(
+                      color: palette.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (_rozbalena) ...widget.children,
+      ],
+    );
+  }
+}
+
 /// Nadpis sekce ("POSTUP ZAKÁZKY"). [barva] jen u karet z Heliosu.
 class SectionLabel extends StatelessWidget {
   const SectionLabel(this.text, {super.key, this.barva});

@@ -1,3 +1,4 @@
+import '../../orders/domain/entities/dilensky_stav.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
 
@@ -210,6 +211,22 @@ class PruhUkonu {
     );
   }
   return (pruhy: pruhy, linek: konce.length);
+}
+
+/// Stav úkonu v průběhu opravy.
+enum StavUkonu { hotovo, probiha, ceka }
+
+/// Hotovo se značí ručně; probíhá ten, který odpovídá aktuálnímu dílenskému
+/// stavu - typy úkonů mají stejné kódy jako stavy, stav mimo číselník se pozná
+/// podle názvu. Jen se zobrazuje, nikam se neukládá: stavy se vracejí
+/// i přeskakují a plán by se přepisoval špatně.
+StavUkonu stavUkonu(UkonPlanu ukon, DilenskyStav? aktualni) {
+  if (ukon.hotovo) return StavUkonu.hotovo;
+  if (aktualni != null &&
+      (aktualni.kod == ukon.typ.kod || aktualni.nazev == ukon.typ.nazev)) {
+    return StavUkonu.probiha;
+  }
+  return StavUkonu.ceka;
 }
 
 /// Výchozí typ nového úkonu: po posledním naplánovaném jde další v pořadí

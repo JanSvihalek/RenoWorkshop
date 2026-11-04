@@ -110,14 +110,18 @@ class _DokumentyHeliosuKartaState extends ConsumerState<DokumentyHeliosuKarta> {
       );
     } else {
       obsah = Column(
-        children: [
-          for (final dokument in seznam)
-            _Radek(
-              dokument: dokument,
-              otevira: _otevira == dokument.id,
-              onTap: () => _otevri(dokument),
-            ),
-        ],
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: SbalitelnaSkupina.kdyzDlouhy(
+          nazev: 'Doklady',
+          children: [
+            for (final dokument in seznam)
+              _Radek(
+                dokument: dokument,
+                otevira: _otevira == dokument.id,
+                onTap: () => _otevri(dokument),
+              ),
+          ],
+        ),
       );
     }
 
