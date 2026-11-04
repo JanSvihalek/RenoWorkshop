@@ -28,13 +28,14 @@ class PlateChip extends StatelessWidget {
   }
 }
 
-/// SPZ jako značka: bílá s modrým pruhem CZ, stejná i v tmavém vzhledu.
+/// SPZ jako značka: bílá s modrým pruhem bez země (může být i zahraniční),
+/// stejná i v tmavém vzhledu.
 class SpzRamecek extends StatelessWidget {
   const SpzRamecek({super.key, required this.licensePlate});
 
   final String licensePlate;
 
-  /// Modrá pruhu na české značce.
+  /// Modrá pruhu na značce.
   static const _modra = Color(0xFF003399);
 
   @override
@@ -51,23 +52,7 @@ class SpzRamecek extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ExcludeSemantics(
-              child: Container(
-                width: 18,
-                alignment: Alignment.bottomCenter,
-                padding: const EdgeInsets.only(bottom: 3),
-                color: _modra,
-                child: const Text(
-                  'CZ',
-                  style: TextStyle(
-                    fontFamily: AppFonts.sans,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            Container(width: 12, color: _modra),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               child: Text(

@@ -136,10 +136,8 @@ void main() {
       find.descendant(of: ramecek, matching: find.text('1AA 1111')),
       findsOneWidget,
     );
-    expect(
-      find.descendant(of: ramecek, matching: find.text('CZ')),
-      findsOneWidget,
-    );
+    // Bez země - vůz může mít i zahraniční značku.
+    expect(find.text('CZ'), findsNothing);
   });
 
   testWidgets('v tmavém vzhledu nejsou buňky hlavičky šedé', (tester) async {
