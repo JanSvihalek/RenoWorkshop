@@ -284,13 +284,25 @@ void main() {
       );
     });
 
+    test('kolik času uplynulo od příjmu', () {
+      final dnes = DateTime(2026, 11, 4, 12);
+      expect(predKolika(DateTime(2026, 11, 4, 8), dnes), 'dnes');
+      expect(predKolika(DateTime(2026, 11, 3, 23), dnes), 'včera');
+      expect(predKolika(DateTime(2026, 11, 1), dnes), 'před 3 dny');
+      expect(predKolika(DateTime(2026, 9, 20), dnes), 'před měsícem');
+      expect(predKolika(DateTime(2026, 6, 1), dnes), 'před 5 měsíci');
+      expect(predKolika(DateTime(2025, 10, 1), dnes), 'před rokem');
+      expect(predKolika(DateTime(2024, 11, 11), dnes), 'před 2 lety');
+      expect(predKolika(DateTime(2026, 11, 5), dnes), '');
+    });
+
     test('kolik zbývá do termínu', () {
       final dnes = DateTime(2026, 11, 4, 12);
-      expect(zaKolik(DateTime(2026, 11, 4, 18), dnes), 'dnes');
-      expect(zaKolik(DateTime(2026, 11, 5), dnes), 'zítra');
-      expect(zaKolik(DateTime(2026, 11, 7), dnes), 'za 3 dny');
-      expect(zaKolik(DateTime(2026, 11, 9), dnes), 'za 5 dní');
-      expect(zaKolik(DateTime(2026, 11, 3), dnes), '');
+      expect(zbyvaDo(DateTime(2026, 11, 4, 18), dnes), 'dnes');
+      expect(zbyvaDo(DateTime(2026, 11, 5), dnes), 'zítra');
+      expect(zbyvaDo(DateTime(2026, 11, 7), dnes), 'zbývají 3 dny');
+      expect(zbyvaDo(DateTime(2026, 11, 9), dnes), 'zbývá 5 dní');
+      expect(zbyvaDo(DateTime(2026, 11, 3), dnes), '');
     });
 
     test('souhrn plánu přes úkony a mezera mezi nimi', () {
@@ -663,7 +675,9 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const Key('nastavit-stav')));
+    await tester.ensureVisible(find.byKey(const Key('pridat-stav')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pridat-stav')));
     await tester.pumpAndSettle();
     expect(find.text('Přidat stav'), findsWidgets);
     await tester.tap(find.text('Zrušit').last);
@@ -688,24 +702,17 @@ void main() {
       expect(pruh, findsOneWidget);
       final detail = tester.getSize(pruh).width;
       final sloupcu = detail >= 1250
-          ? 8
+          ? 7
           : detail >= 560
           ? 4
           : 2;
       expect(
         find.descendant(of: pruh, matching: find.byType(IntrinsicHeight)),
-        findsNWidgets(8 ~/ sloupcu),
+        findsNWidgets((7 / sloupcu).ceil()),
       );
-      // VIN se vždy vejde celé - je to první sloupec s pevnou šířkou.
-      final vin = find.descendant(
-        of: pruh,
-        matching: find.text('WBATEST0000000001'),
-      );
+      // VIN se vždy vejde celé.
+      final vin = find.text('WBATEST0000000001');
       expect(vin, findsOneWidget);
-      expect(
-        tester.getRect(vin).right,
-        lessThanOrEqualTo(tester.getRect(pruh).left + detail * 0.55),
-      );
       expect(tester.takeException(), isNull);
     });
   }
@@ -729,7 +736,7 @@ void main() {
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('nastavit-stav')), findsOneWidget);
+    expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
     expect(find.byKey(const Key('prevzit-hlavicka')), findsNothing);
   });
 

@@ -145,7 +145,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key('prvni-registrace')),
-        matching: find.text('v Heliosu neuvedena'),
+        matching: find.text('neuvedena'),
       ),
       findsOneWidget,
     );

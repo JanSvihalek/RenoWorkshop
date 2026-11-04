@@ -116,15 +116,15 @@ void main() {
     final rect = tester.getRect(udaje);
     expect(rect.top, greaterThanOrEqualTo(spz.bottom));
     expect(
-      find.descendant(of: udaje, matching: find.text('TERMÍN')),
+      find.descendant(of: udaje, matching: find.text('PŘIJATO → DOKONČENÍ')),
       findsOneWidget,
     );
-    final akce = tester.getRect(find.byKey(const Key('nastavit-stav')));
+    final akce = tester.getRect(find.byKey(const Key('prevzit-hlavicka')));
     expect(akce.left, greaterThan(spz.right));
     expect(akce.bottom, lessThanOrEqualTo(rect.top));
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
     // Karty s termíny v těle detailu už nejsou.
-    expect(find.text('TERMÍN'), findsOneWidget);
+    expect(find.text('PŘIJATO → DOKONČENÍ'), findsOneWidget);
   });
 
   testWidgets('SPZ je v hlavičce v rámečku značky', (tester) async {
@@ -147,10 +147,10 @@ void main() {
         .widgetList<Container>(
           find.descendant(of: udaje, matching: find.byType(Container)),
         )
-        .map((c) => c.decoration)
-        .whereType<BoxDecoration>()
-        .map((d) => d.color)
-        .nonNulls;
+        .map((c) => c.color)
+        .nonNulls
+        // Čáry mřížky jsou plné, jde o pozadí chlívků.
+        .where((barva) => barva.a < 1);
     expect(pozadi, isNotEmpty);
     for (final barva in pozadi) {
       expect(barva.a, lessThan(0.2));

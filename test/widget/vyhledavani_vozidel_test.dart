@@ -362,19 +362,19 @@ void main() {
       expect(find.byKey(const Key('karta-vozu')), findsNothing);
     });
 
-    final zahajit = find.byKey(const Key('zahajit-prijem-hlavicka'));
+    final prijemZakazky = find.byKey(const Key('prijem-hlavicka'));
 
-    testWidgets('dokud příjem nezačal, zahájí se z hlavičky', (tester) async {
+    testWidgets('Příjem zakázky v hlavičce otevře průvodce', (tester) async {
       await spust(tester);
       await tester.tap(find.text('5T1 0001'));
       await tester.pumpAndSettle();
 
-      await klepni(tester, zahajit);
+      await klepni(tester, prijemZakazky);
 
       expect(find.byType(PrijemZakazkyScreen), findsOneWidget);
     });
 
-    testWidgets('rozpracovaný příjem už tlačítko v hlavičce nemá', (
+    testWidgets('rozpracovaný příjem jde z hlavičky otevřít dál', (
       tester,
     ) async {
       await spust(tester);
@@ -382,10 +382,10 @@ void main() {
       await tester.tap(find.text('5T1 0001'));
       await tester.pumpAndSettle();
 
-      expect(zahajit, findsNothing);
+      expect(prijemZakazky, findsOneWidget);
     });
 
-    testWidgets('ukončená zakázka tlačítko Zahájit příjem nemá', (
+    testWidgets('ukončená zakázka tlačítko Příjem zakázky nemá', (
       tester,
     ) async {
       await spust(
@@ -401,7 +401,7 @@ void main() {
       await tester.tap(find.text('5T1 0001'));
       await tester.pumpAndSettle();
 
-      expect(zahajit, findsNothing);
+      expect(prijemZakazky, findsNothing);
     });
   });
 

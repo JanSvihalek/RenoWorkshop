@@ -90,7 +90,9 @@ void main() {
     );
   });
 
-  testWidgets('Kontakt je za zákazníkem, příjem je u termínu', (tester) async {
+  testWidgets('Kontakt je za zákazníkem, příjem a dokončení v jednom', (
+    tester,
+  ) async {
     await otevri(tester, kontakt, velikost: const Size(1600, 900));
 
     final zakaznik = tester.getRect(find.text('ZÁKAZNÍK'));
@@ -98,8 +100,8 @@ void main() {
     final zodpovida = tester.getRect(find.text('ZODPOVÍDÁ'));
     expect(chlivek.left, greaterThan(zakaznik.left));
     expect(chlivek.left, lessThan(zodpovida.left));
-    expect(find.text('PŘIJATO'), findsNothing);
-    expect(find.textContaining('přijato'), findsOneWidget);
+    expect(find.text('PŘIJATO → DOKONČENÍ'), findsOneWidget);
+    expect(find.text('TERMÍN'), findsNothing);
   });
 
   testWidgets('bez telefonu a e-mailu je jen jméno', (tester) async {

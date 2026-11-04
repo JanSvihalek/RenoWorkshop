@@ -52,20 +52,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Nezahájený příjem tlačítkem v hlavičce detailu, jiný ze sekce Příjem.
+  /// Tlačítkem Příjem zakázky v hlavičce detailu.
   Future<void> otevriPrijem(WidgetTester tester) async {
     await tester.tap(find.text('2BK 9485'));
     await tester.pumpAndSettle();
-    final hlavicka = find.byKey(const Key('zahajit-prijem-hlavicka'));
-    if (hlavicka.evaluate().isNotEmpty) {
-      await tester.tap(hlavicka);
-    } else {
-      await naSekci(tester, 'prijem');
-      final otevrit = find.byKey(const Key('otevrit-prijem'));
-      await tester.ensureVisible(otevrit);
-      await tester.pumpAndSettle();
-      await tester.tap(otevrit);
-    }
+    await tester.tap(find.byKey(const Key('prijem-hlavicka')));
     await tester.pumpAndSettle();
   }
 
