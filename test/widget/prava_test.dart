@@ -116,7 +116,7 @@ void main() {
 
     expect(find.byKey(const Key('jen-cteni')), findsOneWidget);
     expect(find.byKey(const Key('pridat-stav')), findsNothing);
-    expect(find.byKey(const Key('zaplanovat-klempirnu')), findsNothing);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsNothing);
     expect(find.text('Převzít'), findsNothing);
   });
 
@@ -138,7 +138,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
-    expect(find.byKey(const Key('zaplanovat-klempirnu')), findsNothing);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsNothing);
     expect(find.byKey(const Key('otevrit-planovac')), findsOneWidget);
   });
 
@@ -186,7 +186,7 @@ void main() {
     // může taky, jinak by úkon z plánu nešel zahájit (služba to povoluje).
     expect(find.byKey(const Key('jen-cteni')), findsOneWidget);
     expect(find.byKey(const Key('pridat-stav')), findsOneWidget);
-    expect(find.byKey(const Key('zaplanovat-klempirnu')), findsOneWidget);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsOneWidget);
   });
 
   testWidgets('bez práv: hláška místo prázdného seznamu', (tester) async {

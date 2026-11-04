@@ -49,6 +49,9 @@ abstract interface class ServiceOrderRepository {
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<ServiceOrder> smazStav(String orderId, String zaznamId);
 
+  /// Uzavře aktuální stav - další krok čeká, až ho někdo zahájí.
+  Future<ServiceOrder> dokonciStav(String orderId, String zaznamId);
+
   /// Koho lze zakázce přiřadit jako zpracovatele.
   Future<NabidkaZpracovatelu> nabidkaZpracovatelu(
     String orderId, {

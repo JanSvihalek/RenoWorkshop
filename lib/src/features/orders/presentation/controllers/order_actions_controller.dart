@@ -246,6 +246,21 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Uzavře aktuální stav. Další krok čeká, až ho někdo zahájí.
+  Future<bool> dokonciStav(String orderId, String zaznamId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.dokonciStav(orderId, zaznamId);
+      _zaloguj('stav_dokoncen', orderId);
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
   /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
   Future<bool> smazStav(String orderId, String zaznamId) async {
     state = const AsyncLoading();

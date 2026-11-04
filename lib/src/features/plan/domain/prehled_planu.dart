@@ -213,20 +213,140 @@ class PruhUkonu {
   return (pruhy: pruhy, linek: konce.length);
 }
 
-/// Stav úkonu v průběhu opravy.
-enum StavUkonu { hotovo, probiha, ceka }
+/// Co s položkou osy průběhu je.
+enum StavPolozky { probiha, hotovo, dalsi, ceka }
 
-/// Hotovo se značí ručně; probíhá ten, který odpovídá aktuálnímu dílenskému
-/// stavu - typy úkonů mají stejné kódy jako stavy, stav mimo číselník se pozná
-/// podle názvu. Jen se zobrazuje, nikam se neukládá: stavy se vracejí
-/// i přeskakují a plán by se přepisoval špatně.
-StavUkonu stavUkonu(UkonPlanu ukon, DilenskyStav? aktualni) {
-  if (ukon.hotovo) return StavUkonu.hotovo;
-  if (aktualni != null &&
-      (aktualni.kod == ukon.typ.kod || aktualni.nazev == ukon.typ.nazev)) {
-    return StavUkonu.probiha;
+/// Řádek osy průběhu: úkon z plánu, nebo stav, který v plánu není.
+class PolozkaOsy {
+  PolozkaOsy({
+    required this.nazev,
+    required this.stav,
+    required this.od,
+    this.do_,
+    this.mimoPlan = false,
+    this.kdy,
+    this.kdo,
+    this.poznamka,
+    this.ukon,
+    this.zaznam,
+  });
+
+  final String nazev;
+  StavPolozky stav;
+
+  /// Stav u zakázky s plánem, který v plánu není.
+  final bool mimoPlan;
+
+  /// Kdy to začalo nebo má začít.
+  final DateTime od;
+
+  /// Kdy to skončilo nebo má skončit; `null` = probíhající stav bez plánu.
+  final DateTime? do_;
+
+  /// Dokončeno nebo zahájeno: kdy a kdo.
+  final DateTime? kdy;
+  final String? kdo;
+  final String? poznamka;
+  final UkonPlanu? ukon;
+  final DilenskyStav? zaznam;
+}
+
+bool _patriKUkonu(DilenskyStav z, UkonPlanu u) =>
+    z.kod == u.typ.kod || z.nazev == u.typ.nazev;
+
+/// Plán a historie stavů v jedné ose. Typy úkonů mají stejné kódy jako stavy,
+/// stav mimo číselník se pozná podle názvu. Co se ještě nedělá je nahoře, pak
+/// co probíhá, pod tím co je hotové, vždy nejnovější první.
+///
+/// Krok končí tlačítkem Dokončit, jinak začátkem dalšího stavu. Jen se
+/// zobrazuje: stavy se vracejí i přeskakují a plán by se přepisoval špatně.
+List<PolozkaOsy> osaPrubehu(PlanKlempirny? plan, List<DilenskyStav> historie) {
+  // Historie je od nejnovějšího: konec záznamu je začátek toho nad ním.
+  ({DateTime? kdy, String? kdo}) konec(int i) {
+    final z = historie[i];
+    if (z.dokonceno != null) return (kdy: z.dokonceno, kdo: z.dokoncil);
+    if (i == 0) return (kdy: null, kdo: null);
+    return (kdy: historie[i - 1].zadano, kdo: historie[i - 1].autor);
   }
-  return StavUkonu.ceka;
+
+  final pouzite = <int>{};
+  final polozky = <PolozkaOsy>[];
+
+  for (final u in plan?.ukony ?? const <UkonPlanu>[]) {
+    // Vrátili se k němu vícekrát: k úkonu patří poslední záznam.
+    final i = historie.indexWhere((z) => _patriKUkonu(z, u));
+    if (i >= 0) pouzite.add(i);
+    final z = i >= 0 ? historie[i] : null;
+    final konecZaznamu = i >= 0 ? konec(i) : null;
+    final hotovo = konecZaznamu?.kdy != null || (z == null && u.hotovo);
+    polozky.add(
+      PolozkaOsy(
+        nazev: u.typ.nazev,
+        stav: z != null && !hotovo
+            ? StavPolozky.probiha
+            : hotovo
+            ? StavPolozky.hotovo
+            : StavPolozky.ceka,
+        od: u.od,
+        do_: u.do_,
+        kdy: z != null ? konecZaznamu?.kdy ?? z.zadano : u.upraveno,
+        kdo: z != null
+            ? konecZaznamu?.kdy != null
+                  ? konecZaznamu?.kdo
+                  : z.autor
+            : u.upravil,
+        poznamka: switch ([
+          if (u.poznamka.trim().isNotEmpty) u.poznamka.trim(),
+          ?z?.poznamka,
+        ].join(' · ')) {
+          '' => null,
+          final text => text,
+        },
+        ukon: u,
+        zaznam: z,
+      ),
+    );
+  }
+
+  for (final (i, z) in historie.indexed) {
+    if (pouzite.contains(i)) continue;
+    final k = konec(i);
+    // Opakovaný stav úkonu v plánu je, jen se k němu vrátili.
+    final vPlanu = plan?.ukony.any((u) => _patriKUkonu(z, u)) ?? false;
+    polozky.add(
+      PolozkaOsy(
+        nazev: z.nazev,
+        stav: k.kdy != null ? StavPolozky.hotovo : StavPolozky.probiha,
+        mimoPlan: plan != null && !vPlanu,
+        od: z.zadano ?? DateTime(0),
+        do_: k.kdy,
+        kdy: k.kdy ?? z.zadano,
+        kdo: k.kdy != null ? k.kdo : z.autor,
+        poznamka: z.poznamka,
+        zaznam: z,
+      ),
+    );
+  }
+
+  PolozkaOsy? dalsi;
+  for (final p in polozky) {
+    if (p.stav == StavPolozky.ceka &&
+        (dalsi == null || p.od.isBefore(dalsi.od))) {
+      dalsi = p;
+    }
+  }
+  dalsi?.stav = StavPolozky.dalsi;
+
+  int poradi(StavPolozky s) => switch (s) {
+    StavPolozky.ceka || StavPolozky.dalsi => 0,
+    StavPolozky.probiha => 1,
+    StavPolozky.hotovo => 2,
+  };
+  polozky.sort((a, b) {
+    final rozdil = poradi(a.stav) - poradi(b.stav);
+    return rozdil != 0 ? rozdil : b.od.compareTo(a.od);
+  });
+  return polozky;
 }
 
 /// Výchozí typ nového úkonu: po posledním naplánovaném jde další v pořadí

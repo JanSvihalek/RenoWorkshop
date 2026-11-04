@@ -17,7 +17,8 @@ import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/widgets/prohlizeni_fotek.dart';
 import '../../../ulozenky/presentation/ulozenky_karta.dart';
 import '../../../akce/presentation/stitek_kampane.dart';
-import '../../../plan/presentation/plan_karta.dart';
+import '../../../plan/presentation/okno_planu.dart';
+import '../../../plan/presentation/osa_prubehu.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../../core/utils/kontakt_odkazy.dart';
 import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
@@ -32,7 +33,6 @@ import '../widgets/obalka_klice.dart';
 import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/plate_chip.dart';
 import '../widgets/predmet_opravy_card.dart';
-import '../widgets/status_timeline.dart';
 import '../widgets/zavady_card.dart';
 import '../widgets/zpracovatel_sheet.dart';
 
@@ -218,10 +218,9 @@ class _DetailBody extends ConsumerWidget {
     final uzJeMoje =
         order.zpracovatel?.jeEmail(ref.watch(currentEmployeeProvider)?.email) ??
         false;
-    // Klempířská zakázka: v jedné kartě co je teď, plán a sbalená historie.
-    // Ostatní jen postup stavů.
+    // Klempířská zakázka má průběh s plánem, ostatní jen postup stavů.
     final sPlanem = order.lzePlanovatKlempirnu || order.planKlempirny != null;
-    final historie = order.historieStavu;
+    final smiPlan = ref.watch(smiPlanovatProvider(order.branch?.code));
     final onSmazat = smi
         ? (DilenskyStav stav) => _smazStav(context, ref, stav)
         : null;
@@ -234,20 +233,50 @@ class _DetailBody extends ConsumerWidget {
         Insets.sm,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: Insets.md,
+            runSpacing: Insets.xs,
             children: [
-              Expanded(
-                child: SectionLabel(
-                  sPlanem ? 'PRŮBĚH OPRAVY' : 'POSTUP ZAKÁZKY',
-                ),
+              Wrap(
+                spacing: Insets.md,
+                runSpacing: Insets.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  SectionLabel(sPlanem ? 'PRŮBĚH OPRAVY' : 'POSTUP ZAKÁZKY'),
+                  if (sPlanem)
+                    DoplnekPrubehu(
+                      key: const Key('prubeh-doplnek'),
+                      order: order,
+                    ),
+                ],
               ),
-              if (smiStav)
-                _PridatStavOdkaz(
-                  isBusy: isBusy,
-                  onTap: () => _pridejStav(context, ref),
-                ),
+              Wrap(
+                spacing: Insets.base,
+                children: [
+                  if (smiStav)
+                    _PridatStavOdkaz(
+                      isBusy: isBusy,
+                      onTap: () => _pridejStav(context, ref),
+                    ),
+                  if (sPlanem && smiPlan)
+                    _OdkazKarty(
+                      key: const Key('plan-pridat-ukon'),
+                      text: 'Zaplánovat',
+                      onTap: () => naplanovatKlempirnu(
+                        context,
+                        ref,
+                        zakazkaId: order.id,
+                        spz: order.licensePlate,
+                        plan: order.planKlempirny,
+                        barva: order.barvaVozu,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
           if (order.bay != null) ...[
@@ -259,42 +288,8 @@ class _DetailBody extends ConsumerWidget {
               kdo: order.bayBy,
             ),
           ],
-          const SizedBox(height: Insets.base),
-          if (!sPlanem)
-            StatusTimeline(
-              historie: historie,
-              bay: order.bay ?? '',
-              onSmazat: onSmazat,
-            )
-          else ...[
-            if (historie.isNotEmpty) const SectionLabel('TEĎ'),
-            if (historie.isNotEmpty) const SizedBox(height: Insets.sm),
-            StatusTimeline(
-              historie: historie.take(1).toList(),
-              bay: order.bay ?? '',
-              onSmazat: onSmazat,
-            ),
-            const Divider(height: Insets.xxl),
-            PlanVPrubehu(order: order),
-            if (historie.length > 1) ...[
-              const Divider(height: Insets.lg),
-              SbalitelnaSkupina(
-                key: const Key('prubeh-historie'),
-                nazev: 'Historie stavů',
-                pocet: historie.length - 1,
-                rozbalena: false,
-                children: [
-                  StatusTimeline(
-                    historie: historie.skip(1).toList(),
-                    bay: '',
-                    sAktualnim: false,
-                    onSmazat: onSmazat,
-                  ),
-                  const SizedBox(height: Insets.sm),
-                ],
-              ),
-            ],
-          ],
+          const SizedBox(height: Insets.md),
+          OsaPrubehu(order: order, onSmazat: onSmazat),
         ],
       ),
     );
@@ -809,7 +804,8 @@ class _DetailHeader extends ConsumerWidget {
         if (order.heliosStatus case final stav?)
           _RadekStavu('Helios: $stav', barva: heliosZelena, plna: true),
         _RadekStavu(
-          'Dílna: ${order.stav?.nazev ?? 'bez stavu'}',
+          'Dílna: ${order.stav?.nazev ?? 'bez stavu'}'
+          '${order.stav?.dokonceno != null ? ' · dokončeno' : ''}',
           barva: order.stav == null
               ? palette.naHlavicceTlumene
               : palette.naHlavicce,
@@ -1623,6 +1619,31 @@ class _MiniaturaMista extends ConsumerWidget {
   }
 }
 
+/// Odkaz v záhlaví karty Průběh opravy.
+class _OdkazKarty extends StatelessWidget {
+  const _OdkazKarty({super.key, required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+      // Větší plocha pro prst, než je samotné slovo.
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: Text(
+        '+ $text',
+        style: AppTextStyles.chip.copyWith(
+          fontSize: 13,
+          color: AppColors.accent,
+        ),
+      ),
+    ),
+  );
+}
+
 class _PridatStavOdkaz extends StatelessWidget {
   const _PridatStavOdkaz({required this.isBusy, required this.onTap});
 
@@ -1655,7 +1676,7 @@ class _PridatStavOdkaz extends StatelessWidget {
                   ),
                 )
               : Text(
-                  'Přidat',
+                  '+ Přidat stav',
                   style: AppTextStyles.chip.copyWith(
                     fontSize: 13,
                     color: AppColors.accent,

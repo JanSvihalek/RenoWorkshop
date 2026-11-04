@@ -13,7 +13,6 @@ import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dar
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
-import 'package:renoworkshop/src/features/orders/presentation/widgets/status_timeline.dart';
 import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
@@ -259,29 +258,113 @@ void main() {
       expect(navazujiciDen(s('lakovna', '2026-10-16')), DateTime(2026, 10, 19));
     });
 
-    test('stav úkonu: hotovo ručně, probíhá podle aktuálního stavu', () {
-      final u = UkonPlanu.fromJson(ukon(1, '2026-10-12', '2026-10-13'));
-      expect(stavUkonu(u, null), StavUkonu.ceka);
-      expect(
-        stavUkonu(u, const DilenskyStav(nazev: 'Lakovna', kod: 'lakovna')),
-        StavUkonu.probiha,
+    group('osa průběhu', () {
+      DilenskyStav stav(
+        String id,
+        String? kod,
+        String nazev,
+        String zadano, {
+        String? dokonceno,
+        String? dokoncil,
+      }) => DilenskyStav(
+        id: id,
+        kod: kod,
+        nazev: nazev,
+        autor: 'Jan',
+        zadano: DateTime.parse(zadano),
+        dokonceno: dokonceno == null ? null : DateTime.parse(dokonceno),
+        dokoncil: dokoncil,
       );
-      expect(
-        stavUkonu(u, const DilenskyStav(nazev: 'Montáž', kod: 'montaz')),
-        StavUkonu.ceka,
-      );
-      // Vlastní text bez kódu se pozná podle názvu.
-      expect(
-        stavUkonu(u, const DilenskyStav(nazev: 'LAKOVNA')),
-        StavUkonu.probiha,
-      );
-      final hotovy = UkonPlanu.fromJson(
-        ukon(1, '2026-10-12', '2026-10-13', stav: 'hotovo'),
-      );
-      expect(
-        stavUkonu(hotovy, const DilenskyStav(nazev: 'Lakovna', kod: 'lakovna')),
-        StavUkonu.hotovo,
-      );
+      UkonPlanu u(int id, String kod, String nazev, String od, String do_) =>
+          UkonPlanu(
+            id: id,
+            typ: TypUkonu(kod: kod, nazev: nazev, barva: '#000000'),
+            od: DateTime.parse(od),
+            do_: DateTime.parse(do_),
+          );
+      PlanKlempirny planZ(List<UkonPlanu> ukony) =>
+          PlanKlempirny(od: ukony.first.od, do_: ukony.last.do_, ukony: ukony);
+      final plny = planZ([
+        u(1, 'demontaz', 'Demontáž', '2026-11-02', '2026-11-03'),
+        u(2, 'klempirna', 'Klempířské práce', '2026-11-04', '2026-11-05'),
+        u(3, 'priprava', 'Příprava na lak', '2026-11-05', '2026-11-09'),
+        u(4, 'lakovna', 'Lakovna', '2026-11-10', '2026-11-11'),
+      ]);
+      final historie = [
+        stav('s3', 'klempirna', 'Klempířské práce', '2026-11-04T15:17:00'),
+        stav('s2', null, 'Čeká na schválení', '2026-11-03T12:00:00'),
+        stav('s1', 'demontaz', 'Demontáž', '2026-11-02T08:00:00'),
+      ];
+
+      test('nahoře co čeká, pak co probíhá, dole hotové', () {
+        expect(
+          osaPrubehu(plny, historie).map((p) => (p.nazev, p.stav)).toList(),
+          [
+            ('Lakovna', StavPolozky.ceka),
+            ('Příprava na lak', StavPolozky.dalsi),
+            ('Klempířské práce', StavPolozky.probiha),
+            ('Čeká na schválení', StavPolozky.hotovo),
+            ('Demontáž', StavPolozky.hotovo),
+          ],
+        );
+      });
+
+      test('stav bez úkonu je mimo plán, konec je začátek dalšího stavu', () {
+        final mimo = osaPrubehu(
+          plny,
+          historie,
+        ).firstWhere((p) => p.nazev == 'Čeká na schválení');
+        expect(mimo.mimoPlan, isTrue);
+        expect(mimo.do_, DateTime(2026, 11, 4, 15, 17));
+      });
+
+      test('Dokončit uzavře krok, i když další ještě nezačal', () {
+        final osa = osaPrubehu(plny, [
+          stav(
+            's3',
+            'klempirna',
+            'Klempířské práce',
+            '2026-11-04T15:17:00',
+            dokonceno: '2026-11-05T10:00:00',
+            dokoncil: 'Petr',
+          ),
+        ]);
+        final krok = osa.firstWhere((p) => p.nazev == 'Klempířské práce');
+        expect(krok.stav, StavPolozky.hotovo);
+        expect(krok.kdo, 'Petr');
+        expect(krok.kdy, DateTime(2026, 11, 5, 10));
+        expect(osa.any((p) => p.stav == StavPolozky.probiha), isFalse);
+      });
+
+      test('stav bez kódu se k úkonu pozná podle názvu', () {
+        final osa = osaPrubehu(
+          planZ([u(1, 'geometrie', 'Geometrie', '2026-11-02', '2026-11-03')]),
+          [stav('s', null, 'Geometrie', '2026-11-02T08:00:00')],
+        );
+        expect(osa, hasLength(1));
+        expect(osa.single.stav, StavPolozky.probiha);
+      });
+
+      test('bez plánu nic není mimo plán a probíhající nemá konec', () {
+        final osa = osaPrubehu(null, historie);
+        expect(osa.every((p) => !p.mimoPlan), isTrue);
+        expect(osa.first.stav, StavPolozky.probiha);
+        expect(osa.first.do_, isNull);
+      });
+
+      test('návrat ke kroku: k úkonu patří poslední záznam', () {
+        final osa = osaPrubehu(
+          planZ([u(1, 'lakovna', 'Lakovna', '2026-11-02', '2026-11-03')]),
+          [
+            stav('s3', 'lakovna', 'Lakovna', '2026-11-05T08:00:00'),
+            stav('s2', 'montaz', 'Montáž', '2026-11-04T08:00:00'),
+            stav('s1', 'lakovna', 'Lakovna', '2026-11-03T08:00:00'),
+          ],
+        );
+        expect(osa.where((p) => p.nazev == 'Lakovna'), hasLength(2));
+        expect(osa.firstWhere((p) => p.zaznam?.id == 's1').mimoPlan, isFalse);
+        expect(osa.firstWhere((p) => p.ukon != null).zaznam?.id, 's3');
+      });
     });
 
     test('kolik času uplynulo od příjmu', () {
@@ -354,8 +437,8 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('plan-karta')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('zaplanovat-klempirnu')));
+    expect(find.byKey(const Key('osa-prubehu')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plan-pridat-ukon')));
     await tester.pumpAndSettle();
 
     final ulozit = find.byKey(const Key('plan-ulozit'));
@@ -383,7 +466,7 @@ void main() {
     expect(ulozeny['paintCode'], 'C4P');
     expect(ulozeny['status'], 'naplanovano');
     expect(find.text('LAKOVNA  14.–16. 10.', findRichText: true), findsNothing);
-    expect(find.text('14. 10. – 16. 10. 2026'), findsOneWidget);
+    expect(find.text('14.–16. 10. 2026'), findsOneWidget);
     // Zaplánování stav nezapíše - úkon čeká na Zahájit.
     expect(find.byKey(const Key('plan-zahajit-1')), findsOneWidget);
     expect(
@@ -397,7 +480,7 @@ void main() {
     await spust(tester, zakazky: [buildOrderDto(utvar: '11211')]);
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('plan-karta')), findsNothing);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsNothing);
   });
 
   testWidgets('záložka Plán ukáže týden pobočky a společné kódy', (
@@ -619,24 +702,16 @@ void main() {
 
     expect(find.text('PRŮBĚH OPRAVY'), findsOneWidget);
     expect(find.text('POSTUP ZAKÁZKY'), findsNothing);
-    expect(find.text('TEĎ'), findsOneWidget);
-    expect(find.text('Probíhá'), findsOneWidget);
-    expect(find.text('Hotovo'), findsOneWidget);
-    // Probíhající ani hotový se znovu zahájit nedá, čekající ano.
+    expect(find.text('TEĎ'), findsNothing);
+    expect(find.byKey(const Key('osa-probiha')), findsOneWidget);
+    expect(find.textContaining('Dokončeno'), findsOneWidget);
+    expect(find.text('Další na řadě'), findsOneWidget);
+    // Probíhající ani hotový se znovu zahájit nedá, další na řadě ano.
     expect(find.byKey(const Key('plan-zahajit-1')), findsNothing);
     expect(find.byKey(const Key('plan-zahajit-2')), findsNothing);
     final zahajit = find.byKey(const Key('plan-zahajit-3'));
     expect(zahajit, findsOneWidget);
-    // Aktuální stav je ikona kroku, ne fajfka - neříká, že je hotovo.
-    expect(find.byKey(const Key('stav-ikona')), findsOneWidget);
-    expect(find.byIcon(Icons.hardware), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(StatusTimeline),
-        matching: find.byIcon(Icons.check),
-      ),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('dokoncit-stav')), findsOneWidget);
 
     // Stav je předvybraný podle úkonu, zápis jde stejnou cestou jako jindy.
     await tester.ensureVisible(zahajit);
@@ -647,19 +722,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
 
-    // Teď probíhá lakovna, předchozí stav je ve sbalené historii s fajfkou.
+    // Teď probíhá lakovna, předchozí krok tím skončil.
     expect(find.byKey(const Key('plan-zahajit-3')), findsNothing);
-    expect(find.byKey(const Key('plan-zahajit-2')), findsOneWidget);
-    final historie = find.byKey(const Key('skupina-Historie stavů'));
-    expect(historie, findsOneWidget);
-    expect(find.byIcon(Icons.check), findsNothing);
-    await tester.ensureVisible(historie);
-    await tester.tap(historie);
+    expect(find.byKey(const Key('plan-zahajit-2')), findsNothing);
+    expect(find.textContaining('Dokončeno'), findsNWidgets(2));
+
+    // Dokončit krok uzavře a další se sám nezahájí.
+    final dokoncit = find.byKey(const Key('dokoncit-stav'));
+    await tester.ensureVisible(dokoncit);
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    await tester.tap(dokoncit);
+    await tester.pumpAndSettle();
+    expect(dokoncit, findsNothing);
+    expect(find.byKey(const Key('osa-probiha')), findsNothing);
+    expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
+    expect(find.textContaining('· dokončeno'), findsOneWidget);
   });
 
-  testWidgets('hlavička: stavy, zařazení, Nastavit stav a Převzít zakázku', (
+  testWidgets('bez plánu: jen stavy a řádek, že plán není', (tester) async {
+    await spust(
+      tester,
+      velikost: const Size(1280, 1400),
+      zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+    );
+    await tester.tap(find.text('1AA 1111'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('jen stavy'), findsOneWidget);
+    expect(find.text('Zakázka nemá plán'), findsOneWidget);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsOneWidget);
+  });
+
+  testWidgets('hlavička: stavy, zařazení, přidání stavu a Převzít zakázku', (
     tester,
   ) async {
     await spust(tester, zakazky: [buildOrderDto(utvar: '11211')]);
@@ -746,8 +840,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('POSTUP ZAKÁZKY'), findsOneWidget);
     expect(find.text('PRŮBĚH OPRAVY'), findsNothing);
-    expect(find.text('TEĎ'), findsNothing);
-    expect(find.byIcon(Icons.check), findsNothing);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsNothing);
+    expect(find.text('Zakázka nemá plán'), findsNothing);
   });
 
   testWidgets('pomalé načtení typů: výchozí typ se ukáže, až přijdou', (
@@ -832,16 +926,10 @@ void main() {
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('DEMONTAZ  12.–13. 10.', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.text('Hotovo'), findsOneWidget);
+    expect(find.text('12.–13. 10.'), findsOneWidget);
+    expect(find.textContaining('Dokončeno'), findsOneWidget);
     expect(find.byKey(const Key('plan-zahajit-2')), findsOneWidget);
-    expect(
-      find.text('LAKOVNA  14.–16. 10.', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.text('14.–16. 10.'), findsOneWidget);
 
     // Nový úkon navazuje na konec plánu - z pátku na pondělí.
     await tester.tap(find.byKey(const Key('plan-pridat-ukon')));
@@ -913,7 +1001,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan-zakazka-ZK-26-0001')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('plan-karta')), findsOneWidget);
+    expect(find.byKey(const Key('osa-prubehu')), findsOneWidget);
     expect(find.byKey(const Key('plan-zahajit-1')), findsOneWidget);
   });
 
@@ -1076,10 +1164,9 @@ void main() {
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
-    final karta = find.byKey(const Key('plan-karta'));
     expect(
       find.descendant(
-        of: karta,
+        of: find.byKey(const Key('prubeh-doplnek')),
         matching: find.text('KÓD 475', findRichText: true),
       ),
       findsOneWidget,

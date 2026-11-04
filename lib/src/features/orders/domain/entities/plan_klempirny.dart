@@ -74,6 +74,8 @@ class UkonPlanu {
     this.hotovo = false,
     this.zaplanoval,
     this.zaplanovano,
+    this.upravil,
+    this.upraveno,
   });
 
   final int id;
@@ -88,6 +90,10 @@ class UkonPlanu {
   final bool hotovo;
   final String? zaplanoval;
   final DateTime? zaplanovano;
+
+  /// Kdo a kdy úkon naposledy změnil - i tím, že ho označil jako hotový.
+  final String? upravil;
+  final DateTime? upraveno;
 
   /// Kolik dní úkon trvá, včetně prvního a posledního.
   int get dni => do_.difference(od).inDays + 1;
@@ -105,6 +111,8 @@ class UkonPlanu {
     hotovo: json['status'] == 'hotovo',
     zaplanoval: json['plannedBy'] as String?,
     zaplanovano: DateTime.tryParse(json['plannedAt'] as String? ?? ''),
+    upravil: json['updatedBy'] as String?,
+    upraveno: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
   );
 
   Map<String, dynamic> toJson() => {

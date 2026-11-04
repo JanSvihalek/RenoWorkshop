@@ -14,6 +14,8 @@ class DilenskyStav {
     this.poznamka,
     this.autor,
     this.zadano,
+    this.dokonceno,
+    this.dokoncil,
   });
 
   /// Identifikátor záznamu na serveru. Podle něj se maže omylem přidaný
@@ -36,11 +38,17 @@ class DilenskyStav {
 
   final DateTime? zadano;
 
+  /// Tlačítko Dokončit: kdy a kdo krok uzavřel. `null` = krok končí až
+  /// začátkem dalšího stavu.
+  final DateTime? dokonceno;
+  final String? dokoncil;
+
   /// Stav mimo číselník, napsaný ručně.
   bool get jeVlastni => kod == null;
 
   factory DilenskyStav.fromJson(Map<String, dynamic> json) {
     final zadano = json['createdAt'] as String?;
+    final dokonceno = json['finishedAt'] as String?;
     return DilenskyStav(
       id: json['id'] as String?,
       kod: json['code'] as String?,
@@ -48,6 +56,8 @@ class DilenskyStav {
       nazev: json['label'] as String,
       autor: json['author'] as String?,
       zadano: zadano == null ? null : DateTime.tryParse(zadano),
+      dokonceno: dokonceno == null ? null : DateTime.tryParse(dokonceno),
+      dokoncil: json['finishedBy'] as String?,
     );
   }
 
@@ -58,6 +68,8 @@ class DilenskyStav {
     'note': poznamka,
     'author': autor,
     'createdAt': zadano?.toIso8601String(),
+    'finishedAt': dokonceno?.toIso8601String(),
+    'finishedBy': dokoncil,
   };
 
   @override

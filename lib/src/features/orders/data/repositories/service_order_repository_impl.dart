@@ -108,6 +108,11 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
+  Future<ServiceOrder> dokonciStav(String orderId, String zaznamId) {
+    return _mutate(orderId, () => _dataSource.dokonciStav(orderId, zaznamId));
+  }
+
+  @override
   Future<ServiceOrder> smazStav(String orderId, String zaznamId) {
     return _mutate(orderId, () => _dataSource.smazStav(orderId, zaznamId));
   }

@@ -50,6 +50,9 @@ abstract interface class ServiceOrderDataSource {
   /// Smaže záznam z historie stavů.
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
 
+  /// `POST /orders/{id}/stavy/{zaznamId}/dokonceni` - uzavře aktuální stav.
+  Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId);
+
   /// `GET /orders/{id}/assignees` - koho lze přiřadit jako zpracovatele.
   /// Lidé z útvaru zakázky, s [vsichni] všichni zaměstnanci.
   Future<NabidkaZpracovatelu> nabidkaZpracovatelu(

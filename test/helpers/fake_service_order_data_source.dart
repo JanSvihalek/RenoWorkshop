@@ -859,6 +859,25 @@ class FakeServiceOrderDataSource
       ?.id;
 
   @override
+  Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(
+      statusHistory: [
+        for (final zaznam in _orders[index].statusHistory)
+          if (zaznam['id'] == zaznamId)
+            {
+              ...zaznam,
+              'finishedAt': '2026-11-05T10:00:00',
+              'finishedBy': 'Test Technik',
+            }
+          else
+            zaznam,
+      ],
+    );
+  }
+
+  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;

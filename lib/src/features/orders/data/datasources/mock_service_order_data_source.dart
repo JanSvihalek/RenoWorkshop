@@ -660,6 +660,30 @@ class MockServiceOrderDataSource
   }
 
   @override
+  Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+
+    final updated = orders[index].copyWith(
+      statusHistory: [
+        for (final zaznam in orders[index].statusHistory)
+          if (zaznam['id'] == zaznamId)
+            {
+              ...zaznam,
+              'finishedAt': DateTime.now().toIso8601String(),
+              'finishedBy': 'Ukázkový technik',
+            }
+          else
+            zaznam,
+      ],
+    );
+    orders[index] = updated;
+    return updated;
+  }
+
+  @override
   Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
