@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/order_detail_screen.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/plate_chip.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 import '../helpers/zalozky.dart';
@@ -124,6 +125,21 @@ void main() {
     expect(find.byKey(const Key('prevzit-hlavicka')), findsOneWidget);
     // Karty s termíny v těle detailu už nejsou.
     expect(find.text('PŘIJATO'), findsOneWidget);
+  });
+
+  testWidgets('SPZ je v hlavičce v rámečku značky', (tester) async {
+    await otevri(tester, const Size(1280, 800));
+
+    final ramecek = find.byType(SpzRamecek);
+    expect(ramecek, findsOneWidget);
+    expect(
+      find.descendant(of: ramecek, matching: find.text('1AA 1111')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: ramecek, matching: find.text('CZ')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('v tmavém vzhledu nejsou buňky hlavičky šedé', (tester) async {

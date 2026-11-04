@@ -31,6 +31,7 @@ import '../widgets/sekce_detailu.dart';
 import '../widgets/notes_card.dart';
 import '../widgets/obalka_klice.dart';
 import '../widgets/pridat_stav_sheet.dart';
+import '../widgets/plate_chip.dart';
 import '../widgets/predmet_opravy_card.dart';
 import '../widgets/status_timeline.dart';
 import '../widgets/zavady_card.dart';
@@ -629,16 +630,11 @@ class _DetailHeader extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(
-              order.licensePlate,
-              style: AppTextStyles.plateLarge.copyWith(
-                color: palette.naHlavicce,
-              ),
-            ),
-            const SizedBox(width: Insets.md),
+            if (order.licensePlate.isNotEmpty) ...[
+              SpzRamecek(licensePlate: order.licensePlate),
+              const SizedBox(width: Insets.md),
+            ],
             Flexible(
               child: Text(
                 order.model,
