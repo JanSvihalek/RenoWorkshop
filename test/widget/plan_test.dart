@@ -955,6 +955,41 @@ void main() {
       expect(kapacity[DateTime(2026, 11, 14)], isNull);
     });
 
+    test('kapacita dílny je součet lidí, nepřítomný se nepočítá', () {
+      final po = DateTime(2026, 11, 9);
+      final ut = DateTime(2026, 11, 10);
+      final kapacity = kapacityObdobi(
+        [
+          karosar,
+          karosar.copyWith(awDen: 48),
+          karosar.copyWith(
+            awDen: 60,
+            nepritomnosti: [NepritomnostCloveka(id: 1, od: po, do_: po)],
+          ),
+        ],
+        const [],
+        po,
+        ut,
+      );
+      expect(kapacity[po]![Dilna.klempirna]!.aw, 90 + 48);
+      expect(kapacity[po]![Dilna.klempirna]!.lidi, 2);
+      expect(kapacity[ut]![Dilna.klempirna]!.aw, 90 + 48 + 60);
+    });
+
+    test('kapacita člověka ze serveru, bez hodnoty výchozí', () {
+      expect(ClovekKapacity.fromJson(const {'id': 1, 'dailyAw': 48}).awDen, 48);
+      expect(ClovekKapacity.fromJson(const {'id': 1}).awDen, awClovekDen);
+    });
+
+    test('zadaná kapacita člověka: prázdné výchozí, nula a přes 24 h ne', () {
+      expect(kapacitaClovekaNaAw('4', JednotkaKapacity.hodiny), 48);
+      expect(kapacitaClovekaNaAw('48', JednotkaKapacity.aw), 48);
+      expect(kapacitaClovekaNaAw('  ', JednotkaKapacity.hodiny), awClovekDen);
+      expect(kapacitaClovekaNaAw('24', JednotkaKapacity.hodiny), awClovekMax);
+      expect(kapacitaClovekaNaAw('24,5', JednotkaKapacity.hodiny), isNull);
+      expect(kapacitaClovekaNaAw('0', JednotkaKapacity.aw), isNull);
+    });
+
     test('přeřazený člověk se počítá jinde, vyřazený nikde', () {
       expect(
         lakyrnik.copyWith(prirazeno: () => 'priprava').dilna,
@@ -1237,6 +1272,51 @@ void main() {
       await tester.tap(find.text('Lakovna').last);
       await tester.pumpAndSettle();
       expect(zdroj.lideKapacity['1']![1].prirazeno, isNull);
+    });
+
+    testWidgets('mistr zadá kapacitu člověka v hodinách i AW a vrátí výchozí', (
+      tester,
+    ) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      );
+      zdroj.lideKapacity['1'] = [karosar];
+      await otevriKapacitu(tester);
+      expect(find.text('7,5 h · 90 AW'), findsOneWidget);
+
+      final stitek = find.byKey(const Key('kapacita-clovek-1'));
+      final pole = find.byKey(const Key('kapacita-clovek-hodnota'));
+      final ulozit = find.byKey(const Key('kapacita-clovek-ulozit'));
+
+      await tester.tap(stitek);
+      await tester.pumpAndSettle();
+      await tester.enterText(pole, '0');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(ulozit).onPressed, isNull);
+      await tester.enterText(pole, '4');
+      await tester.pump();
+      await tester.tap(ulozit);
+      await tester.pumpAndSettle();
+      expect(zdroj.lideKapacity['1']![0].awDen, 48);
+      expect(find.text('4 h · 48 AW'), findsOneWidget);
+
+      await tester.tap(find.text('AW').first);
+      await tester.pumpAndSettle();
+      expect(find.text('48 AW · 4 h'), findsOneWidget);
+      await tester.tap(stitek);
+      await tester.pumpAndSettle();
+      await tester.enterText(pole, '60');
+      await tester.pump();
+      await tester.tap(ulozit);
+      await tester.pumpAndSettle();
+      expect(zdroj.lideKapacity['1']![0].awDen, 60);
+
+      await tester.tap(stitek);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('kapacita-clovek-vychozi')));
+      await tester.pumpAndSettle();
+      expect(zdroj.lideKapacity['1']![0].awDen, awClovekDen);
     });
 
     testWidgets('mistr zadá a smaže nepřítomnost', (tester) async {

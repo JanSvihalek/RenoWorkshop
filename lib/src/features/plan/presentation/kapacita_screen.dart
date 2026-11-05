@@ -15,15 +15,23 @@ import 'plan_providers.dart';
 
 /// Kapacita dílen pobočky: kdo kam patří, kdy chybí a ručně zadané dny. Změna
 /// se uloží hned a plán se přepočítá. Otevře ji jen ten, kdo má právo Kapacita.
-class KapacitaScreen extends ConsumerWidget {
+class KapacitaScreen extends ConsumerStatefulWidget {
   const KapacitaScreen({super.key, required this.pobocka, required this.nazev});
 
   final String pobocka;
   final String nazev;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KapacitaScreen> createState() => _KapacitaScreenState();
+}
+
+class _KapacitaScreenState extends ConsumerState<KapacitaScreen> {
+  JednotkaKapacity _jednotka = JednotkaKapacity.hodiny;
+
+  @override
+  Widget build(BuildContext context) {
     final palette = context.palette;
+    final pobocka = widget.pobocka;
     final prehled = ref.watch(kapacitaProvider(pobocka));
     return Scaffold(
       backgroundColor: palette.background,
@@ -31,7 +39,7 @@ class KapacitaScreen extends ConsumerWidget {
         backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
         title: Text(
-          'Kapacita dílen · $nazev',
+          'Kapacita dílen · ${widget.nazev}',
           style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
         ),
       ),
@@ -59,8 +67,27 @@ class KapacitaScreen extends ConsumerWidget {
           ),
           children: [
             Text(
-              'Přítomní lidé × 90 AW (7,5 h). Ručně zadaný den má přednost.',
+              'Součet přítomných lidí, každý má výchozích 7,5 h (90 AW). '
+              'Ručně zadaný den má přednost.',
               style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+            ),
+            const SizedBox(height: Insets.md),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<JednotkaKapacity>(
+                key: const Key('kapacita-jednotka'),
+                showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                segments: const [
+                  ButtonSegment(
+                    value: JednotkaKapacity.hodiny,
+                    label: Text('Hodiny'),
+                  ),
+                  ButtonSegment(value: JednotkaKapacity.aw, label: Text('AW')),
+                ],
+                selected: {_jednotka},
+                onSelectionChanged: (v) => setState(() => _jednotka = v.first),
+              ),
             ),
             const SizedBox(height: Insets.lg),
             _Nadpis('LIDÉ'),
@@ -73,18 +100,30 @@ class KapacitaScreen extends ConsumerWidget {
               _Karta(
                 deti: [
                   for (final c in p.lide)
-                    _RadekCloveka(clovek: c, pobocka: pobocka),
+                    _RadekCloveka(
+                      clovek: c,
+                      pobocka: pobocka,
+                      jednotka: _jednotka,
+                    ),
                 ],
               ),
             const SizedBox(height: Insets.xl),
             _Nadpis('RUČNĚ ZADANÝ DEN'),
-            _RucniDen(pobocka: pobocka),
+            _RucniDen(pobocka: pobocka, jednotka: _jednotka),
             for (final d in p.dny) _UlozenyDen(den: d, pobocka: pobocka),
           ],
         ),
       ),
     );
   }
+}
+
+/// Kapacita člověka v zadané jednotce a vedle přepočet na tu druhou.
+String _textKapacity(int aw, JednotkaKapacity jednotka) {
+  final hodiny = '${hodinyText(aw / awZaHodinu)} h';
+  return jednotka == JednotkaKapacity.hodiny
+      ? '$hodiny · $aw AW'
+      : '$aw AW · $hodiny';
 }
 
 /// Změna kapacity: uloží, přepočítá okno i plán, chybu ukáže dole.
@@ -150,10 +189,30 @@ class _Karta extends StatelessWidget {
 }
 
 class _RadekCloveka extends ConsumerWidget {
-  const _RadekCloveka({required this.clovek, required this.pobocka});
+  const _RadekCloveka({
+    required this.clovek,
+    required this.pobocka,
+    required this.jednotka,
+  });
 
   final ClovekKapacity clovek;
   final String pobocka;
+  final JednotkaKapacity jednotka;
+
+  Future<void> _upravKapacitu(BuildContext context, WidgetRef ref) async {
+    final aw = await showDialog<int>(
+      context: context,
+      builder: (_) => _OknoKapacityCloveka(clovek: clovek, jednotka: jednotka),
+    );
+    if (aw == null || aw == clovek.awDen || !context.mounted) return;
+    await _zapis(
+      context,
+      ref,
+      pobocka,
+      () =>
+          ref.read(planDataSourceProvider).nastavKapacituCloveka(clovek.id, aw),
+    );
+  }
 
   Future<void> _pridejNepritomnost(BuildContext context, WidgetRef ref) async {
     final dnes = ref.read(dnesProvider);
@@ -242,6 +301,13 @@ class _RadekCloveka extends ConsumerWidget {
             spacing: Insets.sm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              ActionChip(
+                key: Key('kapacita-clovek-${clovek.id}'),
+                avatar: const Icon(Icons.schedule, size: 16),
+                label: Text(_textKapacity(clovek.awDen, jednotka)),
+                tooltip: 'Kapacita za den',
+                onPressed: () => _upravKapacitu(context, ref),
+              ),
               for (final n in clovek.nepritomnosti)
                 InputChip(
                   key: Key('kapacita-nepritomnost-${n.id}'),
@@ -273,10 +339,78 @@ class _RadekCloveka extends ConsumerWidget {
   }
 }
 
+/// Zadání kapacity člověka za den. Vrací AW; zavření bez uložení `null`.
+class _OknoKapacityCloveka extends StatefulWidget {
+  const _OknoKapacityCloveka({required this.clovek, required this.jednotka});
+
+  final ClovekKapacity clovek;
+  final JednotkaKapacity jednotka;
+
+  @override
+  State<_OknoKapacityCloveka> createState() => _OknoKapacityClovekaState();
+}
+
+class _OknoKapacityClovekaState extends State<_OknoKapacityCloveka> {
+  late final TextEditingController _hodnota = TextEditingController(
+    text: widget.jednotka == JednotkaKapacity.hodiny
+        ? hodinyText(widget.clovek.awDen / awZaHodinu)
+        : '${widget.clovek.awDen}',
+  );
+
+  @override
+  void dispose() {
+    _hodnota.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hodiny = widget.jednotka == JednotkaKapacity.hodiny;
+    final aw = kapacitaClovekaNaAw(_hodnota.text, widget.jednotka);
+    return AlertDialog(
+      title: Text(widget.clovek.popisek),
+      content: TextField(
+        key: const Key('kapacita-clovek-hodnota'),
+        controller: _hodnota,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: 'Kapacita za den',
+          suffixText: hodiny ? 'h' : 'AW',
+          helperText: aw == null
+              ? null
+              : hodiny
+              ? '$aw AW'
+              : '${hodinyText(aw / awZaHodinu)} h',
+          errorText: aw == null ? 'Od 1 AW do 24 h' : null,
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Zrušit'),
+        ),
+        TextButton(
+          key: const Key('kapacita-clovek-vychozi'),
+          onPressed: () => Navigator.of(context).pop(awClovekDen),
+          child: Text('Výchozí ${hodinyText(awClovekDen / awZaHodinu)} h'),
+        ),
+        FilledButton(
+          key: const Key('kapacita-clovek-ulozit'),
+          onPressed: aw == null ? null : () => Navigator.of(context).pop(aw),
+          child: const Text('Uložit'),
+        ),
+      ],
+    );
+  }
+}
+
 class _RucniDen extends ConsumerStatefulWidget {
-  const _RucniDen({required this.pobocka});
+  const _RucniDen({required this.pobocka, required this.jednotka});
 
   final String pobocka;
+  final JednotkaKapacity jednotka;
 
   @override
   ConsumerState<_RucniDen> createState() => _RucniDenState();
@@ -286,7 +420,6 @@ class _RucniDenState extends ConsumerState<_RucniDen> {
   final _hodnota = TextEditingController();
   DateTime? _den;
   Dilna _dilna = Dilna.klempirna;
-  JednotkaKapacity _jednotka = JednotkaKapacity.hodiny;
 
   @override
   void dispose() {
@@ -310,7 +443,7 @@ class _RucniDenState extends ConsumerState<_RucniDen> {
   Widget build(BuildContext context) {
     final dnes = ref.watch(dnesProvider);
     final den = _den ?? DateTime(dnes.year, dnes.month, dnes.day);
-    final aw = prevedNaAw(_hodnota.text, _jednotka);
+    final aw = prevedNaAw(_hodnota.text, widget.jednotka);
     final spatne = _hodnota.text.trim().isNotEmpty && aw == null;
     return Wrap(
       spacing: Insets.sm,
@@ -341,22 +474,16 @@ class _RucniDenState extends ConsumerState<_RucniDen> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               isDense: true,
-              hintText: _jednotka == JednotkaKapacity.hodiny ? '15' : '180',
+              hintText: widget.jednotka == JednotkaKapacity.hodiny
+                  ? '15'
+                  : '180',
+              suffixText: widget.jednotka == JednotkaKapacity.hodiny
+                  ? 'h'
+                  : 'AW',
               errorText: spatne ? 'Neplatné' : null,
             ),
             onChanged: (_) => setState(() {}),
           ),
-        ),
-        SegmentedButton<JednotkaKapacity>(
-          key: const Key('kapacita-jednotka'),
-          showSelectedIcon: false,
-          style: const ButtonStyle(visualDensity: VisualDensity.compact),
-          segments: const [
-            ButtonSegment(value: JednotkaKapacity.hodiny, label: Text('h')),
-            ButtonSegment(value: JednotkaKapacity.aw, label: Text('AW')),
-          ],
-          selected: {_jednotka},
-          onSelectionChanged: (v) => setState(() => _jednotka = v.first),
         ),
         FilledButton(
           key: const Key('kapacita-ulozit-den'),

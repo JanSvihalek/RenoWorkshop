@@ -310,6 +310,15 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<void> nastavKapacituCloveka(int id, int aw) async {
+    await _send(
+      'PUT',
+      'bodyshop-plan/capacity/people/$id/capacity',
+      body: {'aw': aw},
+    );
+  }
+
+  @override
   Future<void> pridejNepritomnost(int id, DateTime od, DateTime do_) async {
     await _send(
       'POST',

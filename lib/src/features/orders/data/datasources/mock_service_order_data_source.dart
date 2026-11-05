@@ -217,6 +217,7 @@ class MockServiceOrderDataSource
         jmeno: 'Černý Ondřej',
         tarify: ['Lakýrník'],
         dilnaPodleTarifu: Dilna.lakovna,
+        awDen: 48,
       ),
     ],
     '2': [

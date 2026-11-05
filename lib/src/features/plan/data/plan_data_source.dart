@@ -19,6 +19,9 @@ abstract interface class PlanDataSource {
   /// Přeřadí člověka: kód dílny, `mimo`, nebo `null` zpět podle tarifu.
   Future<void> zaradCloveka(int id, String? dilna);
 
+  /// Kapacita člověka za den v AW; výchozí hodnota se na serveru neukládá.
+  Future<void> nastavKapacituCloveka(int id, int aw);
+
   Future<void> pridejNepritomnost(int id, DateTime od, DateTime do_);
 
   Future<void> smazNepritomnost(int id);

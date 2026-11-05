@@ -7,8 +7,11 @@ import 'prehled_planu.dart';
 /// Zařazení mimo dílny: člověk se do kapacity nepočítá.
 const zarazeniMimo = 'mimo';
 
-/// 7,5 hodiny práce.
+/// Výchozí kapacita člověka za den: 7,5 hodiny práce.
 const awClovekDen = 90;
+
+/// Nejvyšší kapacita člověka za den: 24 hodin.
+const awClovekMax = 288;
 
 class NepritomnostCloveka {
   const NepritomnostCloveka({
@@ -37,6 +40,7 @@ class ClovekKapacity {
     this.tarify = const [],
     this.dilnaPodleTarifu,
     this.prirazeno,
+    this.awDen = awClovekDen,
     this.nepritomnosti = const [],
   });
 
@@ -49,6 +53,9 @@ class ClovekKapacity {
 
   /// Ruční zařazení: kód dílny, nebo [zarazeniMimo]. `null` = podle tarifu.
   final String? prirazeno;
+
+  /// Kapacita člověka za den v AW (třeba zkrácený úvazek).
+  final int awDen;
   final List<NepritomnostCloveka> nepritomnosti;
 
   /// Kde se opravdu počítá; `null` = nikde.
@@ -61,6 +68,7 @@ class ClovekKapacity {
 
   ClovekKapacity copyWith({
     String? Function()? prirazeno,
+    int? awDen,
     List<NepritomnostCloveka>? nepritomnosti,
   }) => ClovekKapacity(
     id: id,
@@ -68,6 +76,7 @@ class ClovekKapacity {
     tarify: tarify,
     dilnaPodleTarifu: dilnaPodleTarifu,
     prirazeno: prirazeno == null ? this.prirazeno : prirazeno(),
+    awDen: awDen ?? this.awDen,
     nepritomnosti: nepritomnosti ?? this.nepritomnosti,
   );
 
@@ -80,6 +89,7 @@ class ClovekKapacity {
     ],
     dilnaPodleTarifu: Dilna.zKodu(json['tariffWorkshop'] as String?),
     prirazeno: json['assigned'] as String?,
+    awDen: json['dailyAw'] as int? ?? awClovekDen,
     nepritomnosti: [
       for (final n in json['absences'] as List<dynamic>? ?? const [])
         NepritomnostCloveka.fromJson(n as Map<String, dynamic>),
@@ -132,7 +142,7 @@ class PrehledKapacity {
       );
 }
 
-/// Kapacita dílen po pracovních dnech: přítomní lidé × 90 AW, ruční den má
+/// Kapacita dílen po pracovních dnech: součet přítomných lidí, ruční den má
 /// přednost. Dílna bez lidí a bez ručního dne tu není.
 Map<DateTime, Map<Dilna, KapacitaDne>> kapacityObdobi(
   List<ClovekKapacity> lide,
@@ -150,20 +160,20 @@ Map<DateTime, Map<Dilna, KapacitaDne>> kapacityObdobi(
     final den = d;
     for (final dilna in Dilna.values) {
       final vDilne = lide.where((c) => c.dilna == dilna).toList();
-      final pritomno = vDilne
+      final pritomni = vDilne
           .where(
             (c) => !c.nepritomnosti.any(
               (n) => !n.od.isAfter(den) && !n.do_.isBefore(den),
             ),
           )
-          .length;
+          .toList();
       final prepsano = rucni
           .where((r) => r.dilna == dilna && r.den == den)
           .firstOrNull;
       if (prepsano == null && vDilne.isEmpty) continue;
       (vysledek[den] ??= {})[dilna] = KapacitaDne(
-        aw: prepsano?.aw ?? pritomno * awClovekDen,
-        lidi: pritomno,
+        aw: prepsano?.aw ?? pritomni.fold(0, (soucet, c) => soucet + c.awDen),
+        lidi: pritomni.length,
         rucne: prepsano != null,
       );
     }
@@ -180,4 +190,12 @@ int? prevedNaAw(String text, JednotkaKapacity jednotka) {
   final aw = (jednotka == JednotkaKapacity.hodiny ? cislo * awZaHodinu : cislo)
       .round();
   return aw <= 9999 ? aw : null;
+}
+
+/// Zadaná kapacita člověka na celé AW. Prázdné pole je návrat na výchozí
+/// hodnotu, `null` = neplatné. Nula neplatí: kdo se nepočítá, má Nepočítat.
+int? kapacitaClovekaNaAw(String text, JednotkaKapacity jednotka) {
+  if (text.trim().isEmpty) return awClovekDen;
+  final aw = prevedNaAw(text, jednotka);
+  return aw != null && aw >= 1 && aw <= awClovekMax ? aw : null;
 }

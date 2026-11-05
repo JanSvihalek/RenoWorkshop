@@ -31,6 +31,10 @@ mixin KapacitaVPameti {
     _upravCloveka(id, (c) => c.copyWith(prirazeno: () => dilna));
   }
 
+  Future<void> nastavKapacituCloveka(int id, int aw) async {
+    _upravCloveka(id, (c) => c.copyWith(awDen: aw));
+  }
+
   Future<void> pridejNepritomnost(int id, DateTime od, DateTime do_) async {
     _upravCloveka(
       id,
