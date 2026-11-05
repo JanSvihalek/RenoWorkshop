@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../orders/domain/entities/dilensky_stav.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
@@ -249,29 +251,100 @@ Map<DateTime, Map<Dilna, double>> vytizeniDilen(List<PolozkaPlanu> polozky) {
   return vysledek;
 }
 
-/// Barva vytížení: modrá v pořádku, oranžová skoro plno, červená přes kapacitu.
-enum UrovenVytizeni { ok, plno, pres }
+/// Pásmo vytížení: šedá pod 50 %, modrá do 84 %, oranžová do 100 %, červená
+/// přes kapacitu. Jediné místo s hranicemi - používá je ukazatel, detail
+/// i legenda.
+enum UrovenVytizeni { nizke, ok, plno, pres }
 
 UrovenVytizeni urovenVytizeni(int procent) {
   if (procent > 100) return UrovenVytizeni.pres;
-  return procent >= 85 ? UrovenVytizeni.plno : UrovenVytizeni.ok;
+  if (procent >= 85) return UrovenVytizeni.plno;
+  return procent >= 50 ? UrovenVytizeni.ok : UrovenVytizeni.nizke;
 }
 
 /// Stav vytížení; [procent] `null` = kapacita chybí, nebo je nulová,
-/// [uroven] `null` = kapacita chybí. Kapacita 0 a nějaká práce je přes kapacitu.
+/// [uroven] `null` = šedá, není s čím porovnat. Kapacita 0 a nějaká práce je
+/// přes kapacitu.
 ({int? procent, UrovenVytizeni? uroven}) stavVytizeni(
   double hodin,
   double? kapacita,
 ) {
   if (kapacita == null) return (procent: null, uroven: null);
   if (kapacita <= 0) {
-    return (
-      procent: null,
-      uroven: hodin > 0 ? UrovenVytizeni.pres : UrovenVytizeni.ok,
-    );
+    return (procent: null, uroven: hodin > 0 ? UrovenVytizeni.pres : null);
   }
   final procent = (hodin / kapacita * 100).round();
   return (procent: procent, uroven: urovenVytizeni(procent));
+}
+
+/// Vytížení dílny, nebo celého dne.
+class RadekVytizeni {
+  RadekVytizeni({required this.nazev, required this.hodin, this.kapacita}) {
+    final stav = stavVytizeni(hodin, kapacita);
+    procent = stav.procent;
+    uroven = stav.uroven;
+  }
+
+  final String nazev;
+  final double hodin;
+  final double? kapacita;
+  late final int? procent;
+  late final UrovenVytizeni? uroven;
+
+  /// `63 %`, bez kapacity `–`.
+  String get procentText => procent == null ? '–' : '$procent %';
+
+  /// `30/48 h`, bez kapacity jen `30 h`.
+  String get hodinyZKapacity => switch (kapacita) {
+    null => '${hodinyText(hodin)} h',
+    final k => '${hodinyText(hodin)}/${hodinyText(k)} h',
+  };
+}
+
+/// Vytížení jednoho dne po dílnách a celkem (součet hodin / součet kapacit).
+({List<(Dilna, RadekVytizeni)> dilny, RadekVytizeni celkem}) vytizeniDne(
+  Map<Dilna, double>? zatez,
+  Map<Dilna, KapacitaDne>? kapacity,
+) {
+  final dilny = [
+    for (final d in Dilna.values)
+      (
+        d,
+        RadekVytizeni(
+          nazev: d.nazev,
+          hodin: zatez?[d] ?? 0,
+          kapacita: kapacity?[d]?.hodin,
+        ),
+      ),
+  ];
+  final zadane = [for (final (_, r) in dilny) ?r.kapacita];
+  return (
+    dilny: dilny,
+    celkem: RadekVytizeni(
+      nazev: 'Celkem',
+      hodin: dilny.fold(0.0, (soucet, d) => soucet + d.$2.hodin),
+      kapacita: zadane.isEmpty
+          ? null
+          : zadane.fold<double>(0, (soucet, k) => soucet + k),
+    ),
+  );
+}
+
+/// Šířka zúženého víkendu ve 14 dnech.
+const sirkaVikendu = 46.0;
+
+/// Ve 14 dnech je víkend zúžený, v týdnu mají všechny dny stejnou šířku.
+bool jeUzkyDen(DateTime d, List<DateTime> dny) => dny.length > 7 && jeVikend(d);
+
+/// Šířky sloupců - stejné pro hlavičku, pozadí řádků i pruhy. Když se dny do
+/// [dostupna] nevejdou, osa se posouvá do stran.
+List<double> sirkySloupcu(List<DateTime> dny, double dostupna) {
+  final uzke = dny.where((d) => jeUzkyDen(d, dny)).length;
+  final den = math.max(
+    dny.length > 7 ? 80.0 : 120.0,
+    (dostupna - uzke * sirkaVikendu) / (dny.length - uzke),
+  );
+  return [for (final d in dny) jeUzkyDen(d, dny) ? sirkaVikendu : den];
 }
 
 enum StavPruhu { planovano, probiha, hotovo, poTerminu }

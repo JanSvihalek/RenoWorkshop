@@ -315,10 +315,12 @@ void main() {
       });
 
       test('barva vytížení, výchozí dílna a hodiny', () {
-        expect(urovenVytizeni(75), UrovenVytizeni.ok);
-        expect(urovenVytizeni(88), UrovenVytizeni.plno);
+        expect(urovenVytizeni(49), UrovenVytizeni.nizke);
+        expect(urovenVytizeni(50), UrovenVytizeni.ok);
+        expect(urovenVytizeni(84), UrovenVytizeni.ok);
+        expect(urovenVytizeni(85), UrovenVytizeni.plno);
         expect(urovenVytizeni(100), UrovenVytizeni.plno);
-        expect(urovenVytizeni(113), UrovenVytizeni.pres);
+        expect(urovenVytizeni(101), UrovenVytizeni.pres);
         expect(Dilna.vychoziProTyp('demontaz'), Dilna.klempirna);
         expect(Dilna.vychoziProTyp('priprava_lak'), Dilna.priprava);
         expect(Dilna.vychoziProTyp('lakovna'), Dilna.lakovna);
@@ -596,7 +598,7 @@ void main() {
 
     expect(zdroj.obdobiPlanu, (DateTime(2026, 10, 12), DateTime(2026, 10, 18)));
     expect(find.text('12. 10. – 18. 10. 2026'), findsOneWidget);
-    expect(find.text('St 14. 10.'), findsOneWidget);
+    expect(find.text('14. 10.'), findsOneWidget);
     // Brno: dvě zakázky, obě s kódem 416.
     expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
     expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsOneWidget);
@@ -859,27 +861,53 @@ void main() {
     };
     await otevriPlanovac(tester);
 
-    final den = find.byKey(const Key('plan-vytizeni-12-klempirna'));
+    // V hlavičce jen ukazatel: názvy dílen až v detailu, písmena pod segmenty.
+    expect(find.byKey(const Key('plan-detail-vytizeni')), findsNothing);
+    expect(find.text('Klempírna'), findsNothing);
+    expect(find.text('K'), findsNWidgets(5));
     expect(
-      find.descendant(of: den, matching: find.text('2 h · 13 %')),
-      findsOneWidget,
+      tester.widget<Text>(find.byKey(const Key('plan-mini-12'))).data,
+      '13 %',
     );
     expect(
+      tester.widget<Text>(find.byKey(const Key('plan-mini-hodiny-12'))).data,
+      '2/16 h',
+    );
+    // Víkend ukazatel nemá.
+    expect(find.byKey(const Key('plan-mini-17')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('plan-hlavicka-12')));
+    await tester.pumpAndSettle();
+    expect(
       find.descendant(
-        of: find.byKey(const Key('plan-vytizeni-12-celkem')),
+        of: find.byKey(const Key('plan-vytizeni-klempirna')),
         matching: find.text('2 h · 13 %'),
       ),
       findsOneWidget,
     );
-    // Bez kapacity jen hodiny.
     expect(
       find.descendant(
-        of: find.byKey(const Key('plan-vytizeni-12-lakovna')),
-        matching: find.text('0 h'),
+        of: find.byKey(const Key('plan-vytizeni-celkem')),
+        matching: find.text('2/16 h · 13 %'),
       ),
       findsOneWidget,
     );
-    expect(find.text('Zavřeno'), findsNWidgets(2));
+    // Bez kapacity pomlčka.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('plan-vytizeni-lakovna')),
+        matching: find.text('0 h · –'),
+      ),
+      findsOneWidget,
+    );
+
+    // Klepnutí mimo detail jen zavře, úkon se tím nezakládá.
+    await tester.tapAt(const Offset(5, 500));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('plan-detail-vytizeni')), findsNothing);
+    expect(find.byKey(const Key('plan-pridat-ukon')), findsNothing);
+
+    expect(find.byKey(const Key('plan-legenda-vytizeni')), findsOneWidget);
     expect(find.byKey(const Key('plan-legenda')), findsOneWidget);
   });
 
@@ -976,7 +1004,174 @@ void main() {
       expect(k.lidi, 1);
     });
 
-    testWidgets('bez kapacity je nula červeně: všichni chybí', (tester) async {
+    test('vytížení dne: celkem je součet hodin ku součtu kapacit', () {
+      final v = vytizeniDne(
+        {Dilna.klempirna: 12, Dilna.priprava: 3, Dilna.lakovna: 15},
+        {
+          Dilna.klempirna: const KapacitaDne(aw: 192),
+          Dilna.lakovna: const KapacitaDne(aw: 192),
+        },
+      );
+      expect([for (final (_, r) in v.dilny) r.procent], [75, null, 94]);
+      expect(
+        [for (final (_, r) in v.dilny) r.uroven],
+        [UrovenVytizeni.ok, null, UrovenVytizeni.plno],
+      );
+      // Práce v dílně bez kapacity se do celku počítá: 30 h z 32 h.
+      expect(v.celkem.procent, 94);
+      expect(v.celkem.hodinyZKapacity, '30/32 h');
+
+      final bez = vytizeniDne(null, null);
+      expect(bez.celkem.procentText, '–');
+      expect(bez.celkem.hodinyZKapacity, '0 h');
+      // Nulová kapacita: bez práce šedá, s prací přes kapacitu.
+      expect(stavVytizeni(0, 0).uroven, isNull);
+      expect(stavVytizeni(3, 0).uroven, UrovenVytizeni.pres);
+      expect(stavVytizeni(3, 0).procent, isNull);
+    });
+
+    test('šířky sloupců: v týdnu stejné, ve 14 dnech úzké víkendy', () {
+      final tyden = dnyOsy(DateTime(2026, 11, 2), 1);
+      final dva = dnyOsy(DateTime(2026, 11, 2), 2);
+      expect(sirkySloupcu(tyden, 1400).toSet(), {200.0});
+      expect(sirkySloupcu(tyden, 390).toSet(), {120.0});
+      final sirky = sirkySloupcu(dva, 1184);
+      expect(sirky[0], 100);
+      expect(sirky[5], sirkaVikendu);
+      expect(sirky[6], sirkaVikendu);
+      expect(sirky[12], sirkaVikendu);
+      expect(sirky.fold<double>(0, (a, b) => a + b), 1184);
+      expect(sirkySloupcu(dva, 400)[0], 80);
+    });
+
+    testWidgets('14 dní: bez písmen a hodin, víkend úzký, pruhy sedí', (
+      tester,
+    ) async {
+      await spust(
+        tester,
+        zakazky: [
+          buildOrderDto(
+            utvar: '11215',
+            canPlanBodyshop: true,
+            bodyshopPlan: plan('2026-10-16', '2026-10-19'),
+          ),
+        ],
+        velikost: const Size(1600, 1000),
+      );
+      await otevriPlanovac(tester);
+      await tester.tap(find.text('14 dní'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('K'), findsNothing);
+      expect(find.byKey(const Key('plan-mini-hodiny-12')), findsNothing);
+      expect(find.byKey(const Key('plan-mini-12')), findsOneWidget);
+      expect(find.byKey(const Key('plan-mini-17')), findsNothing);
+      final vikend = tester.getSize(find.byKey(const Key('plan-hlavicka-17')));
+      expect(vikend.width, sirkaVikendu);
+      final den = tester.getSize(find.byKey(const Key('plan-hlavicka-12')));
+      expect(den.width, greaterThan(sirkaVikendu));
+      expect(find.text('17.'), findsOneWidget);
+
+      // Hlavička i řádek jedou po stejných sloupcích, i přes úzký víkend.
+      for (final d in [12, 17, 19, 25]) {
+        expect(
+          tester.getTopLeft(find.byKey(Key('plan-hlavicka-$d'))).dx,
+          moreOrLessEquals(
+            tester
+                .getTopLeft(
+                  find
+                      .ancestor(
+                        of: find.byKey(Key('plan-den-ZK-26-0001-$d')),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .dx,
+          ),
+        );
+      }
+      // Pruh pátek až pondělí začíná v pátek a končí v pondělí.
+      final pruh = find.byKey(const Key('plan-pruh-ZK-26-0001-1'));
+      expect(
+        tester.getTopLeft(pruh).dx,
+        moreOrLessEquals(
+          tester.getTopLeft(find.byKey(const Key('plan-hlavicka-16'))).dx + 4,
+        ),
+      );
+      expect(
+        tester.getTopRight(pruh).dx,
+        moreOrLessEquals(
+          tester.getTopRight(find.byKey(const Key('plan-hlavicka-19'))).dx - 4,
+        ),
+      );
+    });
+
+    testWidgets('na telefonu zůstane detail na obrazovce', (tester) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+        velikost: const Size(390, 844),
+      );
+      await otevriPlanovac(tester);
+      await tester.tap(
+        find.byKey(const Key('plan-hlavicka-13')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      final detail = find.byKey(const Key('plan-detail-vytizeni'));
+      expect(detail, findsOneWidget);
+      expect(tester.getTopRight(detail).dx, lessThanOrEqualTo(390));
+      expect(tester.getTopLeft(detail).dx, greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('segment má barvu pásma, nula s prací je červená', (
+      tester,
+    ) async {
+      await spust(
+        tester,
+        zakazky: [
+          buildOrderDto(
+            utvar: '11215',
+            canPlanBodyshop: true,
+            bodyshopPlan: plan(
+              '2026-10-12',
+              '2026-10-12',
+              ukony: [
+                {
+                  ...ukon(1, '2026-10-12', '2026-10-12'),
+                  'aw': 90,
+                  'workshop': 'lakovna',
+                },
+              ],
+            ),
+          ),
+        ],
+      );
+      zdroj.kapacityPlanu = {
+        '1': {
+          DateTime(2026, 10, 12): {
+            Dilna.lakovna: const KapacitaDne(aw: 0),
+            Dilna.klempirna: const KapacitaDne(aw: 90),
+          },
+        },
+      };
+      await otevriPlanovac(tester);
+      Color? barva(String kod) =>
+          (tester
+                      .widget<Container>(
+                        find.byKey(Key('plan-segment-12-$kod')),
+                      )
+                      .decoration!
+                  as BoxDecoration)
+              .color;
+      expect(barva('lakovna'), const Color(0xFFC62828));
+      expect(barva('klempirna'), const Color(0xFFC9D6DE));
+      expect(barva('priprava'), const Color(0xFFC9D6DE));
+    });
+
+    testWidgets('všichni chybí, bez práce: pomlčka místo procent', (
+      tester,
+    ) async {
       await spust(
         tester,
         zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
@@ -988,11 +1183,12 @@ void main() {
       };
       await otevriPlanovac(tester);
       expect(
-        find.descendant(
-          of: find.byKey(const Key('plan-vytizeni-12-klempirna')),
-          matching: find.text('0 h / 0'),
-        ),
-        findsOneWidget,
+        tester.widget<Text>(find.byKey(const Key('plan-mini-12'))).data,
+        '–',
+      );
+      expect(
+        tester.widget<Text>(find.byKey(const Key('plan-mini-hodiny-12'))).data,
+        '0/0 h',
       );
     });
 
