@@ -83,13 +83,36 @@ class PolozkaPlanu {
   }
 }
 
+/// Kapacita dílny za jeden pracovní den.
+class KapacitaDne {
+  const KapacitaDne({required this.aw, this.lidi = 0, this.rucne = false});
+
+  final int aw;
+
+  /// Přítomných lidí v dílně.
+  final int lidi;
+
+  /// Ručně zadaný den, přebil počet lidí.
+  final bool rucne;
+
+  double get hodin => aw / awZaHodinu;
+}
+
 /// Plán na období: všechny rozdělané zakázky klempířských útvarů (s plánem
 /// i bez), zakázky s blokem v období a pobočky klempíren.
 class PrehledPlanu {
-  const PrehledPlanu({required this.pobocky, required this.polozky});
+  const PrehledPlanu({
+    required this.pobocky,
+    required this.polozky,
+    this.kapacity = const {},
+  });
 
   final List<PobockaPlanu> pobocky;
   final List<PolozkaPlanu> polozky;
+
+  /// Kapacita po pobočkách a pracovních dnech. Dílna, která v daný den
+  /// chybí, kapacitu nemá.
+  final Map<String, Map<DateTime, Map<Dilna, KapacitaDne>>> kapacity;
 
   /// [zakazka] převede řádek na celou zakázku - umí to datová vrstva
   /// (DTO), doména ne.
@@ -111,7 +134,30 @@ class PrehledPlanu {
           zakazka: zakazka?.call(p),
         ),
     ],
+    kapacity: _kapacity(json['capacity']),
   );
+
+  static Map<String, Map<DateTime, Map<Dilna, KapacitaDne>>> _kapacity(
+    Object? data,
+  ) {
+    final vysledek = <String, Map<DateTime, Map<Dilna, KapacitaDne>>>{};
+    for (final k in data as List<dynamic>? ?? const []) {
+      final radek = k as Map<String, dynamic>;
+      final dilna = Dilna.zKodu(radek['workshop'] as String?);
+      final pobocka = radek['branch'] as String?;
+      final den = DateTime.tryParse(radek['day'] as String? ?? '');
+      final aw = (radek['aw'] as num?)?.toInt();
+      if (dilna == null || pobocka == null || den == null || aw == null) {
+        continue;
+      }
+      ((vysledek[pobocka] ??= {})[den] ??= {})[dilna] = KapacitaDne(
+        aw: aw,
+        lidi: (radek['people'] as num?)?.toInt() ?? 0,
+        rucne: radek['manual'] == true,
+      );
+    }
+    return vysledek;
+  }
 }
 
 /// Kód laku, který se v období opakuje - zakázky jde lakovat v jedné
@@ -160,6 +206,89 @@ List<DateTime> pracovniDny(DateTime zacatek, int tydnu) => [
       DateTime(zacatek.year, zacatek.month, zacatek.day + t * 7 + d),
 ];
 
+/// Všechny dny (po-ne) od pondělí [zacatek] na [tydnu] týdnů - sloupce osy.
+List<DateTime> dnyOsy(DateTime zacatek, int tydnu) => [
+  for (var i = 0; i < tydnu * 7; i++)
+    DateTime(zacatek.year, zacatek.month, zacatek.day + i),
+];
+
+bool jeVikend(DateTime d) =>
+    d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+
+/// Hodiny na jedno desetinné místo: `12`, `12,5`.
+String hodinyText(double h) {
+  final zaokrouhleno = (h * 10).round() / 10;
+  return (zaokrouhleno == zaokrouhleno.roundToDouble()
+          ? zaokrouhleno.toInt().toString()
+          : zaokrouhleno.toString())
+      .replaceAll('.', ',');
+}
+
+/// Vytížení dílen po dnech v hodinách. AW úkonu se dělí rovným dílem na jeho
+/// pracovní dny; úkon bez AW nebo dílny se nepočítá. Volá se s řádky celé
+/// pobočky, ne po filtru - vytížení dílny na filtru nezávisí.
+Map<DateTime, Map<Dilna, double>> vytizeniDilen(List<PolozkaPlanu> polozky) {
+  final vysledek = <DateTime, Map<Dilna, double>>{};
+  for (final p in polozky) {
+    for (final u in p.plan?.ukony ?? const <UkonPlanu>[]) {
+      final aw = u.aw;
+      final dilna = u.dilna;
+      if (aw == null || aw <= 0 || dilna == null) continue;
+      final dny = [
+        for (var i = 0; i <= u.do_.difference(u.od).inDays; i++)
+          if (DateTime(u.od.year, u.od.month, u.od.day + i) case final d
+              when !jeVikend(d))
+            d,
+      ];
+      for (final d in dny) {
+        final den = vysledek[d] ??= {};
+        den[dilna] = (den[dilna] ?? 0) + aw / awZaHodinu / dny.length;
+      }
+    }
+  }
+  return vysledek;
+}
+
+/// Barva vytížení: modrá v pořádku, oranžová skoro plno, červená přes kapacitu.
+enum UrovenVytizeni { ok, plno, pres }
+
+UrovenVytizeni urovenVytizeni(int procent) {
+  if (procent > 100) return UrovenVytizeni.pres;
+  return procent >= 85 ? UrovenVytizeni.plno : UrovenVytizeni.ok;
+}
+
+/// Stav vytížení; [procent] `null` = kapacita chybí, nebo je nulová,
+/// [uroven] `null` = kapacita chybí. Kapacita 0 a nějaká práce je přes kapacitu.
+({int? procent, UrovenVytizeni? uroven}) stavVytizeni(
+  double hodin,
+  double? kapacita,
+) {
+  if (kapacita == null) return (procent: null, uroven: null);
+  if (kapacita <= 0) {
+    return (
+      procent: null,
+      uroven: hodin > 0 ? UrovenVytizeni.pres : UrovenVytizeni.ok,
+    );
+  }
+  final procent = (hodin / kapacita * 100).round();
+  return (procent: procent, uroven: urovenVytizeni(procent));
+}
+
+enum StavPruhu { planovano, probiha, hotovo, poTerminu }
+
+/// Barva pruhu: stejně jako osa v detailu, navíc prošlý plán je po termínu.
+StavPruhu stavPruhu(PolozkaPlanu polozka, UkonPlanu ukon, DateTime dnes) {
+  final osa = osaPrubehu(
+    polozka.plan,
+    polozka.zakazka?.historieStavu ?? const [],
+  );
+  final stav = osa.where((p) => p.ukon?.id == ukon.id).firstOrNull?.stav;
+  if (ukon.hotovo || stav == StavPolozky.hotovo) return StavPruhu.hotovo;
+  if (stav == StavPolozky.probiha) return StavPruhu.probiha;
+  final dnesek = DateTime(dnes.year, dnes.month, dnes.day);
+  return ukon.do_.isBefore(dnesek) ? StavPruhu.poTerminu : StavPruhu.planovano;
+}
+
 /// Úkon na ose: které zobrazené dny zabírá a v které lince pod sebou jede.
 class PruhUkonu {
   const PruhUkonu({
@@ -171,14 +300,14 @@ class PruhUkonu {
 
   final UkonPlanu ukon;
 
-  /// Indexy do zobrazených dnů (víkendy v ose nejsou).
+  /// Indexy do zobrazených dnů.
   final int prvni;
   final int posledni;
   final int linka;
 }
 
 /// Pruhy úkonů v zobrazených dnech: bez překryvu jedou v jedné lince, při
-/// překryvu jde další o linku níž. Úkon jen přes víkend na ose není.
+/// překryvu jde další o linku níž.
 ({List<PruhUkonu> pruhy, int linek}) pruhyVOse(
   List<UkonPlanu> ukony,
   List<DateTime> dny,

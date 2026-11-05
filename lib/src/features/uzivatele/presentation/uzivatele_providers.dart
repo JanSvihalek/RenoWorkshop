@@ -26,6 +26,7 @@ Future<void> ulozUzivatele(WidgetRef ref, UzivatelSpravy uzivatel) async {
         role: uzivatel.role,
         prava: uzivatel.prava,
         planovac: uzivatel.planovac,
+        kapacita: uzivatel.kapacita,
       );
   ref.invalidate(prehledUzivateluProvider);
   ref.invalidate(mojePravaProvider);

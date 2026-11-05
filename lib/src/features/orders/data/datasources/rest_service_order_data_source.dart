@@ -16,6 +16,7 @@ import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
 import '../../../plan/data/plan_data_source.dart';
+import '../../../plan/domain/kapacita.dart';
 import '../../../plan/domain/prehled_planu.dart';
 import '../../../fotodokumentace/data/fotky_data_source.dart';
 import '../../../fotodokumentace/domain/entities/dokument.dart';
@@ -287,6 +288,60 @@ class RestServiceOrderDataSource
     );
   }
 
+  @override
+  Future<PrehledKapacity> nactiKapacitu(String pobocka) async {
+    final data = await _send(
+      'GET',
+      'bodyshop-plan/capacity?branch=${Uri.encodeQueryComponent(pobocka)}',
+    );
+    if (data == null) {
+      throw const ServiceOrderException('Kapacita se nenačetla.');
+    }
+    return PrehledKapacity.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<void> zaradCloveka(int id, String? dilna) async {
+    await _send(
+      'PUT',
+      'bodyshop-plan/capacity/people/$id',
+      body: {'workshop': dilna},
+    );
+  }
+
+  @override
+  Future<void> pridejNepritomnost(int id, DateTime od, DateTime do_) async {
+    await _send(
+      'POST',
+      'bodyshop-plan/capacity/people/$id/absences',
+      body: {'from': _den(od), 'to': _den(do_)},
+    );
+  }
+
+  @override
+  Future<void> smazNepritomnost(int id) async {
+    await _send('DELETE', 'bodyshop-plan/capacity/absences/$id');
+  }
+
+  @override
+  Future<void> ulozKapacituDne(
+    String pobocka,
+    DateTime den,
+    Dilna dilna,
+    int? aw,
+  ) async {
+    await _send(
+      'PUT',
+      'bodyshop-plan/capacity/days',
+      body: {
+        'branch': pobocka,
+        'day': _den(den),
+        'workshop': dilna.kod,
+        'aw': aw,
+      },
+    );
+  }
+
   static String _den(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
@@ -477,11 +532,17 @@ class RestServiceOrderDataSource
     required String role,
     required Map<String, String?> prava,
     Map<String, String?>? planovac,
+    Set<String>? kapacita,
   }) async {
     await _send(
       'PUT',
       'users/${Uri.encodeComponent(email)}',
-      body: {'role': role, 'planner': ?planovac, 'access': prava},
+      body: {
+        'role': role,
+        'planner': ?planovac,
+        if (kapacita != null) 'capacity': {for (final k in kapacita) k: true},
+        'access': prava,
+      },
     );
   }
 

@@ -411,6 +411,13 @@ final smiPlanovatProvider = Provider.family<bool, String?>(
       ref.watch(mojePravaProvider).valueOrNull?.smiPlanovat(pobocka) ?? true,
 );
 
+/// Smí přihlášený u pobočky (kód) upravovat kapacitu dílen? Dokud se práva
+/// nenačtou, tlačítko se neukáže: kapacitu smí málokdo.
+final smiKapacituProvider = Provider.family<bool, String?>(
+  (ref, pobocka) =>
+      ref.watch(mojePravaProvider).valueOrNull?.smiKapacitu(pobocka) ?? false,
+);
+
 /// Vidí zakázky pořadače (kód) - jde z plánovače otevřít detail?
 final smiCistProvider = Provider.family<bool, String?>(
   (ref, poradac) =>

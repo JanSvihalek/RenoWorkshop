@@ -422,25 +422,57 @@ class _UzivatelScreenState extends ConsumerState<UzivatelScreen> {
                     poznamka:
                         'Plánovač klempírny má práva zvlášť od pořadačů. '
                         'Plánovat = plán i dílenský stav, Prohlížet = jen '
-                        'vidí, – = pobočku v plánovači nevidí.',
+                        'vidí, – = pobočku v plánovači nevidí. Kapacitu dílen '
+                        'upravuje jen mistr klempírny a vedoucí servisu.',
                     deti: [
                       for (final p in prehled.pobockyPlanu)
-                        _RadekPrava(
-                          klic: 'planovac-${p.kod}',
-                          nazev: p.nazev,
-                          pravo: u.planovac[p.kod],
-                          cteni: 'Prohlížet',
-                          zapis: 'Plánovat',
-                          povoleno: !_uklada,
-                          onZmena: (pravo) {
-                            final planovac = {...u.planovac};
-                            if (pravo == null) {
-                              planovac.remove(p.kod);
-                            } else {
-                              planovac[p.kod] = pravo;
-                            }
-                            _zmen(u.copyWith(planovac: planovac));
-                          },
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _RadekPrava(
+                              klic: 'planovac-${p.kod}',
+                              nazev: p.nazev,
+                              pravo: u.planovac[p.kod],
+                              cteni: 'Prohlížet',
+                              zapis: 'Plánovat',
+                              povoleno: !_uklada,
+                              onZmena: (pravo) {
+                                final planovac = {...u.planovac};
+                                // Bez přístupu k pobočce kapacitu nemá - po
+                                // vrácení by se sama neobnovila.
+                                final kapacita = {...u.kapacita};
+                                if (pravo == null) {
+                                  planovac.remove(p.kod);
+                                  kapacita.remove(p.kod);
+                                } else {
+                                  planovac[p.kod] = pravo;
+                                }
+                                _zmen(
+                                  u.copyWith(
+                                    planovac: planovac,
+                                    kapacita: kapacita,
+                                  ),
+                                );
+                              },
+                            ),
+                            if (u.planovac[p.kod] != null)
+                              SwitchListTile.adaptive(
+                                key: Key('kapacita-${p.kod}'),
+                                dense: true,
+                                title: const Text('Upravuje kapacitu dílen'),
+                                value: u.kapacita.contains(p.kod),
+                                onChanged: _uklada
+                                    ? null
+                                    : (ano) => _zmen(
+                                        u.copyWith(
+                                          kapacita: ano
+                                              ? {...u.kapacita, p.kod}
+                                              : ({...u.kapacita}
+                                                  ..remove(p.kod)),
+                                        ),
+                                      ),
+                              ),
+                          ],
                         ),
                     ],
                   ),

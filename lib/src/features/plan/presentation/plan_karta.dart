@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/dimens.dart';
 import '../../../core/utils/date_formats.dart';
-import '../../orders/domain/entities/plan_klempirny.dart';
 
 /// „12. 10. – 14. 10. 2026", přes rok s rokem u obou.
 String obdobiPlanu(DateTime od, DateTime do_) {
@@ -32,12 +30,6 @@ String pocetDni(int n) =>
         : n >= 2 && n <= 4
         ? 'dny'
         : 'dní'}';
-
-/// Barva úkonu `#RRGGBB` z číselníku; nečitelná je jako barva aplikace.
-Color barvaUkonu(TypUkonu typ) {
-  final hodnota = int.tryParse(typ.barva.replaceFirst('#', ''), radix: 16);
-  return hodnota == null ? AppColors.accent : Color(0xFF000000 | hodnota);
-}
 
 /// „KÓD 416" - kód laku jako štítek.
 class KodLaku extends StatelessWidget {

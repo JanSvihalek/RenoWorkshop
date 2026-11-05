@@ -19,6 +19,7 @@ import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/prehled_planu.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../uzivatele/presentation/uzivatele_screen.dart';
+import 'kapacita_screen.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
 import 'plan_providers.dart';
@@ -56,7 +57,7 @@ class PlanScreen extends ConsumerWidget {
     final prehled = ref.watch(planKlempirnyProvider);
     final zacatek = ref.watch(planZacatekProvider);
     final tydnu = ref.watch(planTydnuProvider);
-    final dny = pracovniDny(zacatek, tydnu);
+    final dny = dnyOsy(zacatek, tydnu);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -165,6 +166,26 @@ class _Ovladani extends ConsumerWidget {
                 onPressed: onOpenSettings,
                 icon: const Icon(Icons.settings_outlined),
               ),
+              // Kapacitu dílen upravuje jen mistr a vedoucí, nastavuje admin.
+              if (pobocka != null && ref.watch(smiKapacituProvider(pobocka)))
+                IconButton(
+                  key: const Key('plan-kapacita'),
+                  tooltip: 'Kapacita dílen',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => KapacitaScreen(
+                        pobocka: pobocka,
+                        nazev:
+                            pobocky
+                                ?.where((p) => p.kod == pobocka)
+                                .firstOrNull
+                                ?.nazev ??
+                            pobocka,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.groups_outlined),
+                ),
               // Admin jako v portálu plánu na webu - jen pro admina.
               if (ref.watch(mojePravaProvider).valueOrNull?.jeAdmin ?? false)
                 IconButton(
@@ -280,7 +301,7 @@ class _Nadpis extends StatelessWidget {
           ),
         ),
         Text(
-          'zakázky klempířských středisek · klepnutím na den přidáte úkon',
+          'Klepnutím na den přidáte úkon',
           style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
         ),
       ],
@@ -321,6 +342,11 @@ class _Obsah extends ConsumerWidget {
       stavPlanu: ref.watch(planStavPlanuProvider),
     );
     final kody = spolecneKody(polozky, dny.first, dny.last);
+    // Z celé pobočky - vytížení dílny na filtru nezávisí.
+    final zatez = vytizeniDilen(vsechny);
+    final kapacity =
+        prehled.kapacity[pobocka] ??
+        const <DateTime, Map<Dilna, KapacitaDne>>{};
 
     return RefreshIndicator.adaptive(
       onRefresh: () => ref.refresh(planKlempirnyProvider.future),
@@ -336,6 +362,8 @@ class _Obsah extends ConsumerWidget {
             key: const Key('plan-pocet'),
             style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
           ),
+          const SizedBox(height: Insets.sm),
+          const _Legenda(),
           const SizedBox(height: Insets.md),
           if (kody.isNotEmpty) ...[
             _SpolecneKody(kody: kody),
@@ -349,7 +377,13 @@ class _Obsah extends ConsumerWidget {
               boxShadow: palette.cardShadow,
             ),
             clipBehavior: Clip.antiAlias,
-            child: _Osa(polozky: polozky, dny: dny, onOpenOrder: onOpenOrder),
+            child: _Osa(
+              polozky: polozky,
+              dny: dny,
+              zatez: zatez,
+              kapacity: kapacity,
+              onOpenOrder: onOpenOrder,
+            ),
           ),
         ],
       ),
@@ -436,11 +470,15 @@ class _Osa extends StatelessWidget {
   const _Osa({
     required this.polozky,
     required this.dny,
+    required this.zatez,
+    required this.kapacity,
     required this.onOpenOrder,
   });
 
   final List<PolozkaPlanu> polozky;
   final List<DateTime> dny;
+  final Map<DateTime, Map<Dilna, double>> zatez;
+  final Map<DateTime, Map<Dilna, KapacitaDne>> kapacity;
   final ValueChanged<String> onOpenOrder;
 
   @override
@@ -448,10 +486,8 @@ class _Osa extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final levy = constraints.maxWidth >= 900 ? 250.0 : 150.0;
-        final den = math.max(
-          dny.length > 5 ? 64.0 : 76.0,
-          (constraints.maxWidth - levy) / dny.length,
-        );
+        // V hlavičce dne se musí vejít vytížení dílen.
+        final den = math.max(124.0, (constraints.maxWidth - levy) / dny.length);
         final sirka = levy + den * dny.length;
         final radky = rozdelPolozky(polozky, dny.first, dny.last);
 
@@ -460,7 +496,13 @@ class _Osa extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _ZahlaviDnu(dny: dny, levy: levy, den: den),
+              _ZahlaviDnu(
+                dny: dny,
+                levy: levy,
+                den: den,
+                zatez: zatez,
+                kapacity: kapacity,
+              ),
               if (polozky.isEmpty) const _Prazdno(),
               for (final (nadpis, sekce) in [
                 (null, radky.vObdobi),
@@ -495,11 +537,19 @@ class _Osa extends StatelessWidget {
 }
 
 class _ZahlaviDnu extends ConsumerWidget {
-  const _ZahlaviDnu({required this.dny, required this.levy, required this.den});
+  const _ZahlaviDnu({
+    required this.dny,
+    required this.levy,
+    required this.den,
+    required this.zatez,
+    required this.kapacity,
+  });
 
   final List<DateTime> dny;
   final double levy;
   final double den;
+  final Map<DateTime, Map<Dilna, double>> zatez;
+  final Map<DateTime, Map<Dilna, KapacitaDne>> kapacity;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -511,38 +561,246 @@ class _ZahlaviDnu extends ConsumerWidget {
     );
 
     return Container(
-      height: 44,
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: palette.hairline)),
       ),
-      child: Row(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: levy,
+              child: Padding(
+                padding: const EdgeInsets.all(Insets.base),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Zakázka', style: styl),
+                    Text(
+                      'Vytížení dílen (h / kapacita)',
+                      style: AppTextStyles.metaSmall.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            for (final d in dny)
+              Container(
+                width: den,
+                padding: const EdgeInsets.all(Insets.sm),
+                decoration: BoxDecoration(
+                  color: _jeDnes(d, dnes)
+                      ? AppColors.accent.withValues(alpha: 0.1)
+                      : jeVikend(d)
+                      ? palette.background
+                      : null,
+                  border: Border(left: BorderSide(color: palette.hairline)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      denSNazvem(d),
+                      style: _jeDnes(d, dnes)
+                          ? styl.copyWith(color: AppColors.accent)
+                          : styl,
+                    ),
+                    if (jeVikend(d))
+                      Text(
+                        'Zavřeno',
+                        style: AppTextStyles.metaSmall.copyWith(
+                          color: palette.muted,
+                        ),
+                      )
+                    else ...[
+                      for (final dilna in Dilna.values)
+                        _Vytizeni(
+                          key: Key('plan-vytizeni-${d.day}-${dilna.kod}'),
+                          nazev: dilna.nazev,
+                          hodin: zatez[d]?[dilna] ?? 0,
+                          kapacita: kapacity[d]?[dilna]?.hodin,
+                        ),
+                      _Vytizeni(
+                        key: Key('plan-vytizeni-${d.day}-celkem'),
+                        nazev: 'Celkem',
+                        celkem: true,
+                        hodin: Dilna.values.fold(
+                          0.0,
+                          (soucet, dilna) => soucet + (zatez[d]?[dilna] ?? 0),
+                        ),
+                        kapacita: kapacity[d]?.isNotEmpty == true
+                            ? kapacity[d]!.values.fold<double>(
+                                0,
+                                (soucet, k) => soucet + k.hodin,
+                              )
+                            : null,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Řádek vytížení v hlavičce dne: hodiny, procenta a pruh.
+class _Vytizeni extends StatelessWidget {
+  const _Vytizeni({
+    super.key,
+    required this.nazev,
+    required this.hodin,
+    required this.kapacita,
+    this.celkem = false,
+  });
+
+  final String nazev;
+  final double hodin;
+
+  /// Bez kapacity jen hodiny, bez procent.
+  final double? kapacita;
+  final bool celkem;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final kapacita = this.kapacita;
+    final (:procent, :uroven) = stavVytizeni(hodin, kapacita);
+    final barva = switch (uroven) {
+      UrovenVytizeni.pres => AppColors.danger,
+      UrovenVytizeni.plno => const Color(0xFFC98200),
+      _ => AppColors.accent,
+    };
+    final nulova = kapacita != null && kapacita <= 0;
+    final zvyraznit =
+        uroven == UrovenVytizeni.pres || uroven == UrovenVytizeni.plno;
+    final vypln = nulova
+        ? (hodin > 0 ? 1.0 : 0.0)
+        : procent == null
+        ? 0.0
+        : math.min(procent, 100) / 100;
+    return Padding(
+      padding: const EdgeInsets.only(top: Insets.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: levy,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Insets.base),
-              child: Text('Zakázka', style: styl),
+          // V úzkém sloupci se čísla raději zalomí pod název.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                nazev,
+                style: AppTextStyles.metaSmall.copyWith(
+                  fontSize: 10.5,
+                  fontWeight: celkem ? FontWeight.w700 : FontWeight.w500,
+                  color: palette.text,
+                ),
+              ),
+              Text(
+                '${hodinyText(hodin)} h'
+                '${procent == null ? '' : ' · $procent %'}'
+                '${nulova ? ' / 0' : ''}',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontSize: 9.5,
+                  letterSpacing: 0,
+                  color: zvyraznit ? barva : palette.muted2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              minHeight: 4,
+              value: vypln,
+              backgroundColor: palette.background,
+              color: barva,
             ),
           ),
-          for (final d in dny)
-            Container(
-              width: den,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _jeDnes(d, dnes)
-                    ? AppColors.accent.withValues(alpha: 0.1)
-                    : null,
-                border: Border(left: BorderSide(color: palette.hairline)),
-              ),
-              child: Text(
-                denSNazvem(d),
-                style: _jeDnes(d, dnes)
-                    ? styl.copyWith(color: AppColors.accent)
-                    : styl,
-              ),
-            ),
         ],
       ),
+    );
+  }
+}
+
+/// Barvy pruhů podle stavu úkonu.
+({Color pozadi, Color okraj, Color text}) _barvyPruhu(
+  BuildContext context,
+  StavPruhu stav,
+) {
+  final palette = context.palette;
+  final tmava = context.isDarkMode;
+  final zelena = tmava ? const Color(0xFF81C784) : AppColors.heliosGreen;
+  final cervena = tmava ? const Color(0xFFFF7A7A) : AppColors.danger;
+  return switch (stav) {
+    StavPruhu.planovano => (
+      pozadi: palette.background,
+      okraj: palette.hairline2,
+      text: palette.text,
+    ),
+    StavPruhu.probiha => (
+      pozadi: AppColors.accent.withValues(alpha: 0.12),
+      okraj: AppColors.accent,
+      text: palette.text,
+    ),
+    StavPruhu.hotovo => (
+      pozadi: zelena.withValues(alpha: 0.1),
+      okraj: zelena.withValues(alpha: 0.5),
+      text: zelena,
+    ),
+    StavPruhu.poTerminu => (
+      pozadi: cervena.withValues(alpha: 0.08),
+      okraj: cervena,
+      text: palette.text,
+    ),
+  };
+}
+
+/// Co která barva pruhu znamená.
+class _Legenda extends StatelessWidget {
+  const _Legenda();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Wrap(
+      key: const Key('plan-legenda'),
+      spacing: Insets.md,
+      runSpacing: Insets.xs,
+      children: [
+        for (final (stav, nazev) in const [
+          (StavPruhu.planovano, 'Plánováno'),
+          (StavPruhu.probiha, 'Probíhá'),
+          (StavPruhu.hotovo, 'Hotovo'),
+          (StavPruhu.poTerminu, 'Po termínu'),
+        ])
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 20,
+                height: 11,
+                decoration: BoxDecoration(
+                  color: _barvyPruhu(context, stav).pozadi,
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: _barvyPruhu(context, stav).okraj),
+                ),
+              ),
+              const SizedBox(width: Insets.xs),
+              Text(
+                nazev,
+                style: AppTextStyles.metaSmall.copyWith(color: palette.text),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -690,6 +948,8 @@ class _Radek extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: _jeDnes(d, dnes)
                               ? AppColors.accent.withValues(alpha: 0.05)
+                              : jeVikend(d)
+                              ? palette.background
                               : null,
                           border: Border(
                             left: BorderSide(color: palette.hairline),
@@ -697,8 +957,9 @@ class _Radek extends ConsumerWidget {
                         ),
                         child: InkWell(
                           key: Key('plan-den-${polozka.zakazkaId}-${d.day}'),
-                          onTap: smi ? () => pridej(d) : null,
-                          child: smi
+                          // V sobotu a v neděli je zavřeno, úkon tam nezačíná.
+                          onTap: smi && !jeVikend(d) ? () => pridej(d) : null,
+                          child: smi && !jeVikend(d)
                               ? Align(
                                   // S plánem dole v pásu pod pruhy.
                                   alignment: plan == null
@@ -746,6 +1007,7 @@ class _Radek extends ConsumerWidget {
                       polozka: polozka,
                       smi: smi,
                       ukon: p.ukon,
+                      stav: stavPruhu(polozka, p.ukon, dnes),
                       sKodem:
                           (p.posledni - p.prvni + 1) * den - 8 >= _sirkaProKod,
                       useknutyZleva: p.ukon.od.isBefore(dny[p.prvni]),
@@ -761,11 +1023,12 @@ class _Radek extends ConsumerWidget {
   }
 }
 
-/// Úkon na ose v barvě svého typu; hotový je se zaškrtnutím a bledší.
+/// Úkon na ose v barvě podle stavu.
 class _Pruh extends ConsumerWidget {
   const _Pruh({
     required this.polozka,
     required this.ukon,
+    required this.stav,
     required this.sKodem,
     required this.useknutyZleva,
     required this.useknutyZprava,
@@ -774,6 +1037,7 @@ class _Pruh extends ConsumerWidget {
 
   final PolozkaPlanu polozka;
   final UkonPlanu ukon;
+  final StavPruhu stav;
 
   /// Kód laku se na pruh vejde (a jde o lakovnu - viz build).
   final bool sKodem;
@@ -785,15 +1049,19 @@ class _Pruh extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final barva = barvaUkonu(ukon.typ);
+    final barvy = _barvyPruhu(context, stav);
     final poznamka = ukon.poznamka.trim();
+    final hotovo = stav == StavPruhu.hotovo;
     const r = Radius.circular(8);
 
     return Material(
-      color: ukon.hotovo ? barva.withValues(alpha: 0.75) : barva,
-      borderRadius: BorderRadius.horizontal(
-        left: useknutyZleva ? Radius.zero : r,
-        right: useknutyZprava ? Radius.zero : r,
+      color: barvy.pozadi,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: barvy.okraj),
+        borderRadius: BorderRadius.horizontal(
+          left: useknutyZleva ? Radius.zero : r,
+          right: useknutyZprava ? Radius.zero : r,
+        ),
       ),
       child: InkWell(
         key: Key('plan-pruh-${polozka.zakazkaId}-${ukon.id}'),
@@ -812,14 +1080,35 @@ class _Pruh extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
           child: Row(
             children: [
-              if (ukon.hotovo) ...[
-                const Icon(Icons.check_rounded, size: 16, color: Colors.white),
-                const SizedBox(width: Insets.xs),
-              ],
+              if (hotovo)
+                Icon(Icons.check_circle_rounded, size: 15, color: barvy.text)
+              else
+                Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: stav == StavPruhu.probiha ? barvy.okraj : null,
+                    border: Border.all(
+                      color: stav == StavPruhu.planovano
+                          ? context.palette.muted
+                          : barvy.okraj,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: Insets.xs),
               // Kód laku jen na lakovně - jinde by překážel názvu úkonu.
               if (polozka.kodLaku case final kod?
                   when sKodem && ukon.typ.jeLakovna) ...[
-                KodLaku(kod: kod, naPruhu: true),
+                // Na krátkém pruhu se raději zmenší, než aby přetekl.
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: KodLaku(kod: kod, naPruhu: true),
+                  ),
+                ),
                 const SizedBox(width: Insets.sm),
               ],
               Expanded(
@@ -830,11 +1119,28 @@ class _Pruh extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.metaSmall.copyWith(
-                    color: Colors.white,
+                    color: barvy.text,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+              if (ukon.aw == null && !hotovo) ...[
+                const SizedBox(width: Insets.xs),
+                // Na krátkém pruhu se raději zkrátí.
+                Flexible(
+                  child: Text(
+                    'doplnit AW',
+                    key: Key('plan-bez-aw-${ukon.id}'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.metaSmall.copyWith(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFC98200),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

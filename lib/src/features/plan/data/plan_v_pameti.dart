@@ -26,6 +26,8 @@ UkonPlanu _ukon(int id, VstupUkonu v, TypUkonu typ, String? zaplanoval) =>
       poznamka: v.poznamka,
       hotovo: v.hotovo,
       zaplanoval: zaplanoval,
+      dilna: v.dilna,
+      aw: v.aw,
     );
 
 /// Plán (JSON jako ze serveru) po přidání úkonu.

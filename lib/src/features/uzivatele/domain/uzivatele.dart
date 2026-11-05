@@ -43,6 +43,7 @@ class UzivatelSpravy {
     this.prihlasen,
     this.prava = const {},
     this.planovac = const {},
+    this.kapacita = const {},
   });
 
   final String email;
@@ -59,6 +60,9 @@ class UzivatelSpravy {
   /// Admin plánuje všude.
   final Map<String, String> planovac;
 
+  /// Pobočky, u kterých smí upravovat kapacitu dílen.
+  final Set<String> kapacita;
+
   bool get jeAdmin => role == 'admin';
 
   /// Jméno, nebo aspoň e-mail.
@@ -68,6 +72,7 @@ class UzivatelSpravy {
     String? role,
     Map<String, String>? prava,
     Map<String, String>? planovac,
+    Set<String>? kapacita,
   }) => UzivatelSpravy(
     email: email,
     jmeno: jmeno,
@@ -75,6 +80,7 @@ class UzivatelSpravy {
     prihlasen: prihlasen,
     prava: prava ?? this.prava,
     planovac: planovac ?? this.planovac,
+    kapacita: kapacita ?? this.kapacita,
   );
 
   factory UzivatelSpravy.fromJson(Map<String, dynamic> json) => UzivatelSpravy(
@@ -83,6 +89,11 @@ class UzivatelSpravy {
     role: json['role'] == 'admin' ? 'admin' : 'user',
     prihlasen: DateTime.tryParse(json['lastLoginAt'] as String? ?? ''),
     planovac: _prava(json['planner']),
+    kapacita: {
+      if (json['capacity'] case final Map<String, dynamic> pobocky)
+        for (final MapEntry(:key, :value) in pobocky.entries)
+          if (value == true) key,
+    },
     prava: _prava(json['access']),
   );
 
@@ -161,5 +172,10 @@ String souhrnPrav(
       if (uzivatel.planovac[p.kod] == 'W') p.nazev,
   ];
   if (planuje.isNotEmpty) casti.add('plánuje ${planuje.join(', ')}');
+  final kapacita = [
+    for (final p in pobockyPlanu)
+      if (uzivatel.kapacita.contains(p.kod)) p.nazev,
+  ];
+  if (kapacita.isNotEmpty) casti.add('kapacita ${kapacita.join(', ')}');
   return casti.isEmpty ? 'Bez přístupu' : casti.join(' · ');
 }

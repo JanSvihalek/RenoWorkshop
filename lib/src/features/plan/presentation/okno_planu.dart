@@ -78,6 +78,11 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   );
   late bool _hotovo = widget.ukon?.hotovo ?? false;
   late String? _vybranyTyp = widget.ukon?.typ.kod;
+  // Dílna se řídí úkonem, dokud ji někdo nevybere ručně.
+  late Dilna? _vybranaDilna = widget.ukon?.dilna;
+  late final _aw = TextEditingController(
+    text: widget.ukon?.aw?.toString() ?? '',
+  );
   bool _uklada = false;
   String? _chyba;
 
@@ -85,6 +90,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   void dispose() {
     _kod.dispose();
     _poznamka.dispose();
+    _aw.dispose();
     super.dispose();
   }
 
@@ -103,6 +109,12 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   /// Vybraný typ, jinak výchozí pro nový úkon. `null`, dokud se typy načítají.
   String? _typ(List<TypUkonu> typy) =>
       _vybranyTyp ?? vychoziTypUkonu(typy, widget.plan)?.kod;
+
+  /// Zadané AW; `null` = prázdné nebo neplatné.
+  int? get _pocetAw {
+    final aw = int.tryParse(_aw.text.trim());
+    return aw != null && aw >= 1 && aw <= 9999 ? aw : null;
+  }
 
   Future<void> _vyberObdobi() async {
     final dnes = ref.read(dnesProvider);
@@ -153,6 +165,8 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
               kodLaku: kod.isEmpty ? null : kod,
               poznamka: _poznamka.text.trim(),
               hotovo: _hotovo,
+              dilna: _vybranaDilna ?? Dilna.vychoziProTyp(typ),
+              aw: _pocetAw,
             ),
             ukonId: widget.ukon?.id,
           ),
@@ -227,7 +241,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           ? 'Přidat'
           : 'Zaplánovat',
       potvrditKey: const Key('plan-ulozit'),
-      onPotvrdit: !_uklada && obdobi != null && typ != null
+      onPotvrdit: !_uklada && obdobi != null && typ != null && _pocetAw != null
           ? () => _uloz(typ)
           : null,
       obsah: [
@@ -270,6 +284,37 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
             ],
           ),
         ],
+        const SizedBox(height: Insets.base),
+        const PopisekPole('TYP'),
+        // Klíč podle úkonu: dokud dílnu nikdo nevybral, jde s úkonem.
+        DropdownButtonFormField<Dilna>(
+          key: ValueKey('plan-dilna-${_vybranaDilna ?? typ}'),
+          initialValue: _vybranaDilna ?? Dilna.vychoziProTyp(typ),
+          isExpanded: true,
+          items: [
+            for (final d in Dilna.values)
+              DropdownMenuItem(value: d, child: Text(d.nazev)),
+          ],
+          onChanged: (v) => setState(() => _vybranaDilna = v),
+        ),
+        const SizedBox(height: Insets.base),
+        const PopisekPole('AW'),
+        PoleZapisu(
+          poleKey: const Key('plan-aw'),
+          controller: _aw,
+          napoveda: 'Např. 48',
+          maxDelka: 4,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Insets.xs),
+        Text(
+          switch (_pocetAw) {
+            final aw? => '$aw AW = ${hodinyText(aw / awZaHodinu)} h práce',
+            null => '1 AW = 5 minut práce. Zadejte celé číslo.',
+          },
+          key: const Key('plan-aw-hodiny'),
+          style: AppTextStyles.meta.copyWith(color: palette.muted),
+        ),
         const SizedBox(height: Insets.base),
         const PopisekPole('OD – DO'),
         Align(

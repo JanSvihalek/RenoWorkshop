@@ -147,6 +147,48 @@ void main() {
     expect(zdroj.ulozeniUzivatelu.last.$3, {'10026': 'W', '16015': 'R'});
   });
 
+  testWidgets('admin povolí kapacitu, s přístupem k pobočce zase zmizí', (
+    tester,
+  ) async {
+    await spust(tester, MojePrava.vse);
+    await tester.tap(find.text('Admin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('uzivatel-petr.kucera@renocar.cz')));
+    await tester.pumpAndSettle();
+
+    // Nupaky nevidí - kapacita se tam nenabízí, u Brna ano.
+    expect(find.byKey(const Key('kapacita-2')), findsNothing);
+    await tester.tap(find.byKey(const Key('kapacita-1')));
+    await tester.pumpAndSettle();
+    expect(zdroj.ulozeniKapacity.last, {'1'});
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('planovac-1')),
+        matching: find.text('–'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(zdroj.ulozeniPlanovace.last, isEmpty);
+    expect(zdroj.ulozeniKapacity.last, isEmpty);
+    expect(find.byKey(const Key('kapacita-1')), findsNothing);
+  });
+
+  test('souhrn práv ukáže, kde upravuje kapacitu', () {
+    expect(
+      souhrnPrav(
+        const UzivatelSpravy(
+          email: 'x@y',
+          planovac: {'1': 'R'},
+          kapacita: {'1'},
+        ),
+        const [],
+        pobockyPlanu: const [PobockaPlanu(kod: '1', nazev: 'Brno')],
+      ),
+      'kapacita Brno',
+    );
+  });
+
   testWidgets('admin přidá uživatele e-mailem', (tester) async {
     await spust(tester, MojePrava.vse);
     await tester.tap(find.text('Admin'));

@@ -8,10 +8,12 @@ abstract interface class UzivateleDataSource {
   /// Role a práva uživatele, i nového. [prava]: kód pořadače -> `R`, `W`,
   /// nebo `null` (žádný přístup). [planovac]: pobočka plánovače -> `W`
   /// plánovat, `R` prohlížet, `null` nic; `null` celé = beze změny.
+  /// [kapacita]: pobočky, kde smí upravovat kapacitu; `null` = beze změny.
   Future<void> ulozUzivatele(
     String email, {
     required String role,
     required Map<String, String?> prava,
     Map<String, String?>? planovac,
+    Set<String>? kapacita,
   });
 }

@@ -15,6 +15,7 @@ import 'package:renoworkshop/src/features/uzivatele/data/uzivatele_data_source.d
 import 'package:renoworkshop/src/features/uzivatele/domain/uzivatele.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
+import 'package:renoworkshop/src/features/plan/data/kapacita_v_pameti.dart';
 import 'package:renoworkshop/src/features/plan/data/plan_data_source.dart';
 import 'package:renoworkshop/src/features/plan/data/plan_v_pameti.dart';
 import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
@@ -37,6 +38,7 @@ import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
 /// In-memory zdroj dat pro testy - bez assetů a bez latence.
 class FakeServiceOrderDataSource
+    with KapacitaVPameti
     implements
         ServiceOrderDataSource,
         NastaveniUctuDataSource,
@@ -153,6 +155,7 @@ class FakeServiceOrderDataSource
 
   /// Plánovač u uložení (`null` = beze změny) - kontrola v testu.
   final ulozeniPlanovace = <Map<String, String?>?>[];
+  final ulozeniKapacity = <Set<String>?>[];
 
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async => PrehledUzivatelu(
@@ -168,12 +171,15 @@ class FakeServiceOrderDataSource
     required String role,
     required Map<String, String?> prava,
     Map<String, String?>? planovac,
+    Set<String>? kapacita,
   }) async {
     ulozeniUzivatelu.add((email, role, prava));
     ulozeniPlanovace.add(planovac);
+    ulozeniKapacity.add(kapacita);
     final novy = UzivatelSpravy(
       email: email,
       role: role,
+      kapacita: kapacita ?? const {},
       planovac: {
         for (final MapEntry(:key, :value) in (planovac ?? const {}).entries)
           key: ?value,
@@ -821,11 +827,15 @@ class FakeServiceOrderDataSource
     return typyUkonuVPameti;
   }
 
+  /// Kapacita dílen v plánovači - test si ji nastaví, jinak z lidí v paměti.
+  Map<String, Map<DateTime, Map<Dilna, KapacitaDne>>>? kapacityPlanu;
+
   @override
   Future<PrehledPlanu> nactiPlan(DateTime od, DateTime do_) async {
     obdobiPlanu = (od, do_);
     return PrehledPlanu(
       pobocky: pobockyPlanu,
+      kapacity: kapacityPlanu ?? kapacityVPameti(od, do_),
       // Jako server: klempířské zakázky s plánem i bez, a zakázky
       // s blokem v období.
       polozky: [

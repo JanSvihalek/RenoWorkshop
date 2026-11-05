@@ -6,6 +6,7 @@ import '../../orders/domain/entities/order_filter.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../data/plan_data_source.dart';
+import '../domain/kapacita.dart';
 import '../domain/prehled_planu.dart';
 
 /// Plán čte tatáž služba jako zakázky.
@@ -20,6 +21,11 @@ final planDataSourceProvider = Provider<PlanDataSource>((ref) {
 /// Typy úkonů do nabídky - mění se zřídka, načtou se jednou za běh.
 final typyUkonuProvider = FutureProvider<List<TypUkonu>>(
   (ref) => ref.watch(planDataSourceProvider).nactiTypyUkonu(),
+);
+
+/// Lidé a ruční dny pobočky - jen s právem Kapacita (služba jinak odmítne).
+final kapacitaProvider = FutureProvider.family<PrehledKapacity, String>(
+  (ref, pobocka) => ref.watch(planDataSourceProvider).nactiKapacitu(pobocka),
 );
 
 /// Kolik týdnů plán ukazuje - týden, nebo 14 dní.

@@ -1,3 +1,32 @@
+/// Dílny, jejichž vytížení plánovač sleduje.
+enum Dilna {
+  klempirna('klempirna', 'Klempírna'),
+  priprava('priprava', 'Příprava'),
+  lakovna('lakovna', 'Lakovna');
+
+  const Dilna(this.kod, this.nazev);
+
+  final String kod;
+  final String nazev;
+
+  static Dilna? zKodu(String? kod) {
+    for (final d in values) {
+      if (d.kod == kod) return d;
+    }
+    return null;
+  }
+
+  /// Kam úkon obvykle patří - jde změnit v okně úkonu.
+  static Dilna vychoziProTyp(String? typKod) => switch (typKod) {
+    'priprava_lak' => priprava,
+    'lakovna' => lakovna,
+    _ => klempirna,
+  };
+}
+
+/// 1 AW = 5 minut práce.
+const awZaHodinu = 12;
+
 /// Barva vozu z Heliosu (číselník barev) - kód laku a název.
 class BarvaVozu {
   const BarvaVozu({required this.kod, this.nazev});
@@ -76,6 +105,8 @@ class UkonPlanu {
     this.zaplanovano,
     this.upravil,
     this.upraveno,
+    this.dilna,
+    this.aw,
   });
 
   final int id;
@@ -95,6 +126,13 @@ class UkonPlanu {
   final String? upravil;
   final DateTime? upraveno;
 
+  /// Do které dílny se úkon počítá.
+  final Dilna? dilna;
+
+  /// Kolik práce úkon zabere: 1 AW = 5 minut. `null` = zatím nezadáno, do
+  /// vytížení se nepočítá.
+  final int? aw;
+
   /// Kolik dní úkon trvá, včetně prvního a posledního.
   int get dni => do_.difference(od).inDays + 1;
 
@@ -113,6 +151,8 @@ class UkonPlanu {
     zaplanovano: DateTime.tryParse(json['plannedAt'] as String? ?? ''),
     upravil: json['updatedBy'] as String?,
     upraveno: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+    dilna: Dilna.zKodu(json['workshop'] as String?),
+    aw: (json['aw'] as num?)?.toInt(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -123,6 +163,8 @@ class UkonPlanu {
     'note': poznamka,
     'status': hotovo ? 'hotovo' : 'naplanovano',
     'plannedBy': zaplanoval,
+    'workshop': dilna?.kod,
+    'aw': aw,
   };
 }
 
@@ -136,8 +178,12 @@ class VstupUkonu {
     this.kodLaku,
     this.poznamka = '',
     this.hotovo = false,
+    this.dilna,
+    this.aw,
   });
 
+  final Dilna? dilna;
+  final int? aw;
   final String typKod;
   final DateTime od;
   final DateTime do_;
@@ -152,6 +198,8 @@ class VstupUkonu {
     'paintCode': kodLaku,
     'note': poznamka,
     'status': hotovo ? 'hotovo' : 'naplanovano',
+    if (dilna != null) 'workshop': dilna!.kod,
+    if (aw != null) 'aw': aw,
   };
 }
 

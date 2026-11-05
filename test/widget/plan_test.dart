@@ -11,8 +11,10 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/data/dtos/service_order_dto.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/dilensky_stav.dart';
+import 'package:renoworkshop/src/features/orders/domain/entities/moje_prava.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/plan_klempirny.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/plan/domain/kapacita.dart';
 import 'package:renoworkshop/src/features/plan/domain/prehled_planu.dart';
 import 'package:renoworkshop/src/features/settings/data/nastaveni_uloziste.dart';
 import 'package:renoworkshop/src/features/settings/domain/entities/nastaveni.dart';
@@ -67,12 +69,14 @@ void main() {
     WidgetTester tester, {
     required List<ServiceOrderDto> zakazky,
     Size velikost = const Size(1280, 1000),
+    MojePrava? prava,
   }) async {
     tester.view.physicalSize = velikost;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     zdroj = FakeServiceOrderDataSource(zakazky);
+    if (prava != null) zdroj.prava = prava;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -256,6 +260,78 @@ void main() {
       expect(navazujiciDen(s('lakovna', '2026-10-13')), DateTime(2026, 10, 14));
       // Z pátku přes víkend na pondělí.
       expect(navazujiciDen(s('lakovna', '2026-10-16')), DateTime(2026, 10, 19));
+    });
+
+    group('vytížení dílen', () {
+      PolozkaPlanu radek(List<UkonPlanu> ukony) => PolozkaPlanu(
+        zakazkaId: 'Z',
+        spz: '',
+        model: '',
+        zakaznik: '',
+        plan: PlanKlempirny(
+          od: ukony.first.od,
+          do_: ukony.last.do_,
+          ukony: ukony,
+        ),
+      );
+      UkonPlanu u(String od, String do_, int? aw, [Dilna? dilna]) => UkonPlanu(
+        id: 1,
+        typ: const TypUkonu(kod: 'x', nazev: 'X', barva: '#000000'),
+        od: DateTime.parse(od),
+        do_: DateTime.parse(do_),
+        aw: aw,
+        dilna: dilna ?? Dilna.klempirna,
+      );
+
+      test('osa má i víkend', () {
+        final osa = dnyOsy(DateTime(2026, 11, 2), 1);
+        expect(osa, hasLength(7));
+        expect(jeVikend(osa[4]), isFalse);
+        expect(jeVikend(osa[5]), isTrue);
+      });
+
+      test('AW se dělí rovným dílem na pracovní dny, víkend se nepočítá', () {
+        // Pátek až pondělí: dva pracovní dny, 96 AW = 8 h.
+        final v = vytizeniDilen([
+          radek([u('2026-11-06', '2026-11-09', 96)]),
+        ]);
+        expect(v[DateTime(2026, 11, 6)]?[Dilna.klempirna], 4);
+        expect(v[DateTime(2026, 11, 7)], isNull);
+        expect(v[DateTime(2026, 11, 9)]?[Dilna.klempirna], 4);
+      });
+
+      test('úkon bez AW se nepočítá, dílny se nesčítají', () {
+        final v = vytizeniDilen([
+          radek([
+            u('2026-11-04', '2026-11-04', null),
+            u('2026-11-04', '2026-11-04', 24),
+            u('2026-11-04', '2026-11-04', 12, Dilna.lakovna),
+          ]),
+        ]);
+        expect(v[DateTime(2026, 11, 4)], {
+          Dilna.klempirna: 2,
+          Dilna.lakovna: 1,
+        });
+      });
+
+      test('barva vytížení, výchozí dílna a hodiny', () {
+        expect(urovenVytizeni(75), UrovenVytizeni.ok);
+        expect(urovenVytizeni(88), UrovenVytizeni.plno);
+        expect(urovenVytizeni(100), UrovenVytizeni.plno);
+        expect(urovenVytizeni(113), UrovenVytizeni.pres);
+        expect(Dilna.vychoziProTyp('demontaz'), Dilna.klempirna);
+        expect(Dilna.vychoziProTyp('priprava_lak'), Dilna.priprava);
+        expect(Dilna.vychoziProTyp('lakovna'), Dilna.lakovna);
+        expect(hodinyText(12.5), '12,5');
+        expect(hodinyText(12), '12');
+      });
+
+      test('stav pruhu: prošlý nehotový je po termínu', () {
+        final b = u('2026-11-02', '2026-11-03', 12);
+        final p = radek([b]);
+        expect(stavPruhu(p, b, DateTime(2026, 11, 2)), StavPruhu.planovano);
+        expect(stavPruhu(p, b, DateTime(2026, 11, 5)), StavPruhu.poTerminu);
+      });
     });
 
     group('osa průběhu', () {
@@ -455,6 +531,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('plan-kod-laku')), 'c4p');
     await tester.pump();
+    expect(lze(), isFalse, reason: 'bez AW se neuloží');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.pump();
+    expect(find.text('48 AW = 4 h práce'), findsOneWidget);
     expect(lze(), isTrue);
 
     await tester.tap(ulozit);
@@ -515,7 +595,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(zdroj.obdobiPlanu, (DateTime(2026, 10, 12), DateTime(2026, 10, 18)));
-    expect(find.text('12. 10. – 16. 10. 2026'), findsOneWidget);
+    expect(find.text('12. 10. – 18. 10. 2026'), findsOneWidget);
     expect(find.text('St 14. 10.'), findsOneWidget);
     // Brno: dvě zakázky, obě s kódem 416.
     expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
@@ -530,7 +610,11 @@ void main() {
     final druhy = tester
         .getSize(find.byKey(const Key('plan-pruh-ZK-26-0002-1')))
         .width;
-    expect(den, greaterThan(druhy), reason: 'po-st proti čt-pá');
+    expect(
+      druhy,
+      greaterThan(den),
+      reason: 'čt-ne proti po-st, víkend je na ose',
+    );
 
     await tester.tap(find.byKey(const Key('plan-pobocka-2')));
     await tester.pumpAndSettle();
@@ -555,7 +639,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('plan-dal')));
     await tester.pumpAndSettle();
-    expect(find.text('19. 10. – 23. 10. 2026'), findsOneWidget);
+    expect(find.text('19. 10. – 25. 10. 2026'), findsOneWidget);
     // Blok je minulý týden - zakázka zůstane, jen s textem, kdy plán je.
     expect(find.byKey(const Key('plan-jindy-ZK-26-0001')), findsOneWidget);
 
@@ -563,7 +647,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('14 dní'));
     await tester.pumpAndSettle();
-    expect(find.text('12. 10. – 23. 10. 2026'), findsOneWidget);
+    expect(find.text('12. 10. – 25. 10. 2026'), findsOneWidget);
     expect(zdroj.obdobiPlanu, (DateTime(2026, 10, 12), DateTime(2026, 10, 25)));
     expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
   });
@@ -588,10 +672,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan-hotovo')));
     await tester.pump();
+    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
     expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan!['status'], 'hotovo');
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
     await tester.pumpAndSettle();
@@ -631,6 +717,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Montáž').last);
     await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
 
@@ -737,6 +825,288 @@ void main() {
     expect(find.byKey(const Key('osa-probiha')), findsNothing);
     expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
     expect(find.textContaining('· dokončeno'), findsOneWidget);
+  });
+
+  testWidgets('hlavička dne: vytížení z AW a kapacity, víkend zavřeno', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          utvar: '11215',
+          canPlanBodyshop: true,
+          bodyshopPlan: plan(
+            '2026-10-12',
+            '2026-10-12',
+            ukony: [
+              {
+                ...ukon(1, '2026-10-12', '2026-10-12'),
+                'aw': 24,
+                'workshop': 'klempirna',
+              },
+            ],
+          ),
+        ),
+      ],
+    );
+    zdroj.kapacityPlanu = {
+      '1': {
+        DateTime(2026, 10, 12): {
+          Dilna.klempirna: const KapacitaDne(aw: 192, lidi: 2),
+        },
+      },
+    };
+    await otevriPlanovac(tester);
+
+    final den = find.byKey(const Key('plan-vytizeni-12-klempirna'));
+    expect(
+      find.descendant(of: den, matching: find.text('2 h · 13 %')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('plan-vytizeni-12-celkem')),
+        matching: find.text('2 h · 13 %'),
+      ),
+      findsOneWidget,
+    );
+    // Bez kapacity jen hodiny.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('plan-vytizeni-12-lakovna')),
+        matching: find.text('0 h'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Zavřeno'), findsNWidgets(2));
+    expect(find.byKey(const Key('plan-legenda')), findsOneWidget);
+  });
+
+  group('kapacita dílen', () {
+    const karosar = ClovekKapacity(
+      id: 1,
+      jmeno: 'Karosář Jedna',
+      tarify: ['Karosář'],
+      dilnaPodleTarifu: Dilna.klempirna,
+    );
+    const lakyrnik = ClovekKapacity(
+      id: 2,
+      jmeno: 'Lakýrník Dva',
+      tarify: ['Lakýrník'],
+      dilnaPodleTarifu: Dilna.lakovna,
+    );
+
+    Future<void> otevriKapacitu(WidgetTester tester) async {
+      await otevriPlanovac(tester);
+      await tester.tap(find.byKey(const Key('plan-kapacita')));
+      await tester.pumpAndSettle();
+    }
+
+    test('počet lidí krát 90 AW, nepřítomnost a ruční den', () {
+      final po = DateTime(2026, 11, 9);
+      final ut = DateTime(2026, 11, 10);
+      final kapacity = kapacityObdobi(
+        [
+          karosar.copyWith(
+            nepritomnosti: [NepritomnostCloveka(id: 1, od: po, do_: po)],
+          ),
+          lakyrnik,
+        ],
+        [RucniDenKapacity(den: ut, dilna: Dilna.priprava, aw: 45)],
+        po,
+        DateTime(2026, 11, 14),
+      );
+      expect(kapacity[po]![Dilna.klempirna]!.aw, 0);
+      expect(kapacity[ut]![Dilna.klempirna]!.aw, 90);
+      expect(kapacity[po]![Dilna.lakovna]!.hodin, 7.5);
+      // Ruční den má přednost, jinak dílna bez lidí kapacitu nemá.
+      expect(kapacity[po]![Dilna.priprava], isNull);
+      expect(kapacity[ut]![Dilna.priprava]!.rucne, isTrue);
+      // Víkend se nepočítá.
+      expect(kapacity[DateTime(2026, 11, 14)], isNull);
+    });
+
+    test('přeřazený člověk se počítá jinde, vyřazený nikde', () {
+      expect(
+        lakyrnik.copyWith(prirazeno: () => 'priprava').dilna,
+        Dilna.priprava,
+      );
+      expect(lakyrnik.copyWith(prirazeno: () => zarazeniMimo).dilna, isNull);
+      expect(lakyrnik.dilna, Dilna.lakovna);
+    });
+
+    test('zadaná kapacita na AW', () {
+      expect(prevedNaAw('7,5', JednotkaKapacity.hodiny), 90);
+      expect(prevedNaAw('180', JednotkaKapacity.aw), 180);
+      expect(prevedNaAw('', JednotkaKapacity.aw), isNull);
+      expect(prevedNaAw('-1', JednotkaKapacity.aw), isNull);
+      expect(prevedNaAw('10000', JednotkaKapacity.aw), isNull);
+    });
+
+    test('práva: jen s právem u pobočky, admin všude', () {
+      final prava = MojePrava.fromJson({
+        'role': 'user',
+        'folders': const [],
+        'planner': [
+          {'code': '1', 'access': 'R', 'capacity': true},
+          {'code': '2', 'access': 'W', 'capacity': false},
+        ],
+      });
+      expect(prava.smiKapacitu('1'), isTrue);
+      expect(prava.smiKapacitu('2'), isFalse);
+      expect(MojePrava.vse.smiKapacitu('2'), isTrue);
+    });
+
+    test('kapacita v přehledu plánu ze služby', () {
+      final prehled = PrehledPlanu.fromJson({
+        'capacity': [
+          {
+            'branch': '1',
+            'day': '2026-11-09',
+            'workshop': 'lakovna',
+            'aw': 90,
+            'people': 1,
+            'manual': false,
+          },
+        ],
+      });
+      final k = prehled.kapacity['1']![DateTime(2026, 11, 9)]![Dilna.lakovna]!;
+      expect(k.hodin, 7.5);
+      expect(k.lidi, 1);
+    });
+
+    testWidgets('bez kapacity je nula červeně: všichni chybí', (tester) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      );
+      zdroj.kapacityPlanu = {
+        '1': {
+          DateTime(2026, 10, 12): {Dilna.klempirna: const KapacitaDne(aw: 0)},
+        },
+      };
+      await otevriPlanovac(tester);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('plan-vytizeni-12-klempirna')),
+          matching: find.text('0 h / 0'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('bez práva Kapacita tlačítko není', (tester) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+        prava: const MojePrava(
+          role: 'user',
+          poradace: {'10026': 'W'},
+          planovac: {'1': 'W'},
+        ),
+      );
+      await otevriPlanovac(tester);
+      expect(find.byKey(const Key('plan-kapacita')), findsNothing);
+    });
+
+    testWidgets('mistr přeřadí člověka a kapacita plánu se přepočítá', (
+      tester,
+    ) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      );
+      zdroj.lideKapacity['1'] = [karosar, lakyrnik];
+      await otevriKapacitu(tester);
+
+      expect(find.text('Lakýrník Dva'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('kapacita-zarazeni-2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Příprava').last);
+      await tester.pumpAndSettle();
+
+      expect(zdroj.lideKapacity['1']![1].prirazeno, 'priprava');
+      final plan = await zdroj.nactiPlan(
+        DateTime(2026, 10, 12),
+        DateTime(2026, 10, 12),
+      );
+      final den = plan.kapacity['1']![DateTime(2026, 10, 12)]!;
+      expect(den[Dilna.priprava]!.aw, 90);
+      expect(den[Dilna.lakovna], isNull);
+
+      // Zpět na tarif = žádná výjimka.
+      await tester.tap(find.byKey(const Key('kapacita-zarazeni-2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lakovna').last);
+      await tester.pumpAndSettle();
+      expect(zdroj.lideKapacity['1']![1].prirazeno, isNull);
+    });
+
+    testWidgets('mistr zadá a smaže nepřítomnost', (tester) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      );
+      zdroj.lideKapacity['1'] = [karosar];
+      await otevriKapacitu(tester);
+
+      await tester.tap(find.byKey(const Key('kapacita-pridat-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Použít'));
+      await tester.pumpAndSettle();
+
+      final nepritomnosti = zdroj.lideKapacity['1']![0].nepritomnosti;
+      expect(nepritomnosti, hasLength(1));
+      final stitek = find.byKey(
+        Key('kapacita-nepritomnost-${nepritomnosti[0].id}'),
+      );
+      expect(stitek, findsOneWidget);
+
+      await tester.tap(find.byTooltip('Smazat nepřítomnost'));
+      await tester.pumpAndSettle();
+      expect(zdroj.lideKapacity['1']![0].nepritomnosti, isEmpty);
+      expect(stitek, findsNothing);
+    });
+
+    testWidgets('ruční den v hodinách i návrat podle lidí', (tester) async {
+      await spust(
+        tester,
+        zakazky: [buildOrderDto(utvar: '11215', canPlanBodyshop: true)],
+      );
+      await otevriKapacitu(tester);
+
+      final ulozit = find.byKey(const Key('kapacita-ulozit-den'));
+      expect(tester.widget<FilledButton>(ulozit).onPressed, isNull);
+      await tester.enterText(find.byKey(const Key('kapacita-hodnota')), '7,5');
+      await tester.pump();
+      await tester.tap(ulozit);
+      await tester.pumpAndSettle();
+
+      final dny = zdroj.rucniDnyKapacity['1']!;
+      expect(dny.single.aw, 90);
+      expect(dny.single.dilna, Dilna.klempirna);
+
+      await tester.tap(find.text('Podle lidí'));
+      await tester.pumpAndSettle();
+      expect(zdroj.rucniDnyKapacity['1'], isEmpty);
+    });
+  });
+
+  testWidgets('úkon bez AW v plánu upozorní', (tester) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          utvar: '11215',
+          canPlanBodyshop: true,
+          bodyshopPlan: plan('2026-10-12', '2026-10-13'),
+        ),
+      ],
+    );
+    await otevriPlanovac(tester);
+
+    expect(find.text('doplnit AW'), findsOneWidget);
   });
 
   testWidgets('bez plánu: jen stavy a řádek, že plán není', (tester) async {
@@ -874,6 +1244,9 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(lze(), isFalse, reason: 'bez AW se neuloží');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '12');
+    await tester.pump();
     expect(lze(), isTrue);
   });
 
@@ -935,6 +1308,8 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-pridat-ukon')));
     await tester.pumpAndSettle();
     expect(find.text('19. 10. – 19. 10. 2026'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
     expect(
@@ -978,6 +1353,8 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-14')));
     await tester.pumpAndSettle();
     expect(find.text('14. 10. – 14. 10. 2026'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
 

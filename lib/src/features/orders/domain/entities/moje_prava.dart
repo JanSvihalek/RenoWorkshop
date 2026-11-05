@@ -7,12 +7,14 @@
 ///
 /// Plánovač klempírny má práva úplně zvlášť, po pobočkách ([planovac]):
 /// `W` plánovat (plán i dílenský stav v plánovači), `R` prohlížet, nebo
-/// nic. Pořadače do plánovače nemluví.
+/// nic. Pořadače do plánovače nemluví. Kapacitu dílen smí upravovat jen ten,
+/// komu to u pobočky povolil admin ([kapacita]).
 class MojePrava {
   const MojePrava({
     required this.role,
     required this.poradace,
     this.planovac = const {},
+    this.kapacita = const {},
   });
 
   /// Bez omezení - ukázková data a starší služba bez `/me`.
@@ -27,6 +29,9 @@ class MojePrava {
   /// Kód pobočky plánovače (`1`) -> `W` plánovat, `R` prohlížet. Chybí =
   /// pobočku v plánovači nevidí.
   final Map<String, String> planovac;
+
+  /// Pobočky, u kterých smí upravovat kapacitu dílen.
+  final Set<String> kapacita;
 
   bool get jeAdmin => role == 'admin';
 
@@ -48,10 +53,22 @@ class MojePrava {
   bool smiPlanovat(String? pobocka) =>
       jeAdmin || (pobocka != null && planovac[pobocka] == 'W');
 
+  /// Smí u pobočky [pobocka] upravovat kapacitu dílen?
+  bool smiKapacitu(String? pobocka) =>
+      jeAdmin || (pobocka != null && kapacita.contains(pobocka));
+
   factory MojePrava.fromJson(Map<String, dynamic> json) => MojePrava(
     role: json['role'] == 'admin' ? 'admin' : 'user',
     poradace: _prava(json['folders']),
     planovac: _prava(json['planner']),
+    kapacita: {
+      if (json['planner'] case final List<dynamic> pobocky)
+        for (final p in pobocky)
+          if (p is Map<String, dynamic> &&
+              p['code'] is String &&
+              p['capacity'] == true)
+            p['code'] as String,
+    },
   );
 
   /// `[{code, access}]` -> kód -> `R`/`W`.

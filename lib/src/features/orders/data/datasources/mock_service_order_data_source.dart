@@ -3,8 +3,10 @@ import '../../../akce/data/kampane_data_source.dart';
 import '../../../akce/domain/kampan_podle_stari.dart';
 import '../../../akce/domain/marketingova_akce.dart';
 import '../../../akce/domain/technicka_kampan.dart';
+import '../../../plan/data/kapacita_v_pameti.dart';
 import '../../../plan/data/plan_data_source.dart';
 import '../../../plan/data/plan_v_pameti.dart';
+import '../../../plan/domain/kapacita.dart';
 import '../../../plan/domain/prehled_planu.dart';
 import '../../domain/entities/moje_prava.dart';
 import '../../domain/entities/plan_klempirny.dart';
@@ -38,6 +40,7 @@ import 'service_order_data_source.dart';
 /// Simuluje latenci sítě, aby UI muselo počítat s loading stavem stejně
 /// jako u reálného API.
 class MockServiceOrderDataSource
+    with KapacitaVPameti
     implements
         ServiceOrderDataSource,
         VozidlaDataSource,
@@ -183,8 +186,55 @@ class MockServiceOrderDataSource
         PobockaPlanu(kod: '5', nazev: 'Bubeneč'),
       ],
       polozky: _polozkyPlanu(orders, od, do_),
+      kapacity: kapacityVPameti(od, do_),
     );
   }
+
+  /// Ukázkoví lidé klempírny v Brně a Nupakách.
+  @override
+  Map<String, List<ClovekKapacity>> get vychoziLideKapacity => const {
+    '1': [
+      ClovekKapacity(
+        id: 1,
+        jmeno: 'Dvořák Pavel',
+        tarify: ['Karosář'],
+        dilnaPodleTarifu: Dilna.klempirna,
+      ),
+      ClovekKapacity(
+        id: 2,
+        jmeno: 'Novotný Tomáš',
+        tarify: ['Karosář'],
+        dilnaPodleTarifu: Dilna.klempirna,
+      ),
+      ClovekKapacity(
+        id: 3,
+        jmeno: 'Svoboda Marek',
+        tarify: ['Lakýrník'],
+        dilnaPodleTarifu: Dilna.lakovna,
+        prirazeno: 'priprava',
+      ),
+      ClovekKapacity(
+        id: 4,
+        jmeno: 'Černý Ondřej',
+        tarify: ['Lakýrník'],
+        dilnaPodleTarifu: Dilna.lakovna,
+      ),
+    ],
+    '2': [
+      ClovekKapacity(
+        id: 5,
+        jmeno: 'Král Josef',
+        tarify: ['Karosář'],
+        dilnaPodleTarifu: Dilna.klempirna,
+      ),
+      ClovekKapacity(
+        id: 6,
+        jmeno: 'Veselý Jan',
+        tarify: ['Lakýrník'],
+        dilnaPodleTarifu: Dilna.lakovna,
+      ),
+    ],
+  };
 
   Future<void> _simulateLatency() async {
     if (latency > Duration.zero) await Future<void>.delayed(latency);
@@ -907,12 +957,14 @@ class MockServiceOrderDataSource
     required String role,
     required Map<String, String?> prava,
     Map<String, String?>? planovac,
+    Set<String>? kapacita,
   }) async {
     await _simulateLatency();
     final i = _uzivatele.indexWhere((u) => u.email == email);
     final novy = UzivatelSpravy(
       email: email,
       role: role,
+      kapacita: kapacita ?? (i == -1 ? const {} : _uzivatele[i].kapacita),
       planovac: planovac == null
           ? (i == -1 ? const {} : _uzivatele[i].planovac)
           : {
@@ -930,6 +982,7 @@ class MockServiceOrderDataSource
         prihlasen: _uzivatele[i].prihlasen,
         role: role,
         planovac: novy.planovac,
+        kapacita: novy.kapacita,
         prava: novy.prava,
       );
     }
