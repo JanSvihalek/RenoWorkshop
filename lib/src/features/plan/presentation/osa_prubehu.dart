@@ -93,6 +93,7 @@ class OsaPrubehu extends ConsumerWidget {
                     plan: plan,
                     ukon: p.ukon,
                     barva: order.barvaVozu,
+                    zakazka: order,
                   )
                 : null,
             onZahajit: p.ukon != null && smiStav

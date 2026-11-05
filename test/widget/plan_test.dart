@@ -1704,9 +1704,13 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  group('Zahájit a Dokončit v řádku plánovače', () {
-    final zahajit = find.byKey(const Key('plan-radek-zahajit-ZK-26-0001'));
-    final dokoncit = find.byKey(const Key('plan-radek-dokoncit-ZK-26-0001'));
+  group('Zahájit a Dokončit ve formuláři úkonu', () {
+    final prubeh = find.byKey(const Key('plan-okno-prubeh'));
+    final zahajit = find.byKey(const Key('plan-okno-zahajit'));
+    final dokoncit = find.byKey(const Key('plan-okno-dokoncit'));
+    Finder pruh(int id) => find.byKey(Key('plan-pruh-ZK-26-0001-$id'));
+    Finder stav(String text) =>
+        find.descendant(of: prubeh, matching: find.text(text));
     ServiceOrderDto zakazka() => buildOrderDto(
       utvar: '11215',
       canPlanBodyshop: true,
@@ -1716,17 +1720,25 @@ void main() {
         '2026-10-16',
         ukony: [
           ukon(1, '2026-10-12', '2026-10-13', typ: 'klempirna'),
-          ukon(2, '2026-10-15', '2026-10-16', typ: 'lakovna'),
+          ukon(2, '2026-10-14', '2026-10-14', typ: 'montaz'),
+          ukon(3, '2026-10-15', '2026-10-16', typ: 'lakovna'),
         ],
       ),
     );
 
-    testWidgets('zahájí další úkon a dokončí, co probíhá', (tester) async {
+    testWidgets('zahájí a dokončí konkrétní úkon, řádek tlačítka nemá', (
+      tester,
+    ) async {
       await spust(tester, zakazky: [zakazka()]);
       await otevriPlanovac(tester);
-      expect(zahajit, findsOneWidget);
-      expect(dokoncit, findsOneWidget);
+      expect(zahajit, findsNothing);
+      expect(dokoncit, findsNothing);
 
+      // I úkon, který není na řadě, jde zahájit: stavy se přeskakují.
+      await tester.tap(pruh(3));
+      await tester.pumpAndSettle();
+      expect(stav('Čeká'), findsOneWidget);
+      expect(dokoncit, findsNothing);
       await tester.tap(zahajit);
       await tester.pumpAndSettle();
       expect(find.text('Zahájit: LAKOVNA'), findsOneWidget);
@@ -1734,35 +1746,29 @@ void main() {
       await tester.pumpAndSettle();
       expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
 
-      // Další úkon není, zbývá dokončit lakovnu. Ta se tím sama nezmění.
+      await tester.tap(pruh(3));
+      await tester.pumpAndSettle();
+      expect(stav('Probíhá'), findsOneWidget);
       expect(zahajit, findsNothing);
       await tester.tap(dokoncit);
       await tester.pumpAndSettle();
-      expect(dokoncit, findsNothing);
+      expect(prubeh, findsNothing, reason: 'okno se zavřelo');
       expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
-    });
 
-    testWidgets('na telefonu se obě tlačítka vejdou', (tester) async {
-      await spust(tester, velikost: const Size(400, 860), zakazky: [zakazka()]);
-      await otevriPlanovac(tester);
-      expect(zahajit, findsOneWidget);
-      expect(dokoncit, findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('bez práva plánovat nejsou', (tester) async {
-      await spust(
-        tester,
-        zakazky: [zakazka()],
-        prava: const MojePrava(
-          role: 'user',
-          poradace: {'10026': 'W'},
-          planovac: {'1': 'R'},
-        ),
-      );
-      await otevriPlanovac(tester);
+      await tester.tap(pruh(3));
+      await tester.pumpAndSettle();
+      expect(stav('Dokončeno'), findsOneWidget);
       expect(zahajit, findsNothing);
       expect(dokoncit, findsNothing);
+    });
+
+    testWidgets('nový úkon průběh nemá', (tester) async {
+      await spust(tester, zakazky: [zakazka()]);
+      await otevriPlanovac(tester);
+      await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-12')));
+      await tester.pumpAndSettle();
+      expect(find.text('Přidat úkon'), findsOneWidget);
+      expect(prubeh, findsNothing);
     });
   });
 

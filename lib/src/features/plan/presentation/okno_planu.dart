@@ -9,8 +9,10 @@ import 'plan_karta.dart' show obdobiPlanu;
 import '../../akce/presentation/akce_providers.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
+import '../../orders/domain/entities/service_order.dart';
 import '../../orders/presentation/controllers/order_actions_controller.dart';
 import '../../orders/presentation/widgets/okno_zapisu.dart';
+import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/kapacita.dart';
 import '../domain/prehled_planu.dart';
 import 'plan_providers.dart';
@@ -31,6 +33,9 @@ Future<void> naplanovatKlempirnu(
 
   /// Den, na který se klepnulo v plánu - nový úkon ho má předvyplněný.
   DateTime? den,
+
+  /// Zakázka úkonu - z jejích stavů je vidět průběh, jde zahájit a dokončit.
+  ServiceOrder? zakazka,
 }) {
   return showDialog<void>(
     context: context,
@@ -41,6 +46,10 @@ Future<void> naplanovatKlempirnu(
       ukon: ukon,
       barva: barva,
       den: den,
+      zakazka: zakazka,
+      onZahajit: zakazka == null
+          ? null
+          : (typ) => pridatStavZakazce(context, ref, zakazka, ukon: typ),
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     ),
   );
@@ -54,6 +63,8 @@ class _OknoPlanu extends ConsumerStatefulWidget {
     required this.ukon,
     required this.barva,
     required this.den,
+    required this.zakazka,
+    required this.onZahajit,
     required this.autor,
   });
 
@@ -63,6 +74,8 @@ class _OknoPlanu extends ConsumerStatefulWidget {
   final UkonPlanu? ukon;
   final BarvaVozu? barva;
   final DateTime? den;
+  final ServiceOrder? zakazka;
+  final void Function(TypUkonu typ)? onZahajit;
   final String autor;
 
   @override
@@ -187,6 +200,82 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     );
   }
 
+  Future<void> _dokonci(String zaznamId) => _proved(() async {
+    final hotovo = await ref
+        .read(orderActionsProvider.notifier)
+        .dokonciStav(widget.zakazkaId, zaznamId);
+    return hotovo ? null : 'Krok se nepodařilo dokončit.';
+  });
+
+  /// Průběh otevřeného úkonu: co s ním je a tlačítko, co s ním jde udělat.
+  Widget _prubeh(UkonPlanu ukon, PolozkaOsy polozka) {
+    final palette = context.palette;
+    final zaznamId = polozka.zaznam?.id;
+    return Container(
+      key: const Key('plan-okno-prubeh'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.md,
+        vertical: Insets.sm,
+      ),
+      margin: const EdgeInsets.only(bottom: Insets.base),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: BorderRadius.circular(Radii.button),
+        border: Border.all(color: palette.hairline),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              switch (polozka.stav) {
+                StavPolozky.ceka => 'Čeká',
+                StavPolozky.dalsi => 'Další na řadě',
+                StavPolozky.probiha => 'Probíhá',
+                StavPolozky.hotovo => 'Dokončeno',
+              },
+              style: AppTextStyles.cardBody.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (polozka.stav == StavPolozky.probiha && zaznamId != null)
+            FilledButton(
+              key: const Key('plan-okno-dokoncit'),
+              onPressed: _uklada ? null : () => _dokonci(zaznamId),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                // Tmavomodrá by na tmavém pozadí zanikla.
+                backgroundColor: context.isDarkMode
+                    ? AppColors.accent
+                    : AppColors.primary,
+                foregroundColor: Colors.white,
+                textStyle: AppTextStyles.chip,
+              ),
+              child: const Text('Dokončit'),
+            ),
+          if (polozka.stav == StavPolozky.ceka ||
+              polozka.stav == StavPolozky.dalsi)
+            OutlinedButton(
+              key: const Key('plan-okno-zahajit'),
+              onPressed: _uklada
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      widget.onZahajit?.call(ukon.typ);
+                    },
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Zahájit'),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _smaz(UkonPlanu ukon) async {
     final posledni = (widget.plan?.ukony.length ?? 0) <= 1;
     final ano = await showDialog<bool>(
@@ -238,6 +327,13 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     final cervena = context.isDarkMode
         ? const Color(0xFFFF7A7A)
         : AppColors.danger;
+    final zakazka = widget.zakazka;
+    final prubeh = ukon == null || zakazka == null
+        ? null
+        : osaPrubehu(
+            widget.plan,
+            zakazka.historieStavu,
+          ).where((p) => p.ukon?.id == ukon.id).firstOrNull;
 
     return OknoZapisu(
       nadpis: ukon != null
@@ -259,6 +355,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           ? () => _uloz(typ)
           : null,
       obsah: [
+        if (ukon != null && prubeh != null) _prubeh(ukon, prubeh),
         const PopisekPole('ÚKON'),
         // Pole si pamatuje jen první hodnotu - proto až s načtenými typy.
         if (typ == null)
