@@ -209,9 +209,8 @@ class MockServiceOrderDataSource
       ClovekKapacity(
         id: 3,
         jmeno: 'Svoboda Marek',
-        tarify: ['Lakýrník'],
-        dilnaPodleTarifu: Dilna.lakovna,
-        prirazeno: 'priprava',
+        tarify: ['Mechanik'],
+        dilnaPodleTarifu: Dilna.priprava,
       ),
       ClovekKapacity(
         id: 4,

@@ -66,7 +66,7 @@ class KapacitaScreen extends ConsumerWidget {
             _Nadpis('LIDÉ'),
             if (p.lide.isEmpty)
               Text(
-                'Na středisku teď není nikdo s tarifem Karosář nebo Lakýrník.',
+                'Na středisku teď není nikdo s tarifem Mechanik, Karosář nebo Lakýrník.',
                 style: AppTextStyles.cardBody.copyWith(color: palette.muted),
               )
             else
