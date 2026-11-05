@@ -12,6 +12,7 @@ import '../../akce/presentation/akce_providers.dart';
 import '../../orders/domain/entities/order_filter.dart';
 import '../../orders/domain/entities/service_order.dart';
 import '../../orders/domain/repositories/service_order_repository.dart';
+import '../../orders/presentation/controllers/order_actions_controller.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../../orders/presentation/widgets/filtr_lista.dart' show FiltrVyber;
 import '../../orders/presentation/widgets/order_status_visuals.dart';
@@ -626,9 +627,15 @@ class _ZahlaviDnu extends ConsumerWidget {
     ),
     UrovenVytizeni.ok => (
       segment: AppColors.accent,
-      text: palette.muted2,
+      text: tmava ? const Color(0xFF8CC0FF) : const Color(0xFF1F4F8F),
       pozadi: tmava ? const Color(0x294599FE) : const Color(0xFFEAF2FC),
       naPozadi: tmava ? const Color(0xFF8CC0FF) : const Color(0xFF1F4F8F),
+    ),
+    UrovenVytizeni.nizke => (
+      segment: tmava ? const Color(0xFF5FD38D) : const Color(0xFF2E9E5B),
+      text: tmava ? const Color(0xFF5FD38D) : const Color(0xFF1B6E3C),
+      pozadi: tmava ? const Color(0x295FD38D) : const Color(0xFFE3F5EA),
+      naPozadi: tmava ? const Color(0xFF5FD38D) : const Color(0xFF1B6E3C),
     ),
     _ => (
       segment: tmava ? const Color(0x3DFFFFFF) : const Color(0xFFC9D6DE),
@@ -1182,6 +1189,9 @@ class _Radek extends ConsumerWidget {
 
   static const _vyska = 102.0;
 
+  /// O kolik je řádek vyšší s tlačítky Zahájit a Dokončit.
+  static const _vyskaAkci = 36.0;
+
   /// Výška pruhu a krok mezi linkami pod sebou.
   static const _vyskaPruhu = 30.0;
   static const _krokLinky = 34.0;
@@ -1202,6 +1212,11 @@ class _Radek extends ConsumerWidget {
     // Plán i dílenský stav mění, kdo u pobočky v plánovači plánuje. Detail
     // zakázky jen s právem k jejímu pořadači.
     final smi = ref.watch(smiPlanovatProvider(polozka.pobockaKod));
+    final zakazkaRadku = polozka.zakazka;
+    final akce = smi && zakazkaRadku != null
+        ? akcePrubehu(plan, zakazkaRadku.historieStavu)
+        : (zahajit: null, dokoncit: null);
+    final maAkce = akce.zahajit != null || akce.dokoncit != null;
     final detail = ref.watch(smiCistProvider(polozka.zakazka?.poradac?.kod));
     // Klepnutí na den přidá úkon s tím dnem předvyplněným.
     void pridej(DateTime den) => naplanovatKlempirnu(
@@ -1216,7 +1231,10 @@ class _Radek extends ConsumerWidget {
 
     return Container(
       key: Key('plan-radek-${polozka.zakazkaId}'),
-      height: math.max(_vyska, _nadPruhy + linek * _krokLinky + _pasPridani),
+      height: math.max(
+        _vyska + (maAkce ? _vyskaAkci : 0),
+        _nadPruhy + linek * _krokLinky + _pasPridani,
+      ),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: palette.hairline)),
       ),
@@ -1286,6 +1304,14 @@ class _Radek extends ConsumerWidget {
                         ),
                       const SizedBox(height: 4),
                       _StavDilny(zakazka: zakazka, smi: smi),
+                      if (maAkce) ...[
+                        const SizedBox(height: Insets.xs),
+                        _AkcePrubehu(
+                          zakazka: zakazka,
+                          zahajit: akce.zahajit,
+                          dokoncit: akce.dokoncit,
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -1683,6 +1709,96 @@ class _StavDilny extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Zahájit a Dokončit stejně jako v průběhu opravy v detailu zakázky: zahajuje
+/// se další úkon na řadě, dokončuje se krok, který probíhá. Dvě tlačítka se
+/// v úzkém sloupci (telefon) dělí o šířku, text se případně zmenší.
+class _AkcePrubehu extends ConsumerWidget {
+  const _AkcePrubehu({
+    required this.zakazka,
+    required this.zahajit,
+    required this.dokoncit,
+  });
+
+  final ServiceOrder zakazka;
+  final PolozkaOsy? zahajit;
+  final PolozkaOsy? dokoncit;
+
+  Future<void> _dokonci(
+    BuildContext context,
+    WidgetRef ref,
+    String zaznamId,
+  ) async {
+    final hotovo = await ref
+        .read(orderActionsProvider.notifier)
+        .dokonciStav(zakazka.id, zaznamId);
+    if (hotovo || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Krok se nepodařilo dokončit.')),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
+    final zaznamId = dokoncit?.zaznam?.id;
+    final ukon = zahajit?.ukon;
+    final obe = zaznamId != null && ukon != null;
+    Widget popisek(String text) =>
+        FittedBox(fit: BoxFit.scaleDown, child: Text(text, maxLines: 1));
+    const vnitrek = EdgeInsets.symmetric(horizontal: Insets.sm);
+    final tlacitka = <Widget>[
+      if (zaznamId != null)
+        Tooltip(
+          message: 'Dokončit: ${dokoncit!.nazev}',
+          child: FilledButton(
+            key: Key('plan-radek-dokoncit-${zakazka.id}'),
+            onPressed: zaneprazdneno
+                ? null
+                : () => _dokonci(context, ref, zaznamId),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 30),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: vnitrek,
+              // Tmavomodrá by na tmavém pozadí zanikla.
+              backgroundColor: context.isDarkMode
+                  ? AppColors.accent
+                  : AppColors.primary,
+              foregroundColor: Colors.white,
+              textStyle: AppTextStyles.chip,
+            ),
+            child: popisek('Dokončit'),
+          ),
+        ),
+      if (ukon != null)
+        Tooltip(
+          message: 'Zahájit: ${zahajit!.nazev}',
+          child: OutlinedButton(
+            key: Key('plan-radek-zahajit-${zakazka.id}'),
+            onPressed: () =>
+                pridatStavZakazce(context, ref, zakazka, ukon: ukon.typ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 30),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: vnitrek,
+              textStyle: AppTextStyles.chip,
+            ),
+            child: popisek('Zahájit'),
+          ),
+        ),
+    ];
+    return Row(
+      children: [
+        for (final (i, t) in tlacitka.indexed) ...[
+          if (i > 0) const SizedBox(width: Insets.xs),
+          obe ? Expanded(child: t) : t,
+        ],
+      ],
     );
   }
 }

@@ -11,6 +11,7 @@ import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/presentation/controllers/order_actions_controller.dart';
 import '../../orders/presentation/widgets/okno_zapisu.dart';
+import '../domain/kapacita.dart';
 import '../domain/prehled_planu.dart';
 import 'plan_providers.dart';
 
@@ -80,8 +81,12 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   late String? _vybranyTyp = widget.ukon?.typ.kod;
   // Dílna se řídí úkonem, dokud ji někdo nevybere ručně.
   late Dilna? _vybranaDilna = widget.ukon?.dilna;
-  late final _aw = TextEditingController(
-    text: widget.ukon?.aw?.toString() ?? '',
+  JednotkaKapacity _jednotka = JednotkaKapacity.hodiny;
+  late final _delka = TextEditingController(
+    text: switch (widget.ukon?.aw) {
+      final aw? => hodnotaKapacity(aw, _jednotka),
+      null => '',
+    },
   );
   bool _uklada = false;
   String? _chyba;
@@ -90,7 +95,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   void dispose() {
     _kod.dispose();
     _poznamka.dispose();
-    _aw.dispose();
+    _delka.dispose();
     super.dispose();
   }
 
@@ -110,10 +115,19 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   String? _typ(List<TypUkonu> typy) =>
       _vybranyTyp ?? vychoziTypUkonu(typy, widget.plan)?.kod;
 
-  /// Zadané AW; `null` = prázdné nebo neplatné.
+  /// Zadaná délka v AW; `null` = prázdné nebo neplatné.
   int? get _pocetAw {
-    final aw = int.tryParse(_aw.text.trim());
-    return aw != null && aw >= 1 && aw <= 9999 ? aw : null;
+    final aw = prevedNaAw(_delka.text, _jednotka);
+    return aw != null && aw >= 1 ? aw : null;
+  }
+
+  /// Zadaná délka se převede, aby se číslo nepřečetlo v jiné jednotce.
+  void _zmenJednotku(JednotkaKapacity nova) {
+    final aw = _pocetAw;
+    setState(() {
+      _jednotka = nova;
+      _delka.text = aw == null ? '' : hodnotaKapacity(aw, nova);
+    });
   }
 
   Future<void> _vyberObdobi() async {
@@ -298,19 +312,40 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           onChanged: (v) => setState(() => _vybranaDilna = v),
         ),
         const SizedBox(height: Insets.base),
-        const PopisekPole('AW'),
+        PopisekPole(_jednotka == JednotkaKapacity.hodiny ? 'HODINY' : 'AW'),
         PoleZapisu(
           poleKey: const Key('plan-aw'),
-          controller: _aw,
-          napoveda: 'Např. 48',
-          maxDelka: 4,
+          controller: _delka,
+          napoveda: _jednotka == JednotkaKapacity.hodiny
+              ? 'Např. 4'
+              : 'Např. 48',
+          maxDelka: 7,
+          klavesnice: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Insets.xs),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SegmentedButton<JednotkaKapacity>(
+            key: const Key('plan-jednotka'),
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: const [
+              ButtonSegment(
+                value: JednotkaKapacity.hodiny,
+                label: Text('Hodiny'),
+              ),
+              ButtonSegment(value: JednotkaKapacity.aw, label: Text('AW')),
+            ],
+            selected: {_jednotka},
+            onSelectionChanged: (v) => _zmenJednotku(v.first),
+          ),
         ),
         const SizedBox(height: Insets.xs),
         Text(
           switch (_pocetAw) {
             final aw? => '$aw AW = ${hodinyText(aw / awZaHodinu)} h práce',
-            null => '1 AW = 5 minut práce. Zadejte celé číslo.',
+            null => '1 h = 12 AW, 1 AW = 5 minut práce.',
           },
           key: const Key('plan-aw-hodiny'),
           style: AppTextStyles.meta.copyWith(color: palette.muted),

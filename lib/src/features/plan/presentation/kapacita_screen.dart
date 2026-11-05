@@ -352,9 +352,7 @@ class _OknoKapacityCloveka extends StatefulWidget {
 
 class _OknoKapacityClovekaState extends State<_OknoKapacityCloveka> {
   late final TextEditingController _hodnota = TextEditingController(
-    text: widget.jednotka == JednotkaKapacity.hodiny
-        ? hodinyText(widget.clovek.awDen / awZaHodinu)
-        : '${widget.clovek.awDen}',
+    text: hodnotaKapacity(widget.clovek.awDen, widget.jednotka),
   );
 
   @override

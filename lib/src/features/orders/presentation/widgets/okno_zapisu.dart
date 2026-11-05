@@ -218,11 +218,13 @@ class PoleZapisu extends StatefulWidget {
     this.minLines = 1,
     this.maxLines = 1,
     this.sDiktovanim = false,
+    this.klavesnice,
     this.onChanged,
   });
 
   final TextEditingController controller;
   final String napoveda;
+  final TextInputType? klavesnice;
   final int maxDelka;
   final Key? poleKey;
   final bool autofocus;
@@ -295,7 +297,9 @@ class _PoleZapisuState extends State<PoleZapisu> {
               autofocus: widget.autofocus,
               minLines: widget.minLines,
               maxLines: widget.maxLines,
-              keyboardType: viceRadku ? TextInputType.multiline : null,
+              keyboardType:
+                  widget.klavesnice ??
+                  (viceRadku ? TextInputType.multiline : null),
               textCapitalization: TextCapitalization.sentences,
               inputFormatters: [
                 LengthLimitingTextInputFormatter(widget.maxDelka),

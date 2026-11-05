@@ -162,6 +162,22 @@ class PrehledPlanu {
   }
 }
 
+/// Co jde u zakázky právě zahájit a dokončit - stejně jako v ose v detailu.
+({PolozkaOsy? zahajit, PolozkaOsy? dokoncit}) akcePrubehu(
+  PlanKlempirny? plan,
+  List<DilenskyStav> historie,
+) {
+  final osa = osaPrubehu(plan, historie);
+  return (
+    zahajit: osa
+        .where((p) => p.stav == StavPolozky.dalsi && p.ukon != null)
+        .firstOrNull,
+    dokoncit: osa
+        .where((p) => p.stav == StavPolozky.probiha && p.zaznam?.id != null)
+        .firstOrNull,
+  );
+}
+
 /// Kód laku, který se v období opakuje - zakázky jde lakovat v jedné
 /// várce.
 class SpolecnyKod {

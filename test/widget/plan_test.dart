@@ -534,10 +534,26 @@ void main() {
     await tester.enterText(find.byKey(const Key('plan-kod-laku')), 'c4p');
     await tester.pump();
     expect(lze(), isFalse, reason: 'bez AW se neuloží');
-    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
     await tester.pump();
     expect(find.text('48 AW = 4 h práce'), findsOneWidget);
     expect(lze(), isTrue);
+
+    // Přepnutí jednotky zadanou délku převede, nepřečte ji jinak.
+    TextField pole() => tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const Key('plan-aw')),
+        matching: find.byType(TextField),
+        matchRoot: true,
+      ),
+    );
+    await tester.tap(find.text('AW').last);
+    await tester.pumpAndSettle();
+    expect(pole().controller!.text, '48');
+    expect(find.text('48 AW = 4 h práce'), findsOneWidget);
+    await tester.tap(find.text('Hodiny'));
+    await tester.pumpAndSettle();
+    expect(pole().controller!.text, '4');
 
     await tester.tap(ulozit);
     await tester.pumpAndSettle();
@@ -674,7 +690,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan-hotovo')));
     await tester.pump();
-    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
     await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
@@ -719,7 +735,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Montáž').last);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
     await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
@@ -981,6 +997,17 @@ void main() {
       expect(ClovekKapacity.fromJson(const {'id': 1}).awDen, awClovekDen);
     });
 
+    test('text do pole: uložení beze změny AW nezmění, ať je jakékoli', () {
+      expect(hodnotaKapacity(90, JednotkaKapacity.hodiny), '7,5');
+      expect(hodnotaKapacity(48, JednotkaKapacity.hodiny), '4');
+      expect(hodnotaKapacity(27, JednotkaKapacity.hodiny), '2,25');
+      expect(hodnotaKapacity(27, JednotkaKapacity.aw), '27');
+      for (var aw = 1; aw <= 9999; aw++) {
+        final text = hodnotaKapacity(aw, JednotkaKapacity.hodiny);
+        expect(prevedNaAw(text, JednotkaKapacity.hodiny), aw);
+      }
+    });
+
     test('zadaná kapacita člověka: prázdné výchozí, nula a přes 24 h ne', () {
       expect(kapacitaClovekaNaAw('4', JednotkaKapacity.hodiny), 48);
       expect(kapacitaClovekaNaAw('48', JednotkaKapacity.aw), 48);
@@ -1200,7 +1227,8 @@ void main() {
                   as BoxDecoration)
               .color;
       expect(barva('lakovna'), const Color(0xFFC62828));
-      expect(barva('klempirna'), const Color(0xFFC9D6DE));
+      // Kapacita bez práce je zelená, šedá zůstává jen dílna bez kapacity.
+      expect(barva('klempirna'), const Color(0xFF2E9E5B));
       expect(barva('priprava'), const Color(0xFFC9D6DE));
     });
 
@@ -1521,7 +1549,7 @@ void main() {
       findsOneWidget,
     );
     expect(lze(), isFalse, reason: 'bez AW se neuloží');
-    await tester.enterText(find.byKey(const Key('plan-aw')), '12');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '1');
     await tester.pump();
     expect(lze(), isTrue);
   });
@@ -1584,7 +1612,7 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-pridat-ukon')));
     await tester.pumpAndSettle();
     expect(find.text('19. 10. – 19. 10. 2026'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
     await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
@@ -1629,7 +1657,7 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-14')));
     await tester.pumpAndSettle();
     expect(find.text('14. 10. – 14. 10. 2026'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('plan-aw')), '48');
+    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
     await tester.pump();
     await tester.tap(find.byKey(const Key('plan-ulozit')));
     await tester.pumpAndSettle();
@@ -1674,6 +1702,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('plan-osa-posun')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  group('Zahájit a Dokončit v řádku plánovače', () {
+    final zahajit = find.byKey(const Key('plan-radek-zahajit-ZK-26-0001'));
+    final dokoncit = find.byKey(const Key('plan-radek-dokoncit-ZK-26-0001'));
+    ServiceOrderDto zakazka() => buildOrderDto(
+      utvar: '11215',
+      canPlanBodyshop: true,
+      // Aktuální stav je Klempířské práce.
+      bodyshopPlan: plan(
+        '2026-10-12',
+        '2026-10-16',
+        ukony: [
+          ukon(1, '2026-10-12', '2026-10-13', typ: 'klempirna'),
+          ukon(2, '2026-10-15', '2026-10-16', typ: 'lakovna'),
+        ],
+      ),
+    );
+
+    testWidgets('zahájí další úkon a dokončí, co probíhá', (tester) async {
+      await spust(tester, zakazky: [zakazka()]);
+      await otevriPlanovac(tester);
+      expect(zahajit, findsOneWidget);
+      expect(dokoncit, findsOneWidget);
+
+      await tester.tap(zahajit);
+      await tester.pumpAndSettle();
+      expect(find.text('Zahájit: LAKOVNA'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Zahájit'));
+      await tester.pumpAndSettle();
+      expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
+
+      // Další úkon není, zbývá dokončit lakovnu. Ta se tím sama nezmění.
+      expect(zahajit, findsNothing);
+      await tester.tap(dokoncit);
+      await tester.pumpAndSettle();
+      expect(dokoncit, findsNothing);
+      expect(zdroj.ulozeneDto('ZK-26-0001').statusCode, 'lakovna');
+    });
+
+    testWidgets('na telefonu se obě tlačítka vejdou', (tester) async {
+      await spust(tester, velikost: const Size(400, 860), zakazky: [zakazka()]);
+      await otevriPlanovac(tester);
+      expect(zahajit, findsOneWidget);
+      expect(dokoncit, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('bez práva plánovat nejsou', (tester) async {
+      await spust(
+        tester,
+        zakazky: [zakazka()],
+        prava: const MojePrava(
+          role: 'user',
+          poradace: {'10026': 'W'},
+          planovac: {'1': 'R'},
+        ),
+      );
+      await otevriPlanovac(tester);
+      expect(zahajit, findsNothing);
+      expect(dokoncit, findsNothing);
+    });
   });
 
   testWidgets('plánovač: průběh na dílně u zakázky, klepnutím nový stav', (

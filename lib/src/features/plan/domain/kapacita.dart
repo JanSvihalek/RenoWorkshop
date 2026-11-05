@@ -192,6 +192,17 @@ int? prevedNaAw(String text, JednotkaKapacity jednotka) {
   return aw <= 9999 ? aw : null;
 }
 
+/// AW jako text do pole v dané jednotce. Hodiny na dvě desetinná místa, aby se
+/// uložením beze změny AW nezměnilo: 27 AW je 2,25 h, ne 2,3 h (to by bylo 28).
+String hodnotaKapacity(int aw, JednotkaKapacity jednotka) {
+  if (jednotka == JednotkaKapacity.aw) return '$aw';
+  final hodiny = (aw / awZaHodinu * 100).round() / 100;
+  return (hodiny == hodiny.roundToDouble()
+          ? hodiny.toInt().toString()
+          : hodiny.toString())
+      .replaceAll('.', ',');
+}
+
 /// Zadaná kapacita člověka na celé AW. Prázdné pole je návrat na výchozí
 /// hodnotu, `null` = neplatné. Nula neplatí: kdo se nepočítá, má Nepočítat.
 int? kapacitaClovekaNaAw(String text, JednotkaKapacity jednotka) {
