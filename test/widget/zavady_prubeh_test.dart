@@ -112,12 +112,13 @@ void main() {
     expect(zahajit, findsNothing);
   });
 
-  testWidgets('přání zákazníka nad závadami: Ano s programem, Ne, Nezadáno', (
+  testWidgets('ostatní přání pod závadami: Ano s programem, Ne, Nezadáno', (
     tester,
   ) async {
     await otevri(
       tester,
       buildOrderDto(
+        defects: const [zavada],
         customerWishes: const {
           'wash': true,
           'washProgram': 'P3',
@@ -127,6 +128,10 @@ void main() {
       ),
     );
     expect(find.text('Ostatní přání'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('prani-zakaznika'))).dy,
+      greaterThan(tester.getTopLeft(find.text('Výměna oleje').first).dy),
+    );
     expect(find.text('Ano · P3'), findsOneWidget);
     expect(find.text('Ne'), findsOneWidget);
     expect(find.text('Nezadáno'), findsOneWidget);

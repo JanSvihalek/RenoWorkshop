@@ -73,10 +73,6 @@ class ZavadyCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Insets.base),
-          if (order.prani case final prani?) ...[
-            _PraniZakaznika(prani: prani),
-            const SizedBox(height: Insets.base),
-          ],
           if (zavady.isEmpty)
             Text(
               'V Heliosu nejsou u zakázky zapsané žádné závady.',
@@ -107,6 +103,11 @@ class ZavadyCard extends ConsumerWidget {
                 );
               },
             ),
+          // Řádky závad mají mezeru pod sebou, prázdná karta ne.
+          if (order.prani case final prani?) ...[
+            if (zavady.isEmpty) const SizedBox(height: Insets.base),
+            _PraniZakaznika(prani: prani),
+          ],
         ],
       ),
     );
@@ -152,6 +153,8 @@ class _PraniZakaznika extends StatelessWidget {
       key: const Key('prani-zakaznika'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Divider(height: 1),
+        const SizedBox(height: Insets.base),
         Text(
           'Ostatní přání',
           style: AppTextStyles.metaSmall.copyWith(
@@ -169,8 +172,6 @@ class _PraniZakaznika extends StatelessWidget {
             polozka('Provozní kapaliny', prani.provozniKapaliny),
           ],
         ),
-        const SizedBox(height: Insets.base),
-        const Divider(height: 1),
       ],
     );
   }
