@@ -44,6 +44,7 @@ abstract interface class ServiceOrderDataSource {
 
     /// Závada z Heliosu, kterou tenhle krok zahajuje.
     String? zavadaId,
+    String? ukonId,
   });
 
   /// `PUT /orders/{id}/repair-subject` - přepíše předmět opravy, prázdný
@@ -55,6 +56,16 @@ abstract interface class ServiceOrderDataSource {
 
   /// `POST /orders/{id}/stavy/{zaznamId}/dokonceni` - uzavře aktuální stav.
   Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId);
+
+  /// Přidá ruční úkon - práci mimo Helios.
+  Future<ServiceOrderDto?> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  });
+
+  /// Smaže ruční úkon. Co se zapsalo do průběhu, zůstane.
+  Future<ServiceOrderDto?> smazRucniUkon(String orderId, String ukonId);
 
   /// `GET /orders/{id}/assignees` - koho lze přiřadit jako zpracovatele.
   /// Lidé z útvaru zakázky, s [vsichni] všichni zaměstnanci.

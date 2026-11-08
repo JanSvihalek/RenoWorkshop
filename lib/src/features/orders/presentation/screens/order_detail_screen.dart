@@ -317,7 +317,7 @@ class _DetailBody extends ConsumerWidget {
           : () => onFotodokumentace!(order.id),
     );
 
-    // Závady z Heliosu; dílna u nich zapisuje jen Zahájit a Dokončit.
+    // Závady z Heliosu a ruční úkony se Zahájit a Dokončit.
     final zavady = ZavadyCard(order: order);
 
     // Fotky, diagnostika a doklady z Heliosu v jedné kartě.
@@ -361,14 +361,14 @@ class _DetailBody extends ConsumerWidget {
     final telo = _TeloDetailu(
       key: ValueKey(order.id),
       orderId: order.id,
-      pocetZavad: order.zavady.length,
+      pocetZavad: order.zavady.length + order.rucniUkony.length,
       sekce: {
         SekceDetailu.zavady: zavady,
         SekceDetailu.prijem: prijem,
         SekceDetailu.dokumenty: dokumenty,
         SekceDetailu.ulozenky: ulozenky,
       },
-      prubeh: [postup, ?predmet, poznamky],
+      prubeh: [postup, poznamky, ?predmet],
     );
 
     // Na telefonu hlavička roluje spolu s obsahem - chlívky po dvou by

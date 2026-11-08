@@ -90,6 +90,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     String? poznamka,
     String? misto,
     String? zavadaId,
+    String? ukonId,
   }) {
     return _mutate(
       orderId,
@@ -100,6 +101,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
         poznamka: poznamka,
         misto: misto,
         zavadaId: zavadaId,
+        ukonId: ukonId,
       ),
     );
   }
@@ -107,6 +109,27 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   @override
   Future<ServiceOrder> ulozPredmetOpravy(String orderId, String text) {
     return _mutate(orderId, () => _dataSource.ulozPredmetOpravy(orderId, text));
+  }
+
+  @override
+  Future<ServiceOrder> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  }) {
+    return _mutate(
+      orderId,
+      () => _dataSource.pridejRucniUkon(
+        orderId,
+        nazev: nazev,
+        poznamka: poznamka,
+      ),
+    );
+  }
+
+  @override
+  Future<ServiceOrder> smazRucniUkon(String orderId, String ukonId) {
+    return _mutate(orderId, () => _dataSource.smazRucniUkon(orderId, ukonId));
   }
 
   @override

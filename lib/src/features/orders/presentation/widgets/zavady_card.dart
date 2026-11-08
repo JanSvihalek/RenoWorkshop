@@ -6,296 +6,350 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/prani_zakaznika.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/zavada.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import 'detail_cards.dart';
+import 'okno_zapisu.dart';
 import 'pridat_stav_sheet.dart';
 
-/// Závady na zakázce z Heliosu - co má dílna na voze udělat.
-///
-/// Závady zapisuje poradce v Heliosu a aplikace je přebírá. Když se v Heliosu
-/// změní, do pěti minut se to projeví i tady, proto je karta zelená jako
-/// všechno z Heliosu. Dílna u nich jen zapisuje Zahájit a Dokončit - jako
-/// dílenské stavy, takže jsou vidět i v průběhu opravy.
+const _oranzova = Color(0xFFE8A93A);
+
+/// Závady z Heliosu a ruční úkony v jednom seznamu - co má dílna na voze
+/// udělat. Závady zapisuje poradce v Heliosu, ruční úkony dílna a do Heliosu
+/// se nepřenášejí. U obojího se zapisuje Zahájit a Dokončit jako dílenské
+/// stavy, takže jsou vidět i v průběhu opravy.
 class ZavadyCard extends ConsumerWidget {
   const ZavadyCard({super.key, required this.order});
 
   final ServiceOrder order;
 
+  Future<void> _pridatUkon(BuildContext context, WidgetRef ref) async {
+    final vysledek = await showDialog<({String nazev, String poznamka})>(
+      context: context,
+      builder: (_) => _NovyUkonDialog(
+        spz: order.licensePlate,
+        cisloZakazky: order.id,
+        autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+      ),
+    );
+    if (vysledek == null) return;
+    await ref
+        .read(orderActionsProvider.notifier)
+        .pridejRucniUkon(
+          order.id,
+          nazev: vysledek.nazev,
+          poznamka: vysledek.poznamka,
+        );
+  }
+
+  Future<void> _smazatUkon(
+    BuildContext context,
+    WidgetRef ref,
+    RucniUkon ukon,
+  ) async {
+    final potvrzeno = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Smazat úkon?'),
+        content: Text(
+          'Úkon „${ukon.nazev}" zmizí ze seznamu. Co se už zapsalo do '
+          'průběhu, zůstane.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(false),
+            child: const Text('Zrušit'),
+          ),
+          FilledButton(
+            key: const Key('ukon-smazat-potvrdit'),
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: const Text('Smazat'),
+          ),
+        ],
+      ),
+    );
+    if (potvrzeno != true) return;
+    await ref
+        .read(orderActionsProvider.notifier)
+        .smazRucniUkon(order.id, ukon.id);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final zavady = order.zavady;
-    // Stejná práva jako průběh opravy, do kterého se závada zapisuje.
+    final rucni = order.rucniUkony;
+    // Stejná práva jako průběh opravy, do kterého se úkon zapisuje.
     final smi =
         ref.watch(smiPlanovatProvider(order.branch?.code)) ||
         ref.watch(smiZapisovatProvider(order.poradac?.kod));
+    final souhrn = [
+      if (zavady.isNotEmpty) '${zavady.length} z Heliosu',
+      if (rucni.isNotEmpty) '${rucni.length} ručně mimo Helios',
+    ].join(' · ');
 
     return DetailCard(
       key: const Key('zavady-karta'),
-      zHeliosu: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              // Pružný: na úzkém telefonu se nadpis zalomí, značka vedle
-              // něj zůstane celá.
-              // Nadpis s počtem si vezme všechno místo vedle značky; zalomí
-              // se, až když se opravdu nevejde.
               Expanded(
-                child: Row(
+                child: Wrap(
+                  spacing: Insets.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: SectionLabel(
-                        'ZÁVADY/ÚKONY',
-                        barva: AppColors.heliosZelena(context),
-                      ),
-                    ),
-                    if (zavady.isNotEmpty) ...[
-                      const SizedBox(width: Insets.sm),
+                    const SectionLabel('ZÁVADY/ÚKONY'),
+                    if (zavady.length + rucni.length > 0)
                       Text(
-                        '${zavady.length}',
+                        '${zavady.length + rucni.length}',
                         style: AppTextStyles.orderNumber.copyWith(
                           fontSize: 11.5,
                           color: palette.muted,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: Insets.sm),
-              const HeliosZnacka(),
-            ],
-          ),
-          const SizedBox(height: Insets.base),
-          if (zavady.isEmpty)
-            Text(
-              'V Heliosu nejsou u zakázky zapsané žádné závady.',
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-            ),
-          // Na širší kartě (tablet, web) ve dvou sloupcích - jako návrh.
-          if (zavady.isNotEmpty)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final dvaSloupce = constraints.maxWidth >= 520;
-                final sirka = dvaSloupce
-                    ? (constraints.maxWidth - Insets.xl) / 2
-                    : constraints.maxWidth;
-                return Wrap(
-                  spacing: Insets.xl,
-                  children: [
-                    for (final (poradi, zavada) in zavady.indexed)
-                      SizedBox(
-                        width: sirka,
-                        child: _RadekZavady(
-                          poradi: poradi + 1,
-                          zavada: zavada,
-                          order: order,
-                          smi: smi,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          // Řádky závad mají mezeru pod sebou, prázdná karta ne.
-          if (order.prani case final prani?) ...[
-            if (zavady.isEmpty) const SizedBox(height: Insets.base),
-            _PraniZakaznika(prani: prani),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Co má mechanik kromě závad udělat. Ano je výrazné, ať se nepřehlédne.
-class _PraniZakaznika extends StatelessWidget {
-  const _PraniZakaznika({required this.prani});
-
-  final PraniZakaznika prani;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    Widget polozka(String nazev, bool? ano, [String? doplnek]) {
-      final hodnota = switch (ano) {
-        null => 'Nezadáno',
-        false => 'Ne',
-        true => doplnek == null ? 'Ano' : 'Ano · $doplnek',
-      };
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            nazev,
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-          ),
-          Text(
-            hodnota,
-            style: AppTextStyles.cardBody.copyWith(
-              color: ano == true ? palette.text : palette.muted,
-              fontWeight: ano == true ? FontWeight.w600 : null,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      key: const Key('prani-zakaznika'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(height: 1),
-        const SizedBox(height: Insets.base),
-        Text(
-          'Ostatní přání',
-          style: AppTextStyles.metaSmall.copyWith(
-            color: palette.muted,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: Insets.xs),
-        Wrap(
-          spacing: Insets.xl,
-          runSpacing: Insets.sm,
-          children: [
-            polozka('Mytí', prani.myti, prani.mytiProgram),
-            polozka('Vrátit vyměněné díly', prani.vratitDily),
-            polozka('Provozní kapaliny', prani.provozniKapaliny),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _RadekZavady extends ConsumerWidget {
-  const _RadekZavady({
-    required this.poradi,
-    required this.zavada,
-    required this.order,
-    required this.smi,
-  });
-
-  final int poradi;
-  final Zavada zavada;
-  final ServiceOrder order;
-  final bool smi;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final prubeh = stavZavady(zavada.id, order.historieStavu);
-    final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
-    final nazev = zavada.nazev;
-    final poznamka = zavada.text.trim();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Insets.base),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 22,
-            child: Text(
-              '$poradi.',
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Stručný popis tučně, podrobnosti z poznámky pod ním menším
-                // písmem. Starší závady bez popisu mají jen poznámku - ta
-                // pak zastoupí popis, ať se nic neztratí.
-                if (nazev != null) ...[
-                  SelectableText(
-                    nazev,
-                    style: AppTextStyles.cardBody.copyWith(
-                      color: palette.text,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (poznamka.isNotEmpty && poznamka != nazev) ...[
-                    const SizedBox(height: 2),
-                    SelectableText(
-                      poznamka,
-                      style: AppTextStyles.metaSmall.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
-                  ],
-                ] else
-                  SelectableText(
-                    poznamka.isEmpty ? 'Bez popisu' : poznamka,
-                    style: AppTextStyles.cardBody.copyWith(
-                      color: poznamka.isEmpty ? palette.muted : palette.text,
-                    ),
-                  ),
-                // Kód z Heliosu bývá jen pořadové číslo - to už je vlevo.
-                if (zavada.kod case final kod?
-                    when !RegExp(r'^\d+$').hasMatch(kod.trim())) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Závada $kod',
-                    style: AppTextStyles.metaSmall.copyWith(
-                      color: palette.muted,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: Insets.xs),
-                Wrap(
-                  spacing: Insets.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (prubeh is ZavadaProbiha)
+                    if (souhrn.isNotEmpty)
                       Text(
-                        'Probíhá',
-                        key: Key('zavada-probiha-${zavada.id}'),
-                        style: AppTextStyles.metaSmall.copyWith(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    if (prubeh case ZavadaHotova(:final kdy))
-                      Text(
-                        'Dokončeno ${AppDateFormat.date(kdy)}',
-                        key: Key('zavada-hotovo-${zavada.id}'),
+                        '· $souhrn',
                         style: AppTextStyles.metaSmall.copyWith(
                           color: palette.muted,
                         ),
                       ),
-                    if (smi && prubeh is ZavadaCeka)
-                      OutlinedButton(
-                        key: Key('zavada-zahajit-${zavada.id}'),
-                        onPressed: () => pridatStavZakazce(
-                          context,
-                          ref,
-                          order,
-                          zavada: zavada,
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: Insets.base,
-                          ),
-                          textStyle: AppTextStyles.chip,
-                        ),
-                        child: const Text('Zahájit'),
+                  ],
+                ),
+              ),
+              if (smi) ...[
+                const SizedBox(width: Insets.sm),
+                OutlinedButton.icon(
+                  key: const Key('pridat-ukon'),
+                  onPressed: () => _pridatUkon(context, ref),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Přidat úkon'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Insets.base,
+                    ),
+                    foregroundColor: AppColors.accent,
+                    backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                    side: const BorderSide(color: AppColors.accent),
+                    textStyle: AppTextStyles.chip,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: Insets.base),
+          if (zavady.isEmpty && rucni.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Insets.base),
+              child: Text(
+                'V Heliosu nejsou u zakázky zapsané žádné závady.',
+                style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+              ),
+            ),
+          for (final (poradi, zavada) in zavady.indexed)
+            _RadekUkonu(
+              id: zavada.id,
+              poradi: poradi + 1,
+              nazev: zavada.nazev,
+              poznamka: zavada.text.trim(),
+              kod: zavada.kod,
+              prubeh: stavZavady(zavada.id, order.historieStavu),
+              order: order,
+              smi: smi,
+              onZahajit: () =>
+                  pridatStavZakazce(context, ref, order, zavada: zavada),
+            ),
+          for (final (poradi, ukon) in rucni.indexed)
+            _RadekUkonu(
+              id: ukon.id,
+              poradi: zavady.length + poradi + 1,
+              nazev: ukon.nazev,
+              poznamka: ukon.poznamka?.trim() ?? '',
+              rucni: true,
+              doplnek: _kdoPridal(ukon),
+              prubeh: stavZavady(ukon.id, order.historieStavu, rucni: true),
+              order: order,
+              smi: smi,
+              onZahajit: () =>
+                  pridatStavZakazce(context, ref, order, rucniUkon: ukon),
+              onSmazat: () => _smazatUkon(context, ref, ukon),
+            ),
+          _OstatniPrani(prani: order.prani),
+        ],
+      ),
+    );
+  }
+
+  static String _kdoPridal(RucniUkon ukon) {
+    final kdy = ukon.pridano;
+    return [
+      'přidal ${ukon.pridal ?? 'neznámý'}',
+      if (kdy != null)
+        '${AppDateFormat.dayMonthSmart(kdy)} ${AppDateFormat.time(kdy)}',
+    ].join(' ');
+  }
+}
+
+/// Jeden řádek seznamu - závada z Heliosu, nebo ruční úkon.
+class _RadekUkonu extends ConsumerWidget {
+  const _RadekUkonu({
+    required this.id,
+    required this.poradi,
+    required this.nazev,
+    required this.poznamka,
+    required this.prubeh,
+    required this.order,
+    required this.smi,
+    required this.onZahajit,
+    this.kod,
+    this.rucni = false,
+    this.doplnek,
+    this.onSmazat,
+  });
+
+  final String id;
+  final int poradi;
+  final String? nazev;
+  final String poznamka;
+  final String? kod;
+  final bool rucni;
+  final String? doplnek;
+  final StavZavady prubeh;
+  final ServiceOrder order;
+  final bool smi;
+  final VoidCallback onZahajit;
+  final VoidCallback? onSmazat;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
+    final klic = rucni ? 'ukon' : 'zavada';
+    final prubeh = this.prubeh;
+    final nazev = this.nazev;
+    final kod = this.kod;
+
+    // Stručný popis tučně, podrobnosti z poznámky pod ním menším písmem.
+    // Starší závady bez popisu mají jen poznámku - ta pak zastoupí popis.
+    final titulek = nazev ?? (poznamka.isEmpty ? 'Bez popisu' : poznamka);
+    final styleStavu = AppTextStyles.metaSmall.copyWith(color: palette.muted);
+
+    final tlacitkoZahajit = OutlinedButton(
+      key: Key('$klic-zahajit-$id'),
+      onPressed: onZahajit,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: Insets.base),
+        textStyle: AppTextStyles.chip,
+      ),
+      child: const Text('Zahájit'),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.sm),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          border: Border.all(color: palette.hairline2),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(Insets.base),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    child: Text(
+                      '$poradi.',
+                      style: AppTextStyles.cardBody.copyWith(
+                        color: palette.muted,
                       ),
-                    if (smi && prubeh is ZavadaProbiha)
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: Insets.sm,
+                          runSpacing: 2,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            SelectableText(
+                              titulek,
+                              style: AppTextStyles.cardBody.copyWith(
+                                color: palette.text,
+                                fontWeight: nazev != null
+                                    ? FontWeight.w600
+                                    : null,
+                              ),
+                            ),
+                            _ZnackaZdroje(rucni: rucni),
+                          ],
+                        ),
+                        if (nazev != null &&
+                            poznamka.isNotEmpty &&
+                            poznamka != nazev) ...[
+                          const SizedBox(height: 2),
+                          SelectableText(
+                            poznamka,
+                            style: AppTextStyles.metaSmall.copyWith(
+                              color: palette.muted,
+                            ),
+                          ),
+                        ],
+                        // Kód z Heliosu bývá jen pořadové číslo.
+                        if (kod != null &&
+                            !RegExp(r'^\d+$').hasMatch(kod.trim())) ...[
+                          const SizedBox(height: 2),
+                          Text('Závada $kod', style: styleStavu),
+                        ],
+                        const SizedBox(height: 2),
+                        Wrap(
+                          children: [
+                            switch (prubeh) {
+                              ZavadaProbiha() => Text(
+                                'Probíhá',
+                                key: Key('$klic-probiha-$id'),
+                                style: styleStavu.copyWith(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              ZavadaHotova(:final kdy) => Text(
+                                'Dokončeno ${AppDateFormat.date(kdy)}',
+                                key: Key('$klic-hotovo-$id'),
+                                style: styleStavu,
+                              ),
+                              ZavadaCeka(:final preruseno) => Text(
+                                preruseno ? 'Přerušeno' : 'Nezahájeno',
+                                style: styleStavu,
+                              ),
+                            },
+                            if (doplnek case final doplnek?)
+                              Text(' · $doplnek', style: styleStavu),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (smi) ...[
+                    const SizedBox(width: Insets.sm),
+                    if (prubeh is ZavadaCeka) tlacitkoZahajit,
+                    if (prubeh is ZavadaProbiha)
                       FilledButton(
-                        key: Key('zavada-dokoncit-${zavada.id}'),
+                        key: Key('$klic-dokoncit-$id'),
                         onPressed: zaneprazdneno
                             ? null
                             : () => ref
@@ -316,13 +370,193 @@ class _RadekZavady extends ConsumerWidget {
                         ),
                         child: const Text('Dokončit'),
                       ),
+                    if (onSmazat case final smazat?)
+                      PopupMenuButton<String>(
+                        key: Key('ukon-menu-$id'),
+                        icon: const Icon(Icons.more_horiz, size: 20),
+                        tooltip: 'Další akce',
+                        onSelected: (_) => smazat(),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'smazat', child: Text('Smazat úkon')),
+                        ],
+                      ),
                   ],
-                ),
-              ],
+                ],
+              ),
+            ),
+            if (rucni)
+              const Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 3,
+                child: ColoredBox(color: _oranzova),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Odkud úkon je - zamčený z Heliosu, nebo zapsaný ručně.
+class _ZnackaZdroje extends StatelessWidget {
+  const _ZnackaZdroje({required this.rucni});
+
+  final bool rucni;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final barva = !rucni
+        ? palette.muted2
+        : (context.isDarkMode ? _oranzova : const Color(0xFFB8740A));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: rucni ? _oranzova.withValues(alpha: 0.18) : palette.hairline,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            rucni ? Icons.edit_outlined : Icons.lock_outline,
+            size: 11,
+            color: barva,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            rucni ? 'RUČNĚ · MIMO HELIOS' : 'HELIOS',
+            style: AppTextStyles.metaSmall.copyWith(
+              color: barva,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Co má mechanik kromě závad udělat. Ukazují se jen objednaná přání.
+class _OstatniPrani extends StatelessWidget {
+  const _OstatniPrani({required this.prani});
+
+  final PraniZakaznika? prani;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final prani = this.prani;
+    final polozky = [
+      if (prani?.myti == true)
+        prani?.mytiProgram == null ? 'Mytí' : 'Mytí · ${prani!.mytiProgram}',
+      if (prani?.vratitDily == true) 'Vrátit vyměněné díly',
+      if (prani?.provozniKapaliny == true) 'Provozní kapaliny',
+    ];
+
+    return Column(
+      key: const Key('prani-zakaznika'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Insets.xs),
+        const Divider(height: 1),
+        const SizedBox(height: Insets.base),
+        Wrap(
+          spacing: Insets.base,
+          runSpacing: Insets.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SectionLabel('OSTATNÍ PŘÁNÍ'),
+            if (polozky.isEmpty)
+              Text(
+                'Žádná zvláštní přání',
+                style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+              ),
+            for (final polozka in polozky)
+              Text(
+                polozka,
+                style: AppTextStyles.cardBody.copyWith(
+                  color: palette.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _NovyUkonDialog extends StatefulWidget {
+  const _NovyUkonDialog({
+    required this.spz,
+    required this.cisloZakazky,
+    required this.autor,
+  });
+
+  final String spz;
+  final String cisloZakazky;
+  final String autor;
+
+  @override
+  State<_NovyUkonDialog> createState() => _NovyUkonDialogState();
+}
+
+class _NovyUkonDialogState extends State<_NovyUkonDialog> {
+  final _nazev = TextEditingController();
+  final _poznamka = TextEditingController();
+
+  @override
+  void dispose() {
+    _nazev.dispose();
+    _poznamka.dispose();
+    super.dispose();
+  }
+
+  bool get _lzeUlozit => _nazev.text.trim().isNotEmpty;
+
+  void _uloz() {
+    if (!_lzeUlozit) return;
+    Navigator.of(
+      context,
+    ).pop((nazev: _nazev.text.trim(), poznamka: _poznamka.text.trim()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OknoZapisu(
+      nadpis: 'Přidat úkon',
+      kam: 'do závad a úkonů',
+      spz: widget.spz,
+      cisloZakazky: widget.cisloZakazky,
+      autor: widget.autor,
+      potvrdit: 'Přidat úkon',
+      potvrditKey: const Key('novy-ukon-ulozit'),
+      onPotvrdit: _lzeUlozit ? _uloz : null,
+      obsah: [
+        PoleZapisu(
+          poleKey: const Key('novy-ukon-nazev'),
+          controller: _nazev,
+          napoveda: 'Název úkonu',
+          maxDelka: 100,
+          autofocus: true,
+          minLines: 1,
+          maxLines: 2,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Insets.md),
+        PoleZapisu(
+          poleKey: const Key('novy-ukon-poznamka'),
+          controller: _poznamka,
+          napoveda: 'Poznámka (nepovinné)',
+          maxDelka: 500,
+          minLines: 2,
+          maxLines: 5,
+        ),
+      ],
     );
   }
 }

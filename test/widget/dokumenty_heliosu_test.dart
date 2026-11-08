@@ -124,8 +124,9 @@ void main() {
     expect(find.byKey(const Key('helios-znacka')), findsOneWidget);
 
     await naSekci(tester, 'zavady');
-    expect(karta('zavady-karta').zHeliosu, isTrue);
-    expect(zelene(), hasLength(1));
+    // Závady se míchají s ručními úkony, značka je u každého řádku.
+    expect(karta('zavady-karta').zHeliosu, isFalse);
+    expect(zelene(), isEmpty);
 
     await naSekci(tester, 'ulozenky');
     expect(karta('ulozenky-pneu').zHeliosu, isTrue);
@@ -146,7 +147,7 @@ void main() {
     await otevriDetail(tester, dokumenty: [zakazkovyList]);
     tester.view.physicalSize = const Size(360, 3000);
     await tester.pumpAndSettle();
-    // Data z Heliosu jsou v Dokumentech (doklady), závadách a uloženkách.
+    // Závady mají značku u řádků, zelená s nápisem zůstala v uloženkách.
     var znacek = find.byKey(const Key('helios-znacka')).evaluate().length;
     for (final sekce in ['zavady', 'ulozenky']) {
       await naSekci(tester, sekce);
@@ -162,7 +163,7 @@ void main() {
           chyba.contains('detail_cards.dart'),
     );
     expect(vHeliosu, isEmpty);
-    expect(znacek, 3);
+    expect(znacek, 1);
   });
 
   testWidgets('zakázka bez dokumentů v Heliosu to řekne', (tester) async {

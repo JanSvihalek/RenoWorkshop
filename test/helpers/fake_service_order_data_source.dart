@@ -442,6 +442,7 @@ class FakeServiceOrderDataSource
     String? poznamka,
     String? misto,
     String? zavadaId,
+    String? ukonId,
   }) async {
     posledniMisto = misto;
     final index = _indexOf(orderId);
@@ -456,6 +457,7 @@ class FakeServiceOrderDataSource
       'author': 'Jan Dvořák',
       'createdAt': '2026-08-28T10:00:00',
       'defectId': zavadaId,
+      'taskId': ukonId,
     };
 
     return _orders[index] = _orders[index].copyWith(
@@ -871,6 +873,40 @@ class FakeServiceOrderDataSource
       ?.id;
 
   @override
+  Future<ServiceOrderDto?> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  }) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(
+      manualTasks: [
+        ..._orders[index].manualTasks,
+        RucniUkon(
+          id: 'ukon-${_orders[index].manualTasks.length + 1}',
+          nazev: nazev,
+          poznamka: poznamka,
+          pridal: 'Test Technik',
+          pridano: DateTime(2026, 11, 8, 8, 50),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazRucniUkon(String orderId, String ukonId) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(
+      manualTasks: [
+        for (final ukon in _orders[index].manualTasks)
+          if (ukon.id != ukonId) ukon,
+      ],
+    );
+  }
+
+  @override
   Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
@@ -980,6 +1016,7 @@ ServiceOrderDto buildOrderDto({
   bool isActive = true,
   Map<String, dynamic>? handoverContact,
   Map<String, dynamic>? customerWishes,
+  List<RucniUkon> manualTasks = const [],
 }) {
   return ServiceOrderDto(
     id: id,
@@ -987,6 +1024,7 @@ ServiceOrderDto buildOrderDto({
     isActive: isActive,
     handoverContact: handoverContact,
     customerWishes: customerWishes,
+    manualTasks: manualTasks,
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,

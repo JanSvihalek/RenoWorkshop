@@ -32,6 +32,7 @@ import '../../../uzivatele/domain/uzivatele.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../domain/entities/branch.dart';
+import '../../domain/entities/zavada.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -287,6 +288,7 @@ class MockServiceOrderDataSource
     String? poznamka,
     String? misto,
     String? zavadaId,
+    String? ukonId,
   }) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
@@ -311,6 +313,7 @@ class MockServiceOrderDataSource
       'author': 'Jan Dvořák',
       'createdAt': DateTime.now().toIso8601String(),
       'defectId': zavadaId,
+      'taskId': ukonId,
     };
 
     final updated = orders[index].copyWith(
@@ -718,6 +721,44 @@ class MockServiceOrderDataSource
     final index = _indexOf(orders, orderId);
     if (index == -1) return null;
     return orders[index] = orders[index].copyWith(vymazatObalku: true);
+  }
+
+  @override
+  Future<ServiceOrderDto?> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  }) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    return orders[index] = orders[index].copyWith(
+      manualTasks: [
+        ...orders[index].manualTasks,
+        RucniUkon(
+          id: 'ukon-${DateTime.now().microsecondsSinceEpoch}',
+          nazev: nazev,
+          poznamka: poznamka,
+          pridal: 'Jan Dvořák',
+          pridano: DateTime.now(),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazRucniUkon(String orderId, String ukonId) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    return orders[index] = orders[index].copyWith(
+      manualTasks: [
+        for (final ukon in orders[index].manualTasks)
+          if (ukon.id != ukonId) ukon,
+      ],
+    );
   }
 
   @override

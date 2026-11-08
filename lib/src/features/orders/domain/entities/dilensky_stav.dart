@@ -17,6 +17,7 @@ class DilenskyStav {
     this.dokonceno,
     this.dokoncil,
     this.zavadaId,
+    this.ukonId,
   });
 
   /// Identifikátor záznamu na serveru. Podle něj se maže omylem přidaný
@@ -47,6 +48,9 @@ class DilenskyStav {
   /// Závada z Heliosu, kterou tenhle krok zahájil.
   final String? zavadaId;
 
+  /// Ruční úkon, který tenhle krok zahájil.
+  final String? ukonId;
+
   /// Stav mimo číselník, napsaný ručně.
   bool get jeVlastni => kod == null;
 
@@ -63,6 +67,7 @@ class DilenskyStav {
       dokonceno: dokonceno == null ? null : DateTime.tryParse(dokonceno),
       dokoncil: json['finishedBy'] as String?,
       zavadaId: json['defectId'] as String?,
+      ukonId: json['taskId'] as String?,
     );
   }
 

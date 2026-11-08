@@ -52,6 +52,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     String? poznamka,
     String? misto,
     String? zavadaId,
+    String? ukonId,
   }) async {
     if (kod == null && (nazev == null || nazev.trim().isEmpty)) return false;
 
@@ -64,6 +65,7 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
         misto: misto?.trim(),
         zavadaId: zavadaId,
+        ukonId: ukonId,
       );
       _zaloguj('stav_pridan', orderId, detail: kod ?? 'vlastní text');
       _obnovMimoDilnu(orderId);
@@ -239,6 +241,44 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         orderId,
         detail: zamestnanecId?.toString(),
       );
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Přidá ruční úkon - práci mimo Helios.
+  Future<bool> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.pridejRucniUkon(
+        orderId,
+        nazev: nazev.trim(),
+        poznamka: poznamka?.trim().isEmpty ?? true ? null : poznamka!.trim(),
+      );
+      _zaloguj('rucni_ukon_pridan', orderId);
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Smaže ruční úkon. Co se zapsalo do průběhu, zůstane.
+  Future<bool> smazRucniUkon(String orderId, String ukonId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.smazRucniUkon(orderId, ukonId);
+      _zaloguj('rucni_ukon_smazan', orderId);
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;

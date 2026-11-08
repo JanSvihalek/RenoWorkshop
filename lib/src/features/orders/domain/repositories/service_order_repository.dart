@@ -44,6 +44,7 @@ abstract interface class ServiceOrderRepository {
 
     /// Závada z Heliosu, kterou tenhle krok zahajuje.
     String? zavadaId,
+    String? ukonId,
   });
 
   /// Přepíše předmět opravy; prázdný text ho smaže.
@@ -54,6 +55,16 @@ abstract interface class ServiceOrderRepository {
 
   /// Uzavře aktuální stav - další krok čeká, až ho někdo zahájí.
   Future<ServiceOrder> dokonciStav(String orderId, String zaznamId);
+
+  /// Přidá ruční úkon - práci mimo Helios.
+  Future<ServiceOrder> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  });
+
+  /// Smaže ruční úkon. Co se zapsalo do průběhu, zůstane.
+  Future<ServiceOrder> smazRucniUkon(String orderId, String ukonId);
 
   /// Koho lze zakázce přiřadit jako zpracovatele.
   Future<NabidkaZpracovatelu> nabidkaZpracovatelu(

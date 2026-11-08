@@ -143,6 +143,7 @@ class RestServiceOrderDataSource
     String? poznamka,
     String? misto,
     String? zavadaId,
+    String? ukonId,
   }) async {
     final data = await _send(
       'POST',
@@ -153,6 +154,7 @@ class RestServiceOrderDataSource
         'note': ?poznamka,
         'bay': ?misto,
         'defectId': ?zavadaId,
+        'taskId': ?ukonId,
       },
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
@@ -451,6 +453,30 @@ class RestServiceOrderDataSource
     final data = await _send(
       'DELETE',
       'orders/${Uri.encodeComponent(orderId)}/envelope',
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> pridejRucniUkon(
+    String orderId, {
+    required String nazev,
+    String? poznamka,
+  }) async {
+    final data = await _send(
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}/ukony',
+      body: {'title': nazev, 'note': ?poznamka},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> smazRucniUkon(String orderId, String ukonId) async {
+    final data = await _send(
+      'DELETE',
+      'orders/${Uri.encodeComponent(orderId)}'
+          '/ukony/${Uri.encodeComponent(ukonId)}',
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

@@ -417,6 +417,7 @@ Future<void> pridatStavZakazce(
   ServiceOrder order, {
   TypUkonu? ukon,
   Zavada? zavada,
+  RucniUkon? rucniUkon,
 }) async {
   // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
   // nepíše u každého kroku znovu.
@@ -427,7 +428,7 @@ Future<void> pridatStavZakazce(
     cisloZakazky: order.id,
     autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     ukon: ukon,
-    nazevZavady: zavada?.nazevKroku,
+    nazevZavady: zavada?.nazevKroku ?? rucniUkon?.nazev,
   );
   if (vybrany == null || !context.mounted) return;
 
@@ -440,6 +441,7 @@ Future<void> pridatStavZakazce(
         poznamka: vybrany.poznamka,
         misto: vybrany.misto,
         zavadaId: zavada?.id,
+        ukonId: rucniUkon?.id,
       );
 
   if (!hotovo) return;

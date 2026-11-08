@@ -61,6 +61,7 @@ class ServiceOrder {
     this.notes = const [],
     this.workItems = const [],
     this.zavady = const [],
+    this.rucniUkony = const [],
     this.technickeKampane = const [],
     this.prvniRegistrace,
     this.vozidloId,
@@ -168,6 +169,9 @@ class ServiceOrder {
 
   /// Závady z Heliosu, v pořadí, v jakém je poradce zapsal. Jen ke čtení.
   final List<Zavada> zavady;
+
+  /// Úkony zapsané dílnou mimo Helios, v pořadí přidání.
+  final List<RucniUkon> rucniUkony;
 
   /// Technické kampaně BMW (svolávací akce), které se vozu týkají -
   /// dohledá je server podle VINu.
@@ -313,6 +317,7 @@ class ServiceOrder {
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       zavady: zavady,
+      rucniUkony: rucniUkony,
       technickeKampane: technickeKampane,
       prvniRegistrace: prvniRegistrace,
       vozidloId: vozidloId,
@@ -338,6 +343,7 @@ class ServiceOrder {
           other.zpracovatel == zpracovatel &&
           other.obalka == obalka &&
           other.notes.length == notes.length &&
+          other.rucniUkony.length == rucniUkony.length &&
           other.workItems == workItems);
 
   @override
@@ -348,6 +354,7 @@ class ServiceOrder {
     zpracovatel,
     obalka,
     notes.length,
+    rucniUkony.length,
     workItems.length,
   );
 }

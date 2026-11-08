@@ -48,6 +48,7 @@ class ServiceOrderDto {
     required this.notes,
     required this.workItems,
     this.defects = const [],
+    this.manualTasks = const [],
     this.technicalCampaigns = const [],
     this.firstRegisteredAt,
     this.vehicleId,
@@ -134,6 +135,9 @@ class ServiceOrderDto {
   /// Závady z Heliosu. Chybí u starší verze API - pak prázdné.
   final List<Zavada> defects;
 
+  /// Úkony zapsané dílnou mimo Helios. Starší API neposílá.
+  final List<RucniUkon> manualTasks;
+
   /// Technické kampaně k VINu. Starší API je neposílá - pak prázdné.
   final List<KampanVozidla> technicalCampaigns;
 
@@ -206,6 +210,9 @@ class ServiceOrderDto {
       defects: (json['defects'] as List<dynamic>? ?? const [])
           .map((item) => Zavada.fromJson(item as Map<String, dynamic>))
           .toList(),
+      manualTasks: (json['manualTasks'] as List<dynamic>? ?? const [])
+          .map((item) => RucniUkon.fromJson(item as Map<String, dynamic>))
+          .toList(),
       technicalCampaigns:
           (json['technicalCampaigns'] as List<dynamic>? ?? const [])
               .map(
@@ -257,6 +264,7 @@ class ServiceOrderDto {
     'notes': notes.map((note) => note.toJson()).toList(),
     'workItems': workItems.map((item) => item.toJson()).toList(),
     'defects': defects.map((zavada) => zavada.toJson()).toList(),
+    'manualTasks': manualTasks.map((ukon) => ukon.toJson()).toList(),
     'technicalCampaigns': technicalCampaigns.map((k) => k.toJson()).toList(),
     'firstRegisteredAt': firstRegisteredAt,
     'vehicleId': vehicleId,
@@ -309,6 +317,7 @@ class ServiceOrderDto {
     notes: notes.map((note) => note.toDomain()).toList(),
     workItems: workItems.map((item) => item.toDomain()).toList(),
     zavady: defects,
+    rucniUkony: manualTasks,
     technickeKampane: technicalCampaigns,
     prvniRegistrace: firstRegisteredAt == null
         ? null
@@ -355,6 +364,7 @@ class ServiceOrderDto {
     int? vehicleId,
     Map<String, dynamic>? handoverContact,
     Map<String, dynamic>? customerWishes,
+    List<RucniUkon>? manualTasks,
     List<KampanVozidla>? ageCampaigns,
     Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
@@ -400,6 +410,7 @@ class ServiceOrderDto {
       notes: notes ?? this.notes,
       workItems: workItems ?? this.workItems,
       defects: defects,
+      manualTasks: manualTasks ?? this.manualTasks,
       technicalCampaigns: technicalCampaigns ?? this.technicalCampaigns,
       firstRegisteredAt: firstRegisteredAt ?? this.firstRegisteredAt,
       vehicleId: vehicleId ?? this.vehicleId,
