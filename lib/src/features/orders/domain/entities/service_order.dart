@@ -4,6 +4,7 @@ import 'kampan_vozidla.dart';
 import 'plan_klempirny.dart';
 import 'order_note.dart';
 import 'poradac.dart';
+import 'prani_zakaznika.dart';
 import 'typ_zakazky.dart';
 import 'work_item.dart';
 import 'zavada.dart';
@@ -65,6 +66,7 @@ class ServiceOrder {
     this.vozidloId,
     this.jeAktivni = true,
     this.prebirajici,
+    this.prani,
     this.kampanePodleStari = const [],
     this.barvaVozu,
     this.planKlempirny,
@@ -180,6 +182,9 @@ class ServiceOrder {
 
   /// Kdo vůz přebírá - kontakt pro zavolání nebo e-mail.
   final Prebirajici? prebirajici;
+
+  /// Mytí, vrácení dílů a kapaliny. `null` = v Heliosu nevyplněno.
+  final PraniZakaznika? prani;
 
   /// První registrace vozu (`prodej_datum` z Heliosu). `null` = Helios
   /// ji nemá.
@@ -313,6 +318,7 @@ class ServiceOrder {
       vozidloId: vozidloId,
       jeAktivni: jeAktivni,
       prebirajici: prebirajici,
+      prani: prani,
       kampanePodleStari: kampanePodleStari,
       barvaVozu: barvaVozu,
       planKlempirny: planKlempirny,

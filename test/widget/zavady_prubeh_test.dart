@@ -112,6 +112,31 @@ void main() {
     expect(zahajit, findsNothing);
   });
 
+  testWidgets('přání zákazníka nad závadami: Ano s programem, Ne, Nezadáno', (
+    tester,
+  ) async {
+    await otevri(
+      tester,
+      buildOrderDto(
+        customerWishes: const {
+          'wash': true,
+          'washProgram': 'P3',
+          'returnParts': false,
+          'operatingFluids': null,
+        },
+      ),
+    );
+    expect(find.text('Ostatní přání'), findsOneWidget);
+    expect(find.text('Ano · P3'), findsOneWidget);
+    expect(find.text('Ne'), findsOneWidget);
+    expect(find.text('Nezadáno'), findsOneWidget);
+  });
+
+  testWidgets('bez přání zákazníka se pruh neukáže', (tester) async {
+    await otevri(tester, buildOrderDto());
+    expect(find.byKey(const Key('prani-zakaznika')), findsNothing);
+  });
+
   testWidgets('hlavička: IČO, schování celého pruhu a Zadat u zpracovatele', (
     tester,
   ) async {

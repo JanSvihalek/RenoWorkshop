@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../domain/entities/prani_zakaznika.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/zavada.dart';
 import '../controllers/order_actions_controller.dart';
@@ -72,6 +73,10 @@ class ZavadyCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Insets.base),
+          if (order.prani case final prani?) ...[
+            _PraniZakaznika(prani: prani),
+            const SizedBox(height: Insets.base),
+          ],
           if (zavady.isEmpty)
             Text(
               'V Heliosu nejsou u zakázky zapsané žádné závady.',
@@ -104,6 +109,69 @@ class ZavadyCard extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Co má mechanik kromě závad udělat. Ano je výrazné, ať se nepřehlédne.
+class _PraniZakaznika extends StatelessWidget {
+  const _PraniZakaznika({required this.prani});
+
+  final PraniZakaznika prani;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    Widget polozka(String nazev, bool? ano, [String? doplnek]) {
+      final hodnota = switch (ano) {
+        null => 'Nezadáno',
+        false => 'Ne',
+        true => doplnek == null ? 'Ano' : 'Ano · $doplnek',
+      };
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            nazev,
+            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
+          ),
+          Text(
+            hodnota,
+            style: AppTextStyles.cardBody.copyWith(
+              color: ano == true ? palette.text : palette.muted,
+              fontWeight: ano == true ? FontWeight.w600 : null,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      key: const Key('prani-zakaznika'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ostatní přání',
+          style: AppTextStyles.metaSmall.copyWith(
+            color: palette.muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: Insets.xs),
+        Wrap(
+          spacing: Insets.xl,
+          runSpacing: Insets.sm,
+          children: [
+            polozka('Mytí', prani.myti, prani.mytiProgram),
+            polozka('Vrátit vyměněné díly', prani.vratitDily),
+            polozka('Provozní kapaliny', prani.provozniKapaliny),
+          ],
+        ),
+        const SizedBox(height: Insets.base),
+        const Divider(height: 1),
+      ],
     );
   }
 }

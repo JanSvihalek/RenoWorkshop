@@ -979,12 +979,14 @@ ServiceOrderDto buildOrderDto({
   int? vehicleId,
   bool isActive = true,
   Map<String, dynamic>? handoverContact,
+  Map<String, dynamic>? customerWishes,
 }) {
   return ServiceOrderDto(
     id: id,
     vehicleId: vehicleId,
     isActive: isActive,
     handoverContact: handoverContact,
+    customerWishes: customerWishes,
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,

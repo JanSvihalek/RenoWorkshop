@@ -4,6 +4,7 @@ import '../../domain/entities/kampan_vozidla.dart';
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/order_note.dart';
 import '../../domain/entities/poradac.dart';
+import '../../domain/entities/prani_zakaznika.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/entities/typ_zakazky.dart';
 import '../../domain/entities/work_item.dart';
@@ -52,6 +53,7 @@ class ServiceOrderDto {
     this.vehicleId,
     this.isActive = true,
     this.handoverContact,
+    this.customerWishes,
     this.ageCampaigns = const [],
     this.vehicleColor,
     this.bodyshopPlan,
@@ -144,6 +146,10 @@ class ServiceOrderDto {
   /// Kdo vůz přebírá. Starší API neposílá.
   final Map<String, dynamic>? handoverContact;
 
+  /// Přání zákazníka `{wash, washProgram, returnParts, operatingFluids}`,
+  /// `null` = nevyplněno. Starší API neposílá.
+  final Map<String, dynamic>? customerWishes;
+
   /// `YYYY-MM-DD` první registrace vozu, `null` = neznámá.
   final String? firstRegisteredAt;
 
@@ -210,6 +216,7 @@ class ServiceOrderDto {
       vehicleId: (json['vehicleId'] as num?)?.toInt(),
       isActive: json['isActive'] as bool? ?? true,
       handoverContact: json['handoverContact'] as Map<String, dynamic>?,
+      customerWishes: json['customerWishes'] as Map<String, dynamic>?,
       ageCampaigns: (json['ageCampaigns'] as List<dynamic>? ?? const [])
           .map((item) => KampanVozidla.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -255,6 +262,7 @@ class ServiceOrderDto {
     'vehicleId': vehicleId,
     'isActive': isActive,
     'handoverContact': handoverContact,
+    'customerWishes': customerWishes,
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
     'vehicleColor': vehicleColor,
     'bodyshopPlan': bodyshopPlan,
@@ -310,6 +318,9 @@ class ServiceOrderDto {
     prebirajici: handoverContact == null
         ? null
         : Prebirajici.zJson(handoverContact!),
+    prani: customerWishes == null
+        ? null
+        : PraniZakaznika.zJson(customerWishes!),
     kampanePodleStari: ageCampaigns,
     barvaVozu: BarvaVozu.zJson(vehicleColor),
     planKlempirny: bodyshopPlan == null
@@ -343,6 +354,7 @@ class ServiceOrderDto {
     String? firstRegisteredAt,
     int? vehicleId,
     Map<String, dynamic>? handoverContact,
+    Map<String, dynamic>? customerWishes,
     List<KampanVozidla>? ageCampaigns,
     Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
@@ -393,6 +405,7 @@ class ServiceOrderDto {
       vehicleId: vehicleId ?? this.vehicleId,
       isActive: isActive,
       handoverContact: handoverContact ?? this.handoverContact,
+      customerWishes: customerWishes ?? this.customerWishes,
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),

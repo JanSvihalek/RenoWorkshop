@@ -573,6 +573,15 @@ class MockServiceOrderDataSource
                 'email': 'kontakt$i@example.cz',
               }
             : null,
+        // Ukázková přání - u každé třetí zakázky nevyplněná, jako v Heliosu.
+        customerWishes: i % 3 == 2
+            ? null
+            : {
+                'wash': i.isEven,
+                'washProgram': i.isEven ? 'P${i % 6 + 1}' : null,
+                'returnParts': i % 3 == 0,
+                'operatingFluids': i.isOdd,
+              },
         vehicleColor: _barvy[i % _barvy.length],
         ageCampaigns: [
           for (final k in _kampaneStari)
