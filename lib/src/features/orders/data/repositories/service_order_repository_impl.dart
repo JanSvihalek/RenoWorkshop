@@ -89,6 +89,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     String? nazev,
     String? poznamka,
     String? misto,
+    String? zavadaId,
   }) {
     return _mutate(
       orderId,
@@ -98,6 +99,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
         nazev: nazev,
         poznamka: poznamka,
         misto: misto,
+        zavadaId: zavadaId,
       ),
     );
   }

@@ -68,6 +68,8 @@ void main() {
     await klepni(tester, vListe(find.text('Pořadač')));
     await tester.tap(find.text('MOT BSL').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
+    await tester.pumpAndSettle();
 
     expect(find.text('2SC 9014'), findsOneWidget);
     expect(find.text('8AB 4721'), findsNothing);
@@ -76,12 +78,37 @@ void main() {
   testWidgets('filtr stavu z Heliosu zúží seznam', (tester) async {
     await prihlas(tester);
 
-    await klepni(tester, vListe(find.byType(DropdownButton<String?>)).at(2));
+    await klepni(tester, vListe(find.text('Stav Helios')));
     await tester.tap(find.text('K fakturaci').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
     await tester.pumpAndSettle();
 
     expect(find.text('2SC 9014'), findsOneWidget);
     expect(find.text('8AB 4721'), findsNothing);
+    // Vybraná hodnota je přímo na tlačítku filtru.
+    expect(vListe(find.text('K fakturaci')), findsOneWidget);
+  });
+
+  testWidgets('víc hodnot naráz: zakázka sedí na kteroukoli', (tester) async {
+    await prihlas(tester);
+
+    await klepni(tester, vListe(find.text('Stav Helios')));
+    await tester.tap(find.text('K fakturaci').last);
+    await tester.tap(find.text('Zpracováváno').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2SC 9014'), findsOneWidget);
+    expect(find.text('8AB 4721'), findsOneWidget);
+    expect(vListe(find.text('Stav Helios: 2')), findsOneWidget);
+
+    // „Vše" výběr zruší.
+    await klepni(tester, vListe(find.text('Stav Helios: 2')));
+    await tester.tap(find.byKey(const Key('vyber-vice-vse')));
+    await tester.pumpAndSettle();
+    expect(vListe(find.text('Stav Helios')), findsOneWidget);
   });
 
   testWidgets('vybrané řazení svítí v liště to, podle kterého se řadí', (

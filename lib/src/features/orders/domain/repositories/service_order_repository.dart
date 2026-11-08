@@ -41,6 +41,9 @@ abstract interface class ServiceOrderRepository {
     /// Kde vůz po tomhle kroku stojí. `null` = neměnit, prázdný text
     /// místo smaže.
     String? misto,
+
+    /// Závada z Heliosu, kterou tenhle krok zahajuje.
+    String? zavadaId,
   });
 
   /// Přepíše předmět opravy; prázdný text ho smaže.

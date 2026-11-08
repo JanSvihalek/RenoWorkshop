@@ -41,8 +41,9 @@ void main() {
   }
 
   Future<void> otevriVyber(WidgetTester tester) async {
-    await tester.ensureVisible(find.byKey(const Key('zpracovatel')));
-    await tester.tap(find.byKey(const Key('zpracovatel')));
+    final odkaz = find.byKey(const Key('zpracovatel-zmenit'));
+    await tester.ensureVisible(odkaz);
+    await tester.tap(odkaz);
     await tester.pumpAndSettle();
   }
 

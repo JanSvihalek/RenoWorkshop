@@ -15,14 +15,25 @@ void main() {
       final uloziste = SharedPreferencesNastaveni(prefs);
 
       await uloziste.uloz(
-        const Nastaveni(vzhled: RezimVzhledu.svetly, vychoziUtvar: '12100'),
+        const Nastaveni(
+          vzhled: RezimVzhledu.svetly,
+          vychoziUtvary: ['12100', '13215'],
+          sloupce: NastaveniSloupcu(
+            poradi: ['spz', 'prijato'],
+            skryte: ['vin'],
+          ),
+        ),
       );
 
       // Nová instance nad týmiž daty = jako po restartu aplikace.
       final poRestartu = SharedPreferencesNastaveni(prefs).nacti();
 
       expect(poRestartu.vzhled, RezimVzhledu.svetly);
-      expect(poRestartu.vychoziUtvar, '12100');
+      expect(poRestartu.vychoziUtvary, ['12100', '13215']);
+      expect(
+        poRestartu.sloupce,
+        const NastaveniSloupcu(poradi: ['spz', 'prijato'], skryte: ['vin']),
+      );
     });
 
     test('prázdné úložiště dá výchozí nastavení', () async {
@@ -50,14 +61,16 @@ void main() {
         final prefs = await SharedPreferences.getInstance();
         final uloziste = SharedPreferencesNastaveni(prefs);
 
-        await uloziste.uloz(const Nastaveni(vychoziZodpovida: 'Eva Malá'));
-        expect(
-          SharedPreferencesNastaveni(prefs).nacti().vychoziZodpovida,
+        await uloziste.uloz(const Nastaveni(vychoziZodpovedni: ['Eva Malá']));
+        expect(SharedPreferencesNastaveni(prefs).nacti().vychoziZodpovedni, [
           'Eva Malá',
-        );
+        ]);
 
         await uloziste.uloz(const Nastaveni());
-        expect(prefs.getString('nastaveni.vychoziZodpovida'), isNull);
+        expect(
+          SharedPreferencesNastaveni(prefs).nacti().vychoziZodpovedni,
+          isEmpty,
+        );
       },
     );
 
@@ -66,11 +79,16 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final uloziste = SharedPreferencesNastaveni(prefs);
 
-      await uloziste.uloz(const Nastaveni(vychoziPoradac: '10026'));
-      expect(SharedPreferencesNastaveni(prefs).nacti().vychoziPoradac, '10026');
+      await uloziste.uloz(const Nastaveni(vychoziPoradace: ['10026']));
+      expect(SharedPreferencesNastaveni(prefs).nacti().vychoziPoradace, [
+        '10026',
+      ]);
 
       await uloziste.uloz(const Nastaveni());
-      expect(prefs.getString('nastaveni.vychoziPoradac'), isNull);
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().vychoziPoradace,
+        isEmpty,
+      );
     });
 
     test('umístění spouště přežije restart, neznámé je dole', () async {
@@ -168,11 +186,11 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final uloziste = SharedPreferencesNastaveni(prefs);
 
-      await uloziste.uloz(const Nastaveni(vychoziUtvar: '12100'));
+      await uloziste.uloz(const Nastaveni(vychoziUtvary: ['12100']));
       await uloziste.uloz(const Nastaveni());
 
       expect(prefs.getString('nastaveni.vychoziUtvar'), isNull);
-      expect(uloziste.nacti().vychoziUtvar, isNull);
+      expect(uloziste.nacti().vychoziUtvary, isEmpty);
     });
   });
 
@@ -205,12 +223,12 @@ void main() {
 
     test('změna útvaru přepíše ten předchozí', () {
       final container = kontejner(
-        PametoveNastaveni(const Nastaveni(vychoziUtvar: '12100')),
+        PametoveNastaveni(const Nastaveni(vychoziUtvary: ['12100'])),
       );
 
-      container.read(nastaveniProvider.notifier).zmenVychoziUtvar('11211');
+      container.read(nastaveniProvider.notifier).zmenVychoziUtvary(['11211']);
 
-      expect(container.read(nastaveniProvider).vychoziUtvar, '11211');
+      expect(container.read(nastaveniProvider).vychoziUtvary, ['11211']);
     });
 
     test('složka fotek nepatří k výchozímu filtru', () {
@@ -228,7 +246,7 @@ void main() {
 
     test('zrušení výchozího filtru smaže útvar', () {
       final container = kontejner(
-        PametoveNastaveni(const Nastaveni(vychoziUtvar: '12100')),
+        PametoveNastaveni(const Nastaveni(vychoziUtvary: ['12100'])),
       );
 
       container.read(nastaveniProvider.notifier).zrusVychoziFiltr();

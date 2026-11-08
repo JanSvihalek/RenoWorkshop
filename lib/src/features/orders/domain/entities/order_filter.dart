@@ -13,55 +13,53 @@ enum OrderSort {
 
 /// Kritéria pro seznam zakázek. Filtry se skládají (AND).
 ///
-/// Zatím se vyhodnocují v paměti nad daty z repository. Až přijde REST API,
-/// pošle se stejný objekt jako query parametry - UI se měnit nemusí.
+/// Ve výběru může být víc hodnot: zakázka projde, když sedí na kteroukoli
+/// z nich (OR). Prázdný výběr = vše. Stejně jako na webu.
 class OrderFilter {
   const OrderFilter({
-    this.branchCode,
-    this.departmentCode,
-    this.typZakazkyKod,
-    this.poradacKod,
-    this.statusCode,
-    this.heliosStav,
-    this.mechanicName,
-    this.zpracovatelId,
+    this.branchCodes = const {},
+    this.departmentCodes = const {},
+    this.typZakazkyKody = const {},
+    this.poradacKody = const {},
+    this.statusCodes = const {},
+    this.heliosStavy = const {},
+    this.mechanicNames = const {},
+    this.zpracovatelIds = const {},
     this.query = '',
     this.sort = OrderSort.receivedDate,
     this.mujEmail,
   });
 
-  /// `null` = všechny pobočky. Kód pobočky, ne název - názvy se mohou
-  /// v Heliosu přepsat, kód drží.
-  final String? branchCode;
+  /// Kódy poboček. Kód, ne název - názvy se mohou v Heliosu přepsat, kód
+  /// drží.
+  final Set<String> branchCodes;
 
-  /// `null` = všechny útvary.
-  final String? departmentCode;
+  final Set<String> departmentCodes;
 
-  /// Kód typu zakázky (běžná, interní, klempířská). `null` = všechny.
-  final String? typZakazkyKod;
+  /// Kódy typů zakázky (běžná, interní, klempířská).
+  final Set<String> typZakazkyKody;
 
-  /// Číslo pořadače z Heliosu. `null` = všechny.
-  final String? poradacKod;
+  /// Čísla pořadačů z Heliosu.
+  final Set<String> poradacKody;
 
-  /// Kód dílenského stavu z číselníku. `null` = všechny stavy.
-  final String? statusCode;
+  /// Kódy dílenských stavů z číselníku.
+  final Set<String> statusCodes;
 
-  /// Stav z Heliosu tak, jak ho zakázka ukazuje („Zpracováváno").
-  /// Podle textu, ne čísla: aplikace číslo stavu nedostává. `null` = všechny.
-  final String? heliosStav;
+  /// Stavy z Heliosu tak, jak je zakázka ukazuje („Zpracováváno").
+  /// Podle textu, ne čísla: aplikace číslo stavu nedostává.
+  final Set<String> heliosStavy;
 
-  /// `null` = všichni mechanici.
-  final String? mechanicName;
+  final Set<String> mechanicNames;
 
-  /// Id zpracovatele (zaměstnanec v Heliosu). `null` = všichni,
-  /// [nikdo] = jen zakázky, které nikdo nezpracovává, [ja] = moje.
-  final int? zpracovatelId;
+  /// Id zpracovatelů (zaměstnanec v Heliosu), [nikdo] = zakázky, které
+  /// nikdo nezpracovává, [ja] = moje.
+  final Set<int> zpracovatelIds;
 
-  /// Hodnota [zpracovatelId] pro zakázky bez zpracovatele. Id z Heliosu
+  /// Hodnota v [zpracovatelIds] pro zakázky bez zpracovatele. Id z Heliosu
   /// jsou kladná, nula se s nimi nepotká.
   static const nikdo = 0;
 
-  /// Hodnota [zpracovatelId] pro „Já" - zakázky, které zpracovává
+  /// Hodnota v [zpracovatelIds] pro „Já" - zakázky, které zpracovává
   /// přihlášený ([mujEmail]). Jako volba Já na webu.
   static const ja = -1;
 
@@ -72,66 +70,49 @@ class OrderFilter {
   final String query;
   final OrderSort sort;
 
+  List<Set<Object>> get _vybery => [
+    branchCodes,
+    departmentCodes,
+    typZakazkyKody,
+    poradacKody,
+    statusCodes,
+    heliosStavy,
+    mechanicNames,
+    zpracovatelIds,
+  ];
+
   bool get isActive =>
-      branchCode != null ||
-      departmentCode != null ||
-      typZakazkyKod != null ||
-      poradacKod != null ||
-      statusCode != null ||
-      heliosStav != null ||
-      mechanicName != null ||
-      zpracovatelId != null ||
-      query.trim().isNotEmpty;
+      _vybery.any((v) => v.isNotEmpty) || query.trim().isNotEmpty;
 
-  /// Počet aktivních filtrů (pro badge u tlačítka filtru).
-  int get activeCount => [
-    branchCode != null,
-    departmentCode != null,
-    typZakazkyKod != null,
-    poradacKod != null,
-    statusCode != null,
-    heliosStav != null,
-    mechanicName != null,
-    zpracovatelId != null,
-    query.trim().isNotEmpty,
-  ].where((active) => active).length;
+  /// Počet aktivních filtrů (pro badge u tlačítka filtru) - výběr se počítá
+  /// jednou, ať je v něm hodnot kolik chce.
+  int get activeCount =>
+      _vybery.where((v) => v.isNotEmpty).length +
+      (query.trim().isNotEmpty ? 1 : 0);
 
+  /// Prázdná množina výběr zruší.
   OrderFilter copyWith({
-    String? branchCode,
-    String? departmentCode,
-    String? typZakazkyKod,
-    String? poradacKod,
-    String? statusCode,
-    String? heliosStav,
-    String? mechanicName,
-    int? zpracovatelId,
+    Set<String>? branchCodes,
+    Set<String>? departmentCodes,
+    Set<String>? typZakazkyKody,
+    Set<String>? poradacKody,
+    Set<String>? statusCodes,
+    Set<String>? heliosStavy,
+    Set<String>? mechanicNames,
+    Set<int>? zpracovatelIds,
     String? query,
     OrderSort? sort,
     String? mujEmail,
-    bool clearBranch = false,
-    bool clearDepartment = false,
-    bool clearTypZakazky = false,
-    bool clearPoradac = false,
-    bool clearStatus = false,
-    bool clearHeliosStav = false,
-    bool clearMechanic = false,
-    bool clearZpracovatel = false,
   }) {
     return OrderFilter(
-      branchCode: clearBranch ? null : (branchCode ?? this.branchCode),
-      departmentCode: clearDepartment
-          ? null
-          : (departmentCode ?? this.departmentCode),
-      typZakazkyKod: clearTypZakazky
-          ? null
-          : (typZakazkyKod ?? this.typZakazkyKod),
-      poradacKod: clearPoradac ? null : (poradacKod ?? this.poradacKod),
-      statusCode: clearStatus ? null : (statusCode ?? this.statusCode),
-      heliosStav: clearHeliosStav ? null : (heliosStav ?? this.heliosStav),
-      mechanicName: clearMechanic ? null : (mechanicName ?? this.mechanicName),
-      zpracovatelId: clearZpracovatel
-          ? null
-          : (zpracovatelId ?? this.zpracovatelId),
+      branchCodes: branchCodes ?? this.branchCodes,
+      departmentCodes: departmentCodes ?? this.departmentCodes,
+      typZakazkyKody: typZakazkyKody ?? this.typZakazkyKody,
+      poradacKody: poradacKody ?? this.poradacKody,
+      statusCodes: statusCodes ?? this.statusCodes,
+      heliosStavy: heliosStavy ?? this.heliosStavy,
+      mechanicNames: mechanicNames ?? this.mechanicNames,
+      zpracovatelIds: zpracovatelIds ?? this.zpracovatelIds,
       query: query ?? this.query,
       sort: sort ?? this.sort,
       mujEmail: mujEmail ?? this.mujEmail,
@@ -145,31 +126,33 @@ class OrderFilter {
     return result;
   }
 
+  static bool _sedi<T>(Set<T> vyber, T? hodnota) =>
+      vyber.isEmpty || vyber.contains(hodnota);
+
   /// Projde zakázka filtrem? Bez řazení - plán klempírny filtruje své
   /// řádky stejně jako seznam zakázek.
   bool matches(ServiceOrder order) {
-    if (branchCode != null && order.branch?.code != branchCode) return false;
-    if (departmentCode != null && order.department?.code != departmentCode) {
-      return false;
-    }
-    if (typZakazkyKod != null && order.typZakazky?.kod != typZakazkyKod) {
-      return false;
-    }
-    if (poradacKod != null && order.poradac?.kod != poradacKod) return false;
-    if (statusCode != null && order.stav?.kod != statusCode) return false;
-    if (heliosStav != null && order.heliosStatus != heliosStav) return false;
-    if (mechanicName != null && order.mechanicName != mechanicName) {
-      return false;
-    }
-    if (zpracovatelId == ja) {
-      final email = order.zpracovatel?.email?.trim().toLowerCase();
-      if (mujEmail == null || email != mujEmail) return false;
-    } else if (zpracovatelId != null &&
-        (order.zpracovatel?.id ?? nikdo) != zpracovatelId) {
+    if (!_sedi(branchCodes, order.branch?.code)) return false;
+    if (!_sedi(departmentCodes, order.department?.code)) return false;
+    if (!_sedi(typZakazkyKody, order.typZakazky?.kod)) return false;
+    if (!_sedi(poradacKody, order.poradac?.kod)) return false;
+    if (!_sedi(statusCodes, order.stav?.kod)) return false;
+    if (!_sedi(heliosStavy, order.heliosStatus)) return false;
+    if (!_sedi(mechanicNames, order.mechanicName)) return false;
+    if (zpracovatelIds.isNotEmpty &&
+        !zpracovatelIds.any(_sediZpracovatel(order))) {
       return false;
     }
     return order.matchesQuery(query);
   }
+
+  bool Function(int id) _sediZpracovatel(ServiceOrder order) => (id) {
+    if (id == ja) {
+      final email = order.zpracovatel?.email?.trim().toLowerCase();
+      return mujEmail != null && email == mujEmail;
+    }
+    return (order.zpracovatel?.id ?? nikdo) == id;
+  };
 
   /// Zakázky bez data patří na konec seznamu, ať se řadí podle čehokoli.
   /// Chybějící termín neznamená „nejdřív" ani „nejpozději", jen se neví -
@@ -191,33 +174,36 @@ class OrderFilter {
     };
   }
 
+  static bool _stejne<T>(Set<T> a, Set<T> b) =>
+      a.length == b.length && a.containsAll(b);
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is OrderFilter &&
-          other.branchCode == branchCode &&
-          other.departmentCode == departmentCode &&
+          _stejne(other.branchCodes, branchCodes) &&
+          _stejne(other.departmentCodes, departmentCodes) &&
           // Typ tu dřív chyběl - „Zrušit filtry" pak s vybraným typem
           // shodilo i výchozí filtr z nastavení, místo aby se na něj vrátilo.
-          other.typZakazkyKod == typZakazkyKod &&
-          other.poradacKod == poradacKod &&
-          other.statusCode == statusCode &&
-          other.heliosStav == heliosStav &&
-          other.mechanicName == mechanicName &&
-          other.zpracovatelId == zpracovatelId &&
+          _stejne(other.typZakazkyKody, typZakazkyKody) &&
+          _stejne(other.poradacKody, poradacKody) &&
+          _stejne(other.statusCodes, statusCodes) &&
+          _stejne(other.heliosStavy, heliosStavy) &&
+          _stejne(other.mechanicNames, mechanicNames) &&
+          _stejne(other.zpracovatelIds, zpracovatelIds) &&
           other.query == query &&
           other.sort == sort);
 
   @override
   int get hashCode => Object.hash(
-    branchCode,
-    departmentCode,
-    typZakazkyKod,
-    poradacKod,
-    statusCode,
-    heliosStav,
-    mechanicName,
-    zpracovatelId,
+    Object.hashAllUnordered(branchCodes),
+    Object.hashAllUnordered(departmentCodes),
+    Object.hashAllUnordered(typZakazkyKody),
+    Object.hashAllUnordered(poradacKody),
+    Object.hashAllUnordered(statusCodes),
+    Object.hashAllUnordered(heliosStavy),
+    Object.hashAllUnordered(mechanicNames),
+    Object.hashAllUnordered(zpracovatelIds),
     query,
     sort,
   );

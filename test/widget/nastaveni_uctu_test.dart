@@ -25,9 +25,9 @@ void main() {
   group('převod', () {
     test('filtr zakázek tam a zpět, já = me', () {
       const n = Nastaveni(
-        vychoziUtvar: '11215',
-        vychoziPoradac: '10026',
-        vychoziZpracovatelId: OrderFilter.ja,
+        vychoziUtvary: ['11215'],
+        vychoziPoradace: ['10026'],
+        vychoziZpracovatele: [OrderFilter.ja],
       );
       final ucet = filtrZakazekDoUctu(n, null);
       expect(ucet, {
@@ -36,14 +36,47 @@ void main() {
         'assignee': 'me',
       });
       final zpet = filtrZakazekZUctu(const Nastaveni(), ucet);
-      expect(zpet.vychoziUtvar, '11215');
-      expect(zpet.vychoziZpracovatelId, OrderFilter.ja);
+      expect(zpet.vychoziUtvary, ['11215']);
+      expect(zpet.vychoziZpracovatele, [OrderFilter.ja]);
+    });
+
+    test('víc hodnot jako seznam, jedna jako text pro starší verze', () {
+      const n = Nastaveni(
+        vychoziUtvary: ['11215', '12215'],
+        vychoziZpracovatele: [OrderFilter.ja, 42],
+      );
+      final ucet = filtrZakazekDoUctu(n, null);
+      expect(ucet, {
+        'department': ['11215', '12215'],
+        'assignee': ['me', '42'],
+      });
+      final zpet = filtrZakazekZUctu(const Nastaveni(), ucet);
+      expect(zpet.vychoziUtvary, ['11215', '12215']);
+      expect(zpet.vychoziZpracovatele, [OrderFilter.ja, 42]);
+      expect(zpet.jmenaZpracovatelu[42], 'č. 42');
+    });
+
+    test('sloupce tabulky tam a zpět', () {
+      const sloupce = NastaveniSloupcu(
+        poradi: ['spz', 'prijato'],
+        skryte: ['vin'],
+      );
+      final ucet = castiAplikace(
+        const Nastaveni(sloupce: sloupce),
+        const PohledPlanu(),
+        const {},
+      );
+      expect(ucet['ordersTable'], {
+        'columns': ['spz', 'prijato'],
+        'hidden': ['vin'],
+      });
+      expect(nastaveniZUctu(const Nastaveni(), ucet).sloupce, sloupce);
     });
 
     test('klíče z webu zůstanou, jméno zpracovatele s id', () {
       const n = Nastaveni(
-        vychoziZpracovatelId: 42,
-        vychoziZpracovatelJmeno: 'Petr Kučera',
+        vychoziZpracovatele: [42],
+        jmenaZpracovatelu: {42: 'Petr Kučera'},
       );
       expect(
         filtrZakazekDoUctu(n, {'workshopStatus': 'Lakovna', 'folder': '1'}),
@@ -57,7 +90,7 @@ void main() {
       expect(
         filtrZakazekZUctu(const Nastaveni(), {
           'assignee': '7',
-        }).vychoziZpracovatelJmeno,
+        }).jmenaZpracovatelu[7],
         'č. 7',
       );
     });
@@ -66,9 +99,9 @@ void main() {
       const pohled = PohledPlanu(
         pobocka: '2',
         tydnu: 2,
-        filtr: OrderFilter(poradacKod: '10026', query: 'x5'),
-        kodLaku: '475',
-        stavPlanu: StavPlanuFiltr.bez,
+        filtr: OrderFilter(poradacKody: {'10026'}, query: 'x5'),
+        kodLaku: {'475'},
+        stavPlanu: {StavPlanuFiltr.bez},
       );
       final ucet = pohledDoUctu(pohled, null);
       expect(ucet, {
@@ -77,9 +110,9 @@ void main() {
         'filter': {'folder': '10026', 'paintCode': '475', 'planStatus': 'bez'},
       });
       final zpet = pohledZUctu(ucet, const OrderFilter(query: 'x5'));
-      expect(zpet.filtr.poradacKod, '10026');
+      expect(zpet.filtr.poradacKody, {'10026'});
       expect(zpet.filtr.query, 'x5');
-      expect(zpet.stavPlanu, StavPlanuFiltr.bez);
+      expect(zpet.stavPlanu, {StavPlanuFiltr.bez});
       expect(zpet.tydnu, 2);
     });
 
@@ -106,7 +139,7 @@ void main() {
         ProviderScope(
           overrides: [
             nastaveniUlozisteProvider.overrideWithValue(
-              PametoveNastaveni(const Nastaveni(vychoziUtvar: '11211')),
+              PametoveNastaveni(const Nastaveni(vychoziUtvary: ['11211'])),
             ),
             authRepositoryProvider.overrideWithValue(
               PlaceholderAuthRepository(
@@ -143,14 +176,14 @@ void main() {
       await spust(tester);
 
       final n = container.read(nastaveniProvider);
-      expect(n.vychoziPoradac, '10026');
+      expect(n.vychoziPoradace, ['10026']);
       // Útvar z telefonu přepsal účet - na účtu žádný není.
-      expect(n.vychoziUtvar, isNull);
+      expect(n.vychoziUtvary, isEmpty);
       expect(n.slozkaFotek, 'BSL');
-      expect(container.read(orderFilterProvider).poradacKod, '10026');
+      expect(container.read(orderFilterProvider).poradacKody, {'10026'});
       expect(container.read(planPobockaProvider), '5');
       expect(container.read(planTydnuProvider), 2);
-      expect(container.read(planKodLakuProvider), '475');
+      expect(container.read(planKodLakuProvider), {'475'});
 
       // Změna v telefonu jde na účet - jen ten klíč, dílenský stav z webu
       // zůstane.

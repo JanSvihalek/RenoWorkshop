@@ -54,8 +54,9 @@ void main() {
     await tester.pumpAndSettle();
     // Nastavení je delší než obrazovka a seznam je líný - výchozí filtr
     // se mimo obrazovku vůbec nepostaví.
+    // Podle klíče - „Zodpovídá" je i mezi sloupci tabulky.
     await tester.scrollUntilVisible(
-      find.text('Zodpovídá'),
+      find.byKey(const Key('vychozi-zodpovida')),
       200,
       scrollable: find
           .descendant(
@@ -66,19 +67,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final vyber = find
-        .ancestor(of: find.text('Zodpovídá'), matching: find.byType(Row))
-        .first;
-    final rozbalovaci = find.descendant(
-      of: vyber,
-      matching: find.byType(DropdownButton<String?>),
-    );
+    final vyber = find.byKey(const Key('vychozi-zodpovida'));
     // Nastavení je delší než obrazovka - výchozí filtr může být pod okrajem.
-    await tester.ensureVisible(rozbalovaci);
+    await tester.ensureVisible(vyber);
     await tester.pumpAndSettle();
-    await tester.tap(rozbalovaci);
+    await tester.tap(vyber);
     await tester.pumpAndSettle();
     await tester.tap(find.text(jmeno).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
     await tester.pumpAndSettle();
   }
 

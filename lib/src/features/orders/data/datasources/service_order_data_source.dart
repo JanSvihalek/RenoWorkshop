@@ -41,6 +41,9 @@ abstract interface class ServiceOrderDataSource {
     /// Kde vůz po tomhle kroku stojí. `null` = neměnit, prázdný text
     /// místo smaže.
     String? misto,
+
+    /// Závada z Heliosu, kterou tenhle krok zahajuje.
+    String? zavadaId,
   });
 
   /// `PUT /orders/{id}/repair-subject` - přepíše předmět opravy, prázdný

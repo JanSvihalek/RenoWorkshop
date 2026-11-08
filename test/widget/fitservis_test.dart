@@ -128,7 +128,10 @@ void main() {
     final radek = find.byKey(const Key('prvni-registrace'));
     final stitek = find.byKey(const Key('kampan-stari-fitservis-plus'));
     expect(
-      find.descendant(of: radek, matching: find.text('3. 5. 2019 · 89 měsíců')),
+      find.descendant(
+        of: radek,
+        matching: find.text('3. 5. 2019 · 7 let 5 měsíců'),
+      ),
       findsOneWidget,
     );
     expect(find.descendant(of: radek, matching: stitek), findsOneWidget);
@@ -172,7 +175,11 @@ void main() {
     expect(find.text('KAMPANĚ PODLE STÁŘÍ VOZU'), findsOneWidget);
     expect(find.text('Vozy od 48 měsíců'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('kampan-stari-fitservis-plus')));
+    // Nastavení je delší než obrazovka - kampaně můžou být pod okrajem.
+    final kampan = find.byKey(const Key('kampan-stari-fitservis-plus'));
+    await tester.ensureVisible(kampan);
+    await tester.pumpAndSettle();
+    await tester.tap(kampan);
     await tester.pumpAndSettle();
     final ulozit = find.byKey(const Key('kampan-stari-ulozit'));
     bool lze() => tester.widget<FilledButton>(ulozit).onPressed != null;

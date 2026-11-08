@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/filtr_lista.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/app/app.dart';
 import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
@@ -75,15 +76,13 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
-    final rozbalovaci = find.descendant(
-      of: vyber,
-      matching: find.byType(DropdownButton<String?>),
-    );
-    await tester.ensureVisible(rozbalovaci);
+    await tester.ensureVisible(vyber);
     await tester.pumpAndSettle();
-    await tester.tap(rozbalovaci);
+    await tester.tap(vyber);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nikdo').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
     await tester.pumpAndSettle();
 
     await tester.tap(
@@ -115,7 +114,7 @@ void main() {
 
     final filtr = find.ancestor(
       of: find.text('Zpracovává'),
-      matching: find.byType(DropdownButton<int?>),
+      matching: find.byType(FiltrVyberVice<int>),
     );
     await tester.ensureVisible(filtr);
     await tester.tap(filtr);
@@ -124,6 +123,8 @@ void main() {
     expect(find.text('Nikdo'), findsWidgets);
     expect(find.text('Dvořák Jan'), findsWidgets);
     await tester.tap(find.text('Kříž Martin').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
     await tester.pumpAndSettle();
 
     expect(find.text('2SC 9014'), findsOneWidget);

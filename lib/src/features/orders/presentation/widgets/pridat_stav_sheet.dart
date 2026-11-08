@@ -1,3 +1,4 @@
+import '../../domain/entities/zavada.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,6 +61,10 @@ Future<VybranyStav?> vyberStav(
 
   /// Zahájení úkonu z plánu - stav je předvybraný podle jeho typu.
   TypUkonu? ukon,
+
+  /// Zahájení závady z Heliosu - krok se zapíše s tímhle názvem, stav se
+  /// nevybírá.
+  String? nazevZavady,
 }) {
   return showDialog<VybranyStav>(
     context: context,
@@ -69,6 +74,7 @@ Future<VybranyStav?> vyberStav(
       cisloZakazky: cisloZakazky,
       autor: autor,
       ukon: ukon,
+      nazevZavady: nazevZavady,
     ),
   );
 }
@@ -83,8 +89,10 @@ class _PridatStavOkno extends ConsumerStatefulWidget {
     required this.cisloZakazky,
     required this.autor,
     this.ukon,
+    this.nazevZavady,
   });
 
+  final String? nazevZavady;
   final String? misto;
   final String spz;
   final String cisloZakazky;
@@ -96,7 +104,9 @@ class _PridatStavOkno extends ConsumerStatefulWidget {
 }
 
 class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
-  late final _vlastni = TextEditingController(text: widget.ukon?.nazev ?? '');
+  late final _vlastni = TextEditingController(
+    text: widget.nazevZavady ?? widget.ukon?.nazev ?? '',
+  );
   final _poznamka = TextEditingController();
   late final _misto = TextEditingController(text: widget.misto ?? '');
 
@@ -117,6 +127,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
   /// Vybraný stav, u zahájení úkonu jinak ten podle jeho typu. Typ, který
   /// v číselníku stavů není, se zapíše jako vlastní text.
   String? get _zvoleny {
+    if (widget.nazevZavady != null) return _jiny;
     if (_vybrany != null) return _vybrany;
     final ukon = widget.ukon;
     final stavy = ref.read(nabidkaStavuProvider).valueOrNull;
@@ -153,43 +164,48 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
     final nabidka = ref.watch(nabidkaStavuProvider);
 
     return OknoZapisu(
-      nadpis: widget.ukon == null
-          ? 'Přidat stav'
-          : 'Zahájit: ${widget.ukon!.nazev}',
+      nadpis: switch (widget.nazevZavady ?? widget.ukon?.nazev) {
+        final nazev? => 'Zahájit: $nazev',
+        null => 'Přidat stav',
+      },
       kam: 'do postupu zakázky',
       spz: widget.spz,
       cisloZakazky: widget.cisloZakazky,
       autor: widget.autor,
-      potvrdit: widget.ukon == null ? 'Přidat' : 'Zahájit',
+      potvrdit: widget.ukon == null && widget.nazevZavady == null
+          ? 'Přidat'
+          : 'Zahájit',
       onPotvrdit: _lzePridat ? _potvrd : null,
       obsah: [
-        const PopisekPole('STAV'),
-        nabidka.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: Insets.xl),
-            child: Center(child: CircularProgressIndicator()),
+        if (widget.nazevZavady == null) ...[
+          const PopisekPole('STAV'),
+          nabidka.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: Insets.xl),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            // Výpadek nabídky nesmí zabránit zápisu stavu - zbývá
+            // vlastní text, což je pořád lepší než nic.
+            error: (_, _) => _NabidkaChybi(
+              text: 'Nabídku stavů se nepodařilo načíst.',
+              jeVlastni: _jeVlastni,
+              onVlastni: () => setState(() => _vybrany = _jiny),
+            ),
+            data: (stavy) => stavy.isEmpty
+                ? _NabidkaChybi(
+                    text: 'Číselník stavů je zatím prázdný.',
+                    jeVlastni: _jeVlastni,
+                    onVlastni: () => setState(() => _vybrany = _jiny),
+                  )
+                : _VyberStavu(
+                    stavy: stavy,
+                    vybrany: _zvoleny,
+                    onZmena: (kod) => setState(() => _vybrany = kod),
+                  ),
           ),
-          // Výpadek nabídky nesmí zabránit zápisu stavu - zbývá
-          // vlastní text, což je pořád lepší než nic.
-          error: (_, _) => _NabidkaChybi(
-            text: 'Nabídku stavů se nepodařilo načíst.',
-            jeVlastni: _jeVlastni,
-            onVlastni: () => setState(() => _vybrany = _jiny),
-          ),
-          data: (stavy) => stavy.isEmpty
-              ? _NabidkaChybi(
-                  text: 'Číselník stavů je zatím prázdný.',
-                  jeVlastni: _jeVlastni,
-                  onVlastni: () => setState(() => _vybrany = _jiny),
-                )
-              : _VyberStavu(
-                  stavy: stavy,
-                  vybrany: _zvoleny,
-                  onZmena: (kod) => setState(() => _vybrany = kod),
-                ),
-        ),
+        ],
 
-        if (_jeVlastni) ...[
+        if (_jeVlastni && widget.nazevZavady == null) ...[
           const SizedBox(height: Insets.base),
           const PopisekPole('VLASTNÍ STAV'),
           PoleZapisu(
@@ -400,6 +416,7 @@ Future<void> pridatStavZakazce(
   WidgetRef ref,
   ServiceOrder order, {
   TypUkonu? ukon,
+  Zavada? zavada,
 }) async {
   // Místo se předvyplní tím, kde vůz stojí teď - technik ho tak
   // nepíše u každého kroku znovu.
@@ -410,6 +427,7 @@ Future<void> pridatStavZakazce(
     cisloZakazky: order.id,
     autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     ukon: ukon,
+    nazevZavady: zavada?.nazevKroku,
   );
   if (vybrany == null || !context.mounted) return;
 
@@ -421,6 +439,7 @@ Future<void> pridatStavZakazce(
         nazev: vybrany.nazev,
         poznamka: vybrany.poznamka,
         misto: vybrany.misto,
+        zavadaId: zavada?.id,
       );
 
   if (!hotovo) return;

@@ -18,10 +18,15 @@ void main() {
     expect(pocetMesicu(3), '3 měsíce');
     expect(pocetMesicu(89), '89 měsíců');
     expect(pocetMesicu(0), '0 měsíců');
+    expect(rokyAMesice(8), '8 měsíců');
+    expect(rokyAMesice(12), '1 rok');
+    expect(rokyAMesice(13), '1 rok 1 měsíc');
+    expect(rokyAMesice(36), '3 roky');
+    expect(rokyAMesice(62), '5 let 2 měsíce');
     final dnes = DateTime(2026, 10, 15);
     expect(
       registraceSeStarim(DateTime(2019, 5, 3), dnes, AppDateFormat.date),
-      '3. 5. 2019 · 89 měsíců',
+      '3. 5. 2019 · 7 let 5 měsíců',
     );
     // Překlep v Heliosu - registrace v budoucnu - stáří nepíše.
     expect(

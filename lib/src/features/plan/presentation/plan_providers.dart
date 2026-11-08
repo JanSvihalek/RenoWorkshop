@@ -47,11 +47,13 @@ final planFiltrProvider = StateProvider<OrderFilter>(
   ),
 );
 
-/// Jen zakázky s tímto kódem laku (ručním i z barvy vozu).
-final planKodLakuProvider = StateProvider<String?>((ref) => null);
+/// Jen zakázky s těmito kódy laku (ručními i z barvy vozu). Prázdné = vše.
+final planKodLakuProvider = StateProvider<Set<String>>((ref) => const {});
 
-/// Naplánováno / Hotovo / Bez plánu.
-final planStavPlanuProvider = StateProvider<StavPlanuFiltr?>((ref) => null);
+/// Naplánováno / Hotovo / Bez plánu. Prázdné = vše.
+final planStavPlanuProvider = StateProvider<Set<StavPlanuFiltr>>(
+  (ref) => const {},
+);
 
 /// Plán na zobrazené týdny, včetně víkendů - blok přes víkend se tak
 /// neztratí.

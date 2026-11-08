@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../../../core/platform/platform_info.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -316,9 +317,8 @@ class _DetailBody extends ConsumerWidget {
           : () => onFotodokumentace!(order.id),
     );
 
-    // Závady z Heliosu, jen ke čtení. Dřív tu byla karta úkonů
-    // s odškrtáváním, do které ale nikdy nic neteklo.
-    final zavady = ZavadyCard(zavady: order.zavady);
+    // Závady z Heliosu; dílna u nich zapisuje jen Zahájit a Dokončit.
+    final zavady = ZavadyCard(order: order);
 
     // Fotky, diagnostika a doklady z Heliosu v jedné kartě.
     final dokumenty = DokumentyKarta(
@@ -1217,10 +1217,18 @@ class _PruhUdaju extends ConsumerWidget {
 
     final prijato = order.receivedAt;
     final dokonceni = order.dueAt;
+    final skryt = ref.watch(nastaveniProvider.select((n) => n.skrytUdaje));
     final bunky = <Widget>[
       bunka(
         'ZÁKAZNÍK',
-        [text(order.customerName), Text('Vlastník vozidla', style: pod)],
+        [
+          text(order.customerName),
+          Text(
+            order.ico == null ? 'Vlastník vozidla' : 'IČO ${order.ico}',
+            key: const Key('zakaznik-ico'),
+            style: pod,
+          ),
+        ],
         akce: onKartaVozu == null
             ? null
             : odkaz(
@@ -1268,15 +1276,23 @@ class _PruhUdaju extends ConsumerWidget {
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),
       ]),
-      // Zpracovatel se na rozdíl od zodpovědné osoby mění v aplikaci -
-      // klepnutím se otevře výběr.
-      InkWell(
+      // Zpracovatel se na rozdíl od zodpovědné osoby mění v aplikaci.
+      KeyedSubtree(
         key: const Key('zpracovatel'),
-        onTap: onZpracovatel,
-        child: bunka('ZPRACOVÁVÁ', [
-          if (kdo == null) Text('Nikdo', style: tlumene) else text(kdo.jmeno),
-          Text(kdo == null ? 'Technik nepřiřazen' : 'Technik', style: pod),
-        ]),
+        child: bunka(
+          'ZPRACOVÁVÁ',
+          [
+            if (kdo == null) Text('Nikdo', style: tlumene) else text(kdo.jmeno),
+            Text(kdo == null ? 'Technik nepřiřazen' : 'Technik', style: pod),
+          ],
+          akce: onZpracovatel == null
+              ? null
+              : odkaz(
+                  kdo == null ? 'Zadat' : 'Změnit',
+                  key: const Key('zpracovatel-zmenit'),
+                  onTap: onZpracovatel,
+                ),
+        ),
       ),
       // Bez času: hodina příjmu nikoho nezajímá.
       bunka('PŘIJATO → DOKONČENÍ', [
@@ -1388,7 +1404,46 @@ class _PruhUdaju extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 1),
       child: Column(
         children: [
-          for (var i = 0; i < bunky.length; i += sloupcu) ...[
+          ColoredBox(
+            color: palette.hlavicka,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Insets.base,
+                  vertical: Insets.xs,
+                ),
+                child: GestureDetector(
+                  key: const Key('skryt-udaje'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => ref
+                      .read(nastaveniProvider.notifier)
+                      .zmenSkrytUdaje(!skryt),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        skryt ? 'Zobrazit údaje' : 'Skrýt údaje',
+                        style: AppTextStyles.metaSmall.copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(
+                        skryt
+                            ? Icons.expand_more_rounded
+                            : Icons.expand_less_rounded,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (!skryt) const SizedBox(height: 1),
+          for (var i = 0; !skryt && i < bunky.length; i += sloupcu) ...[
             if (i > 0) const SizedBox(height: 1),
             IntrinsicHeight(
               child: Row(

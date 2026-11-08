@@ -1,25 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/dimens.dart';
+import '../../../../core/utils/date_formats.dart';
+import '../../domain/entities/service_order.dart';
 import '../../domain/entities/zavada.dart';
+import '../controllers/order_actions_controller.dart';
+import '../controllers/orders_providers.dart';
 import 'detail_cards.dart';
+import 'pridat_stav_sheet.dart';
 
 /// Závady na zakázce z Heliosu - co má dílna na voze udělat.
 ///
-/// Jen ke čtení: závady zapisuje poradce v Heliosu a aplikace je přebírá.
-/// Když se v Heliosu změní, do pěti minut se to projeví i tady. Proto je
-/// karta zelená jako všechno z Heliosu.
-class ZavadyCard extends StatelessWidget {
-  const ZavadyCard({super.key, required this.zavady});
+/// Závady zapisuje poradce v Heliosu a aplikace je přebírá. Když se v Heliosu
+/// změní, do pěti minut se to projeví i tady, proto je karta zelená jako
+/// všechno z Heliosu. Dílna u nich jen zapisuje Zahájit a Dokončit - jako
+/// dílenské stavy, takže jsou vidět i v průběhu opravy.
+class ZavadyCard extends ConsumerWidget {
+  const ZavadyCard({super.key, required this.order});
 
-  final List<Zavada> zavady;
+  final ServiceOrder order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
+    final zavady = order.zavady;
+    // Stejná práva jako průběh opravy, do kterého se závada zapisuje.
+    final smi =
+        ref.watch(smiPlanovatProvider(order.branch?.code)) ||
+        ref.watch(smiZapisovatProvider(order.poradac?.kod));
 
     return DetailCard(
       key: const Key('zavady-karta'),
@@ -79,7 +91,12 @@ class ZavadyCard extends StatelessWidget {
                     for (final (poradi, zavada) in zavady.indexed)
                       SizedBox(
                         width: sirka,
-                        child: _RadekZavady(poradi: poradi + 1, zavada: zavada),
+                        child: _RadekZavady(
+                          poradi: poradi + 1,
+                          zavada: zavada,
+                          order: order,
+                          smi: smi,
+                        ),
                       ),
                   ],
                 );
@@ -91,15 +108,24 @@ class ZavadyCard extends StatelessWidget {
   }
 }
 
-class _RadekZavady extends StatelessWidget {
-  const _RadekZavady({required this.poradi, required this.zavada});
+class _RadekZavady extends ConsumerWidget {
+  const _RadekZavady({
+    required this.poradi,
+    required this.zavada,
+    required this.order,
+    required this.smi,
+  });
 
   final int poradi;
   final Zavada zavada;
+  final ServiceOrder order;
+  final bool smi;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
+    final prubeh = stavZavady(zavada.id, order.historieStavu);
+    final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
     final nazev = zavada.nazev;
     final poznamka = zavada.text.trim();
 
@@ -157,6 +183,72 @@ class _RadekZavady extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: Insets.xs),
+                Wrap(
+                  spacing: Insets.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (prubeh is ZavadaProbiha)
+                      Text(
+                        'Probíhá',
+                        key: Key('zavada-probiha-${zavada.id}'),
+                        style: AppTextStyles.metaSmall.copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    if (prubeh case ZavadaHotova(:final kdy))
+                      Text(
+                        'Dokončeno ${AppDateFormat.date(kdy)}',
+                        key: Key('zavada-hotovo-${zavada.id}'),
+                        style: AppTextStyles.metaSmall.copyWith(
+                          color: palette.muted,
+                        ),
+                      ),
+                    if (smi && prubeh is ZavadaCeka)
+                      OutlinedButton(
+                        key: Key('zavada-zahajit-${zavada.id}'),
+                        onPressed: () => pridatStavZakazce(
+                          context,
+                          ref,
+                          order,
+                          zavada: zavada,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Insets.base,
+                          ),
+                          textStyle: AppTextStyles.chip,
+                        ),
+                        child: const Text('Zahájit'),
+                      ),
+                    if (smi && prubeh is ZavadaProbiha)
+                      FilledButton(
+                        key: Key('zavada-dokoncit-${zavada.id}'),
+                        onPressed: zaneprazdneno
+                            ? null
+                            : () => ref
+                                  .read(orderActionsProvider.notifier)
+                                  .dokonciStav(order.id, prubeh.zaznamId),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Insets.base,
+                          ),
+                          // Tmavomodrá by na tmavém pozadí zanikla.
+                          backgroundColor: context.isDarkMode
+                              ? AppColors.accent
+                              : AppColors.primary,
+                          foregroundColor: Colors.white,
+                          textStyle: AppTextStyles.chip,
+                        ),
+                        child: const Text('Dokončit'),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),

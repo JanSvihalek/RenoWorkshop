@@ -35,6 +35,7 @@ class ServiceOrder {
     required this.licensePlate,
     required this.model,
     required this.customerName,
+    this.ico,
     this.predmetOpravy,
     this.pojistovna,
     this.cisloPojistneUdalosti,
@@ -75,6 +76,9 @@ class ServiceOrder {
   final String licensePlate;
   final String model;
   final String customerName;
+
+  /// IČO zákazníka, pokud ho organizace má.
+  final String? ico;
 
   /// Co se na voze opravuje. Zapisuje dílna ručně (dřív do Excelu),
   /// Helios to nezná. `null` = zatím nezadáno.
@@ -279,6 +283,7 @@ class ServiceOrder {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
+      ico: ico,
       predmetOpravy: predmetOpravy ?? this.predmetOpravy,
       pojistovna: pojistovna,
       cisloPojistneUdalosti: cisloPojistneUdalosti,

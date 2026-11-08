@@ -13,7 +13,7 @@ import '../../orders/domain/entities/order_filter.dart';
 import '../../orders/domain/entities/service_order.dart';
 import '../../orders/domain/repositories/service_order_repository.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
-import '../../orders/presentation/widgets/filtr_lista.dart' show FiltrVyber;
+import '../../orders/presentation/widgets/filtr_lista.dart' show FiltrVyberVice;
 import '../../orders/presentation/widgets/order_status_visuals.dart';
 import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/prehled_planu.dart';
@@ -1610,13 +1610,13 @@ class _Chyba extends StatelessWidget {
 List<PolozkaPlanu> filtrujPlan(
   List<PolozkaPlanu> polozky, {
   required OrderFilter filtr,
-  String? kodLaku,
-  StavPlanuFiltr? stavPlanu,
+  Set<String> kodLaku = const {},
+  Set<StavPlanuFiltr> stavPlanu = const {},
 }) => [
   for (final p in polozky)
     if ((p.zakazka == null || filtr.matches(p.zakazka!)) &&
-        (kodLaku == null || p.kodLaku == kodLaku) &&
-        (stavPlanu == null || stavPlanu.sedi(p.plan)))
+        (kodLaku.isEmpty || kodLaku.contains(p.kodLaku)) &&
+        (stavPlanu.isEmpty || stavPlanu.any((s) => s.sedi(p.plan))))
       p,
 ];
 
@@ -1758,7 +1758,8 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
     final kody = serad({
       for (final k in widget.polozky.map((p) => p.kodLaku).nonNulls) k: k,
     });
-    final aktivni = filtr.isActive || kodLaku != null || stavPlanu != null;
+    final aktivni =
+        filtr.isActive || kodLaku.isNotEmpty || stavPlanu.isNotEmpty;
 
     Widget mezera() => const SizedBox(width: Insets.sm);
 
@@ -1790,76 +1791,62 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 popisek: 'Útvar',
-                hodnota: filtr.departmentCode,
+                hodnoty: filtr.departmentCodes,
                 moznosti: utvary,
-                onZmena: (v) => zmen(
-                  (f) =>
-                      f.copyWith(departmentCode: v, clearDepartment: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(departmentCodes: v)),
               ),
               mezera(),
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 popisek: 'Pořadač',
-                hodnota: filtr.poradacKod,
+                hodnoty: filtr.poradacKody,
                 moznosti: poradace,
-                onZmena: (v) => zmen(
-                  (f) => f.copyWith(poradacKod: v, clearPoradac: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(poradacKody: v)),
               ),
               mezera(),
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 popisek: 'Stav Helios',
-                hodnota: filtr.heliosStav,
+                hodnoty: filtr.heliosStavy,
                 moznosti: helios,
-                onZmena: (v) => zmen(
-                  (f) => f.copyWith(heliosStav: v, clearHeliosStav: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(heliosStavy: v)),
               ),
               mezera(),
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 key: const Key('plan-filtr-stav'),
                 popisek: 'Stav dílna',
-                hodnota: filtr.statusCode,
+                hodnoty: filtr.statusCodes,
                 moznosti: stavy,
-                onZmena: (v) => zmen(
-                  (f) => f.copyWith(statusCode: v, clearStatus: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(statusCodes: v)),
               ),
               mezera(),
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 popisek: 'Zodpovídá',
-                hodnota: filtr.mechanicName,
+                hodnoty: filtr.mechanicNames,
                 moznosti: lide,
-                onZmena: (v) => zmen(
-                  (f) => f.copyWith(mechanicName: v, clearMechanic: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(mechanicNames: v)),
               ),
               mezera(),
-              FiltrVyber<int>(
+              FiltrVyberVice<int>(
                 popisek: 'Zpracovává',
-                hodnota: filtr.zpracovatelId,
+                hodnoty: filtr.zpracovatelIds,
                 moznosti: zpracovatele,
-                onZmena: (v) => zmen(
-                  (f) =>
-                      f.copyWith(zpracovatelId: v, clearZpracovatel: v == null),
-                ),
+                onZmena: (v) => zmen((f) => f.copyWith(zpracovatelIds: v)),
               ),
               mezera(),
-              FiltrVyber<String>(
+              FiltrVyberVice<String>(
                 key: const Key('plan-filtr-kod'),
                 popisek: 'Kód laku',
-                hodnota: kodLaku,
+                hodnoty: kodLaku,
                 moznosti: kody,
                 onZmena: (v) =>
                     ref.read(planKodLakuProvider.notifier).state = v,
               ),
               mezera(),
-              FiltrVyber<StavPlanuFiltr>(
+              FiltrVyberVice<StavPlanuFiltr>(
                 key: const Key('plan-filtr-stav-planu'),
                 popisek: 'Stav plánu',
-                hodnota: stavPlanu,
+                hodnoty: stavPlanu,
                 moznosti: {for (final s in StavPlanuFiltr.values) s: s.label},
                 onZmena: (v) =>
                     ref.read(planStavPlanuProvider.notifier).state = v,
@@ -1872,8 +1859,8 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
                     _hledani.clear();
                     final filtr = ref.read(planFiltrProvider.notifier);
                     filtr.state = OrderFilter(mujEmail: filtr.state.mujEmail);
-                    ref.read(planKodLakuProvider.notifier).state = null;
-                    ref.read(planStavPlanuProvider.notifier).state = null;
+                    ref.read(planKodLakuProvider.notifier).state = const {};
+                    ref.read(planStavPlanuProvider.notifier).state = const {};
                   },
                   child: const Text('Zrušit filtry'),
                 ),

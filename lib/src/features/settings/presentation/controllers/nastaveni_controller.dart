@@ -24,33 +24,28 @@ class NastaveniController extends Notifier<Nastaveni> {
   void zmenSpoust(UmisteniSpouste spoust) =>
       _uloz(state.copyWith(spoust: spoust));
 
-  void zmenVychoziUtvar(String? kodUtvaru) => _uloz(
-    kodUtvaru == null
-        ? state.copyWith(zrusUtvar: true)
-        : state.copyWith(vychoziUtvar: kodUtvaru),
+  void zmenVychoziUtvary(List<String> kody) =>
+      _uloz(state.copyWith(vychoziUtvary: kody));
+
+  void zmenVychoziPoradace(List<String> kody) =>
+      _uloz(state.copyWith(vychoziPoradace: kody));
+
+  void zmenVychoziZodpovedne(List<String> jmena) =>
+      _uloz(state.copyWith(vychoziZodpovedni: jmena));
+
+  /// [ids] `0` = zakázky bez zpracovatele, `-1` = já. Jména se drží jen
+  /// k vybraným lidem.
+  void zmenVychoziZpracovatele(List<int> ids, Map<int, String> jmena) => _uloz(
+    state.copyWith(
+      vychoziZpracovatele: ids,
+      jmenaZpracovatelu: {
+        for (final id in ids) id: ?(jmena[id] ?? state.jmenaZpracovatelu[id]),
+      },
+    ),
   );
 
-  void zmenVychoziPoradac(String? kod) => _uloz(
-    kod == null
-        ? state.copyWith(zrusPoradac: true)
-        : state.copyWith(vychoziPoradac: kod),
-  );
-
-  void zmenVychoziZodpovida(String? jmeno) => _uloz(
-    jmeno == null
-        ? state.copyWith(zrusZodpovida: true)
-        : state.copyWith(vychoziZodpovida: jmeno),
-  );
-
-  /// [id] `0` = zakázky bez zpracovatele, `null` = všichni.
-  void zmenVychozihoZpracovatele(int? id, String? jmeno) => _uloz(
-    id == null
-        ? state.copyWith(zrusZpracovatele: true)
-        : state.copyWith(
-            vychoziZpracovatelId: id,
-            vychoziZpracovatelJmeno: jmeno,
-          ),
-  );
+  void zmenSloupce(NastaveniSloupcu sloupce) =>
+      _uloz(state.copyWith(sloupce: sloupce));
 
   void zmenSlozkuFotek(String? slozka) => _uloz(
     slozka == null
@@ -67,6 +62,8 @@ class NastaveniController extends Notifier<Nastaveni> {
   void zmenSamoRozpoznaniSpz(bool zapnout) =>
       _uloz(state.copyWith(samoRozpoznatSpz: zapnout));
 
+  void zmenSkrytUdaje(bool skryt) => _uloz(state.copyWith(skrytUdaje: skryt));
+
   void zmenUkazkovaData(bool zapnout) =>
       _uloz(state.copyWith(ukazkovaData: zapnout));
 
@@ -75,12 +72,13 @@ class NastaveniController extends Notifier<Nastaveni> {
 
   void zrusVychoziFiltr() => _uloz(
     state.copyWith(
-      zrusPobocku: true,
-      zrusStavHelios: true,
-      zrusUtvar: true,
-      zrusPoradac: true,
-      zrusZodpovida: true,
-      zrusZpracovatele: true,
+      vychoziPobocky: const [],
+      vychoziStavyHelios: const [],
+      vychoziUtvary: const [],
+      vychoziPoradace: const [],
+      vychoziZodpovedni: const [],
+      vychoziZpracovatele: const [],
+      jmenaZpracovatelu: const {},
     ),
   );
 

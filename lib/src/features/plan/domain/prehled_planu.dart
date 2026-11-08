@@ -519,7 +519,8 @@ List<PolozkaOsy> osaPrubehu(PlanKlempirny? plan, List<DilenskyStav> historie) {
       PolozkaOsy(
         nazev: z.nazev,
         stav: k.kdy != null ? StavPolozky.hotovo : StavPolozky.probiha,
-        mimoPlan: plan != null && !vPlanu,
+        // Závada z Heliosu do plánu nepatří, ale není to práce navíc.
+        mimoPlan: plan != null && !vPlanu && z.zavadaId == null,
         od: z.zadano ?? DateTime(0),
         do_: k.kdy,
         kdy: k.kdy ?? z.zadano,

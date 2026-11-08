@@ -21,6 +21,7 @@ class ServiceOrderDto {
     required this.licensePlate,
     required this.model,
     required this.customerName,
+    this.customerIco,
     this.repairSubject,
     this.insurer,
     this.insuranceClaimNumber,
@@ -61,6 +62,9 @@ class ServiceOrderDto {
   final String licensePlate;
   final String model;
   final String customerName;
+
+  /// IČO zákazníka, pokud ho organizace má.
+  final String? customerIco;
 
   /// Předmět opravy, zapsaný ručně na dílně. `null` = nezadáno.
   final String? repairSubject;
@@ -163,6 +167,7 @@ class ServiceOrderDto {
       licensePlate: json['licensePlate'] as String,
       model: json['model'] as String,
       customerName: json['customerName'] as String,
+      customerIco: json['customerIco'] as String?,
       repairSubject: json['repairSubject'] as String?,
       insurer: json['insurer'] as Map<String, dynamic>?,
       insuranceClaimNumber: json['insuranceClaimNumber'] as String?,
@@ -219,6 +224,7 @@ class ServiceOrderDto {
     'licensePlate': licensePlate,
     'model': model,
     'customerName': customerName,
+    'customerIco': customerIco,
     'repairSubject': repairSubject,
     'insurer': insurer,
     'insuranceClaimNumber': insuranceClaimNumber,
@@ -260,6 +266,7 @@ class ServiceOrderDto {
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,
+    ico: customerIco,
     predmetOpravy: repairSubject,
     pojistovna: _nazevPojistovny(insurer),
     cisloPojistneUdalosti: insuranceClaimNumber?.trim().isEmpty ?? true
@@ -353,6 +360,7 @@ class ServiceOrderDto {
       licensePlate: licensePlate,
       model: model,
       customerName: customerName,
+      customerIco: customerIco,
       insurer: insurer,
       insuranceClaimNumber: insuranceClaimNumber,
       repairSubject: vymazatPredmet

@@ -49,67 +49,67 @@ class FiltrLista extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Útvar',
-              hodnota: filter.departmentCode,
+              hodnoty: filter.departmentCodes,
               moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
-              onZmena: controller.setDepartment,
+              onZmena: controller.setDepartments,
             ),
             const SizedBox(width: Insets.sm),
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Pořadač',
-              hodnota: filter.poradacKod,
+              hodnoty: filter.poradacKody,
               moznosti: {for (final p in poradace) p.kod: p.nazev},
-              onZmena: controller.setPoradac,
+              onZmena: controller.setPoradace,
             ),
             const SizedBox(width: Insets.sm),
             // Dva nezávislé stavy jako na kartě: co o zakázce ví ERP
             // a co dílna.
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Stav Helios',
-              hodnota: filter.heliosStav,
+              hodnoty: filter.heliosStavy,
               moznosti: {for (final stav in stavyHelios) stav: stav},
-              onZmena: controller.setHeliosStav,
+              onZmena: controller.setHeliosStavy,
             ),
             const SizedBox(width: Insets.sm),
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Stav dílna',
-              hodnota: filter.statusCode,
+              hodnoty: filter.statusCodes,
               moznosti: {
                 for (final stav in stavy)
                   if (stav.kod != null) stav.kod!: stav.nazev,
               },
-              onZmena: controller.setStatus,
+              onZmena: controller.setStatusy,
             ),
             const SizedBox(width: Insets.sm),
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Typ',
-              hodnota: filter.typZakazkyKod,
+              hodnoty: filter.typZakazkyKody,
               moznosti: {for (final typ in typy) typ.kod: typ.nazev},
-              onZmena: controller.setTypZakazky,
+              onZmena: controller.setTypyZakazky,
             ),
             const SizedBox(width: Insets.sm),
-            FiltrVyber<String>(
+            FiltrVyberVice<String>(
               popisek: 'Zodpovídá',
-              hodnota: filter.mechanicName,
+              hodnoty: filter.mechanicNames,
               moznosti: {for (final clovek in lide) clovek: clovek},
-              onZmena: controller.setMechanic,
+              onZmena: controller.setMechanici,
             ),
             const SizedBox(width: Insets.sm),
-            FiltrVyber<int>(
+            FiltrVyberVice<int>(
               popisek: 'Zpracovává',
-              hodnota: filter.zpracovatelId,
+              hodnoty: filter.zpracovatelIds,
               moznosti: {
                 OrderFilter.ja: 'Já',
                 OrderFilter.nikdo: 'Nikdo',
                 for (final kdo in zpracovatele) kdo.id: kdo.jmeno,
-                // Výchozí zpracovatel z nastavení, který zrovna nemá
+                // Výchozí zpracovatelé z nastavení, kteří zrovna nemají
                 // žádnou zakázku - jinak by filtr platil neviditelně.
-                if (nastaveni.vychoziZpracovatelId case final id?)
-                  if (!zpracovatele.any((kdo) => kdo.id == id))
-                    id: nastaveni.vychoziZpracovatelJmeno ?? 'č. $id',
+                for (final id in nastaveni.vychoziZpracovatele)
+                  if (id > 0 && !zpracovatele.any((kdo) => kdo.id == id))
+                    id: nastaveni.jmenaZpracovatelu[id] ?? 'č. $id',
               },
-              onZmena: controller.setZpracovatel,
+              onZmena: controller.setZpracovatele,
             ),
             const SizedBox(width: Insets.sm),
             // Řazení není filtr, ale patří sem ze stejného důvodu: rozhoduje
@@ -129,8 +129,149 @@ class FiltrLista extends ConsumerWidget {
   }
 }
 
-/// Jeden rozbalovací filtr. Vybraný je barevný, ať je poznat, že zužuje.
-/// Lišta zakázek i filtry plánu klempírny.
+/// Výběr více hodnot v okně se zaškrtávátky. Vrací vybrané hodnoty, nebo
+/// `null`, když se okno zavřelo bez potvrzení. Hodnota, která v nabídce
+/// není (uložená z dřívějška), se nabídne taky, ať jde odškrtnout.
+Future<Set<T>?> vyberViceHodnot<T>(
+  BuildContext context, {
+  required String popisek,
+  required Map<T, String> moznosti,
+  required Set<T> vybrane,
+}) {
+  final nabidka = {
+    ...moznosti,
+    for (final h in vybrane)
+      if (!moznosti.containsKey(h)) h: '$h',
+  };
+  return showDialog<Set<T>>(
+    context: context,
+    builder: (context) {
+      var vyber = {...vybrane};
+      return StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(popisek),
+          contentPadding: const EdgeInsets.symmetric(vertical: Insets.sm),
+          content: SizedBox(
+            width: 360,
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final MapEntry(:key, :value) in nabidka.entries)
+                  CheckboxListTile(
+                    value: vyber.contains(key),
+                    dense: true,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(value),
+                    onChanged: (zaskrtnuto) => setState(() {
+                      vyber = zaskrtnuto ?? false
+                          ? {...vyber, key}
+                          : ({...vyber}..remove(key));
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              key: const Key('vyber-vice-vse'),
+              onPressed: () => Navigator.of(context).pop(<T>{}),
+              child: const Text('Vše'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Zrušit'),
+            ),
+            FilledButton(
+              key: const Key('vyber-vice-pouzit'),
+              // Pořadí podle nabídky, ať se uložený filtr nemění podle klikání.
+              onPressed: () => Navigator.of(context).pop({
+                for (final h in nabidka.keys)
+                  if (vyber.contains(h)) h,
+              }),
+              child: const Text('Použít'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// Filtr s více hodnotami: vypadá jako rozbalovací seznam, klepnutím se
+/// otevře okno se zaškrtávátky. Vybraný je barevný, ať je poznat, že
+/// zužuje. Lišta zakázek i filtry plánu klempírny.
+class FiltrVyberVice<T> extends StatelessWidget {
+  const FiltrVyberVice({
+    super.key,
+    required this.popisek,
+    required this.hodnoty,
+    required this.moznosti,
+    required this.onZmena,
+  });
+
+  final String popisek;
+  final Set<T> hodnoty;
+
+  /// Hodnota → co se zobrazí v nabídce.
+  final Map<T, String> moznosti;
+
+  final ValueChanged<Set<T>> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final aktivni = hodnoty.isNotEmpty;
+    final text = switch (hodnoty.length) {
+      0 => popisek,
+      1 => moznosti[hodnoty.single] ?? '${hodnoty.single}',
+      final pocet => '$popisek: $pocet',
+    };
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(Radii.chip),
+      onTap: moznosti.isEmpty && hodnoty.isEmpty
+          ? null
+          : () async {
+              final vyber = await vyberViceHodnot(
+                context,
+                popisek: popisek,
+                moznosti: moznosti,
+                vybrane: hodnoty,
+              );
+              if (vyber != null) onZmena(vyber);
+            },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
+        decoration: BoxDecoration(
+          color: aktivni ? AppColors.primary : palette.background,
+          borderRadius: BorderRadius.circular(Radii.chip),
+          border: Border.all(
+            color: aktivni ? AppColors.primary : palette.hairline2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: AppTextStyles.chip.copyWith(
+                color: aktivni ? Colors.white : palette.muted2,
+                fontWeight: aktivni ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            Icon(
+              Icons.expand_more_rounded,
+              size: 18,
+              color: aktivni ? Colors.white70 : palette.muted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Jeden rozbalovací výběr jedné hodnoty - řazení. Lišta zakázek.
 class FiltrVyber<T> extends StatelessWidget {
   const FiltrVyber({
     super.key,

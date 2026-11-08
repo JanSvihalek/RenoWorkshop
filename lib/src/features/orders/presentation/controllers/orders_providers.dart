@@ -93,11 +93,18 @@ final departmentsForBranchProvider = Provider.family<List<Department>, String?>(
   },
 );
 
-/// Útvary v rámci právě vybrané pobočky - jemnější filtr ve filtrovacím
-/// panelu.
+/// Útvary v rámci vybraných poboček - jemnější filtr ve filtrovacím
+/// panelu. Bez vybrané pobočky všechny.
 final availableDepartmentsProvider = Provider<List<Department>>((ref) {
-  final branchCode = ref.watch(orderFilterProvider).branchCode;
-  return ref.watch(departmentsForBranchProvider(branchCode));
+  final pobocky = ref.watch(orderFilterProvider.select((f) => f.branchCodes));
+  final vse = ref.watch(departmentsForBranchProvider(null));
+  return pobocky.isEmpty
+      ? vse
+      : [
+          for (final utvar in vse)
+            if (pobocky.contains(utvar.code.length > 1 ? utvar.code[1] : null))
+              utvar,
+        ];
 });
 
 /// Typy zakázek vyskytující se v načtených datech. Číselník je v Heliosu
@@ -320,47 +327,47 @@ class OrderFilterController extends Notifier<OrderFilter> {
 
   static OrderFilter _vychozi(Nastaveni nastaveni, String? mujEmail) =>
       OrderFilter(
-        branchCode: nastaveni.vychoziPobocka,
-        departmentCode: nastaveni.vychoziUtvar,
-        poradacKod: nastaveni.vychoziPoradac,
-        heliosStav: nastaveni.vychoziStavHelios,
-        mechanicName: nastaveni.vychoziZodpovida,
-        zpracovatelId: nastaveni.vychoziZpracovatelId,
+        branchCodes: {...nastaveni.vychoziPobocky},
+        departmentCodes: {...nastaveni.vychoziUtvary},
+        poradacKody: {...nastaveni.vychoziPoradace},
+        heliosStavy: {...nastaveni.vychoziStavyHelios},
+        mechanicNames: {...nastaveni.vychoziZodpovedni},
+        zpracovatelIds: {...nastaveni.vychoziZpracovatele},
         mujEmail: mujEmail,
       );
 
-  void setBranch(String? branchCode) => state = branchCode == null
-      ? state.copyWith(clearBranch: true, clearDepartment: true)
-      : state.copyWith(branchCode: branchCode, clearDepartment: true);
+  /// Pobočky; útvary jiných poboček se z výběru odeberou.
+  void setBranches(Set<String> kody) => state = state.copyWith(
+    branchCodes: kody,
+    departmentCodes: kody.isEmpty
+        ? state.departmentCodes
+        : {
+            for (final u in state.departmentCodes)
+              if (u.length > 1 && kody.contains(u[1])) u,
+          },
+  );
 
-  void setTypZakazky(String? kod) => state = kod == null
-      ? state.copyWith(clearTypZakazky: true)
-      : state.copyWith(typZakazkyKod: kod);
+  void setTypyZakazky(Set<String> kody) =>
+      state = state.copyWith(typZakazkyKody: kody);
 
-  void setPoradac(String? kod) => state = kod == null
-      ? state.copyWith(clearPoradac: true)
-      : state.copyWith(poradacKod: kod);
+  void setPoradace(Set<String> kody) =>
+      state = state.copyWith(poradacKody: kody);
 
-  void setDepartment(String? departmentCode) => state = departmentCode == null
-      ? state.copyWith(clearDepartment: true)
-      : state.copyWith(departmentCode: departmentCode);
+  void setDepartments(Set<String> kody) =>
+      state = state.copyWith(departmentCodes: kody);
 
-  void setStatus(String? statusCode) => state = statusCode == null
-      ? state.copyWith(clearStatus: true)
-      : state.copyWith(statusCode: statusCode);
+  void setStatusy(Set<String> kody) =>
+      state = state.copyWith(statusCodes: kody);
 
-  void setHeliosStav(String? stav) => state = stav == null
-      ? state.copyWith(clearHeliosStav: true)
-      : state.copyWith(heliosStav: stav);
+  void setHeliosStavy(Set<String> stavy) =>
+      state = state.copyWith(heliosStavy: stavy);
 
-  void setMechanic(String? mechanicName) => state = mechanicName == null
-      ? state.copyWith(clearMechanic: true)
-      : state.copyWith(mechanicName: mechanicName);
+  void setMechanici(Set<String> jmena) =>
+      state = state.copyWith(mechanicNames: jmena);
 
-  /// [OrderFilter.nikdo] = zakázky bez zpracovatele.
-  void setZpracovatel(int? id) => state = id == null
-      ? state.copyWith(clearZpracovatel: true)
-      : state.copyWith(zpracovatelId: id);
+  /// [OrderFilter.nikdo] = zakázky bez zpracovatele, [OrderFilter.ja] = moje.
+  void setZpracovatele(Set<int> ids) =>
+      state = state.copyWith(zpracovatelIds: ids);
 
   void setQuery(String query) => state = state.copyWith(query: query);
 

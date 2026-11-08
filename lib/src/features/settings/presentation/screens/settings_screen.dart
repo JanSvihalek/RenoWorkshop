@@ -13,6 +13,10 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/controllers/stav_serveru.dart';
 import '../../../orders/domain/entities/order_filter.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
+import '../../../orders/presentation/widgets/filtr_lista.dart'
+    show vyberViceHodnot;
+import '../../../orders/presentation/widgets/tabulka_zakazek.dart'
+    show sloupceTabulky;
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import '../../domain/entities/nastaveni.dart';
@@ -37,6 +41,7 @@ class SettingsScreen extends ConsumerWidget {
     const vlevo = [_VzhledASpusteni(), _SkenerAFotoaparat()];
     const vpravo = [
       _VychoziFiltr(),
+      _SloupceTabulky(),
       _Fotodokumentace(),
       _KampanePodleStari(),
       _OAplikaci(),
@@ -346,24 +351,17 @@ class _VychoziFiltr extends ConsumerWidget {
     final utvary = ref.watch(availableDepartmentsProvider);
     final zodpovedni = ref.watch(mechanicsProvider);
     final zpracovatele = ref.watch(zpracovateleProvider);
-    // Klíče jako text - výběr v nastavení pracuje s textem.
-    final moznostiZpracovatele = <String, String>{
-      '${OrderFilter.ja}': 'Já',
-      '${OrderFilter.nikdo}': 'Nikdo',
-      for (final kdo in zpracovatele) '${kdo.id}': kdo.jmeno,
-      if (nastaveni.vychoziZpracovatelId case final id?)
-        if (!zpracovatele.any((kdo) => kdo.id == id))
-          '$id': nastaveni.vychoziZpracovatelJmeno ?? 'č. $id',
+    final moznostiZpracovatele = <int, String>{
+      OrderFilter.ja: 'Já',
+      OrderFilter.nikdo: 'Nikdo',
+      for (final kdo in zpracovatele) kdo.id: kdo.jmeno,
+      // Vybraní lidé, kteří zrovna nemají zakázku - jména z nastavení.
+      for (final id in nastaveni.vychoziZpracovatele)
+        if (id > 0 && !zpracovatele.any((kdo) => kdo.id == id))
+          id: nastaveni.jmenaZpracovatelu[id] ?? 'č. $id',
     };
     final poradace = ref.watch(pouzitePoradaceProvider);
-    final aktivnich = [
-      nastaveni.vychoziPobocka,
-      nastaveni.vychoziStavHelios,
-      nastaveni.vychoziUtvar,
-      nastaveni.vychoziPoradac,
-      nastaveni.vychoziZodpovida,
-      nastaveni.vychoziZpracovatelId,
-    ].nonNulls.length;
+    final aktivnich = nastaveni.pocetVychozichFiltru;
 
     return _Skupina(
       nadpis: 'VÝCHOZÍ FILTR ZÁKAZEK',
@@ -406,35 +404,133 @@ class _VychoziFiltr extends ConsumerWidget {
               ),
             ]
           : [
-              _Vyber(
+              _VyberVice<String>(
+                key: const Key('vychozi-utvar'),
                 popisek: 'Útvar',
-                hodnota: nastaveni.vychoziUtvar,
+                hodnoty: nastaveni.vychoziUtvary,
                 moznosti: {for (final utvar in utvary) utvar.code: utvar.code},
-                onZmena: ovladani.zmenVychoziUtvar,
+                onZmena: ovladani.zmenVychoziUtvary,
               ),
-              _Vyber(
+              _VyberVice<String>(
+                key: const Key('vychozi-poradac'),
                 popisek: 'Pořadač',
-                hodnota: nastaveni.vychoziPoradac,
+                hodnoty: nastaveni.vychoziPoradace,
                 moznosti: {for (final p in poradace) p.kod: p.nazev},
-                onZmena: ovladani.zmenVychoziPoradac,
+                onZmena: ovladani.zmenVychoziPoradace,
               ),
-              _Vyber(
+              _VyberVice<String>(
+                key: const Key('vychozi-zodpovida'),
                 popisek: 'Zodpovídá',
-                hodnota: nastaveni.vychoziZodpovida,
+                hodnoty: nastaveni.vychoziZodpovedni,
                 moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
-                onZmena: ovladani.zmenVychoziZodpovida,
+                onZmena: ovladani.zmenVychoziZodpovedne,
               ),
-              _Vyber(
+              _VyberVice<int>(
                 key: const Key('vychozi-zpracovatel'),
                 popisek: 'Zpracovává',
-                hodnota: nastaveni.vychoziZpracovatelId?.toString(),
+                hodnoty: nastaveni.vychoziZpracovatele,
                 moznosti: moznostiZpracovatele,
-                onZmena: (klic) => ovladani.zmenVychozihoZpracovatele(
-                  klic == null ? null : int.parse(klic),
-                  klic == null ? null : moznostiZpracovatele[klic],
-                ),
+                onZmena: (ids) =>
+                    ovladani.zmenVychoziZpracovatele(ids, moznostiZpracovatele),
               ),
             ],
+    );
+  }
+}
+
+/// Sloupce tabulky zakázek - pořadí a které jsou vidět. Platí pro účet,
+/// stejně jako na webu. Aspoň jeden sloupec musí zůstat vidět.
+class _SloupceTabulky extends ConsumerWidget {
+  const _SloupceTabulky();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final nastaveni = ref.watch(nastaveniProvider.select((n) => n.sloupce));
+    final ovladani = ref.read(nastaveniProvider.notifier);
+    final vse = sloupceTabulky(nastaveni, jenViditelne: false);
+    final viditelnych = vse
+        .where((s) => !nastaveni.skryte.contains(s.klic))
+        .length;
+
+    void uloz({List<String>? poradi, List<String>? skryte}) =>
+        ovladani.zmenSloupce(
+          NastaveniSloupcu(
+            poradi: poradi ?? [for (final s in vse) s.klic],
+            skryte: skryte ?? nastaveni.skryte,
+          ),
+        );
+    void presun(int z, int kam) {
+      final poradi = [for (final s in vse) s.klic];
+      poradi.insert(kam, poradi.removeAt(z));
+      uloz(poradi: poradi);
+    }
+
+    return _Skupina(
+      nadpis: 'SLOUPCE TABULKY',
+      akce: nastaveni.vychozi
+          ? null
+          : _Odkaz(
+              key: const Key('sloupce-vychozi'),
+              text: 'Výchozí',
+              onTap: () => ovladani.zmenSloupce(const NastaveniSloupcu()),
+            ),
+      poznamka:
+          'Pořadí a viditelnost sloupců v tabulkovém přehledu zakázek. Platí '
+          'na vašem účtu - stejně i na webu a jiném telefonu.',
+      radky: [
+        for (final (i, sloupec) in vse.indexed)
+          Padding(
+            key: Key('sloupec-${sloupec.klic}'),
+            padding: const EdgeInsets.symmetric(horizontal: Insets.sm),
+            child: Row(
+              children: [
+                Checkbox(
+                  key: Key('sloupec-videt-${sloupec.klic}'),
+                  value: !nastaveni.skryte.contains(sloupec.klic),
+                  onChanged:
+                      viditelnych == 1 &&
+                          !nastaveni.skryte.contains(sloupec.klic)
+                      ? null
+                      : (videt) => uloz(
+                          skryte: videt ?? false
+                              ? [
+                                  for (final k in nastaveni.skryte)
+                                    if (k != sloupec.klic) k,
+                                ]
+                              : [...nastaveni.skryte, sloupec.klic],
+                        ),
+                ),
+                Expanded(
+                  child: Text(
+                    sloupec.nazev,
+                    style: AppTextStyles.cardBody.copyWith(
+                      color: nastaveni.skryte.contains(sloupec.klic)
+                          ? palette.muted
+                          : palette.text,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: Key('sloupec-nahoru-${sloupec.klic}'),
+                  tooltip: 'O místo výš',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: i == 0 ? null : () => presun(i, i - 1),
+                  icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+                ),
+                IconButton(
+                  key: Key('sloupec-dolu-${sloupec.klic}'),
+                  tooltip: 'O místo níž',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: i == vse.length - 1
+                      ? null
+                      : () => presun(i, i + 1),
+                  icon: const Icon(Icons.arrow_downward_rounded, size: 20),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1117,6 +1213,79 @@ class _Vyber extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Výběr více hodnot v nastavení: vpravo co je vybrané, klepnutím okno se
+/// zaškrtávátky. Uložená volba, která mezi načtenými zakázkami zrovna není,
+/// se nabídne i tak (filtr platí, i když ji dnes nikdo nemá).
+class _VyberVice<T> extends StatelessWidget {
+  const _VyberVice({
+    super.key,
+    required this.popisek,
+    required this.hodnoty,
+    required this.moznosti,
+    required this.onZmena,
+  });
+
+  final String popisek;
+  final List<T> hodnoty;
+  final Map<T, String> moznosti;
+  final ValueChanged<List<T>> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = switch (hodnoty.length) {
+      0 => 'Vše',
+      1 => moznosti[hodnoty.single] ?? '${hodnoty.single}',
+      final pocet => '$pocet vybrané',
+    };
+
+    return InkWell(
+      onTap: () async {
+        final vyber = await vyberViceHodnot(
+          context,
+          popisek: popisek,
+          moznosti: moznosti,
+          vybrane: {...hodnoty},
+        );
+        if (vyber != null) onZmena([...vyber]);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Insets.lg,
+          vertical: Insets.base,
+        ),
+        child: Row(
+          children: [
+            Text(
+              popisek,
+              style: AppTextStyles.cardBody.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: Insets.base),
+            Expanded(
+              child: Text(
+                text,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.cardBody.copyWith(
+                  color: palette.text,
+                  fontWeight: hodnoty.isEmpty
+                      ? FontWeight.w400
+                      : FontWeight.w700,
+                ),
+              ),
+            ),
+            Icon(Icons.expand_more_rounded, color: palette.muted),
+          ],
+        ),
       ),
     );
   }

@@ -74,9 +74,32 @@ void main() {
     });
 
     test('filtry se skládají (pobočka AND stav)', () {
-      const filter = OrderFilter(branchCode: '2', statusCode: 'klempirna');
+      const filter = OrderFilter(
+        branchCodes: {'2'},
+        statusCodes: {'klempirna'},
+      );
 
       expect(filter.apply(orders).map((o) => o.id), ['C']);
+    });
+
+    test('víc hodnot ve výběru: zakázka sedí na kteroukoli z nich', () {
+      const pobocky = OrderFilter(
+        branchCodes: {'1', '2'},
+        sort: OrderSort.dueDate,
+      );
+      expect(pobocky.apply(orders).map((o) => o.id), ['B', 'C', 'A']);
+
+      const stavy = OrderFilter(statusCodes: {'vyzvednuto', 'klempirna'});
+      expect(stavy.apply(orders), hasLength(3));
+      expect(stavy.activeCount, 1);
+    });
+
+    test('pořadí hodnot ve výběru nerozhoduje o rovnosti', () {
+      expect(
+        const OrderFilter(departmentCodes: {'11215', '12215'}) ==
+            const OrderFilter(departmentCodes: {'12215', '11215'}),
+        isTrue,
+      );
     });
 
     test('hledá napříč SPZ, zákazníkem a číslem zakázky', () {
@@ -90,7 +113,7 @@ void main() {
     });
 
     test('filtr mechanika vybere jen jeho zakázky', () {
-      const filter = OrderFilter(mechanicName: 'Petra Válková');
+      const filter = OrderFilter(mechanicNames: {'Petra Válková'});
 
       expect(filter.apply(orders).map((o) => o.id), ['C']);
     });
@@ -102,38 +125,38 @@ void main() {
     });
 
     test('stav z Heliosu a dílenský stav se filtrují zvlášť', () {
-      final filter = const OrderFilter(heliosStav: 'K fakturaci');
+      final filter = const OrderFilter(heliosStavy: {'K fakturaci'});
       expect(filter.isActive, isTrue);
-      expect(filter.copyWith(clearHeliosStav: true).heliosStav, isNull);
+      expect(filter.copyWith(heliosStavy: {}).heliosStavy, isEmpty);
     });
 
     test('filtry lišící se jen typem nebo stavem Heliosu nejsou stejné', () {
       // Na rovnosti stojí „Zrušit filtry": shodný s výchozím se shodí úplně.
       expect(
-        const OrderFilter(typZakazkyKod: '801') == const OrderFilter(),
+        const OrderFilter(typZakazkyKody: {'801'}) == const OrderFilter(),
         isFalse,
       );
       expect(
-        const OrderFilter(heliosStav: 'Zpracováváno') == const OrderFilter(),
+        const OrderFilter(heliosStavy: {'Zpracováváno'}) == const OrderFilter(),
         isFalse,
       );
     });
 
     test('filtr pořadače je aktivní a jde zrušit', () {
-      const filter = OrderFilter(poradacKod: '10026');
+      const filter = OrderFilter(poradacKody: {'10026'});
       expect(filter.isActive, isTrue);
       expect(filter == const OrderFilter(), isFalse);
-      expect(filter.copyWith(clearPoradac: true).poradacKod, isNull);
+      expect(filter.copyWith(poradacKody: {}).poradacKody, isEmpty);
     });
 
     test('activeCount počítá jen skutečně aktivní filtry', () {
       expect(const OrderFilter().activeCount, 0);
       expect(const OrderFilter(query: '   ').activeCount, 0);
-      expect(const OrderFilter(branchCode: '1', query: 'x').activeCount, 2);
+      expect(const OrderFilter(branchCodes: {'1'}, query: 'x').activeCount, 2);
     });
 
     test('prázdný výsledek je prázdný seznam, ne chyba', () {
-      const filter = OrderFilter(branchCode: '4');
+      const filter = OrderFilter(branchCodes: {'4'});
 
       expect(filter.apply(orders), isEmpty);
     });

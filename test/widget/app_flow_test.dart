@@ -8,18 +8,25 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/core/widgets/workshop_bottom_nav.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/filtr_lista.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
-/// Vybere útvar z lišty filtrů nad seznamem.
+/// Vybere v liště filtrů nad seznamem jediný útvar, „Vše" výběr zruší.
 Future<void> _vyberUtvar(WidgetTester tester, String polozka) async {
-  // Útvar je první rozbalovací seznam v liště.
-  await tester.tap(find.byType(DropdownButton<String?>).first);
+  // Útvar je první výběr v liště. Nejdřív se dosavadní výběr zruší.
+  final utvar = find.byType(FiltrVyberVice<String>).first;
+  await tester.tap(utvar);
   await tester.pumpAndSettle();
-  // Vybraná položka se vykresluje i v zavřeném seznamu, proto `.last` -
-  // ta v rozbalené nabídce.
+  await tester.tap(find.byKey(const Key('vyber-vice-vse')));
+  await tester.pumpAndSettle();
+  if (polozka == 'Vše') return;
+  await tester.tap(utvar);
+  await tester.pumpAndSettle();
   await tester.tap(find.text(polozka).last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('vyber-vice-pouzit')));
   await tester.pumpAndSettle();
 }
 

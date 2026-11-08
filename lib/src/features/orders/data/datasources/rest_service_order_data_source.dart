@@ -142,11 +142,18 @@ class RestServiceOrderDataSource
     String? nazev,
     String? poznamka,
     String? misto,
+    String? zavadaId,
   }) async {
     final data = await _send(
       'POST',
       'orders/${Uri.encodeComponent(orderId)}/stavy',
-      body: {'code': ?kod, 'label': ?nazev, 'note': ?poznamka, 'bay': ?misto},
+      body: {
+        'code': ?kod,
+        'label': ?nazev,
+        'note': ?poznamka,
+        'bay': ?misto,
+        'defectId': ?zavadaId,
+      },
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

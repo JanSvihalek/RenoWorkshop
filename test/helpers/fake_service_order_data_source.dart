@@ -441,6 +441,7 @@ class FakeServiceOrderDataSource
     String? nazev,
     String? poznamka,
     String? misto,
+    String? zavadaId,
   }) async {
     posledniMisto = misto;
     final index = _indexOf(orderId);
@@ -454,6 +455,7 @@ class FakeServiceOrderDataSource
       'note': poznamka,
       'author': 'Jan Dvořák',
       'createdAt': '2026-08-28T10:00:00',
+      'defectId': zavadaId,
     };
 
     return _orders[index] = _orders[index].copyWith(
@@ -951,6 +953,7 @@ ServiceOrderDto buildOrderDto({
   String licensePlate = '1AA 1111',
   String model = 'BMW 320d',
   String customerName = 'Petr Novák',
+  String? customerIco,
   String status = 'Klempířské práce',
   String? statusCode = 'klempirna',
   String? heliosStatus = 'Zpracováváno',
@@ -985,6 +988,7 @@ ServiceOrderDto buildOrderDto({
     licensePlate: licensePlate,
     model: model,
     customerName: customerName,
+    customerIco: customerIco,
     status: status,
     statusCode: statusCode,
     heliosStatus: heliosStatus,

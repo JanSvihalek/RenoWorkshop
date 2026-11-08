@@ -15,7 +15,25 @@ String pocetMesicu(int n) =>
         ? 'měsíce'
         : 'měsíců'}';
 
-/// „3. 5. 2019 · 89 měsíců" - datum a stáří vedle sebe. Registrace
+/// „1 rok", „3 roky", „7 let".
+String pocetLet(int n) =>
+    '$n ${n == 1
+        ? 'rok'
+        : n >= 2 && n <= 4
+        ? 'roky'
+        : 'let'}';
+
+/// Stáří v letech a měsících: „8 měsíců", „3 roky", „7 let 5 měsíců".
+String rokyAMesice(int mesice) {
+  final roky = mesice ~/ 12;
+  final zbytek = mesice % 12;
+  if (roky == 0) return pocetMesicu(mesice);
+  return zbytek == 0
+      ? pocetLet(roky)
+      : '${pocetLet(roky)} ${pocetMesicu(zbytek)}';
+}
+
+/// „3. 5. 2019 · 7 let 5 měsíců" - datum a stáří vedle sebe. Registrace
 /// v budoucnu je překlep v Heliosu, stáří se k ní nepíše.
 String registraceSeStarim(
   DateTime registrace,
@@ -25,7 +43,7 @@ String registraceSeStarim(
   final stari = stariVMesicich(registrace, dnes);
   return stari < 0
       ? datum(registrace)
-      : '${datum(registrace)} · ${pocetMesicu(stari)}';
+      : '${datum(registrace)} · ${rokyAMesice(stari)}';
 }
 
 /// „dnes", „včera", „před 3 dny", „před měsícem", „před 2 lety".

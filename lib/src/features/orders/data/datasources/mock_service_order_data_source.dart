@@ -286,6 +286,7 @@ class MockServiceOrderDataSource
     String? nazev,
     String? poznamka,
     String? misto,
+    String? zavadaId,
   }) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
@@ -309,6 +310,7 @@ class MockServiceOrderDataSource
       'note': poznamka,
       'author': 'Jan Dvořák',
       'createdAt': DateTime.now().toIso8601String(),
+      'defectId': zavadaId,
     };
 
     final updated = orders[index].copyWith(

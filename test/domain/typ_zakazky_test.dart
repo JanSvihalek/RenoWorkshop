@@ -49,13 +49,13 @@ void main() {
     ];
 
     test('vybere jen zakázky daného typu', () {
-      const filtr = OrderFilter(typZakazkyKod: 'K');
+      const filtr = OrderFilter(typZakazkyKody: {'K'});
 
       expect(filtr.apply(zakazky).map((z) => z.id), ['Z2']);
     });
 
     test('zakázka bez typu se do filtru na typ nedostane', () {
-      const filtr = OrderFilter(typZakazkyKod: 'B');
+      const filtr = OrderFilter(typZakazkyKody: {'B'});
 
       expect(filtr.apply(zakazky).map((z) => z.id), ['Z1']);
     });
@@ -67,11 +67,11 @@ void main() {
     });
 
     test('typ se počítá mezi aktivní filtry', () {
-      const filtr = OrderFilter(typZakazkyKod: 'K');
+      const filtr = OrderFilter(typZakazkyKody: {'K'});
 
       expect(filtr.isActive, isTrue);
       expect(filtr.activeCount, 1);
-      expect(filtr.copyWith(clearTypZakazky: true).isActive, isFalse);
+      expect(filtr.copyWith(typZakazkyKody: {}).isActive, isFalse);
     });
   });
 
