@@ -377,7 +377,10 @@ class _RadekUkonu extends ConsumerWidget {
                         tooltip: 'Další akce',
                         onSelected: (_) => smazat(),
                         itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'smazat', child: Text('Smazat úkon')),
+                          PopupMenuItem(
+                            value: 'smazat',
+                            child: Text('Smazat úkon'),
+                          ),
                         ],
                       ),
                   ],
@@ -440,7 +443,7 @@ class _ZnackaZdroje extends StatelessWidget {
   }
 }
 
-/// Co má mechanik kromě závad udělat. Ukazují se jen objednaná přání.
+/// Co má mechanik kromě závad udělat. Vždy všechno, ať je jasné i „Ne".
 class _OstatniPrani extends StatelessWidget {
   const _OstatniPrani({required this.prani});
 
@@ -450,12 +453,30 @@ class _OstatniPrani extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final prani = this.prani;
-    final polozky = [
-      if (prani?.myti == true)
-        prani?.mytiProgram == null ? 'Mytí' : 'Mytí · ${prani!.mytiProgram}',
-      if (prani?.vratitDily == true) 'Vrátit vyměněné díly',
-      if (prani?.provozniKapaliny == true) 'Provozní kapaliny',
-    ];
+
+    Widget polozka(String nazev, bool? ano, [String? doplnek]) {
+      final hodnota = switch (ano) {
+        null => 'Nezadáno',
+        false => 'Ne',
+        true => doplnek == null ? 'Ano' : 'Ano · $doplnek',
+      };
+      // Jeden text: na úzkém telefonu se zalomí místo přetečení.
+      return Text.rich(
+        TextSpan(
+          text: '$nazev: ',
+          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
+          children: [
+            TextSpan(
+              text: hodnota,
+              style: TextStyle(
+                color: ano == true ? palette.text : palette.muted,
+                fontWeight: ano == true ? FontWeight.w600 : null,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       key: const Key('prani-zakaznika'),
@@ -469,20 +490,10 @@ class _OstatniPrani extends StatelessWidget {
           runSpacing: Insets.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SectionLabel('OSTATNÍ PŘÁNÍ'),
-            if (polozky.isEmpty)
-              Text(
-                'Žádná zvláštní přání',
-                style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-              ),
-            for (final polozka in polozky)
-              Text(
-                polozka,
-                style: AppTextStyles.cardBody.copyWith(
-                  color: palette.text,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            const SectionLabel('OSTATNÍ PŘÁNÍ'),
+            polozka('Mytí', prani?.myti, prani?.mytiProgram),
+            polozka('Vrátit vyměněné díly', prani?.vratitDily),
+            polozka('Provozní kapaliny', prani?.provozniKapaliny),
           ],
         ),
       ],

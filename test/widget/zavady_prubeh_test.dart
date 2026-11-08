@@ -112,7 +112,9 @@ void main() {
     expect(zahajit, findsNothing);
   });
 
-  testWidgets('ostatní přání pod závadami: jen objednaná', (tester) async {
+  testWidgets('ostatní přání pod závadami: vždy všechna, i Ne a Nezadáno', (
+    tester,
+  ) async {
     await otevri(
       tester,
       buildOrderDto(
@@ -130,15 +132,14 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('prani-zakaznika'))).dy,
       greaterThan(tester.getTopLeft(find.text('Výměna oleje').first).dy),
     );
-    expect(find.text('Mytí · P3'), findsOneWidget);
-    expect(find.text('Vrátit vyměněné díly'), findsNothing);
-    expect(find.text('Provozní kapaliny'), findsNothing);
-    expect(find.text('Žádná zvláštní přání'), findsNothing);
+    expect(find.text('Mytí: Ano · P3'), findsOneWidget);
+    expect(find.text('Vrátit vyměněné díly: Ne'), findsOneWidget);
+    expect(find.text('Provozní kapaliny: Nezadáno'), findsOneWidget);
   });
 
-  testWidgets('bez objednaných přání je napsané, že nejsou', (tester) async {
+  testWidgets('nevyplněná přání jsou Nezadáno', (tester) async {
     await otevri(tester, buildOrderDto());
-    expect(find.text('Žádná zvláštní přání'), findsOneWidget);
+    expect(find.textContaining(': Nezadáno'), findsNWidgets(3));
   });
 
   testWidgets('ruční úkon: přidání, Zahájit s vazbou na úkon a smazání', (
