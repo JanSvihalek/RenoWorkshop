@@ -112,7 +112,10 @@ class OrderCard extends StatelessWidget {
               spacing: 9,
               runSpacing: 6,
               children: [
-                PlateChip(licensePlate: order.licensePlate),
+                if (order.licensePlate.isEmpty)
+                  const PlateChip(licensePlate: 'Bez SPZ')
+                else
+                  SpzRamecek(licensePlate: order.licensePlate, maly: true),
                 Text(
                   order.model,
                   style: AppTextStyles.cardModel.copyWith(color: palette.text),

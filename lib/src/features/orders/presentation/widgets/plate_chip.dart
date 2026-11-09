@@ -31,9 +31,12 @@ class PlateChip extends StatelessWidget {
 /// SPZ jako značka: bílá s modrým pruhem bez země (může být i zahraniční),
 /// stejná i v tmavém vzhledu.
 class SpzRamecek extends StatelessWidget {
-  const SpzRamecek({super.key, required this.licensePlate});
+  const SpzRamecek({super.key, required this.licensePlate, this.maly = false});
 
   final String licensePlate;
+
+  /// Menší velikost pro kartu v přehledu zakázek.
+  final bool maly;
 
   /// Modrá pruhu na značce.
   static const _modra = Color(0xFF003399);
@@ -44,23 +47,26 @@ class SpzRamecek extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.primary, width: 2),
+        borderRadius: BorderRadius.circular(maly ? 5 : 6),
+        border: Border.all(color: AppColors.primary, width: maly ? 1.5 : 2),
       ),
       child: IntrinsicHeight(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 12, color: _modra),
+            Container(width: maly ? 8 : 12, color: _modra),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              padding: EdgeInsets.symmetric(
+                horizontal: maly ? 7 : 9,
+                vertical: maly ? 2 : 4,
+              ),
               child: Text(
                 licensePlate,
                 maxLines: 1,
                 softWrap: false,
                 style: AppTextStyles.plateLarge.copyWith(
-                  fontSize: 22,
+                  fontSize: maly ? 15 : 22,
                   height: 1.15,
                   color: AppColors.primary,
                 ),

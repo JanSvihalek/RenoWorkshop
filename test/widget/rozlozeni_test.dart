@@ -11,6 +11,7 @@ import 'package:renoworkshop/src/features/orders/domain/entities/service_order.d
 import 'package:renoworkshop/src/features/orders/domain/entities/typ_zakazky.dart';
 import 'package:renoworkshop/src/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/order_card.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/plate_chip.dart';
 
 /// Rozložení na úzkém displeji.
 ///
@@ -133,6 +134,14 @@ void main() {
       ),
     );
 
+    // SPZ v rámečku značky, stejně jako v detailu.
+    expect(
+      find.descendant(
+        of: find.byType(SpzRamecek),
+        matching: find.text('2BK9485'),
+      ),
+      findsOneWidget,
+    );
     // Popisek u data, ať se nepletou dvě různá.
     expect(find.text('PŘIJATO'), findsOneWidget);
     // Oba stavy popsané, ať je poznat, který je z ERP a který z dílny.
