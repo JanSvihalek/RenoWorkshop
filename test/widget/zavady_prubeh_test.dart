@@ -109,6 +109,8 @@ void main() {
     await tester.tap(dokoncit);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('zavada-hotovo-77')), findsOneWidget);
+    // Hotový úkon má zelenou fajfku.
+    expect(find.byKey(const Key('zavada-fajfka-77')), findsOneWidget);
     expect(zahajit, findsNothing);
   });
 

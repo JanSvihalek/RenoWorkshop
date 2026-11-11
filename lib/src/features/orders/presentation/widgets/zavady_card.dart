@@ -198,6 +198,17 @@ class ZavadyCard extends ConsumerWidget {
   }
 }
 
+/// Zelená dokončeného úkonu - stejné odstíny jako „Zápis" a pásmo
+/// vytížení pod 50 % (web `--vyt-nizke*`).
+({Color znacka, Color pozadi, Color text}) _zelena(BuildContext context) {
+  final tmava = context.isDarkMode;
+  return (
+    znacka: tmava ? const Color(0xFF5FD38D) : const Color(0xFF2E9E5B),
+    pozadi: tmava ? const Color(0x295FD38D) : const Color(0xFFE3F5EA),
+    text: tmava ? const Color(0xFF5FD38D) : const Color(0xFF1B6E3C),
+  );
+}
+
 /// Jeden řádek seznamu - závada z Heliosu, nebo ruční úkon.
 class _RadekUkonu extends ConsumerWidget {
   const _RadekUkonu({
@@ -241,6 +252,9 @@ class _RadekUkonu extends ConsumerWidget {
     // Starší závady bez popisu mají jen poznámku - ta pak zastoupí popis.
     final titulek = nazev ?? (poznamka.isEmpty ? 'Bez popisu' : poznamka);
     final styleStavu = AppTextStyles.metaSmall.copyWith(color: palette.muted);
+    // Dokončený úkon zezelená a má fajfku vpravo - stejně jako na webu.
+    final hotovo = prubeh is ZavadaHotova;
+    final zelena = _zelena(context);
 
     final tlacitkoZahajit = OutlinedButton(
       key: Key('$klic-zahajit-$id'),
@@ -259,7 +273,8 @@ class _RadekUkonu extends ConsumerWidget {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          border: Border.all(color: palette.hairline2),
+          color: hotovo ? zelena.pozadi : null,
+          border: Border.all(color: hotovo ? zelena.znacka : palette.hairline2),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Stack(
@@ -330,7 +345,10 @@ class _RadekUkonu extends ConsumerWidget {
                               ZavadaHotova(:final kdy) => Text(
                                 'Dokončeno ${AppDateFormat.date(kdy)}',
                                 key: Key('$klic-hotovo-$id'),
-                                style: styleStavu,
+                                style: styleStavu.copyWith(
+                                  color: zelena.text,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               ZavadaCeka(:final preruseno) => Text(
                                 preruseno ? 'Přerušeno' : 'Nezahájeno',
@@ -344,6 +362,26 @@ class _RadekUkonu extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (hotovo) ...[
+                    const SizedBox(width: Insets.sm),
+                    Tooltip(
+                      message: 'Dokončeno',
+                      child: Container(
+                        key: Key('$klic-fajfka-$id'),
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: zelena.znacka,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: palette.card,
+                        ),
+                      ),
+                    ),
+                  ],
                   if (smi) ...[
                     const SizedBox(width: Insets.sm),
                     if (prubeh is ZavadaCeka) tlacitkoZahajit,

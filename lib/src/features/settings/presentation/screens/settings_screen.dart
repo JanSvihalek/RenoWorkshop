@@ -11,6 +11,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../auth/domain/entities/employee.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/controllers/stav_serveru.dart';
+import '../../../novinky/novinky.dart';
 import '../../../orders/domain/entities/order_filter.dart';
 import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/filtr_lista.dart'
@@ -673,6 +674,17 @@ class _OAplikaci extends ConsumerWidget {
             vpravo: Text(
               verze,
               style: AppTextStyles.monoLabel.copyWith(color: palette.text),
+            ),
+          ),
+        if (ref.watch(novinkyProvider).valueOrNull case final novinky?
+            when novinky.isNotEmpty)
+          _Radek(
+            titul: 'Co je nového',
+            popis: 'Novinky v aplikaci a na webu.',
+            vpravo: TextButton(
+              key: const Key('co-je-noveho'),
+              onPressed: () => ukazNovinky(context, novinky),
+              child: const Text('Zobrazit'),
             ),
           ),
         const _RadekServeru(),

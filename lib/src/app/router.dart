@@ -18,6 +18,7 @@ import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.
 import '../features/plan/presentation/plan_screen.dart';
 import '../features/uzivatele/presentation/uzivatele_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
+import '../features/novinky/novinky.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -117,9 +118,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Záložky jsou ve společném rámu: přepnutí mění jen obsah, lišta
       // zůstává stát a každá záložka si drží svůj stav.
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => WorkshopScaffold(
-          navigationShell: navigationShell,
-          onVyhledat: () => context.push(AppRoutes.skener),
+        // Po přihlášení jednou okno „Co je nového" (jen co ještě neviděl).
+        builder: (context, state, navigationShell) => HlidacNovinek(
+          child: WorkshopScaffold(
+            navigationShell: navigationShell,
+            onVyhledat: () => context.push(AppRoutes.skener),
+          ),
         ),
         branches: [
           StatefulShellBranch(

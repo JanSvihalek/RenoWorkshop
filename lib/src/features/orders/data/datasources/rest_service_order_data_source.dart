@@ -30,6 +30,7 @@ import '../../../ulozenky/data/ulozenky_data_source.dart';
 import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../diagnostika/data/diagnostika_data_source.dart';
 import '../../../diagnostika/domain/diagnostika.dart';
+import '../../../novinky/novinky.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
@@ -56,6 +57,7 @@ class RestServiceOrderDataSource
         KampaneDataSource,
         PlanDataSource,
         UzivateleDataSource,
+        NovinkyDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -646,6 +648,16 @@ class RestServiceOrderDataSource
     return [
       for (final u in polozky is List ? polozky : const [])
         UlozenkaPneu.fromJson(u as Map<String, dynamic>),
+    ];
+  }
+
+  @override
+  Future<List<Novinka>> nactiNovinky() async {
+    final data = await _send('GET', 'news');
+    final polozky = data == null ? null : _asMap(data)['items'];
+    return [
+      for (final n in polozky is List ? polozky : const [])
+        ?Novinka.fromJson(n),
     ];
   }
 

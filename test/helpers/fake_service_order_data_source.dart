@@ -33,6 +33,7 @@ import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokume
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
+import 'package:renoworkshop/src/features/novinky/novinky.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
@@ -50,7 +51,8 @@ class FakeServiceOrderDataSource
         AkceDataSource,
         KampaneDataSource,
         PlanDataSource,
-        UzivateleDataSource {
+        UzivateleDataSource,
+        NovinkyDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -114,6 +116,12 @@ class FakeServiceOrderDataSource
   @override
   Future<List<UlozenkaPneu>> ulozenkyZakazky(String orderId) async =>
       ulozenky[orderId] ?? const [];
+
+  /// Novinky do okna „Co je nového" - bez nich se okno neukáže.
+  List<Novinka> novinky = const [];
+
+  @override
+  Future<List<Novinka>> nactiNovinky() async => novinky;
 
   /// Nastavení na účtu - jako služba: změna přepíše poslané klíče,
   /// `null` klíč smaže.
