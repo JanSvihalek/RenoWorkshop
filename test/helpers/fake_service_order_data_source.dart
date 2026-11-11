@@ -34,6 +34,7 @@ import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/novinky/novinky.dart';
+import 'package:renoworkshop/src/features/zakaznik/odkaz_zakaznika.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
 import 'package:renoworkshop/src/features/vozidla/domain/entities/vozidlo.dart';
 
@@ -52,7 +53,8 @@ class FakeServiceOrderDataSource
         KampaneDataSource,
         PlanDataSource,
         UzivateleDataSource,
-        NovinkyDataSource {
+        NovinkyDataSource,
+        OdkazZakaznikaDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
   /// ale v seznamu dílny (`fetchOrders`) nejsou - stejně jako v API.
   FakeServiceOrderDataSource(
@@ -116,6 +118,26 @@ class FakeServiceOrderDataSource
   @override
   Future<List<UlozenkaPneu>> ulozenkyZakazky(String orderId) async =>
       ulozenky[orderId] ?? const [];
+
+  /// Odkazy pro zákazníky podle čísla zakázky - jako služba.
+  final odkazyZakazniku = <String, OdkazZakaznika>{};
+
+  @override
+  Future<OdkazZakaznika?> nactiOdkazZakaznika(String orderId) async =>
+      odkazyZakazniku[orderId];
+
+  @override
+  Future<OdkazZakaznika> vytvorOdkazZakaznika(String orderId) async =>
+      odkazyZakazniku[orderId] ??= OdkazZakaznika(
+        url: 'https://renoworkshopprubeh.web.app/z/AbCdEfGhIjKlMnOpQrStUv',
+        vytvoreno: DateTime(2026, 11, 11, 15),
+        vytvoril: 'Jan',
+      );
+
+  @override
+  Future<void> zrusOdkazZakaznika(String orderId) async {
+    odkazyZakazniku.remove(orderId);
+  }
 
   /// Novinky do okna „Co je nového" - bez nich se okno neukáže.
   List<Novinka> novinky = const [];

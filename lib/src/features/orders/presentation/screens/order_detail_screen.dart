@@ -27,6 +27,7 @@ import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
+import '../../../zakaznik/odkaz_zakaznika.dart';
 import '../widgets/detail_cards.dart';
 import '../widgets/sekce_detailu.dart';
 import '../widgets/notes_card.dart';
@@ -355,6 +356,14 @@ class _DetailBody extends ConsumerWidget {
           ? () => zmenObalku(context, ref, order, onSkenuj: onSkenujObalku)
           : null,
       onUvolnitObalku: smi ? () => uvolnitObalku(context, ref, order) : null,
+      // Průběh pro zákazníka - odkaz se vytváří ručně, jen u rozdělané.
+      onOdkazZakaznika: order.jeAktivni
+          ? () => ukazOdkazZakaznika(
+              context,
+              orderId: order.id,
+              smiZapisovat: smi,
+            )
+          : null,
     );
 
     // Klíč: po přepnutí na jinou zakázku zase na závadách.
@@ -559,6 +568,7 @@ class _DetailHeader extends ConsumerWidget {
     required this.onPrevzit,
     required this.onPriraditObalku,
     required this.onUvolnitObalku,
+    this.onOdkazZakaznika,
     this.jenCteni = false,
   });
 
@@ -581,6 +591,9 @@ class _DetailHeader extends ConsumerWidget {
 
   /// Převzít zakázku; `null` = jen čtení, nebo už ji zpracovává přihlášený.
   final VoidCallback? onPrevzit;
+
+  /// Odkaz pro zákazníka na průběh zakázky; `null` = ukončená zakázka.
+  final VoidCallback? onOdkazZakaznika;
 
   /// Právo jen ke čtení - štítek „Jen čtení", akce chybí (`null`).
   final bool jenCteni;
@@ -789,6 +802,14 @@ class _DetailHeader extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(order.id, maxLines: 1, style: mono),
         if (zarazeni.isNotEmpty) Text(zarazeni, maxLines: 2, style: pod),
+        if (onOdkazZakaznika case final otevri?) ...[
+          const SizedBox(height: 2),
+          _OdkazHlavicky(
+            'Odkaz pro zákazníka',
+            key: const Key('odkaz-zakaznika'),
+            onTap: otevri,
+          ),
+        ],
       ],
     );
 

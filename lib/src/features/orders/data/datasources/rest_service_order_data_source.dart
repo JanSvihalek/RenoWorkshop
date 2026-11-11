@@ -31,6 +31,7 @@ import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../diagnostika/data/diagnostika_data_source.dart';
 import '../../../diagnostika/domain/diagnostika.dart';
 import '../../../novinky/novinky.dart';
+import '../../../zakaznik/odkaz_zakaznika.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
 import '../../../uzivatele/domain/uzivatele.dart';
 import '../dtos/service_order_dto.dart';
@@ -58,6 +59,7 @@ class RestServiceOrderDataSource
         PlanDataSource,
         UzivateleDataSource,
         NovinkyDataSource,
+        OdkazZakaznikaDataSource,
         OdesilaniUdalosti {
   RestServiceOrderDataSource({
     required Uri baseUrl,
@@ -649,6 +651,32 @@ class RestServiceOrderDataSource
       for (final u in polozky is List ? polozky : const [])
         UlozenkaPneu.fromJson(u as Map<String, dynamic>),
     ];
+  }
+
+  String _cestaOdkazu(String orderId) =>
+      'orders/${Uri.encodeComponent(orderId)}/customer-link';
+
+  @override
+  Future<OdkazZakaznika?> nactiOdkazZakaznika(String orderId) async {
+    final data = await _send('GET', _cestaOdkazu(orderId));
+    return data == null ? null : OdkazZakaznika.fromJson(_asMap(data)['link']);
+  }
+
+  @override
+  Future<OdkazZakaznika> vytvorOdkazZakaznika(String orderId) async {
+    final data = await _send('POST', _cestaOdkazu(orderId));
+    final odkaz = data == null
+        ? null
+        : OdkazZakaznika.fromJson(_asMap(data)['link']);
+    if (odkaz == null) {
+      throw const ServiceOrderException('Odkaz se nepodařilo vytvořit.');
+    }
+    return odkaz;
+  }
+
+  @override
+  Future<void> zrusOdkazZakaznika(String orderId) async {
+    await _send('DELETE', _cestaOdkazu(orderId));
   }
 
   @override
