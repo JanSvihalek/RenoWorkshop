@@ -136,46 +136,54 @@ class PrehledUzivatelu {
       );
 }
 
-/// Pořadače po pobočkách, v pořadí, jak přišly - (název pobočky, pořadače).
-List<(String, List<PoradacSpravy>)> poradacePoPobockach(
-  List<PoradacSpravy> poradace,
-) {
-  final skupiny = <String, List<PoradacSpravy>>{};
-  for (final p in poradace) {
-    (skupiny[p.pobockaNazev ?? 'Bez pobočky'] ??= []).add(p);
-  }
-  return [for (final e in skupiny.entries) (e.key, e.value)];
-}
-
-/// Krátké shrnutí práv do seznamu: „Brno: zápis · Čestlice: čtení".
-/// Pobočka s různými právy u svých pořadačů je „částečně". Na konci
-/// pobočky, kde plánuje: „plánuje Brno, Nupaky".
+/// Shrnutí práv do seznamu, stejné jako na webu: „7× zápis · plánovač
+/// Nupaky", „1× zápis, 1× čtení", „Žádný pořadač"; admin „Vše · spravuje
+/// uživatele".
 String souhrnPrav(
   UzivatelSpravy uzivatel,
   List<PoradacSpravy> poradace, {
   List<PobockaPlanu> pobockyPlanu = const [],
 }) {
-  if (uzivatel.jeAdmin) return 'Admin · vše';
-  final casti = <String>[];
-  for (final (pobocka, seznam) in poradacePoPobockach(poradace)) {
-    final prava = [for (final p in seznam) uzivatel.prava[p.kod]];
-    if (prava.every((p) => p == null)) continue;
-    final text = prava.every((p) => p == 'W')
-        ? 'zápis'
-        : prava.every((p) => p == 'R')
-        ? 'čtení'
-        : 'částečně';
-    casti.add('$pobocka: $text');
-  }
-  final planuje = [
+  if (uzivatel.jeAdmin) return 'Vše · spravuje uživatele';
+  final zapis = poradace.where((p) => uzivatel.prava[p.kod] == 'W').length;
+  final cteni = poradace.where((p) => uzivatel.prava[p.kod] == 'R').length;
+  final prava = zapis + cteni == 0
+      ? 'Žádný pořadač'
+      : [
+          if (zapis > 0) '$zapis× zápis',
+          if (cteni > 0) '$cteni× čtení',
+        ].join(', ');
+  final plan = [
     for (final p in pobockyPlanu)
-      if (uzivatel.planovac[p.kod] == 'W') p.nazev,
+      if (uzivatel.planovac[p.kod] != null) p.nazev,
   ];
-  if (planuje.isNotEmpty) casti.add('plánuje ${planuje.join(', ')}');
-  final kapacita = [
-    for (final p in pobockyPlanu)
-      if (uzivatel.kapacita.contains(p.kod)) p.nazev,
-  ];
-  if (kapacita.isNotEmpty) casti.add('kapacita ${kapacita.join(', ')}');
-  return casti.isEmpty ? 'Bez přístupu' : casti.join(' · ');
+  return plan.isEmpty ? prava : '$prava · plánovač ${plan.join(', ')}';
+}
+
+/// Filtr seznamu uživatelů - stejné volby jako na webu.
+enum FiltrUzivatelu {
+  vse('Všichni'),
+  admin('Admini'),
+  planovac('S plánovačem'),
+  neprihlaseni('Nepřihlášení');
+
+  const FiltrUzivatelu(this.popisek);
+
+  final String popisek;
+
+  bool plati(UzivatelSpravy u) => switch (this) {
+    FiltrUzivatelu.vse => true,
+    FiltrUzivatelu.admin => u.jeAdmin,
+    FiltrUzivatelu.planovac => u.jeAdmin || u.planovac.isNotEmpty,
+    FiltrUzivatelu.neprihlaseni => u.prihlasen == null,
+  };
+}
+
+/// Iniciály do kolečka - „Lang Jaroslav" -> „LJ", e-mail -> první písmeno.
+String inicialyUzivatele(String jmeno) {
+  final casti = jmeno.trim().split(RegExp(r'\s+')).where((c) => c.isNotEmpty);
+  if (casti.isEmpty) return '?';
+  final prvni = casti.first[0];
+  final posledni = casti.length > 1 ? casti.last[0] : '';
+  return (prvni + posledni).toUpperCase();
 }

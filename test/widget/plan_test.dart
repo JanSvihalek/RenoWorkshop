@@ -1850,7 +1850,7 @@ void main() {
     await otevriPlanovac(tester);
     await tester.tap(find.byKey(const Key('plan-admin')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('uzivatel-pridat')), findsOneWidget);
+    expect(find.byKey(const Key('uzivatel-novy-email')), findsOneWidget);
   });
 
   testWidgets('plánovač: z hlavičky se jde do nastavení', (tester) async {
