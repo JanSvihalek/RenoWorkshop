@@ -90,7 +90,6 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
   late final _poznamka = TextEditingController(
     text: widget.ukon?.poznamka ?? '',
   );
-  late bool _hotovo = widget.ukon?.hotovo ?? false;
   late String? _vybranyTyp = widget.ukon?.typ.kod;
   // Dílna se řídí úkonem, dokud ji někdo nevybere ručně.
   late Dilna? _vybranaDilna = widget.ukon?.dilna;
@@ -191,7 +190,9 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
               do_: obdobi.end,
               kodLaku: kod.isEmpty ? null : kod,
               poznamka: _poznamka.text.trim(),
-              hotovo: _hotovo,
+              // Hotovo dělá jen Dokončit (jako v průběhu) - uložení
+              // stav úkonu nemění.
+              hotovo: widget.ukon?.hotovo ?? false,
               dilna: _vybranaDilna ?? Dilna.vychoziProTyp(typ),
               aw: _pocetAw,
             ),
@@ -207,10 +208,10 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     return hotovo ? null : 'Krok se nepodařilo dokončit.';
   });
 
-  /// Průběh otevřeného úkonu: co s ním je a tlačítko, co s ním jde udělat.
-  Widget _prubeh(UkonPlanu ukon, PolozkaOsy polozka) {
+  /// Průběh otevřeného úkonu: co s ním je. Tlačítka (Zahájit, Dokončit)
+  /// jsou dole u ostatních - [_akcePrubehu].
+  Widget _prubeh(PolozkaOsy polozka) {
     final palette = context.palette;
-    final zaznamId = polozka.zaznam?.id;
     return Container(
       key: const Key('plan-okno-prubeh'),
       padding: const EdgeInsets.symmetric(
@@ -223,58 +224,46 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
         borderRadius: BorderRadius.circular(Radii.button),
         border: Border.all(color: palette.hairline),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              switch (polozka.stav) {
-                StavPolozky.ceka => 'Čeká',
-                StavPolozky.dalsi => 'Další na řadě',
-                StavPolozky.probiha => 'Probíhá',
-                StavPolozky.hotovo => 'Dokončeno',
-                StavPolozky.zruseno => 'Zrušeno',
-              },
-              style: AppTextStyles.cardBody.copyWith(
-                color: palette.text,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (polozka.stav == StavPolozky.probiha && zaznamId != null)
-            FilledButton(
-              key: const Key('plan-okno-dokoncit'),
-              onPressed: _uklada ? null : () => _dokonci(zaznamId),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                // Tmavomodrá by na tmavém pozadí zanikla.
-                backgroundColor: context.isDarkMode
-                    ? AppColors.accent
-                    : AppColors.primary,
-                foregroundColor: Colors.white,
-                textStyle: AppTextStyles.chip,
-              ),
-              child: const Text('Dokončit'),
-            ),
-          if (polozka.stav == StavPolozky.ceka ||
-              polozka.stav == StavPolozky.dalsi)
-            OutlinedButton(
-              key: const Key('plan-okno-zahajit'),
-              onPressed: _uklada
-                  ? null
-                  : () {
-                      Navigator.of(context).pop();
-                      widget.onZahajit?.call(ukon.typ);
-                    },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text('Zahájit'),
-            ),
-        ],
+      child: Text(
+        switch (polozka.stav) {
+          StavPolozky.ceka => 'Čeká',
+          StavPolozky.dalsi => 'Další na řadě',
+          StavPolozky.probiha => 'Probíhá',
+          StavPolozky.hotovo => 'Dokončeno',
+          StavPolozky.zruseno => 'Zrušeno',
+        },
+        style: AppTextStyles.cardBody.copyWith(
+          color: palette.text,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
+  }
+
+  /// Zahájit a Dokončit jako v průběhu zakázky - dole u ostatních tlačítek.
+  List<Widget> _akcePrubehu(UkonPlanu ukon, PolozkaOsy polozka) {
+    final zaznamId = polozka.zaznam?.id;
+    return [
+      if (polozka.stav == StavPolozky.ceka || polozka.stav == StavPolozky.dalsi)
+        OutlinedButton(
+          key: const Key('plan-okno-zahajit'),
+          onPressed: _uklada
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                  widget.onZahajit?.call(ukon.typ);
+                },
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+          child: const Text('Zahájit'),
+        ),
+      if (polozka.stav == StavPolozky.probiha && zaznamId != null)
+        OutlinedButton(
+          key: const Key('plan-okno-dokoncit'),
+          onPressed: _uklada ? null : () => _dokonci(zaznamId),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+          child: const Text('Dokončit'),
+        ),
+    ];
   }
 
   /// Úkon se nemaže, zruší se - zůstane v průběhu zakázky se štítkem
@@ -359,8 +348,21 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
       onPotvrdit: !_uklada && obdobi != null && typ != null && _pocetAw != null
           ? () => _uloz(typ)
           : null,
+      // Všechna tlačítka dole: Zrušit úkon vlevo, Zahájit/Dokončit vpravo.
+      akceVlevo: ukon == null
+          ? null
+          : TextButton.icon(
+              key: const Key('plan-zrusit'),
+              onPressed: _uklada ? null : () => _zrus(ukon),
+              style: TextButton.styleFrom(foregroundColor: cervena),
+              icon: const Icon(Icons.event_busy_outlined, size: 20),
+              label: const Text('Zrušit úkon'),
+            ),
+      dalsiAkce: ukon != null && prubeh != null
+          ? _akcePrubehu(ukon, prubeh)
+          : const [],
       obsah: [
-        if (ukon != null && prubeh != null) _prubeh(ukon, prubeh),
+        if (prubeh != null) _prubeh(prubeh),
         const PopisekPole('ÚKON'),
         // Pole si pamatuje jen první hodnotu - proto až s načtenými typy.
         if (typ == null)
@@ -504,44 +506,12 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
           minLines: 2,
           maxLines: 6,
         ),
-        const SizedBox(height: Insets.sm),
-        SwitchListTile.adaptive(
-          key: const Key('plan-hotovo'),
-          contentPadding: EdgeInsets.zero,
-          value: _hotovo,
-          activeTrackColor: AppColors.readyGreen,
-          onChanged: (hotovo) => setState(() => _hotovo = hotovo),
-          title: Text(
-            'Hotovo',
-            style: AppTextStyles.cardBody.copyWith(
-              color: palette.text,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          subtitle: Text(
-            'Tento úkon má vůz za sebou.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-          ),
-        ),
         if (_chyba != null) ...[
           const SizedBox(height: Insets.sm),
           Text(
             _chyba!,
             key: const Key('plan-chyba'),
             style: AppTextStyles.metaSmall.copyWith(color: cervena),
-          ),
-        ],
-        if (ukon != null) ...[
-          const SizedBox(height: Insets.sm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const Key('plan-zrusit'),
-              onPressed: _uklada ? null : () => _zrus(ukon),
-              style: TextButton.styleFrom(foregroundColor: cervena),
-              icon: const Icon(Icons.event_busy_outlined, size: 20),
-              label: const Text('Zrušit úkon'),
-            ),
           ),
         ],
       ],

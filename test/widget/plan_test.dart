@@ -765,55 +765,72 @@ void main() {
     expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
   });
 
-  testWidgets('pruh v plánu otevře úpravu - hotovo zezelená, zrušení zmizí', (
-    tester,
-  ) async {
-    await spust(
-      tester,
-      zakazky: [
-        buildOrderDto(
-          utvar: '11215',
-          canPlanBodyshop: true,
-          bodyshopPlan: plan('2026-10-12', '2026-10-14', kod: '416'),
+  testWidgets(
+    'pruh v plánu otevře úpravu - bez přepínače Hotovo, zrušení zmizí',
+    (tester) async {
+      await spust(
+        tester,
+        zakazky: [
+          buildOrderDto(
+            utvar: '11215',
+            canPlanBodyshop: true,
+            bodyshopPlan: plan('2026-10-12', '2026-10-14', kod: '416'),
+          ),
+        ],
+      );
+      await otevriPlanovac(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
+      await tester.pumpAndSettle();
+      // Hotovo jen tlačítkem Dokončit jako v průběhu - přepínač není.
+      expect(find.byKey(const Key('plan-hotovo')), findsNothing);
+      expect(find.byType(SwitchListTile), findsNothing);
+      // Tlačítka jsou dole pohromadě: Zrušit úkon i Zahájit nad patičkou.
+      final ulozit = tester.getTopLeft(find.byKey(const Key('plan-ulozit'))).dy;
+      expect(
+        tester.getTopLeft(find.byKey(const Key('plan-zrusit'))).dy,
+        greaterThan(
+          tester.getTopLeft(find.byKey(const Key('plan-poznamka'))).dy,
         ),
-      ],
-    );
-    await otevriPlanovac(tester);
-    await tester.pumpAndSettle();
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const Key('plan-okno-zahajit'))).dy,
+        lessThan(ulozit),
+      );
+      await tester.enterText(find.byKey(const Key('plan-aw')), '4');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('plan-ulozit')));
+      await tester.pumpAndSettle();
+      // Uložení stav úkonu nemění.
+      expect(
+        zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan!['status'],
+        'naplanovano',
+      );
 
-    await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('plan-hotovo')));
-    await tester.pump();
-    await tester.enterText(find.byKey(const Key('plan-aw')), '4');
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('plan-ulozit')));
-    await tester.pumpAndSettle();
-    expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan!['status'], 'hotovo');
-    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
-    await tester.pumpAndSettle();
-    // Úkon se nemaže, zruší se - nejdřív se zeptá, Ponechat nic nezmění.
-    await tester.tap(find.byKey(const Key('plan-zrusit')));
-    await tester.pumpAndSettle();
-    expect(find.text('Opravdu zrušit úkon?'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('plan-zrusit-ne')));
-    await tester.pumpAndSettle();
-    expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan, isNotNull);
-    await tester.tap(find.byKey(const Key('plan-zrusit')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('plan-zrusit-potvrdit')));
-    await tester.pumpAndSettle();
-    final po = zdroj.ulozeneDto('ZK-26-0001');
-    expect(po.bodyshopPlan, isNull);
-    expect(
-      po.cancelledPlanBlocks.single,
-      containsPair('cancelledBy', 'Test Technik'),
-    );
-    // Zakázka v plánu zůstane - jen bez bloku.
-    expect(find.text('BEZ PLÁNU · 1'), findsOneWidget);
-  });
+      await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
+      await tester.pumpAndSettle();
+      // Úkon se nemaže, zruší se - nejdřív se zeptá, Ponechat nic nezmění.
+      await tester.tap(find.byKey(const Key('plan-zrusit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Opravdu zrušit úkon?'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('plan-zrusit-ne')));
+      await tester.pumpAndSettle();
+      expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan, isNotNull);
+      await tester.tap(find.byKey(const Key('plan-zrusit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('plan-zrusit-potvrdit')));
+      await tester.pumpAndSettle();
+      final po = zdroj.ulozeneDto('ZK-26-0001');
+      expect(po.bodyshopPlan, isNull);
+      expect(
+        po.cancelledPlanBlocks.single,
+        containsPair('cancelledBy', 'Test Technik'),
+      );
+      // Zakázka v plánu zůstane - jen bez bloku.
+      expect(find.text('BEZ PLÁNU · 1'), findsOneWidget);
+    },
+  );
 
   testWidgets('u jednoho vozu jde naplánovat víc úkonů s různými typy', (
     tester,

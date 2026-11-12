@@ -24,6 +24,8 @@ class OknoZapisu extends StatelessWidget {
     required this.onPotvrdit,
     required this.obsah,
     this.potvrditKey,
+    this.akceVlevo,
+    this.dalsiAkce = const [],
   });
 
   final String nadpis;
@@ -41,6 +43,12 @@ class OknoZapisu extends StatelessWidget {
   final VoidCallback? onPotvrdit;
   final Key? potvrditKey;
   final List<Widget> obsah;
+
+  /// Tlačítka nad patičkou, ať jsou všechny akce okna dole pohromadě:
+  /// [akceVlevo] (třeba Zrušit úkon) vlevo, [dalsiAkce] (Zahájit,
+  /// Dokončit) vpravo.
+  final Widget? akceVlevo;
+  final List<Widget> dalsiAkce;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +74,22 @@ class OknoZapisu extends StatelessWidget {
               const SizedBox(height: Insets.xl),
               ...obsah,
               const SizedBox(height: Insets.xxl),
+              if (akceVlevo != null || dalsiAkce.isNotEmpty) ...[
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  runSpacing: Insets.sm,
+                  children: [
+                    ?akceVlevo,
+                    Wrap(
+                      spacing: Insets.sm,
+                      runSpacing: Insets.sm,
+                      children: dalsiAkce,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Insets.base),
+              ],
               _paticka(context),
             ],
           ),
