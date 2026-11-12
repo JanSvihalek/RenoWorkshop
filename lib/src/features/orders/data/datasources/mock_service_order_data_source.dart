@@ -161,15 +161,21 @@ class MockServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+  Future<ServiceOrderDto?> zrusUkonPlanu(String orderId, int ukonId) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
     final index = _indexOf(orders, orderId);
     if (index == -1) return null;
-    final plan = smazUkonVPameti(orders[index].bodyshopPlan!, ukonId);
+    final (:plan, :zruseny) = zrusUkonVPameti(
+      orders[index].bodyshopPlan!,
+      ukonId,
+      kdy: DateTime.now(),
+      kdo: 'Ukázkový technik',
+    );
     return orders[index] = orders[index].copyWith(
       bodyshopPlan: plan,
       vymazatPlan: plan == null,
+      cancelledPlanBlocks: [?zruseny, ...orders[index].cancelledPlanBlocks],
     );
   }
 

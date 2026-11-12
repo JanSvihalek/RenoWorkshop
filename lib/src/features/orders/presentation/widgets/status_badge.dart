@@ -22,7 +22,7 @@ class StatusBadge extends StatelessWidget {
 
   final double fontSize;
 
-  /// Vynutí barvu výplně. Bez ní se odvodí z kódu stavu.
+  /// Vynutí barvu výplně. Bez ní jednotná barva stavu.
   final Color? barva;
 
   /// Co se ukáže, když stav chybí.
@@ -40,7 +40,7 @@ class StatusBadge extends StatelessWidget {
         maxWidth: MediaQuery.sizeOf(context).width * 0.45,
       ),
       decoration: BoxDecoration(
-        color: barva ?? aktualni?.color ?? AppColors.pickedUpGrey,
+        color: barva ?? aktualni?.barva(context) ?? AppColors.pickedUpGrey,
         borderRadius: BorderRadius.circular(Radii.badge),
       ),
       child: Text(

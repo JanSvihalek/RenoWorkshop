@@ -52,7 +52,12 @@ class OsaPrubehu extends ConsumerWidget {
         smiPlan || ref.watch(smiZapisovatProvider(order.poradac?.kod));
     final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
     final dnes = ref.watch(dnesProvider);
-    final polozky = osaPrubehu(plan, historie, order.zruseneStavy);
+    final polozky = osaPrubehu(
+      plan,
+      historie,
+      order.zruseneStavy,
+      order.zruseneUkonyPlanu,
+    );
 
     if (!sPlanem && historie.isEmpty && order.zruseneStavy.isEmpty) {
       return Text(
@@ -411,14 +416,16 @@ class _Polozka extends StatelessWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text('Další na řadě', style: pod),
           ),
-        if (zruseno && p.zaznam != null)
+        if (zruseno)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              [
-                'Zadal ${[if (p.zaznam!.zadano != null) _kdy(p.zaznam!.zadano!), ?p.zaznam!.autor].join(' · ')}',
-                'zrušil $kdyKdo'.trimRight(),
-              ].join(' · '),
+              p.zaznam == null
+                  ? 'Úkon plánu zrušil $kdyKdo'.trimRight()
+                  : [
+                      'Zadal ${[if (p.zaznam!.zadano != null) _kdy(p.zaznam!.zadano!), ?p.zaznam!.autor].join(' · ')}',
+                      'zrušil $kdyKdo'.trimRight(),
+                    ].join(' · '),
               style: pod,
             ),
           ),

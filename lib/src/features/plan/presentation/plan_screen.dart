@@ -1052,7 +1052,6 @@ class _RadekDetailu extends StatelessWidget {
   final palette = context.palette;
   final tmava = context.isDarkMode;
   final zelena = tmava ? const Color(0xFF81C784) : AppColors.heliosGreen;
-  final cervena = tmava ? const Color(0xFFFF7A7A) : AppColors.danger;
   return switch (stav) {
     StavPruhu.planovano => (
       pozadi: palette.background,
@@ -1068,11 +1067,6 @@ class _RadekDetailu extends StatelessWidget {
       pozadi: zelena.withValues(alpha: 0.1),
       okraj: zelena.withValues(alpha: 0.5),
       text: zelena,
-    ),
-    StavPruhu.poTerminu => (
-      pozadi: cervena.withValues(alpha: 0.08),
-      okraj: cervena,
-      text: palette.text,
     ),
   };
 }
@@ -1137,7 +1131,6 @@ class _Legenda extends StatelessWidget {
           (StavPruhu.planovano, 'Plánováno'),
           (StavPruhu.probiha, 'Probíhá'),
           (StavPruhu.hotovo, 'Hotovo'),
-          (StavPruhu.poTerminu, 'Po termínu'),
         ])
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -1392,7 +1385,7 @@ class _Radek extends ConsumerWidget {
                       polozka: polozka,
                       smi: smi,
                       ukon: p.ukon,
-                      stav: stavPruhu(polozka, p.ukon, dnes),
+                      stav: stavPruhu(polozka, p.ukon),
                       sKodem:
                           _delka(p.prvni, p.posledni + 1) - 8 >= _sirkaProKod,
                       useknutyZleva: p.ukon.od.isBefore(dny[p.prvni]),
@@ -1674,7 +1667,7 @@ class _StavDilny extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                color: stav?.color ?? AppColors.pickedUpGrey,
+                color: stav?.barva(context) ?? AppColors.pickedUpGrey,
                 borderRadius: BorderRadius.circular(Radii.badge),
               ),
               child: Text(

@@ -59,6 +59,7 @@ class ServiceOrderDto {
     this.ageCampaigns = const [],
     this.vehicleColor,
     this.bodyshopPlan,
+    this.cancelledPlanBlocks = const [],
     this.canPlanBodyshop = false,
   });
 
@@ -172,6 +173,9 @@ class ServiceOrderDto {
   /// plannedAt}`, `null` = nenaplánovaná. Starší API ho neposílá.
   final Map<String, dynamic>? bodyshopPlan;
 
+  /// Zrušené úkony plánu - do plánu se nepočítají, v průběhu se ukazují.
+  final List<Map<String, dynamic>> cancelledPlanBlocks;
+
   /// Jde zakázku zaplánovat na klempírnu (klempířský útvar)?
   final bool canPlanBodyshop;
 
@@ -236,6 +240,9 @@ class ServiceOrderDto {
           .toList(),
       vehicleColor: json['vehicleColor'] as Map<String, dynamic>?,
       bodyshopPlan: json['bodyshopPlan'] as Map<String, dynamic>?,
+      cancelledPlanBlocks:
+          (json['cancelledPlanBlocks'] as List<dynamic>? ?? const [])
+              .cast<Map<String, dynamic>>(),
       canPlanBodyshop: json['canPlanBodyshop'] as bool? ?? false,
     );
   }
@@ -282,6 +289,7 @@ class ServiceOrderDto {
     'ageCampaigns': ageCampaigns.map((k) => k.toJson()).toList(),
     'vehicleColor': vehicleColor,
     'bodyshopPlan': bodyshopPlan,
+    'cancelledPlanBlocks': cancelledPlanBlocks,
     'canPlanBodyshop': canPlanBodyshop,
   };
 
@@ -344,6 +352,7 @@ class ServiceOrderDto {
     planKlempirny: bodyshopPlan == null
         ? null
         : PlanKlempirny.fromJson(bodyshopPlan!),
+    zruseneUkonyPlanu: cancelledPlanBlocks.map(UkonPlanu.fromJson).toList(),
     lzePlanovatKlempirnu: canPlanBodyshop,
   );
 
@@ -378,6 +387,7 @@ class ServiceOrderDto {
     List<KampanVozidla>? ageCampaigns,
     Map<String, dynamic>? vehicleColor,
     Map<String, dynamic>? bodyshopPlan,
+    List<Map<String, dynamic>>? cancelledPlanBlocks,
 
     /// Zrušený plán - `??` by jinak nechalo původní.
     bool vymazatPlan = false,
@@ -431,6 +441,7 @@ class ServiceOrderDto {
       ageCampaigns: ageCampaigns ?? this.ageCampaigns,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),
+      cancelledPlanBlocks: cancelledPlanBlocks ?? this.cancelledPlanBlocks,
       canPlanBodyshop: canPlanBodyshop ?? this.canPlanBodyshop,
     );
   }

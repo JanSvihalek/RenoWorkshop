@@ -838,13 +838,19 @@ class FakeServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+  Future<ServiceOrderDto?> zrusUkonPlanu(String orderId, int ukonId) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
-    final plan = smazUkonVPameti(_orders[index].bodyshopPlan!, ukonId);
+    final (:plan, :zruseny) = zrusUkonVPameti(
+      _orders[index].bodyshopPlan!,
+      ukonId,
+      kdy: DateTime(2026, 11, 12, 10),
+      kdo: 'Test Technik',
+    );
     return _orders[index] = _orders[index].copyWith(
       bodyshopPlan: plan,
       vymazatPlan: plan == null,
+      cancelledPlanBlocks: [?zruseny, ..._orders[index].cancelledPlanBlocks],
     );
   }
 

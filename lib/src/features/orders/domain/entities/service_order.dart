@@ -72,6 +72,7 @@ class ServiceOrder {
     this.kampanePodleStari = const [],
     this.barvaVozu,
     this.planKlempirny,
+    this.zruseneUkonyPlanu = const [],
     this.lzePlanovatKlempirnu = false,
   });
 
@@ -209,6 +210,9 @@ class ServiceOrder {
   /// Plán na klempírně/lakovně. `null` = nenaplánovaná.
   final PlanKlempirny? planKlempirny;
 
+  /// Zrušené úkony plánu - jen v průběhu zakázky se štítkem Zrušeno.
+  final List<UkonPlanu> zruseneUkonyPlanu;
+
   /// Jde zakázku zaplánovat na klempírnu? Jen klempířské útvary - seznam
   /// vede server.
   final bool lzePlanovatKlempirnu;
@@ -334,6 +338,7 @@ class ServiceOrder {
       kampanePodleStari: kampanePodleStari,
       barvaVozu: barvaVozu,
       planKlempirny: planKlempirny,
+      zruseneUkonyPlanu: zruseneUkonyPlanu,
       lzePlanovatKlempirnu: lzePlanovatKlempirnu,
     );
   }

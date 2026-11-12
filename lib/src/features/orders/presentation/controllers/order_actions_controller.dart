@@ -143,11 +143,12 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  Future<String?> smazUkonPlanu(String orderId, int ukonId) async {
+  /// Zruší úkon plánu - nemaže se, zůstane v průběhu se štítkem Zrušeno.
+  Future<String?> zrusUkonPlanu(String orderId, int ukonId) async {
     state = const AsyncLoading();
     try {
-      await _repository.smazUkonPlanu(orderId, ukonId);
-      _zaloguj('plan_ukon_smazan', orderId);
+      await _repository.zrusUkonPlanu(orderId, ukonId);
+      _zaloguj('plan_ukon_zrusen', orderId);
       _poZmenePlanu(orderId);
       state = const AsyncData(null);
       return null;

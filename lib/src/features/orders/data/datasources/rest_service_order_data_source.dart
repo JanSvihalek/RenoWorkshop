@@ -268,10 +268,11 @@ class RestServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId) async {
+  Future<ServiceOrderDto?> zrusUkonPlanu(String orderId, int ukonId) async {
     final data = await _send(
-      'DELETE',
-      'orders/${Uri.encodeComponent(orderId)}/bodyshop-plan/blocks/$ukonId',
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}'
+          '/bodyshop-plan/blocks/$ukonId/zruseni',
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

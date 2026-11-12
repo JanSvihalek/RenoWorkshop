@@ -58,14 +58,30 @@ Map<String, dynamic> upravUkonVPameti(
   ], kodLaku: v.kodLaku).toJson();
 }
 
-/// Plán po smazání úkonu [id]; `null`, když to byl poslední.
-Map<String, dynamic>? smazUkonVPameti(Map<String, dynamic> json, int id) {
+/// Plán po zrušení úkonu [id] (`null`, když to byl poslední platný)
+/// a zrušený úkon se štítkem kdo a kdy - jako server.
+({Map<String, dynamic>? plan, Map<String, dynamic>? zruseny}) zrusUkonVPameti(
+  Map<String, dynamic> json,
+  int id, {
+  required DateTime kdy,
+  required String kdo,
+}) {
   final plan = PlanKlempirny.fromJson(json);
+  final zruseny = plan.ukony.where((u) => u.id == id).firstOrNull;
   final ukony = [
     for (final u in plan.ukony)
       if (u.id != id) u,
   ];
-  return ukony.isEmpty
-      ? null
-      : PlanKlempirny.zUkonu(ukony, kodLaku: plan.kodLaku).toJson();
+  return (
+    plan: ukony.isEmpty
+        ? null
+        : PlanKlempirny.zUkonu(ukony, kodLaku: plan.kodLaku).toJson(),
+    zruseny: zruseny == null
+        ? null
+        : {
+            ...zruseny.toJson(),
+            'cancelledAt': kdy.toIso8601String(),
+            'cancelledBy': kdo,
+          },
+  );
 }

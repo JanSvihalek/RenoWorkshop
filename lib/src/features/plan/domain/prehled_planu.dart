@@ -351,10 +351,12 @@ List<double> sirkySloupcu(List<DateTime> dny, double dostupna) {
   return [for (final d in dny) jeUzkyDen(d, dny) ? sirkaVikendu : den];
 }
 
-enum StavPruhu { planovano, probiha, hotovo, poTerminu }
+enum StavPruhu { planovano, probiha, hotovo }
 
-/// Barva pruhu: stejně jako osa v detailu, navíc prošlý plán je po termínu.
-StavPruhu stavPruhu(PolozkaPlanu polozka, UkonPlanu ukon, DateTime dnes) {
+/// Barva pruhu: stejně jako osa v detailu - jen Plánováno, Probíhá, Hotovo.
+/// Po termínu se úkon nebarví (Jan 12. 11. 2026); po termínu je jen
+/// zakázka podle termínu dokončení ([TerminDokonceni]).
+StavPruhu stavPruhu(PolozkaPlanu polozka, UkonPlanu ukon) {
   final osa = osaPrubehu(
     polozka.plan,
     polozka.zakazka?.historieStavu ?? const [],
@@ -362,8 +364,7 @@ StavPruhu stavPruhu(PolozkaPlanu polozka, UkonPlanu ukon, DateTime dnes) {
   final stav = osa.where((p) => p.ukon?.id == ukon.id).firstOrNull?.stav;
   if (ukon.hotovo || stav == StavPolozky.hotovo) return StavPruhu.hotovo;
   if (stav == StavPolozky.probiha) return StavPruhu.probiha;
-  final dnesek = DateTime(dnes.year, dnes.month, dnes.day);
-  return ukon.do_.isBefore(dnesek) ? StavPruhu.poTerminu : StavPruhu.planovano;
+  return StavPruhu.planovano;
 }
 
 /// Úkon na ose: které zobrazené dny zabírá a v které lince pod sebou jede.
@@ -473,6 +474,7 @@ List<PolozkaOsy> osaPrubehu(
   PlanKlempirny? plan,
   List<DilenskyStav> historie, [
   List<DilenskyStav> zrusene = const [],
+  List<UkonPlanu> zruseneUkony = const [],
 ]) {
   // Historie je od nejnovějšího: konec záznamu je začátek toho nad ním.
   ({DateTime? kdy, String? kdo}) konec(int i) {
@@ -553,6 +555,21 @@ List<PolozkaOsy> osaPrubehu(
         kdo: z.zrusil,
         poznamka: z.poznamka,
         zaznam: z,
+      ),
+    );
+  }
+
+  // Zrušené úkony plánu stejně jako zrušené stavy - bez akcí.
+  for (final u in zruseneUkony) {
+    polozky.add(
+      PolozkaOsy(
+        nazev: u.typ.nazev,
+        stav: StavPolozky.zruseno,
+        od: u.od,
+        do_: u.do_,
+        kdy: u.zruseno,
+        kdo: u.zrusil,
+        poznamka: u.poznamka.trim().isEmpty ? null : u.poznamka.trim(),
       ),
     );
   }

@@ -470,7 +470,7 @@ void main() {
         'status': 'hotovo',
       });
       await zdroj.upravUkonPlanu('Z 1', 7, ukon);
-      await zdroj.smazUkonPlanu('Z 1', 7);
+      await zdroj.zrusUkonPlanu('Z 1', 7);
       final typy = await zdroj.nactiTypyUkonu();
 
       expect(typy.single.nazev, 'Lakovna');
@@ -478,8 +478,12 @@ void main() {
       expect(volani[0], startsWith('POST'));
       expect(volani[1], startsWith('PUT'));
       expect(volani[1], endsWith('/orders/Z%201/bodyshop-plan/blocks/7'));
-      expect(volani[2], startsWith('DELETE'));
-      expect(volani[2], endsWith('/orders/Z%201/bodyshop-plan/blocks/7'));
+      // Úkon se nemaže, ruší.
+      expect(volani[2], startsWith('POST'));
+      expect(
+        volani[2],
+        endsWith('/orders/Z%201/bodyshop-plan/blocks/7/zruseni'),
+      );
     });
 
     test(

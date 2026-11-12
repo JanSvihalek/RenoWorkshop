@@ -107,10 +107,17 @@ class UkonPlanu {
     this.upraveno,
     this.dilna,
     this.aw,
+    this.zruseno,
+    this.zrusil,
   });
 
   final int id;
   final TypUkonu typ;
+
+  /// Zrušený úkon - z plánu zmizel, v průběhu zakázky zůstává se štítkem
+  /// Zrušeno. Nemaže se.
+  final DateTime? zruseno;
+  final String? zrusil;
 
   /// První a poslední den (oba včetně), bez času.
   final DateTime od;
@@ -153,6 +160,8 @@ class UkonPlanu {
     upraveno: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
     dilna: Dilna.zKodu(json['workshop'] as String?),
     aw: (json['aw'] as num?)?.toInt(),
+    zruseno: DateTime.tryParse(json['cancelledAt'] as String? ?? ''),
+    zrusil: json['cancelledBy'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -165,6 +174,8 @@ class UkonPlanu {
     'plannedBy': zaplanoval,
     'workshop': dilna?.kod,
     'aw': aw,
+    if (zruseno != null) 'cancelledAt': zruseno!.toIso8601String(),
+    if (zruseno != null) 'cancelledBy': zrusil,
   };
 }
 

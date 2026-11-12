@@ -196,7 +196,7 @@ class OrderCard extends StatelessWidget {
             _StavRadek(
               popisek: 'DÍLNA',
               stav: order.stav?.nazev,
-              barva: order.stav?.color,
+              barva: order.stav?.barva(context),
             ),
             // Kdo má vůz v rukou - jen když ho někdo převzal, prázdný
             // řádek by na každé kartě jen zabíral místo.

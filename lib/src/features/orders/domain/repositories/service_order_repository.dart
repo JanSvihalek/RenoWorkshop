@@ -110,7 +110,8 @@ abstract interface class ServiceOrderRepository {
   );
 
   /// Smaže úkon z plánu zakázky.
-  Future<ServiceOrder> smazUkonPlanu(String orderId, int ukonId);
+  /// Zruší úkon plánu - nemaže se, zůstane v průběhu se štítkem Zrušeno.
+  Future<ServiceOrder> zrusUkonPlanu(String orderId, int ukonId);
 
   /// Nabídka stavů z číselníku na serveru.
   Future<List<NabidkaStavu>> nabidkaStavu();

@@ -328,11 +328,11 @@ void main() {
         expect(hodinyText(12), '12');
       });
 
-      test('stav pruhu: prošlý nehotový je po termínu', () {
+      test('stav pruhu: prošlý nehotový zůstává plánovaný', () {
         final b = u('2026-11-02', '2026-11-03', 12);
         final p = radek([b]);
-        expect(stavPruhu(p, b, DateTime(2026, 11, 2)), StavPruhu.planovano);
-        expect(stavPruhu(p, b, DateTime(2026, 11, 5)), StavPruhu.poTerminu);
+        expect(stavPruhu(p, b), StavPruhu.planovano);
+        expect(StavPruhu.values, hasLength(3));
       });
     });
 
@@ -373,6 +373,35 @@ void main() {
         stav('s2', null, 'Čeká na schválení', '2026-11-03T12:00:00'),
         stav('s1', 'demontaz', 'Demontáž', '2026-11-02T08:00:00'),
       ];
+
+      test('zrušený stav i úkon jsou mezi hotovými, nic nezahajují', () {
+        final zrusenyUkon = UkonPlanu(
+          id: 9,
+          typ: const TypUkonu(kod: 'montaz', nazev: 'Montáž', barva: '#000'),
+          od: DateTime(2026, 11, 12),
+          do_: DateTime(2026, 11, 12),
+          zruseno: DateTime(2026, 11, 3, 10),
+          zrusil: 'Petr',
+        );
+        final zrusenyStav = DilenskyStav(
+          id: 's0',
+          kod: 'lakovna',
+          nazev: 'Lakovna',
+          zadano: DateTime(2026, 11, 2, 9),
+          zruseno: DateTime(2026, 11, 2, 9, 5),
+        );
+        final osa = osaPrubehu(plny, historie, [zrusenyStav], [zrusenyUkon]);
+        final zrusene = osa.where((p) => p.stav == StavPolozky.zruseno);
+        expect(zrusene.map((p) => p.nazev), containsAll(['Montáž', 'Lakovna']));
+        expect(zrusene.firstWhere((p) => p.nazev == 'Montáž').kdo, 'Petr');
+        // Zrušený úkon nemá vazbu na plán, takže ho nejde otevřít ani zahájit.
+        expect(zrusene.every((p) => p.ukon == null), isTrue);
+        // Další na řadě zůstává z platného plánu.
+        expect(
+          osa.firstWhere((p) => p.stav == StavPolozky.dalsi).nazev,
+          'Příprava na lak',
+        );
+      });
 
       test('nahoře co čeká, pak co probíhá, dole hotové', () {
         expect(
@@ -765,11 +794,23 @@ void main() {
 
     await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-1')));
     await tester.pumpAndSettle();
+    // Úkon se nemaže, zruší se - nejdřív se zeptá, Ponechat nic nezmění.
+    await tester.tap(find.byKey(const Key('plan-zrusit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Opravdu zrušit úkon?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plan-zrusit-ne')));
+    await tester.pumpAndSettle();
+    expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan, isNotNull);
     await tester.tap(find.byKey(const Key('plan-zrusit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan-zrusit-potvrdit')));
     await tester.pumpAndSettle();
-    expect(zdroj.ulozeneDto('ZK-26-0001').bodyshopPlan, isNull);
+    final po = zdroj.ulozeneDto('ZK-26-0001');
+    expect(po.bodyshopPlan, isNull);
+    expect(
+      po.cancelledPlanBlocks.single,
+      containsPair('cancelledBy', 'Test Technik'),
+    );
     // Zakázka v plánu zůstane - jen bez bloku.
     expect(find.text('BEZ PLÁNU · 1'), findsOneWidget);
   });
@@ -823,13 +864,14 @@ void main() {
     expect(druhy.dy, prvni.dy + 34);
     expect(tester.getSize(radek).height, greaterThanOrEqualTo(vyskaPred));
 
-    // Úprava změní jen ten úkon, smazání druhého nechá první.
+    // Úprava změní jen ten úkon, zrušení druhého nechá první.
     await tester.tap(find.byKey(const Key('plan-pruh-ZK-26-0001-2')));
     await tester.pumpAndSettle();
     expect(find.text('Upravit úkon'), findsOneWidget);
     await tester.tap(find.byKey(const Key('plan-zrusit')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Ostatní úkony'), findsOneWidget);
+    expect(find.textContaining('Zrušení nejde vrátit'), findsOneWidget);
+    expect(find.textContaining('poslední úkon'), findsNothing);
     await tester.tap(find.byKey(const Key('plan-zrusit-potvrdit')));
     await tester.pumpAndSettle();
     expect(

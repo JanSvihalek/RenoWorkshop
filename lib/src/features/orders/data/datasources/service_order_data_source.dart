@@ -123,7 +123,9 @@ abstract interface class ServiceOrderDataSource {
   );
 
   /// `DELETE /orders/{id}/bodyshop-plan/blocks/{ukonId}` - smazat úkon.
-  Future<ServiceOrderDto?> smazUkonPlanu(String orderId, int ukonId);
+  /// `POST /orders/{id}/bodyshop-plan/blocks/{ukonId}/zruseni` - úkon se
+  /// nemaže, zůstane v průběhu zakázky se štítkem Zrušeno.
+  Future<ServiceOrderDto?> zrusUkonPlanu(String orderId, int ukonId);
 
   /// `POST /sync` - okamžité dotažení zakázek z Heliosu. Server ho pustí
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.

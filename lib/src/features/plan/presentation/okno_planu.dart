@@ -277,27 +277,31 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     );
   }
 
-  Future<void> _smaz(UkonPlanu ukon) async {
+  /// Úkon se nemaže, zruší se - zůstane v průběhu zakázky se štítkem
+  /// Zrušeno. Ptá se, ať se to nestane omylem; vrátit to nejde.
+  Future<void> _zrus(UkonPlanu ukon) async {
     final posledni = (widget.plan?.ukony.length ?? 0) <= 1;
     final ano = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog.adaptive(
-        title: const Text('Smazat úkon?'),
+        title: const Text('Opravdu zrušit úkon?'),
         content: Text(
-          posledni
-              ? 'Je to poslední úkon. Zakázka zůstane v plánovači mezi '
-                    'zakázkami bez plánu.'
-              : 'Ostatní úkony zakázky zůstanou v plánu.',
+          '„${ukon.typ.nazev}" zmizí z plánovače a nebude se počítat do '
+          'vytížení. V průběhu zakázky zůstane se štítkem Zrušeno. Zrušení '
+          'nejde vrátit.'
+          '${posledni ? ' Je to poslední úkon - zakázka zůstane v plánovači mezi zakázkami bez plánu.' : ''}',
         ),
         actions: [
           TextButton(
+            key: const Key('plan-zrusit-ne'),
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Ponechat'),
           ),
           TextButton(
             key: const Key('plan-zrusit-potvrdit'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Smazat úkon'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Zrušit úkon'),
           ),
         ],
       ),
@@ -306,7 +310,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
     await _proved(
       () => ref
           .read(orderActionsProvider.notifier)
-          .smazUkonPlanu(widget.zakazkaId, ukon.id),
+          .zrusUkonPlanu(widget.zakazkaId, ukon.id),
     );
   }
 
@@ -533,10 +537,10 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               key: const Key('plan-zrusit'),
-              onPressed: _uklada ? null : () => _smaz(ukon),
+              onPressed: _uklada ? null : () => _zrus(ukon),
               style: TextButton.styleFrom(foregroundColor: cervena),
               icon: const Icon(Icons.event_busy_outlined, size: 20),
-              label: const Text('Smazat úkon'),
+              label: const Text('Zrušit úkon'),
             ),
           ),
         ],
