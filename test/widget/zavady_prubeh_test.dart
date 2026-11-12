@@ -144,49 +144,54 @@ void main() {
     expect(find.textContaining(': Nezadáno'), findsNWidgets(3));
   });
 
-  testWidgets('ruční úkon: přidání, Zahájit s vazbou na úkon a smazání', (
-    tester,
-  ) async {
-    final zdroj = await otevri(tester, buildOrderDto(defects: const [zavada]));
-    expect(find.text('HELIOS'), findsOneWidget);
-    expect(find.text('RUČNĚ · MIMO HELIOS'), findsNothing);
+  testWidgets(
+    'ruční úkon: přidávání schované, Zahájit s vazbou na úkon a smazání',
+    (tester) async {
+      final zdroj = await otevri(
+        tester,
+        buildOrderDto(
+          defects: const [zavada],
+          manualTasks: [
+            RucniUkon(
+              id: 'ukon-1',
+              nazev: 'Výměna stírátek',
+              pridal: 'Test Technik',
+              pridano: DateTime(2026, 11, 8, 8, 50),
+            ),
+          ],
+        ),
+      );
+      expect(find.text('HELIOS'), findsOneWidget);
+      // Závady a úkony se zadávají jen v Heliosu (12. 11. 2026).
+      expect(find.byKey(const Key('pridat-ukon')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('pridat-ukon')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('novy-ukon-nazev')),
-      'Výměna stírátek',
-    );
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('novy-ukon-ulozit')));
-    await tester.pumpAndSettle();
+      expect(find.text('Výměna stírátek'), findsWidgets);
+      expect(find.text('RUČNĚ · MIMO HELIOS'), findsOneWidget);
+      expect(find.text('· 1 z Heliosu · 1 ručně mimo Helios'), findsOneWidget);
+      expect(find.textContaining('přidal Test Technik'), findsOneWidget);
 
-    expect(find.text('Výměna stírátek'), findsWidgets);
-    expect(find.text('RUČNĚ · MIMO HELIOS'), findsOneWidget);
-    expect(find.text('· 1 z Heliosu · 1 ručně mimo Helios'), findsOneWidget);
-    expect(find.textContaining('přidal Test Technik'), findsOneWidget);
+      final zahajit = find.byKey(const Key('ukon-zahajit-ukon-1'));
+      await tester.ensureVisible(zahajit);
+      await tester.pumpAndSettle();
+      await tester.tap(zahajit);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Zahájit'));
+      await tester.pumpAndSettle();
+      final ulozena = zdroj.ulozeneDto('ZK-26-0001');
+      expect(ulozena.statusHistory.first['taskId'], 'ukon-1');
+      expect(ulozena.statusHistory.first['defectId'], isNull);
+      expect(find.byKey(const Key('ukon-probiha-ukon-1')), findsOneWidget);
 
-    final zahajit = find.byKey(const Key('ukon-zahajit-ukon-1'));
-    await tester.ensureVisible(zahajit);
-    await tester.pumpAndSettle();
-    await tester.tap(zahajit);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Zahájit'));
-    await tester.pumpAndSettle();
-    final ulozena = zdroj.ulozeneDto('ZK-26-0001');
-    expect(ulozena.statusHistory.first['taskId'], 'ukon-1');
-    expect(ulozena.statusHistory.first['defectId'], isNull);
-    expect(find.byKey(const Key('ukon-probiha-ukon-1')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('ukon-menu-ukon-1')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Smazat úkon'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ukon-smazat-potvrdit')));
-    await tester.pumpAndSettle();
-    expect(find.text('RUČNĚ · MIMO HELIOS'), findsNothing);
-    expect(zdroj.ulozeneDto('ZK-26-0001').manualTasks, isEmpty);
-  });
+      await tester.tap(find.byKey(const Key('ukon-menu-ukon-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Smazat úkon'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('ukon-smazat-potvrdit')));
+      await tester.pumpAndSettle();
+      expect(find.text('RUČNĚ · MIMO HELIOS'), findsNothing);
+      expect(zdroj.ulozeneDto('ZK-26-0001').manualTasks, isEmpty);
+    },
+  );
 
   test('přerušený ruční úkon jde zahájit znovu', () {
     const historie = [

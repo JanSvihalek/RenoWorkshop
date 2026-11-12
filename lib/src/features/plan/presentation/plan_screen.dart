@@ -1209,6 +1209,8 @@ class _Radek extends ConsumerWidget {
     // zakázky jen s právem k jejímu pořadači.
     final smi = ref.watch(smiPlanovatProvider(polozka.pobockaKod));
     final detail = ref.watch(smiCistProvider(polozka.zakazka?.poradac?.kod));
+    final termin = polozka.terminDokonceni(dnes);
+    final barvaTerminu = _barvaTerminu(context, termin?.stav);
     // Klepnutí na den přidá úkon s tím dnem předvyplněným.
     void pridej(DateTime den) => naplanovatKlempirnu(
       context,
@@ -1228,8 +1230,16 @@ class _Radek extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          SizedBox(
+          Container(
             width: levy,
+            // Blížící se termín oranžově, prošlý červeně - okraj vlevo.
+            foregroundDecoration: barvaTerminu == null
+                ? null
+                : BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: barvaTerminu.text, width: 4),
+                    ),
+                  ),
             child: InkWell(
               key: Key('plan-zakazka-${polozka.zakazkaId}'),
               onTap: detail ? () => onOpenOrder(polozka.zakazkaId) : null,
@@ -1290,6 +1300,17 @@ class _Radek extends ConsumerWidget {
                             color: palette.muted,
                           ),
                         ),
+                    ],
+                    if (termin != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: _TerminVPlanu(
+                          key: Key('plan-termin-${polozka.zakazkaId}'),
+                          termin: termin,
+                          barva: barvaTerminu,
+                        ),
+                      ),
+                    if (polozka.zakazka case final zakazka?) ...[
                       const SizedBox(height: 4),
                       _StavDilny(zakazka: zakazka, smi: smi),
                     ],
@@ -1690,6 +1711,79 @@ class _StavDilny extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Barva blížícího se (oranžová) a prošlého (červená) termínu dokončení.
+/// `null` = termín v pořádku, bez zvýraznění.
+({Color text, Color pozadi})? _barvaTerminu(
+  BuildContext context,
+  StavTerminu? stav,
+) {
+  final tmava = Theme.of(context).brightness == Brightness.dark;
+  return switch (stav) {
+    StavTerminu.blizi => (
+      text: tmava ? const Color(0xFFE8A93A) : const Color(0xFFB8740A),
+      pozadi: tmava ? const Color(0x29E8A93A) : const Color(0xFFFFF1D6),
+    ),
+    StavTerminu.poTerminu => (
+      text: tmava ? const Color(0xFFFF7A7A) : AppColors.danger,
+      pozadi: tmava ? const Color(0x1FFF7A7A) : const Color(0x1AEE0405),
+    ),
+    _ => null,
+  };
+}
+
+/// Předpokládaný termín dokončení z Heliosu v levém sloupci plánu.
+class _TerminVPlanu extends StatelessWidget {
+  const _TerminVPlanu({super.key, required this.termin, this.barva});
+
+  final TerminDokonceni termin;
+  final ({Color text, Color pozadi})? barva;
+
+  @override
+  Widget build(BuildContext context) {
+    final kdy = AppDateFormat.dayMonth(termin.termin);
+    final zbyva = termin.zbyva;
+    final text = switch (termin.stav) {
+      StavTerminu.poTerminu => 'Po termínu · $kdy',
+      StavTerminu.blizi =>
+        'Dokončení $kdy · ${zbyva == 0
+            ? 'dnes'
+            : zbyva == 1
+            ? 'zítra'
+            : 'za $zbyva dny'}',
+      StavTerminu.vPoradku => 'Dokončení $kdy',
+    };
+    final styl = AppTextStyles.metaSmall.copyWith(fontSize: 11);
+    final barva = this.barva;
+    return Tooltip(
+      message:
+          'Předpokládaný termín dokončení ${AppDateFormat.date(termin.termin)}',
+      child: barva == null
+          ? Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: styl.copyWith(color: context.palette.muted),
+            )
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: barva.pozadi,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: styl.copyWith(
+                  color: barva.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
     );
   }
 }

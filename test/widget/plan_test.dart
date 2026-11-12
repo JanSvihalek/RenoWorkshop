@@ -641,6 +641,72 @@ void main() {
     expect(find.byKey(const Key('plan-spolecne-kody')), findsNothing);
   });
 
+  test('termín dokončení: 3 dny před oranžově, po termínu červeně', () {
+    final dnes = DateTime(2026, 11, 12, 14, 30);
+    TerminDokonceni? t(DateTime? kdy, {bool aktivni = true}) =>
+        TerminDokonceni.z(kdy, dnes, aktivni: aktivni);
+    expect(t(null), isNull);
+    expect(t(DateTime(2026, 11, 16, 16))!.stav, StavTerminu.vPoradku);
+    expect(t(DateTime(2026, 11, 15, 16))!.stav, StavTerminu.blizi);
+    expect(t(DateTime(2026, 11, 12, 8))!.zbyva, 0);
+    expect(t(DateTime(2026, 11, 12, 8))!.stav, StavTerminu.blizi);
+    expect(t(DateTime(2026, 11, 11, 16))!.stav, StavTerminu.poTerminu);
+    expect(
+      t(DateTime(2026, 11, 11), aktivni: false)!.stav,
+      StavTerminu.vPoradku,
+    );
+    // Přes změnu času (25. 10.) pořád celé dny.
+    expect(
+      TerminDokonceni.z(DateTime(2026, 10, 27), DateTime(2026, 10, 24))!.zbyva,
+      3,
+    );
+  });
+
+  testWidgets('řádek plánu ukáže termín dokončení a zbarví blížící se', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          utvar: '11215',
+          canPlanBodyshop: true,
+          dueAt: '2026-10-16T15:00:00',
+        ),
+        buildOrderDto(
+          id: 'ZK-26-0002',
+          licensePlate: '2BB 2222',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          dueAt: '2026-10-13T15:00:00',
+        ),
+        buildOrderDto(
+          id: 'ZK-26-0003',
+          licensePlate: '3CC 3333',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          dueAt: '2026-10-30T15:00:00',
+        ),
+      ],
+    );
+    await otevriPlanovac(tester);
+    await tester.pumpAndSettle();
+
+    Text text(String id) => tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(Key('plan-termin-$id')),
+        matching: find.byType(Text),
+      ),
+    );
+    expect(text('ZK-26-0001').data, 'Dokončení 16. 10. · za 2 dny');
+    expect(text('ZK-26-0001').style?.color, const Color(0xFFB8740A));
+    expect(text('ZK-26-0002').data, 'Po termínu · 13. 10.');
+    expect(text('ZK-26-0002').style?.fontWeight, FontWeight.w600);
+    expect(text('ZK-26-0003').data, 'Dokončení 30. 10.');
+    expect(text('ZK-26-0003').style?.fontWeight, isNot(FontWeight.w600));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('posun na další týden a 14 dní', (tester) async {
     await spust(
       tester,

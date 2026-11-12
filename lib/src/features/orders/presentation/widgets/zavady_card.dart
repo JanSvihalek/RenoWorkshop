@@ -18,6 +18,11 @@ import 'pridat_stav_sheet.dart';
 
 const _oranzova = Color(0xFFE8A93A);
 
+/// Přidávání ručních úkonů - schované (12. 11. 2026): závady a úkony se mají
+/// zadávat jen v Heliosu. Už přidané ruční úkony zůstávají vidět a jde je
+/// zahájit, dokončit i smazat. Zapnout zpátky = `true`.
+const pridavaniUkonu = false;
+
 /// Závady z Heliosu a ruční úkony v jednom seznamu - co má dílna na voze
 /// udělat. Závady zapisuje poradce v Heliosu, ruční úkony dílna a do Heliosu
 /// se nepřenášejí. U obojího se zapisuje Zahájit a Dokončit jako dílenské
@@ -123,7 +128,7 @@ class ZavadyCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (smi) ...[
+              if (smi && pridavaniUkonu) ...[
                 const SizedBox(width: Insets.sm),
                 OutlinedButton.icon(
                   key: const Key('pridat-ukon'),

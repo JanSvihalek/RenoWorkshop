@@ -62,6 +62,10 @@ class PolozkaPlanu {
   /// plánu posílá celou; `null` jen u staršího API.
   final ServiceOrder? zakazka;
 
+  /// Předpokládaný termín dokončení z Heliosu a jak blízko je.
+  TerminDokonceni? terminDokonceni(DateTime dnes) =>
+      TerminDokonceni.z(zakazka?.dueAt, dnes, aktivni: aktivni);
+
   factory PolozkaPlanu.fromJson(
     Map<String, dynamic> json, {
     ServiceOrder? zakazka,
@@ -618,4 +622,46 @@ enum StavPlanuFiltr {
     hotovo => plan != null && plan.hotovo,
     bez => plan == null,
   };
+}
+
+/// Kolik dní před termínem dokončení se řádek plánu zbarví oranžově.
+const dnyPredTerminem = 3;
+
+enum StavTerminu { vPoradku, blizi, poTerminu }
+
+/// Předpokládaný termín dokončení zakázky v plánu: oranžově
+/// [dnyPredTerminem] dny před termínem (i v den termínu), červeně až den
+/// po něm. Kalendářní dny. Ukončená zakázka se nezvýrazňuje.
+class TerminDokonceni {
+  const TerminDokonceni({
+    required this.termin,
+    required this.stav,
+    required this.zbyva,
+  });
+
+  final DateTime termin;
+  final StavTerminu stav;
+
+  /// Kolik dní do termínu zbývá; záporné = po termínu.
+  final int zbyva;
+
+  static TerminDokonceni? z(
+    DateTime? termin,
+    DateTime dnes, {
+    bool aktivni = true,
+  }) {
+    if (termin == null) return null;
+    // UTC kvůli změně času - den o hodinu kratší by se jinak nepočítal.
+    final den = DateTime.utc(termin.year, termin.month, termin.day);
+    final ted = DateTime.utc(dnes.year, dnes.month, dnes.day);
+    final zbyva = den.difference(ted).inDays;
+    final stav = !aktivni
+        ? StavTerminu.vPoradku
+        : zbyva < 0
+        ? StavTerminu.poTerminu
+        : zbyva <= dnyPredTerminem
+        ? StavTerminu.blizi
+        : StavTerminu.vPoradku;
+    return TerminDokonceni(termin: termin, stav: stav, zbyva: zbyva);
+  }
 }
