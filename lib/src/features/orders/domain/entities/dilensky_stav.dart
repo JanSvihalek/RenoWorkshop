@@ -18,10 +18,14 @@ class DilenskyStav {
     this.dokoncil,
     this.zavadaId,
     this.ukonId,
+    this.upraveno,
+    this.upravil,
+    this.zruseno,
+    this.zrusil,
   });
 
-  /// Identifikátor záznamu na serveru. Podle něj se maže omylem přidaný
-  /// stav; `null` u stavu, který ještě neprošel serverem.
+  /// Identifikátor záznamu na serveru. Podle něj se ruší nebo upravuje
+  /// omylem přidaný stav; `null` u stavu, který ještě neprošel serverem.
   final String? id;
 
   /// Kód z číselníku, nebo `null` u ručně zapsaného stavu („Jiný").
@@ -51,12 +55,29 @@ class DilenskyStav {
   /// Ruční úkon, který tenhle krok zahájil.
   final String? ukonId;
 
+  /// Poslední úprava (překlep, špatně vybraný stav).
+  final DateTime? upraveno;
+  final String? upravil;
+
+  /// Zrušený stav (omyl) - v postupu zůstává se štítkem Zrušeno, do
+  /// průběhu se nepočítá. Nemaže se.
+  final DateTime? zruseno;
+  final String? zrusil;
+
+  bool get jeZruseny => zruseno != null;
+
+  /// Krok zahájený u závady nebo ručního úkonu nese jejich název - upravit
+  /// jde jen poznámka.
+  bool get jeKrokZavady => zavadaId != null || ukonId != null;
+
   /// Stav mimo číselník, napsaný ručně.
   bool get jeVlastni => kod == null;
 
   factory DilenskyStav.fromJson(Map<String, dynamic> json) {
     final zadano = json['createdAt'] as String?;
     final dokonceno = json['finishedAt'] as String?;
+    DateTime? datum(String klic) =>
+        DateTime.tryParse(json[klic] as String? ?? '');
     return DilenskyStav(
       id: json['id'] as String?,
       kod: json['code'] as String?,
@@ -68,6 +89,10 @@ class DilenskyStav {
       dokoncil: json['finishedBy'] as String?,
       zavadaId: json['defectId'] as String?,
       ukonId: json['taskId'] as String?,
+      upraveno: datum('editedAt'),
+      upravil: json['editedBy'] as String?,
+      zruseno: datum('cancelledAt'),
+      zrusil: json['cancelledBy'] as String?,
     );
   }
 
@@ -80,6 +105,12 @@ class DilenskyStav {
     'createdAt': zadano?.toIso8601String(),
     'finishedAt': dokonceno?.toIso8601String(),
     'finishedBy': dokoncil,
+    'defectId': zavadaId,
+    'taskId': ukonId,
+    'editedAt': upraveno?.toIso8601String(),
+    'editedBy': upravil,
+    'cancelledAt': zruseno?.toIso8601String(),
+    'cancelledBy': zrusil,
   };
 
   @override

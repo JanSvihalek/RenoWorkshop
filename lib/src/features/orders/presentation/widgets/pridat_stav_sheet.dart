@@ -462,3 +462,159 @@ Future<void> pridatStavZakazce(
       ..showSnackBar(SnackBar(content: Text('${order.id} · stav přidán')));
   }
 }
+
+/// Úprava zapsaného stavu, když se někdo ukliknul: jiný stav z číselníku,
+/// vlastní text, poznámka. Čas a autor zůstávají, u stavu přibude
+/// „upraveno". Krok zahájený u závady nebo ručního úkonu nese jejich název,
+/// u něj jde upravit jen poznámka.
+Future<void> upravitStavZakazky(
+  BuildContext context,
+  WidgetRef ref,
+  ServiceOrder order,
+  DilenskyStav stav,
+) async {
+  final id = stav.id;
+  if (id == null) return;
+  final vybrany = await showDialog<VybranyStav>(
+    context: context,
+    builder: (_) => _UpravitStavOkno(order: order, stav: stav),
+  );
+  if (vybrany == null || !context.mounted) return;
+
+  final hotovo = await ref
+      .read(orderActionsProvider.notifier)
+      .upravStav(
+        order.id,
+        id,
+        kod: vybrany.kod,
+        nazev: vybrany.nazev,
+        poznamka: vybrany.poznamka,
+      );
+  if (hotovo && context.mounted) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${order.id} · stav upraven')));
+  }
+}
+
+class _UpravitStavOkno extends ConsumerStatefulWidget {
+  const _UpravitStavOkno({required this.order, required this.stav});
+
+  final ServiceOrder order;
+  final DilenskyStav stav;
+
+  @override
+  ConsumerState<_UpravitStavOkno> createState() => _UpravitStavOknoState();
+}
+
+class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
+  late final _vlastni = TextEditingController(
+    text: widget.stav.jeVlastni ? widget.stav.nazev : '',
+  );
+  late final _poznamka = TextEditingController(
+    text: widget.stav.poznamka ?? '',
+  );
+
+  /// Kód vybraného stavu, `_jiny` u vlastního; `null` = jak byl.
+  String? _vybrany;
+
+  bool get _jenPoznamka => widget.stav.jeKrokZavady;
+
+  /// Vybraný stav, jinak ten původní. Kód, který z číselníku zmizel, je
+  /// vlastní text.
+  String get _zvoleny {
+    if (_vybrany != null) return _vybrany!;
+    final kod = widget.stav.kod;
+    final stavy = ref.read(nabidkaStavuProvider).valueOrNull;
+    if (kod == null) return _jiny;
+    if (stavy != null && !stavy.any((s) => s.kod == kod)) return _jiny;
+    return kod;
+  }
+
+  bool get _jeVlastni => _zvoleny == _jiny;
+
+  bool get _lzeUlozit =>
+      _jenPoznamka || !_jeVlastni || _vlastni.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _vlastni.dispose();
+    _poznamka.dispose();
+    super.dispose();
+  }
+
+  void _potvrd() {
+    if (!_lzeUlozit) return;
+    // Text vlastního stavu, když z číselníku zmizel, zůstane, jak byl.
+    final vlastni = _vlastni.text.trim().isEmpty
+        ? widget.stav.nazev
+        : _vlastni.text.trim();
+    Navigator.of(context).pop(
+      VybranyStav(
+        kod: _jenPoznamka || _jeVlastni ? null : _zvoleny,
+        nazev: _jenPoznamka || !_jeVlastni ? null : vlastni,
+        // Prázdný text poznámku smaže.
+        poznamka: _poznamka.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nabidka = ref.watch(nabidkaStavuProvider);
+    final stav = widget.stav;
+
+    return OknoZapisu(
+      nadpis: _jenPoznamka ? 'Upravit: ${stav.nazev}' : 'Upravit stav',
+      kam: 'v postupu zakázky',
+      spz: widget.order.licensePlate,
+      cisloZakazky: widget.order.id,
+      autor: stav.autor ?? 'neznámý',
+      potvrdit: 'Uložit',
+      potvrditKey: const Key('upravit-stav-ulozit'),
+      onPotvrdit: _lzeUlozit ? _potvrd : null,
+      obsah: [
+        if (!_jenPoznamka) ...[
+          const PopisekPole('STAV'),
+          nabidka.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: Insets.xl),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => _NabidkaChybi(
+              text: 'Nabídku stavů se nepodařilo načíst.',
+              jeVlastni: _jeVlastni,
+              onVlastni: () => setState(() => _vybrany = _jiny),
+            ),
+            data: (stavy) => _VyberStavu(
+              stavy: stavy,
+              vybrany: _zvoleny,
+              onZmena: (kod) => setState(() => _vybrany = kod),
+            ),
+          ),
+        ],
+        if (_jeVlastni && !_jenPoznamka) ...[
+          const SizedBox(height: Insets.base),
+          const PopisekPole('VLASTNÍ STAV'),
+          PoleZapisu(
+            controller: _vlastni,
+            napoveda: 'Např. Čeká na díl z Německa',
+            maxDelka: 100,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+        const SizedBox(height: Insets.base),
+        const PopisekPole('POZNÁMKA (NEPOVINNÁ)'),
+        PoleZapisu(
+          poleKey: const Key('upravit-stav-poznamka'),
+          controller: _poznamka,
+          napoveda: 'Např. čeká na díl',
+          maxDelka: 500,
+          minLines: 2,
+          maxLines: 4,
+          sDiktovanim: true,
+        ),
+      ],
+    );
+  }
+}

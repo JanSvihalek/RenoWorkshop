@@ -165,11 +165,13 @@ void main() {
     expect(find.text('Lakovna'), findsWidgets);
     expect(find.text('stání 4'), findsOneWidget);
 
-    // Omylem přidaný stav jde smazat.
-    await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+    // Omylem přidaný stav jde zrušit - nejdřív se zeptá.
+    await tester.tap(find.byTooltip('Další akce').first);
     await tester.pumpAndSettle();
-    expect(find.text('Smazat stav?'), findsOneWidget);
-    await tester.tap(find.text('Zrušit'));
+    await tester.tap(find.text('Zrušit stav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Opravdu zrušit stav?'), findsOneWidget);
+    await tester.tap(find.text('Ponechat'));
     await tester.pumpAndSettle();
 
     await tester.tap(_backButton());

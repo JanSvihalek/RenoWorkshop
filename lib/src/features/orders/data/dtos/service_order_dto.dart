@@ -29,6 +29,7 @@ class ServiceOrderDto {
     this.status,
     this.statusCode,
     this.statusHistory = const [],
+    this.cancelledStatuses = const [],
     this.heliosStatus,
     required this.branch,
     required this.department,
@@ -85,8 +86,11 @@ class ServiceOrderDto {
   /// Kód stavu z číselníku; `null` u ručně zapsaného i u chybějícího.
   final String? statusCode;
 
-  /// Historie stavů, nejnovější první.
+  /// Historie stavů, nejnovější první. Jen platné - zrušené jsou zvlášť.
   final List<Map<String, dynamic>> statusHistory;
+
+  /// Zrušené stavy - v postupu se štítkem Zrušeno.
+  final List<Map<String, dynamic>> cancelledStatuses;
 
   /// Stav z Heliosu, už přeložený číselníkem („Zpracováváno"). Vede ho
   /// ERP, aplikace ho jen zobrazuje.
@@ -185,6 +189,9 @@ class ServiceOrderDto {
       statusCode: json['statusCode'] as String?,
       statusHistory: (json['statusHistory'] as List<dynamic>? ?? const [])
           .cast<Map<String, dynamic>>(),
+      cancelledStatuses:
+          (json['cancelledStatuses'] as List<dynamic>? ?? const [])
+              .cast<Map<String, dynamic>>(),
       heliosStatus: json['heliosStatus'] as String?,
       branch: json['branch'] as Map<String, dynamic>?,
       department: json['department'] as Map<String, dynamic>?,
@@ -245,6 +252,7 @@ class ServiceOrderDto {
     'status': status,
     'statusCode': statusCode,
     'statusHistory': statusHistory,
+    'cancelledStatuses': cancelledStatuses,
     'heliosStatus': heliosStatus,
     'branch': branch,
     'department': department,
@@ -296,6 +304,7 @@ class ServiceOrderDto {
               ? null
               : DilenskyStav(nazev: status!, kod: statusCode)),
     historieStavu: statusHistory.map(DilenskyStav.fromJson).toList(),
+    zruseneStavy: cancelledStatuses.map(DilenskyStav.fromJson).toList(),
     heliosStatus: heliosStatus,
     branch: branch == null ? null : Branch.fromJson(branch!),
     department: department == null ? null : Department.fromJson(department!),
@@ -346,6 +355,7 @@ class ServiceOrderDto {
     String? status,
     String? statusCode,
     List<Map<String, dynamic>>? statusHistory,
+    List<Map<String, dynamic>>? cancelledStatuses,
     String? heliosStatus,
     String? bay,
     String? bayAt,
@@ -391,6 +401,7 @@ class ServiceOrderDto {
       status: vymazatStav ? null : (status ?? this.status),
       statusCode: vymazatStav ? null : (statusCode ?? this.statusCode),
       statusHistory: statusHistory ?? this.statusHistory,
+      cancelledStatuses: cancelledStatuses ?? this.cancelledStatuses,
       heliosStatus: heliosStatus ?? this.heliosStatus,
       branch: branch,
       department: department,

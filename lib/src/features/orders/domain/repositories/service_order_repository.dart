@@ -50,8 +50,17 @@ abstract interface class ServiceOrderRepository {
   /// Přepíše předmět opravy; prázdný text ho smaže.
   Future<ServiceOrder> ulozPredmetOpravy(String orderId, String text);
 
-  /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
-  Future<ServiceOrder> smazStav(String orderId, String zaznamId);
+  /// Zruší stav - zůstane v postupu se štítkem Zrušeno, nepočítá se.
+  Future<ServiceOrder> zrusStav(String orderId, String zaznamId);
+
+  /// Oprava stavu: jiný stav, vlastní text nebo poznámka.
+  Future<ServiceOrder> upravStav(
+    String orderId,
+    String zaznamId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  });
 
   /// Uzavře aktuální stav - další krok čeká, až ho někdo zahájí.
   Future<ServiceOrder> dokonciStav(String orderId, String zaznamId);

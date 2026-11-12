@@ -56,13 +56,13 @@ void main() {
         .historieStavu
         .first
         .id!;
-    await akce.smazStav('ZK-26-0001', zaznamId);
+    await akce.zrusStav('ZK-26-0001', zaznamId);
 
     final log = container.read(logUdalostiProvider).fronta;
     expect(log.map((u) => u.nazev), [
       'stav_pridan',
       'poznamka_pridana',
-      'stav_smazan',
+      'stav_zrusen',
     ]);
     expect(log.every((u) => u.zakazka == 'ZK-26-0001'), isTrue);
     expect(log[0].detail, 'lakovna');

@@ -303,12 +303,39 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  /// Smaže záznam z historie stavů - oprava omylem přidaného stavu.
-  Future<bool> smazStav(String orderId, String zaznamId) async {
+  /// Upraví stav - když se někdo ukliknul.
+  Future<bool> upravStav(
+    String orderId,
+    String zaznamId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  }) async {
     state = const AsyncLoading();
     try {
-      await _repository.smazStav(orderId, zaznamId);
-      _zaloguj('stav_smazan', orderId);
+      await _repository.upravStav(
+        orderId,
+        zaznamId,
+        kod: kod,
+        nazev: nazev,
+        poznamka: poznamka,
+      );
+      _zaloguj('stav_upraven', orderId);
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Zruší stav - nemaže se, zůstane v postupu se štítkem Zrušeno.
+  Future<bool> zrusStav(String orderId, String zaznamId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.zrusStav(orderId, zaznamId);
+      _zaloguj('stav_zrusen', orderId);
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;

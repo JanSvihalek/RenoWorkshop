@@ -420,7 +420,7 @@ class PruhUkonu {
 }
 
 /// Co s položkou osy průběhu je.
-enum StavPolozky { probiha, hotovo, dalsi, ceka }
+enum StavPolozky { probiha, hotovo, dalsi, ceka, zruseno }
 
 /// Řádek osy průběhu: úkon z plánu, nebo stav, který v plánu není.
 class PolozkaOsy {
@@ -466,7 +466,14 @@ bool _patriKUkonu(DilenskyStav z, UkonPlanu u) =>
 ///
 /// Krok končí tlačítkem Dokončit, jinak začátkem dalšího stavu. Jen se
 /// zobrazuje: stavy se vracejí i přeskakují a plán by se přepisoval špatně.
-List<PolozkaOsy> osaPrubehu(PlanKlempirny? plan, List<DilenskyStav> historie) {
+///
+/// Zrušené stavy ([zrusene]) se jen ukážou mezi hotovými - nic nezahajují
+/// ani nekončí.
+List<PolozkaOsy> osaPrubehu(
+  PlanKlempirny? plan,
+  List<DilenskyStav> historie, [
+  List<DilenskyStav> zrusene = const [],
+]) {
   // Historie je od nejnovějšího: konec záznamu je začátek toho nad ním.
   ({DateTime? kdy, String? kdo}) konec(int i) {
     final z = historie[i];
@@ -536,6 +543,20 @@ List<PolozkaOsy> osaPrubehu(PlanKlempirny? plan, List<DilenskyStav> historie) {
     );
   }
 
+  for (final z in zrusene) {
+    polozky.add(
+      PolozkaOsy(
+        nazev: z.nazev,
+        stav: StavPolozky.zruseno,
+        od: z.zadano ?? DateTime(0),
+        kdy: z.zruseno,
+        kdo: z.zrusil,
+        poznamka: z.poznamka,
+        zaznam: z,
+      ),
+    );
+  }
+
   PolozkaOsy? dalsi;
   for (final p in polozky) {
     if (p.stav == StavPolozky.ceka &&
@@ -548,7 +569,8 @@ List<PolozkaOsy> osaPrubehu(PlanKlempirny? plan, List<DilenskyStav> historie) {
   int poradi(StavPolozky s) => switch (s) {
     StavPolozky.ceka || StavPolozky.dalsi => 0,
     StavPolozky.probiha => 1,
-    StavPolozky.hotovo => 2,
+    // Zrušené mezi hotovými podle toho, kdy byly zadané.
+    StavPolozky.hotovo || StavPolozky.zruseno => 2,
   };
   polozky.sort((a, b) {
     final rozdil = poradi(a.stav) - poradi(b.stav);

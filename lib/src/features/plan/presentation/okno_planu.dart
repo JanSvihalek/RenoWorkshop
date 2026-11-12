@@ -232,6 +232,7 @@ class _OknoPlanuState extends ConsumerState<_OknoPlanu> {
                 StavPolozky.dalsi => 'Další na řadě',
                 StavPolozky.probiha => 'Probíhá',
                 StavPolozky.hotovo => 'Dokončeno',
+                StavPolozky.zruseno => 'Zrušeno',
               },
               style: AppTextStyles.cardBody.copyWith(
                 color: palette.text,

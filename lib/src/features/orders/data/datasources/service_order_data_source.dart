@@ -51,8 +51,20 @@ abstract interface class ServiceOrderDataSource {
   /// text ho smaže.
   Future<ServiceOrderDto?> ulozPredmetOpravy(String orderId, String text);
 
-  /// Smaže záznam z historie stavů.
-  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId);
+  /// `POST /orders/{id}/stavy/{zaznamId}/zruseni` - zruší stav. Nemaže
+  /// se, zůstane v postupu se štítkem Zrušeno.
+  Future<ServiceOrderDto?> zrusStav(String orderId, String zaznamId);
+
+  /// `PATCH /orders/{id}/stavy/{zaznamId}` - oprava stavu: jiný stav
+  /// z číselníku ([kod]), vlastní text ([nazev]) nebo poznámka. Co je
+  /// `null`, se nemění; prázdná poznámka se smaže.
+  Future<ServiceOrderDto?> upravStav(
+    String orderId,
+    String zaznamId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  });
 
   /// `POST /orders/{id}/stavy/{zaznamId}/dokonceni` - uzavře aktuální stav.
   Future<ServiceOrderDto?> dokonciStav(String orderId, String zaznamId);

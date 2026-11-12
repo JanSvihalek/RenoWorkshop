@@ -26,12 +26,19 @@ import 'plan_screen.dart' show cestaPlanovace;
 /// krok uzavře a další čeká, až ho někdo zahájí. Ostatní zakázky se plánovat
 /// nedají a mají jen postup stavů.
 class OsaPrubehu extends ConsumerWidget {
-  const OsaPrubehu({super.key, required this.order, this.onSmazat});
+  const OsaPrubehu({
+    super.key,
+    required this.order,
+    this.onUpravit,
+    this.onZrusit,
+  });
 
   final ServiceOrder order;
 
-  /// Smaže záznam stavu. `null` schová mazání úplně.
-  final void Function(DilenskyStav stav)? onSmazat;
+  /// Úprava a zrušení zapsaného stavu (nabídka ⋯). `null` je schová -
+  /// bez práva upravovat zakázku.
+  final void Function(DilenskyStav stav)? onUpravit;
+  final void Function(DilenskyStav stav)? onZrusit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,9 +52,9 @@ class OsaPrubehu extends ConsumerWidget {
         smiPlan || ref.watch(smiZapisovatProvider(order.poradac?.kod));
     final zaneprazdneno = ref.watch(orderActionsProvider).isLoading;
     final dnes = ref.watch(dnesProvider);
-    final polozky = osaPrubehu(plan, historie);
+    final polozky = osaPrubehu(plan, historie, order.zruseneStavy);
 
-    if (!sPlanem && historie.isEmpty) {
+    if (!sPlanem && historie.isEmpty && order.zruseneStavy.isEmpty) {
       return Text(
         'Zakázka zatím nemá žádný dílenský stav. Přidejte první tlačítkem výše.',
         style: AppTextStyles.cardBody.copyWith(color: palette.muted),
@@ -80,6 +87,7 @@ class OsaPrubehu extends ConsumerWidget {
           ),
         for (final (i, p) in polozky.indexed)
           _Polozka(
+            key: p.zaznam?.id == null ? null : Key('osa-stav-${p.zaznam!.id}'),
             polozka: p,
             dnes: dnes,
             prvni: i == 0 && !bezPlanu,
@@ -105,8 +113,18 @@ class OsaPrubehu extends ConsumerWidget {
                       .read(orderActionsProvider.notifier)
                       .dokonciStav(order.id, p.zaznam!.id!)
                 : null,
-            onSmazat: p.zaznam?.id != null && onSmazat != null
-                ? () => onSmazat!(p.zaznam!)
+            // Zrušený stav už jen ukazuje, co se stalo.
+            onUpravitStav:
+                p.zaznam?.id != null &&
+                    p.stav != StavPolozky.zruseno &&
+                    onUpravit != null
+                ? () => onUpravit!(p.zaznam!)
+                : null,
+            onZrusit:
+                p.zaznam?.id != null &&
+                    p.stav != StavPolozky.zruseno &&
+                    onZrusit != null
+                ? () => onZrusit!(p.zaznam!)
                 : null,
           ),
         if (sPlanem && ref.watch(vidiPlanovacProvider))
@@ -252,6 +270,7 @@ class _RadekBezPlanu extends StatelessWidget {
 
 class _Polozka extends StatelessWidget {
   const _Polozka({
+    super.key,
     required this.polozka,
     required this.dnes,
     required this.prvni,
@@ -259,7 +278,8 @@ class _Polozka extends StatelessWidget {
     this.onUpravit,
     this.onZahajit,
     this.onDokoncit,
-    this.onSmazat,
+    this.onUpravitStav,
+    this.onZrusit,
   });
 
   final PolozkaOsy polozka;
@@ -271,7 +291,8 @@ class _Polozka extends StatelessWidget {
   final VoidCallback? onUpravit;
   final VoidCallback? onZahajit;
   final VoidCallback? onDokoncit;
-  final VoidCallback? onSmazat;
+  final VoidCallback? onUpravitStav;
+  final VoidCallback? onZrusit;
 
   /// „4. 11. 15:17", rok jen když není letošní.
   String _kdy(DateTime d) =>
@@ -283,7 +304,12 @@ class _Polozka extends StatelessWidget {
     final p = polozka;
     final mimo = p.mimoPlan && p.stav == StavPolozky.hotovo;
     final probiha = p.stav == StavPolozky.probiha;
-    final vPozadi = p.stav == StavPolozky.hotovo || p.stav == StavPolozky.ceka;
+    final zruseno = p.stav == StavPolozky.zruseno;
+    final vPozadi =
+        p.stav == StavPolozky.hotovo || p.stav == StavPolozky.ceka || zruseno;
+    final cervena = context.isDarkMode
+        ? const Color(0xFFFF7A7A)
+        : AppColors.danger;
 
     final pod = AppTextStyles.metaSmall.copyWith(color: palette.muted);
     final kdyKdo = [if (p.kdy != null) _kdy(p.kdy!), ?p.kdo].join(' · ');
@@ -293,9 +319,15 @@ class _Polozka extends StatelessWidget {
       style: AppTextStyles.cardBody.copyWith(
         fontSize: 13.5,
         fontWeight: FontWeight.w600,
-        color: vPozadi ? palette.muted2 : palette.text,
+        color: zruseno
+            ? palette.muted
+            : vPozadi
+            ? palette.muted2
+            : palette.text,
+        decoration: zruseno ? TextDecoration.lineThrough : null,
       ),
     );
+    final upraveno = zruseno ? null : p.zaznam?.upraveno;
 
     final obsah = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,6 +346,36 @@ class _Polozka extends StatelessWidget {
             else
               nazev,
             if (p.mimoPlan) const _StitekMimoPlan(),
+            if (zruseno)
+              Container(
+                key: const Key('osa-zruseno'),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  border: Border.all(color: cervena),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'ZRUŠENO',
+                  style: AppTextStyles.monoLabel.copyWith(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: cervena,
+                  ),
+                ),
+              ),
+            if (upraveno != null)
+              Tooltip(
+                message: [
+                  'Upraveno ${_kdy(upraveno)}',
+                  ?p.zaznam?.upravil,
+                ].join(' · '),
+                child: Text(
+                  'upraveno',
+                  key: const Key('osa-upraveno'),
+                  style: pod.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
             if (p.do_ != null)
               Text(
                 kratkeObdobiPlanu(p.od, p.do_!),
@@ -349,6 +411,17 @@ class _Polozka extends StatelessWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text('Další na řadě', style: pod),
           ),
+        if (zruseno && p.zaznam != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              [
+                'Zadal ${[if (p.zaznam!.zadano != null) _kdy(p.zaznam!.zadano!), ?p.zaznam!.autor].join(' · ')}',
+                'zrušil $kdyKdo'.trimRight(),
+              ].join(' · '),
+              style: pod,
+            ),
+          ),
         if (p.poznamka != null)
           Padding(
             padding: const EdgeInsets.only(top: 2),
@@ -370,19 +443,30 @@ class _Polozka extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: obsah),
-          // Mazání jen u záznamů, které prošly serverem.
-          if (onSmazat != null)
-            GestureDetector(
-              onTap: onSmazat,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Insets.xs),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: palette.muted,
-                ),
-              ),
+          // Úprava a zrušení jen u záznamů, které prošly serverem -
+          // schované v nabídce, ať se nezmáčknou omylem.
+          if (onUpravitStav != null || onZrusit != null)
+            PopupMenuButton<VoidCallback>(
+              key: Key('osa-menu-${p.zaznam?.id}'),
+              tooltip: 'Další akce',
+              icon: Icon(Icons.more_horiz, size: 20, color: palette.muted),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 160),
+              onSelected: (akce) => akce(),
+              itemBuilder: (_) => [
+                if (onUpravitStav != null)
+                  PopupMenuItem(
+                    key: const Key('osa-upravit'),
+                    value: onUpravitStav,
+                    child: const Text('Upravit stav'),
+                  ),
+                if (onZrusit != null)
+                  PopupMenuItem(
+                    key: const Key('osa-zrusit'),
+                    value: onZrusit,
+                    child: const Text('Zrušit stav'),
+                  ),
+              ],
             ),
           if (p.stav == StavPolozky.dalsi &&
               onZahajit != null &&
@@ -488,6 +572,10 @@ class _Tecka extends StatelessWidget {
       );
     }
     return switch (stav) {
+      StavPolozky.zruseno => CustomPaint(
+        size: const Size(10, 10),
+        painter: _CarkovanyKruh(palette.muted),
+      ),
       StavPolozky.probiha => Container(
         width: 12,
         height: 12,

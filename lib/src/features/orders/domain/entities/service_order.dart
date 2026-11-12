@@ -42,6 +42,7 @@ class ServiceOrder {
     this.cisloPojistneUdalosti,
     this.stav,
     this.historieStavu = const [],
+    this.zruseneStavy = const [],
     this.heliosStatus,
     this.branch,
     this.department,
@@ -112,6 +113,10 @@ class ServiceOrder {
   /// Historie dílenských stavů, nejnovější první. U opravy, která běží
   /// měsíce, je to hlavní přehled o tom, co se dělo.
   final List<DilenskyStav> historieStavu;
+
+  /// Zrušené stavy - jen se ukazují v postupu se štítkem Zrušeno, do
+  /// průběhu se nepočítají.
+  final List<DilenskyStav> zruseneStavy;
 
   /// Stav z Heliosu. Vede ho ERP a aplikace ho nemění - je to druhý,
   /// nezávislý pohled na tutéž zakázku.
@@ -280,6 +285,7 @@ class ServiceOrder {
     String? predmetOpravy,
     DilenskyStav? stav,
     List<DilenskyStav>? historieStavu,
+    List<DilenskyStav>? zruseneStavy,
     String? mechanicName,
     String? bay,
     DateTime? bayAt,
@@ -298,6 +304,7 @@ class ServiceOrder {
       cisloPojistneUdalosti: cisloPojistneUdalosti,
       stav: stav ?? this.stav,
       historieStavu: historieStavu ?? this.historieStavu,
+      zruseneStavy: zruseneStavy ?? this.zruseneStavy,
       heliosStatus: heliosStatus,
       branch: branch,
       department: department,

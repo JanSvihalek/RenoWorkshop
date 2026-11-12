@@ -139,6 +139,98 @@ void main() {
     expect(find.text('Provozní kapaliny: Nezadáno'), findsOneWidget);
   });
 
+  testWidgets('stav: zrušení se zeptá, stav zůstane se štítkem; úprava', (
+    tester,
+  ) async {
+    final zdroj = await otevri(
+      tester,
+      buildOrderDto().copyWith(
+        statusHistory: [
+          {
+            'id': 's2',
+            'code': 'lakovna',
+            'label': 'Lakovna',
+            'author': 'Jan Dvořák',
+            'createdAt': '2026-08-21T09:00:00',
+            'editedAt': '2026-08-21T09:10:00',
+            'editedBy': 'Jan Dvořák',
+          },
+          {
+            'id': 's1',
+            'code': 'klempirna',
+            'label': 'Klempířské práce',
+            'author': 'Jan Dvořák',
+            'createdAt': '2026-08-20T09:00:00',
+          },
+        ],
+        cancelledStatuses: [
+          {
+            'id': 's0',
+            'code': 'pripraveno',
+            'label': 'Připraveno k vyzvednutí',
+            'author': 'Petr',
+            'createdAt': '2026-08-20T10:00:00',
+            'cancelledAt': '2026-08-20T10:05:00',
+            'cancelledBy': 'Petr',
+          },
+        ],
+      ),
+    );
+    Finder vRadku(String id, Finder co) =>
+        find.descendant(of: find.byKey(Key('osa-stav-$id')), matching: co);
+
+    // Zrušený zůstává vidět, se štítkem a kdo ho zrušil; akce nemá.
+    await tester.ensureVisible(find.byKey(const Key('osa-stav-s0')));
+    expect(vRadku('s0', find.byKey(const Key('osa-zruseno'))), findsOneWidget);
+    expect(vRadku('s0', find.textContaining('zrušil')), findsOneWidget);
+    expect(vRadku('s0', find.byTooltip('Další akce')), findsNothing);
+    expect(vRadku('s2', find.byKey(const Key('osa-upraveno'))), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+
+    // Zrušit: nejdřív se zeptá, Ponechat nic nezmění.
+    Future<void> zrusit({required bool potvrdit}) async {
+      await tester.ensureVisible(find.byKey(const Key('osa-stav-s2')));
+      await tester.tap(vRadku('s2', find.byTooltip('Další akce')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('osa-zrusit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Opravdu zrušit stav?'), findsOneWidget);
+      await tester.tap(
+        find.byKey(Key(potvrdit ? 'zrusit-stav-ano' : 'zrusit-stav-ne')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await zrusit(potvrdit: false);
+    expect(zdroj.ulozeneDto('ZK-26-0001').cancelledStatuses, hasLength(1));
+
+    await zrusit(potvrdit: true);
+    final po = zdroj.ulozeneDto('ZK-26-0001');
+    expect(po.cancelledStatuses.map((z) => z['id']), ['s2', 's0']);
+    expect(po.statusHistory.map((z) => z['id']), ['s1']);
+    // Aktuální je poslední nezrušený.
+    expect(po.status, 'Klempířské práce');
+    expect(find.byKey(const Key('osa-zruseno')), findsNWidgets(2));
+
+    // Upravit: jiná poznámka.
+    await tester.ensureVisible(find.byKey(const Key('osa-stav-s1')));
+    await tester.tap(vRadku('s1', find.byTooltip('Další akce')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('osa-upravit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Upravit stav'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('upravit-stav-poznamka')),
+      'PP dveře',
+    );
+    await tester.tap(find.byKey(const Key('upravit-stav-ulozit')));
+    await tester.pumpAndSettle();
+    final upraveny = zdroj.ulozeneDto('ZK-26-0001').statusHistory.single;
+    expect(upraveny['note'], 'PP dveře');
+    expect(upraveny['code'], 'klempirna');
+    expect(upraveny['editedBy'], 'Test Technik');
+  });
+
   testWidgets('nevyplněná přání jsou Nezadáno', (tester) async {
     await otevri(tester, buildOrderDto());
     expect(find.textContaining(': Nezadáno'), findsNWidgets(3));

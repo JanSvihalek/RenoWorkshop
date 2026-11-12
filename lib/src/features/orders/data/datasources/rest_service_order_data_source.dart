@@ -496,11 +496,28 @@ class RestServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
+  Future<ServiceOrderDto?> zrusStav(String orderId, String zaznamId) async {
     final data = await _send(
-      'DELETE',
+      'POST',
+      'orders/${Uri.encodeComponent(orderId)}'
+          '/stavy/${Uri.encodeComponent(zaznamId)}/zruseni',
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> upravStav(
+    String orderId,
+    String zaznamId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  }) async {
+    final data = await _send(
+      'PATCH',
       'orders/${Uri.encodeComponent(orderId)}'
           '/stavy/${Uri.encodeComponent(zaznamId)}',
+      body: {'code': ?kod, 'label': ?nazev, 'note': ?poznamka},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

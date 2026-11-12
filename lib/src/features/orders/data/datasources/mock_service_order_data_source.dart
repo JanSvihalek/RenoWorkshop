@@ -786,24 +786,78 @@ class MockServiceOrderDataSource
   }
 
   @override
-  Future<ServiceOrderDto?> smazStav(String orderId, String zaznamId) async {
+  Future<ServiceOrderDto?> zrusStav(String orderId, String zaznamId) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
     final index = _indexOf(orders, orderId);
     if (index == -1) return null;
 
+    final zaznam = {
+      for (final z in orders[index].statusHistory)
+        if (z['id'] == zaznamId) z,
+    }.firstOrNull;
+    if (zaznam == null) return orders[index];
     final zbyle = orders[index].statusHistory
-        .where((zaznam) => zaznam['id'] != zaznamId)
+        .where((z) => z['id'] != zaznamId)
         .toList();
 
-    final updated = orders[index].copyWith(
+    return orders[index] = orders[index].copyWith(
       status: zbyle.isEmpty ? null : zbyle.first['label'] as String?,
       statusCode: zbyle.isEmpty ? null : zbyle.first['code'] as String?,
       statusHistory: zbyle,
+      cancelledStatuses: [
+        {
+          ...zaznam,
+          'cancelledAt': DateTime.now().toIso8601String(),
+          'cancelledBy': 'Ukázkový technik',
+        },
+        ...orders[index].cancelledStatuses,
+      ],
       vymazatStav: zbyle.isEmpty,
     );
-    orders[index] = updated;
-    return updated;
+  }
+
+  @override
+  Future<ServiceOrderDto?> upravStav(
+    String orderId,
+    String zaznamId, {
+    String? kod,
+    String? nazev,
+    String? poznamka,
+  }) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    final historie = [
+      for (final z in orders[index].statusHistory)
+        if (z['id'] == zaznamId)
+          {
+            ...z,
+            if (kod != null) ...{
+              'code': kod,
+              'label': _nabidka
+                  .firstWhere(
+                    (s) => s.kod == kod,
+                    orElse: () => NabidkaStavu(kod: kod, nazev: kod),
+                  )
+                  .nazev,
+            } else if (nazev != null) ...{
+              'code': null,
+              'label': nazev,
+            },
+            if (poznamka != null) 'note': poznamka.isEmpty ? null : poznamka,
+            'editedAt': DateTime.now().toIso8601String(),
+            'editedBy': 'Ukázkový technik',
+          }
+        else
+          z,
+    ];
+    return orders[index] = orders[index].copyWith(
+      status: historie.isEmpty ? null : historie.first['label'] as String?,
+      statusCode: historie.isEmpty ? null : historie.first['code'] as String?,
+      statusHistory: historie,
+    );
   }
 
   @override

@@ -122,10 +122,33 @@ Vrací celou aktualizovanou zakázku. Název se ukládá i u číselníkového
 stavu — přejmenování v číselníku nesmí zpětně přepsat historii. Kód, který
 v číselníku není, vrací `400` `unknown_status`.
 
-### DELETE /orders/{id}/stavy/{zaznamId}
+### POST /orders/{id}/stavy/{zaznamId}/zruseni
 
-Smaže jeden záznam z historie. Oprava omylem přidaného stavu: je to
-pracovní přehled dílny, ne auditní doklad. Vrací aktualizovanou zakázku.
+Zruší omylem přidaný stav. Stav se **nemaže**: zakázka ho vrací v poli
+`cancelledStatuses` (stejný tvar jako `statusHistory`, navíc `cancelledAt`
+a `cancelledBy`) a aplikace ho ukáže v postupu se štítkem Zrušeno.
+`statusHistory`, `status` i `statusCode` obsahují jen platné stavy, takže
+aktuální je poslední nezrušený. Zrušení nejde vrátit, opakované nic nemění.
+Vrací aktualizovanou zakázku.
+
+`DELETE /orders/{id}/stavy/{zaznamId}` dělá totéž - kvůli starším verzím
+aplikace, které stav mazaly.
+
+### PATCH /orders/{id}/stavy/{zaznamId}
+
+Oprava stavu, když se někdo ukliknul. Pole, které chybí, se nemění:
+
+```json
+{ "code": "montaz", "note": "PP dveře" }
+{ "label": "Čeká na díl z Německa" }
+{ "note": "" }
+```
+
+`code` z číselníku, nebo `label` s vlastním textem; prázdné `note` poznámku
+smaže. Čas a autor stavu zůstávají, přibude `editedAt` a `editedBy`.
+Původní znění si server zapíše do logu událostí (`stav_upraven`). U kroku
+zahájeného u závady nebo ručního úkonu (`defectId`/`taskId`) jde změnit jen
+poznámka, jinak `409` `not_editable`; stejně u zrušeného stavu.
 
 ## Autorizace
 

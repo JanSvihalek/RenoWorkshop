@@ -136,35 +136,49 @@ class _DetailBody extends ConsumerWidget {
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) =>
       pridatStavZakazce(context, ref, order);
 
-  /// Smaže záznam z historie stavů. Ptá se, protože záznam zmizí nadobro
-  /// a u cizího zápisu nemusí být zřejmé, že šlo o omyl.
-  Future<void> _smazStav(
+  /// Zruší stav. Nemaže se - zůstane v postupu se štítkem Zrušeno. Ptá
+  /// se, aby se to nestalo omylem; zrušení nejde vrátit.
+  Future<void> _zrusStav(
     BuildContext context,
     WidgetRef ref,
     DilenskyStav stav,
   ) async {
+    final kdy = stav.zadano == null
+        ? ''
+        : ' z ${AppDateFormat.dateTime(stav.zadano!)}';
     final potvrzeno = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog.adaptive(
-        title: const Text('Smazat stav?'),
-        content: Text('Ze zakázky zmizí záznam „${stav.nazev}".'),
+        title: const Text('Opravdu zrušit stav?'),
+        content: Text(
+          '„${stav.nazev}"$kdy zůstane v postupu se štítkem Zrušeno a nebude '
+          'se počítat do průběhu. Zrušení nejde vrátit.',
+        ),
         actions: [
           TextButton(
+            key: const Key('zrusit-stav-ne'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Zrušit'),
+            child: const Text('Ponechat'),
           ),
           TextButton(
+            key: const Key('zrusit-stav-ano'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Smazat'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Zrušit stav'),
           ),
         ],
       ),
     );
 
     if ((potvrzeno ?? false) && stav.id != null) {
-      await ref
+      final hotovo = await ref
           .read(orderActionsProvider.notifier)
-          .smazStav(order.id, stav.id!);
+          .zrusStav(order.id, stav.id!);
+      if (hotovo && context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('${order.id} · stav zrušen')));
+      }
     }
   }
 
@@ -223,8 +237,11 @@ class _DetailBody extends ConsumerWidget {
     // Klempířská zakázka má průběh s plánem, ostatní jen postup stavů.
     final sPlanem = order.lzePlanovatKlempirnu || order.planKlempirny != null;
     final smiPlan = ref.watch(smiPlanovatProvider(order.branch?.code));
-    final onSmazat = smi
-        ? (DilenskyStav stav) => _smazStav(context, ref, stav)
+    final onZrusitStav = smi
+        ? (DilenskyStav stav) => _zrusStav(context, ref, stav)
+        : null;
+    final onUpravitStav = smi
+        ? (DilenskyStav stav) => upravitStavZakazky(context, ref, order, stav)
         : null;
 
     final postup = DetailCard(
@@ -291,7 +308,11 @@ class _DetailBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: Insets.md),
-          OsaPrubehu(order: order, onSmazat: onSmazat),
+          OsaPrubehu(
+            order: order,
+            onUpravit: onUpravitStav,
+            onZrusit: onZrusitStav,
+          ),
         ],
       ),
     );
