@@ -49,6 +49,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicSamoRozpoznatSpz = 'nastaveni.samoRozpoznatSpz';
   static const _klicUkazkovaData = 'nastaveni.ukazkovaData';
   static const _klicSkrytUdaje = 'nastaveni.skrytUdaje';
+  static const _klicRazeni = 'nastaveni.razeniTabulky';
 
   @override
   Nastaveni nacti() {
@@ -74,7 +75,17 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       ),
       skrytUdaje: _prefs.getBool(_klicSkrytUdaje) ?? false,
       ukazkovaData: _prefs.getBool(_klicUkazkovaData) ?? false,
+      razeniTabulky: _razeni(),
     );
+  }
+
+  /// „spz|asc" / „spz|desc", jinak bez řazení.
+  RazeniTabulky? _razeni() {
+    final [klic, smer] = switch (_prefs.getString(_klicRazeni)?.split('|')) {
+      [final k, final s] when k.isNotEmpty => [k, s],
+      _ => ['', ''],
+    };
+    return klic.isEmpty ? null : RazeniTabulky(klic, sestupne: smer == 'desc');
   }
 
   @override
@@ -115,6 +126,13 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
     await _prefs.setBool(_klicSamoRozpoznatSpz, nastaveni.samoRozpoznatSpz);
     await _prefs.setBool(_klicSkrytUdaje, nastaveni.skrytUdaje);
     await _prefs.setBool(_klicUkazkovaData, nastaveni.ukazkovaData);
+    final razeni = nastaveni.razeniTabulky;
+    await _ulozNeboSmaz(
+      _klicRazeni,
+      razeni == null
+          ? null
+          : '${razeni.klic}|${razeni.sestupne ? 'desc' : 'asc'}',
+    );
   }
 
   Future<void> _ulozNeboSmaz(String klic, String? hodnota) {

@@ -91,6 +91,33 @@ class NastaveniSloupcu {
       Object.hash(Object.hashAll(poradi), Object.hashAll(skryte));
 }
 
+/// Řazení tabulky zakázek klepnutím na hlavičku sloupce. Jako na webu se
+/// drží jen v zařízení.
+@immutable
+class RazeniTabulky {
+  const RazeniTabulky(this.klic, {this.sestupne = false});
+
+  /// Klíč sloupce (`prijato`, `spz`…) - stejný jako na webu.
+  final String klic;
+  final bool sestupne;
+
+  /// Další klepnutí na hlavičku: vzestupně → sestupně → bez řazení.
+  static RazeniTabulky? dalsi(RazeniTabulky? puvodni, String klic) {
+    if (puvodni?.klic != klic) return RazeniTabulky(klic);
+    return puvodni!.sestupne ? null : RazeniTabulky(klic, sestupne: true);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RazeniTabulky &&
+          other.klic == klic &&
+          other.sestupne == sestupne);
+
+  @override
+  int get hashCode => Object.hash(klic, sestupne);
+}
+
 /// Co si aplikace pamatuje mezi spuštěními.
 ///
 /// Drží se v telefonu. Výchozí filtr, sloupce tabulky, složka fotek
@@ -119,6 +146,7 @@ class Nastaveni {
     this.zobrazeniZakazek = ZobrazeniZakazek.karty,
     this.skrytUdaje = false,
     this.ukazkovaData = false,
+    this.razeniTabulky,
   });
 
   final RezimVzhledu vzhled;
@@ -193,6 +221,10 @@ class Nastaveni {
   /// a ukázat. Nic z toho se do Heliosu ani na server nezapíše.
   final bool ukazkovaData;
 
+  /// Řazení tabulky zakázek klepnutím na hlavičku. `null` = jak přišly.
+  /// Jen v zařízení, stejně jako na webu.
+  final RazeniTabulky? razeniTabulky;
+
   /// Kolik výběrů výchozího filtru je nastavených.
   int get pocetVychozichFiltru => [
     vychoziPobocky,
@@ -224,6 +256,8 @@ class Nastaveni {
     ZobrazeniZakazek? zobrazeniZakazek,
     bool? skrytUdaje,
     bool? ukazkovaData,
+    RazeniTabulky? razeniTabulky,
+    bool zrusRazeni = false,
   }) {
     return Nastaveni(
       vzhled: vzhled ?? this.vzhled,
@@ -243,6 +277,7 @@ class Nastaveni {
       zobrazeniZakazek: zobrazeniZakazek ?? this.zobrazeniZakazek,
       skrytUdaje: skrytUdaje ?? this.skrytUdaje,
       ukazkovaData: ukazkovaData ?? this.ukazkovaData,
+      razeniTabulky: zrusRazeni ? null : (razeniTabulky ?? this.razeniTabulky),
     );
   }
 
@@ -265,7 +300,8 @@ class Nastaveni {
           other.samoRozpoznatSpz == samoRozpoznatSpz &&
           other.zobrazeniZakazek == zobrazeniZakazek &&
           other.skrytUdaje == skrytUdaje &&
-          other.ukazkovaData == ukazkovaData);
+          other.ukazkovaData == ukazkovaData &&
+          other.razeniTabulky == razeniTabulky);
 
   @override
   int get hashCode => Object.hashAll([
@@ -287,5 +323,6 @@ class Nastaveni {
     zobrazeniZakazek,
     skrytUdaje,
     ukazkovaData,
+    razeniTabulky,
   ]);
 }

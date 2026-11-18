@@ -21,6 +21,7 @@ class SloupecZakazek {
     this.barva,
     this.stitek,
     this.mono = false,
+    this.razeni,
   });
 
   /// Klíč sloupce v nastavení - stejný jako na webu (tabulka.ts).
@@ -42,7 +43,73 @@ class SloupecZakazek {
 
   /// Písmo s pevnou šířkou - čísla zakázek a SPZ se pak čtou po sloupcích.
   final bool mono;
+
+  /// Podle čeho se řadí (číslo nebo text), když se nemá řadit podle
+  /// zobrazeného textu - data, čísla obálek. Jako `razeni` na webu.
+  final Object Function(ServiceOrder zakazka)? razeni;
+
+  /// Hodnota pro řazení: [razeni], jinak zobrazený text (pomlčka = prázdné).
+  Object hodnotaRazeni(ServiceOrder zakazka) {
+    if (razeni case final r?) return r(zakazka);
+    final text = hodnota(zakazka);
+    return text == '-' ? '' : text;
+  }
 }
+
+/// Zakázky seřazené podle sloupce - stejně jako `seradTabulku` na webu.
+/// Bez řazení (nebo s neznámým sloupcem) zůstanou, jak přišly.
+List<ServiceOrder> seradTabulku(
+  List<ServiceOrder> zakazky,
+  RazeniTabulky? razeni,
+) {
+  if (razeni == null) return zakazky;
+  final sloupec = sloupceZakazek
+      .where((s) => s.klic == razeni.klic)
+      .firstOrNull;
+  if (sloupec == null) return zakazky;
+  final smer = razeni.sestupne ? -1 : 1;
+  // Stabilní řazení: stejné hodnoty si nechají původní pořadí.
+  final indexy = {for (final (i, z) in zakazky.indexed) z: i};
+  return [...zakazky]..sort((a, b) {
+    final x = sloupec.hodnotaRazeni(a);
+    final y = sloupec.hodnotaRazeni(b);
+    final v = x is num && y is num
+        ? x.compareTo(y)
+        : porovnejText(x.toString(), y.toString());
+    return v != 0 ? v * smer : indexy[a]!.compareTo(indexy[b]!);
+  });
+}
+
+/// Porovnání textu po česku zjednodušeně: bez ohledu na velikost písmen
+/// a diakritiku, čísla v textu podle hodnoty (ZK-26-9 před ZK-26-10).
+int porovnejText(String a, String b) {
+  final x = _bezDiakritiky(a.toLowerCase());
+  final y = _bezDiakritiky(b.toLowerCase());
+  final casti = RegExp(r'\d+|\D+');
+  final cx = casti.allMatches(x).map((m) => m[0]!).toList();
+  final cy = casti.allMatches(y).map((m) => m[0]!).toList();
+  for (var i = 0; i < cx.length && i < cy.length; i++) {
+    final nx = int.tryParse(cx[i]);
+    final ny = int.tryParse(cy[i]);
+    final v = nx != null && ny != null
+        ? nx.compareTo(ny)
+        : cx[i].compareTo(cy[i]);
+    if (v != 0) return v;
+  }
+  final delka = cx.length.compareTo(cy.length);
+  // Shodné bez diakritiky: aspoň stabilně podle původního textu.
+  return delka != 0 ? delka : a.compareTo(b);
+}
+
+const _diakritika = 'áäčďéěëíňóöřšťúůüýž';
+const _bez = 'aacdeeeinoorstuuuyz';
+
+String _bezDiakritiky(String text) => String.fromCharCodes(
+  text.runes.map((r) {
+    final i = _diakritika.indexOf(String.fromCharCode(r));
+    return i < 0 ? r : _bez.codeUnitAt(i);
+  }),
+);
 
 /// Sloupce v pořadí podle Heliosu: kdy přišel vůz a kdo ho má, komu
 /// patří, pak zakázka a vozidlo, nakonec typ, stavy a termín.
@@ -57,6 +124,7 @@ final sloupceZakazek = <SloupecZakazek>[
     sirka: 92,
     hodnota: (z) =>
         z.receivedAt == null ? '-' : AppDateFormat.dayMonthSmart(z.receivedAt!),
+    razeni: (z) => z.receivedAt?.millisecondsSinceEpoch ?? 0,
   ),
   SloupecZakazek(
     klic: 'zodpovida',
@@ -98,6 +166,7 @@ final sloupceZakazek = <SloupecZakazek>[
     sirka: 70,
     hodnota: (z) => z.obalka?.cislo ?? '-',
     mono: true,
+    razeni: (z) => int.tryParse(z.obalka?.cislo ?? '') ?? 0,
   ),
   SloupecZakazek(
     klic: 'model',
@@ -148,6 +217,8 @@ final sloupceZakazek = <SloupecZakazek>[
     hodnota: (z) =>
         z.dueAt == null ? '-' : AppDateFormat.dayMonthSmart(z.dueAt!),
     barva: (z) => z.isOverdue() ? AppColors.danger : null,
+    // Bez termínu na konec - i při řazení od nejbližšího.
+    razeni: (z) => z.dueAt?.millisecondsSinceEpoch ?? 1 << 53,
   ),
   SloupecZakazek(
     klic: 'utvar',
@@ -220,12 +291,39 @@ class TabulkaZakazek extends ConsumerWidget {
   final List<PolozkaTabulky> polozky;
   final void Function(ServiceOrder zakazka) onOpenOrder;
 
+  /// Řádky seřazené po částech - vložka (Otevřené, Ukončené) zůstává na
+  /// místě, řadí se jen zakázky mezi nimi. Jako na webu otevřené
+  /// a ukončené zvlášť.
+  List<PolozkaTabulky> _serazene(RazeniTabulky? razeni) {
+    if (razeni == null) return polozky;
+    final vysledek = <PolozkaTabulky>[];
+    var cast = <ServiceOrder>[];
+    void uzavri() {
+      vysledek.addAll(seradTabulku(cast, razeni).map(RadekTabulky.new));
+      cast = [];
+    }
+
+    for (final p in polozky) {
+      switch (p) {
+        case RadekTabulky(:final zakazka):
+          cast.add(zakazka);
+        case VlozkaTabulky():
+          uzavri();
+          vysledek.add(p);
+      }
+    }
+    uzavri();
+    return vysledek;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final sloupce = sloupceTabulky(
       ref.watch(nastaveniProvider.select((n) => n.sloupce)),
     );
+    final razeni = ref.watch(nastaveniProvider.select((n) => n.razeniTabulky));
+    final polozky = _serazene(razeni);
     final sirkaTabulky = _sirkaTabulky(sloupce);
 
     // Pořadí řádku v jeho části - střídání barev začíná po každé vložce
@@ -256,7 +354,13 @@ class TabulkaZakazek extends ConsumerWidget {
               width: sirkaTabulky,
               child: Column(
                 children: [
-                  _Hlavicka(sloupce: sloupce),
+                  _Hlavicka(
+                    sloupce: sloupce,
+                    razeni: razeni,
+                    onRadit: (klic) => ref
+                        .read(nastaveniProvider.notifier)
+                        .zmenRazeniTabulky(RazeniTabulky.dalsi(razeni, klic)),
+                  ),
                   Expanded(
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -299,9 +403,17 @@ class TabulkaZakazek extends ConsumerWidget {
 }
 
 class _Hlavicka extends StatelessWidget {
-  const _Hlavicka({required this.sloupce});
+  const _Hlavicka({
+    required this.sloupce,
+    required this.razeni,
+    required this.onRadit,
+  });
 
   final List<SloupecZakazek> sloupce;
+  final RazeniTabulky? razeni;
+
+  /// Klepnutí na hlavičku: vzestupně → sestupně → bez řazení (jako web).
+  final ValueChanged<String> onRadit;
 
   @override
   Widget build(BuildContext context) {
@@ -321,11 +433,39 @@ class _Hlavicka extends StatelessWidget {
           for (final sloupec in sloupce)
             SizedBox(
               width: sloupec.sirka,
-              child: Text(
-                sloupec.nazev.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.overline.copyWith(color: palette.muted),
+              child: InkWell(
+                key: Key('tabulka-hlavicka-${sloupec.klic}'),
+                onTap: () => onRadit(sloupec.klic),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Insets.xs),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          sloupec.nazev.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.overline.copyWith(
+                            color: razeni?.klic == sloupec.klic
+                                ? palette.text
+                                : palette.muted,
+                          ),
+                        ),
+                      ),
+                      if (razeni?.klic == sloupec.klic)
+                        Icon(
+                          razeni!.sestupne
+                              ? Icons.arrow_downward_rounded
+                              : Icons.arrow_upward_rounded,
+                          key: Key(
+                            'tabulka-sipka-${razeni!.sestupne ? 'dolu' : 'nahoru'}',
+                          ),
+                          size: 14,
+                          color: palette.text,
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
         ],

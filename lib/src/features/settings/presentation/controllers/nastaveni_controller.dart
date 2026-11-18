@@ -64,6 +64,13 @@ class NastaveniController extends Notifier<Nastaveni> {
 
   void zmenSkrytUdaje(bool skryt) => _uloz(state.copyWith(skrytUdaje: skryt));
 
+  /// Řazení tabulky zakázek; `null` ho zruší.
+  void zmenRazeniTabulky(RazeniTabulky? razeni) => _uloz(
+    razeni == null
+        ? state.copyWith(zrusRazeni: true)
+        : state.copyWith(razeniTabulky: razeni),
+  );
+
   void zmenUkazkovaData(bool zapnout) =>
       _uloz(state.copyWith(ukazkovaData: zapnout));
 

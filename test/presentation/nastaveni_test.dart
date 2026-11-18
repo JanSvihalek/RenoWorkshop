@@ -124,6 +124,24 @@ void main() {
       expect(prefs.getString('nastaveni.slozkaFotek'), isNull);
     });
 
+    test('řazení tabulky přežije restart a po zrušení zmizí', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final uloziste = SharedPreferencesNastaveni(prefs);
+
+      await uloziste.uloz(
+        const Nastaveni(razeniTabulky: RazeniTabulky('spz', sestupne: true)),
+      );
+      expect(
+        SharedPreferencesNastaveni(prefs).nacti().razeniTabulky,
+        const RazeniTabulky('spz', sestupne: true),
+      );
+
+      await uloziste.uloz(const Nastaveni());
+      expect(prefs.getString('nastaveni.razeniTabulky'), isNull);
+      expect(SharedPreferencesNastaveni(prefs).nacti().razeniTabulky, isNull);
+    });
+
     test('ukládání fotek do telefonu přežije restart', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

@@ -122,6 +122,55 @@ void main() {
     expect(find.byType(OrderCard), findsNWidgets(2));
   });
 
+  testWidgets('klepnutí na hlavičku řadí: vzestupně, sestupně, bez řazení', (
+    tester,
+  ) async {
+    await spust(
+      tester,
+      nastaveni: const Nastaveni(zobrazeniZakazek: ZobrazeniZakazek.tabulka),
+    );
+    double y(String text) => tester.getTopLeft(find.text(text)).dy;
+    Future<void> klepni() async {
+      await tester.tap(find.byKey(const Key('tabulka-hlavicka-organizace')));
+      await tester.pumpAndSettle();
+    }
+
+    await klepni();
+    expect(y('MIFAL SE'), lessThan(y('Petr Novák')));
+    expect(find.byKey(const Key('tabulka-sipka-nahoru')), findsOneWidget);
+    // Jako na webu se řazení pamatuje v zařízení.
+    expect(uloziste.nacti().razeniTabulky, const RazeniTabulky('organizace'));
+
+    await klepni();
+    expect(y('Petr Novák'), lessThan(y('MIFAL SE')));
+    expect(find.byKey(const Key('tabulka-sipka-dolu')), findsOneWidget);
+
+    await klepni();
+    expect(uloziste.nacti().razeniTabulky, isNull);
+    expect(find.byKey(const Key('tabulka-sipka-nahoru')), findsNothing);
+    expect(find.byKey(const Key('tabulka-sipka-dolu')), findsNothing);
+  });
+
+  test('řazení textu bez diakritiky a čísla podle hodnoty', () {
+    expect(porovnejText('ZK-26-9', 'ZK-26-10'), lessThan(0));
+    expect(porovnejText('Čermák', 'Dvořák'), lessThan(0));
+    expect(porovnejText('šimek', 'Sova'), lessThan(0));
+    expect(porovnejText('', 'A'), lessThan(0));
+    expect(RazeniTabulky.dalsi(null, 'spz'), const RazeniTabulky('spz'));
+    expect(
+      RazeniTabulky.dalsi(const RazeniTabulky('spz'), 'spz'),
+      const RazeniTabulky('spz', sestupne: true),
+    );
+    expect(
+      RazeniTabulky.dalsi(const RazeniTabulky('spz', sestupne: true), 'spz'),
+      isNull,
+    );
+    expect(
+      RazeniTabulky.dalsi(const RazeniTabulky('spz', sestupne: true), 'vin'),
+      const RazeniTabulky('vin'),
+    );
+  });
+
   testWidgets('stažení prstem obnoví i tabulku', (tester) async {
     await spust(
       tester,
