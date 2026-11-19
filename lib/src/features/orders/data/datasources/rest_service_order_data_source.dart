@@ -30,6 +30,7 @@ import '../../../ulozenky/data/ulozenky_data_source.dart';
 import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../diagnostika/data/diagnostika_data_source.dart';
 import '../../../diagnostika/domain/diagnostika.dart';
+import '../../../monitoring/domain/logy.dart';
 import '../../../monitoring/domain/monitoring.dart';
 import '../../../novinky/novinky.dart';
 import '../../../zakaznik/odkaz_zakaznika.dart';
@@ -60,6 +61,7 @@ class RestServiceOrderDataSource
         PlanDataSource,
         UzivateleDataSource,
         MonitoringDataSource,
+        LogyDataSource,
         NovinkyDataSource,
         OdkazZakaznikaDataSource,
         OdesilaniUdalosti {
@@ -718,6 +720,22 @@ class RestServiceOrderDataSource
       throw const ServiceOrderException('Časová osa se nenačetla.');
     }
     return OsaMonitoringu.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<StrankaLogu> nactiLog(DruhLogu druh, Map<String, String> dotaz) async {
+    final data = await _send(
+      'GET',
+      'admin/logs/${druh.kod}?${Uri(queryParameters: dotaz).query}',
+    );
+    if (data == null) throw const ServiceOrderException('Log se nenačetl.');
+    return StrankaLogu.fromJson(druh, _asMap(data));
+  }
+
+  @override
+  Future<VolbyLogu> nactiVolbyLogu() async {
+    final data = await _send('GET', 'admin/logs/options');
+    return data == null ? const VolbyLogu() : VolbyLogu.fromJson(_asMap(data));
   }
 
   @override

@@ -34,6 +34,7 @@ import '../../domain/entities/zpracovatel.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/zavada.dart';
 import '../../../monitoring/data/ukazkovy_monitoring.dart';
+import '../../../monitoring/domain/logy.dart';
 import '../../../monitoring/domain/monitoring.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
@@ -54,6 +55,7 @@ class MockServiceOrderDataSource
         PlanDataSource,
         UzivateleDataSource,
         MonitoringDataSource,
+        LogyDataSource,
         UlozenkyDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
@@ -1067,6 +1069,15 @@ class MockServiceOrderDataSource
     await _simulateLatency();
     return ukazkovaOsa(email);
   }
+
+  @override
+  Future<StrankaLogu> nactiLog(DruhLogu druh, Map<String, String> dotaz) async {
+    await _simulateLatency();
+    return ukazkovyLog(druh, dotaz);
+  }
+
+  @override
+  Future<VolbyLogu> nactiVolbyLogu() async => ukazkoveVolbyLogu;
 
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async {

@@ -34,6 +34,7 @@ import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
 import 'package:renoworkshop/src/features/monitoring/data/ukazkovy_monitoring.dart';
+import 'package:renoworkshop/src/features/monitoring/domain/logy.dart';
 import 'package:renoworkshop/src/features/monitoring/domain/monitoring.dart';
 import 'package:renoworkshop/src/features/novinky/novinky.dart';
 import 'package:renoworkshop/src/features/zakaznik/odkaz_zakaznika.dart';
@@ -56,6 +57,7 @@ class FakeServiceOrderDataSource
         PlanDataSource,
         UzivateleDataSource,
         MonitoringDataSource,
+        LogyDataSource,
         NovinkyDataSource,
         OdkazZakaznikaDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
@@ -202,6 +204,18 @@ class FakeServiceOrderDataSource
   @override
   Future<OsaMonitoringu> nactiOsuMonitoringu(String email, int dni) async =>
       ukazkovaOsa(email, dnes: DateTime(2026, 11, 19, 8, 12));
+
+  /// Dotazy na log, jak je appka poslala.
+  final List<(DruhLogu, Map<String, String>)> dotazyLogu = [];
+
+  @override
+  Future<StrankaLogu> nactiLog(DruhLogu druh, Map<String, String> dotaz) async {
+    dotazyLogu.add((druh, dotaz));
+    return ukazkovyLog(druh, dotaz, dnes: DateTime(2026, 11, 19, 9));
+  }
+
+  @override
+  Future<VolbyLogu> nactiVolbyLogu() async => ukazkoveVolbyLogu;
 
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async => PrehledUzivatelu(

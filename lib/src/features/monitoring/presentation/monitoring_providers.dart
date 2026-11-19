@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../orders/presentation/controllers/orders_providers.dart';
+import '../domain/logy.dart';
 import '../domain/monitoring.dart';
 
 /// Monitoring obsluhuje tatáž služba jako zakázky.
@@ -25,3 +26,15 @@ final osaMonitoringuProvider =
           .watch(monitoringDataSourceProvider)
           .nactiOsuMonitoringu(k.email, k.dni),
     );
+
+/// Log přístupů a událostí obsluhuje tatáž služba jako zakázky.
+final logyDataSourceProvider = Provider<LogyDataSource>((ref) {
+  final zdroj = ref.watch(serviceOrderDataSourceProvider);
+  if (zdroj is LogyDataSource) return zdroj as LogyDataSource;
+  throw StateError('Zdroj dat ${zdroj.runtimeType} neumí logy.');
+});
+
+/// Uživatelé a názvy událostí do filtru logů.
+final volbyLoguProvider = FutureProvider<VolbyLogu>(
+  (ref) => ref.watch(logyDataSourceProvider).nactiVolbyLogu(),
+);

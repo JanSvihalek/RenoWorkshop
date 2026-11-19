@@ -1,3 +1,4 @@
+import '../domain/logy.dart';
 import '../domain/monitoring.dart';
 
 /// Ukázkový monitoring pro ukázková data a testy - vymyšlení lidé.
@@ -150,3 +151,79 @@ OsaMonitoringu ukazkovaOsa(String email, {DateTime? dnes}) {
     ],
   );
 }
+
+/// Ukázkový log - [pocet] řádků, filtr podle e-mailu a stránka podle
+/// `offset` a `limit` z [dotaz].
+StrankaLogu ukazkovyLog(
+  DruhLogu druh,
+  Map<String, String> dotaz, {
+  DateTime? dnes,
+  int pocet = 140,
+}) {
+  final ted = dnes ?? DateTime.now();
+  const lide = [
+    ('eva.mala@example.cz', 'Eva Malá', 'aplikace'),
+    ('petr.novak@example.cz', 'Petr Novák', 'plan'),
+    ('jiri.dvorak@example.cz', 'Jiří Dvořák', 'web'),
+  ];
+  ZaznamLogu radek(int i) {
+    final (email, jmeno, klient) = lide[i % lide.length];
+    final at = ted
+        .subtract(Duration(minutes: i * 7))
+        .toIso8601String()
+        .substring(0, 19);
+    if (druh == DruhLogu.pristupy) {
+      final zapis = i % 4 == 1;
+      return ZaznamLogu.pristup({
+        'id': '${9000 - i}',
+        'at': at,
+        'email': email,
+        'name': jmeno,
+        'client': klient,
+        'version': '2.6.10 (348)',
+        'method': zapis ? 'POST' : 'GET',
+        'path': zapis ? '/api/orders/:id/stavy' : '/api/orders/:id',
+        'label': zapis ? 'Zapsal stav' : 'Otevřel detail zakázky',
+        'write': zapis,
+        'order': 'ZK-26-${(10 + i).toString().padLeft(4, '0')}',
+        'status': i == 5 ? 500 : 200,
+        'ms': 120 + i * 13,
+        'error': i == 5 ? 'internal: Database timeout' : null,
+        'ip': '10.0.0.${i % 255}',
+      });
+    }
+    return ZaznamLogu.udalost({
+      'id': '${5000 - i}',
+      'at': at,
+      'email': email,
+      'name': jmeno,
+      'client': klient,
+      'type': i == 3 ? 'chyba' : 'udalost',
+      'event': i == 3 ? 'sit_nedostupna' : 'obrazovka',
+      'screen': '/orders/ZK-26-0001',
+      'error': i == 3 ? 'Failed to fetch' : null,
+      'device': 'android 15',
+    });
+  }
+
+  final email = dotaz['email'];
+  final vyber = [
+    for (var i = 0; i < pocet; i++)
+      if (email == null || lide[i % lide.length].$1.contains(email)) radek(i),
+  ];
+  final offset = int.tryParse(dotaz['offset'] ?? '') ?? 0;
+  final limit = int.tryParse(dotaz['limit'] ?? '') ?? 100;
+  return StrankaLogu(
+    celkem: vyber.length,
+    polozky: vyber.skip(offset).take(limit).toList(),
+  );
+}
+
+const ukazkoveVolbyLogu = VolbyLogu(
+  uzivatele: [
+    (email: 'eva.mala@example.cz', jmeno: 'Eva Malá'),
+    (email: 'jiri.dvorak@example.cz', jmeno: 'Jiří Dvořák'),
+    (email: 'petr.novak@example.cz', jmeno: 'Petr Novák'),
+  ],
+  udalosti: ['obrazovka', 'sit_nedostupna'],
+);

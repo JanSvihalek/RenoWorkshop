@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../monitoring/presentation/logy_screen.dart';
 import '../../monitoring/presentation/monitoring_screen.dart';
 import 'uzivatele_screen.dart';
 
-/// Admin (jen admin) - záložky Uživatelé a práva a Monitoring, stejně
+/// Admin (jen admin) - záložky Uživatelé a práva, Monitoring a Logy, stejně
 /// jako Admin na webu.
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key, this.jakoZalozka = false});
@@ -19,7 +20,7 @@ class AdminScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: palette.background,
         appBar: AppBar(
@@ -43,13 +44,18 @@ class AdminScreen extends StatelessWidget {
             tabs: const [
               Tab(key: Key('admin-uzivatele'), text: 'Uživatelé a práva'),
               Tab(key: Key('admin-monitoring'), text: 'Monitoring'),
+              Tab(key: Key('admin-logy'), text: 'Logy'),
             ],
           ),
         ),
         // Bez přejetí prstem - v monitoringu a seznamu se posouvá i do stran.
         body: const TabBarView(
           physics: NeverScrollableScrollPhysics(),
-          children: [UzivateleScreen(vnorena: true), MonitoringScreen()],
+          children: [
+            UzivateleScreen(vnorena: true),
+            MonitoringScreen(),
+            LogyScreen(),
+          ],
         ),
       ),
     );
