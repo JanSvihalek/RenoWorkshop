@@ -33,6 +33,8 @@ import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokume
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/fotka.dart';
 import 'package:renoworkshop/src/features/prijem/data/prijem_data_source.dart';
 import 'package:renoworkshop/src/features/prijem/domain/entities/prijem.dart';
+import 'package:renoworkshop/src/features/monitoring/data/ukazkovy_monitoring.dart';
+import 'package:renoworkshop/src/features/monitoring/domain/monitoring.dart';
 import 'package:renoworkshop/src/features/novinky/novinky.dart';
 import 'package:renoworkshop/src/features/zakaznik/odkaz_zakaznika.dart';
 import 'package:renoworkshop/src/features/vozidla/data/vozidla_data_source.dart';
@@ -53,6 +55,7 @@ class FakeServiceOrderDataSource
         KampaneDataSource,
         PlanDataSource,
         UzivateleDataSource,
+        MonitoringDataSource,
         NovinkyDataSource,
         OdkazZakaznikaDataSource {
   /// [archiv] jsou ukončené zakázky: server je vrátí v hledání a v detailu,
@@ -186,6 +189,19 @@ class FakeServiceOrderDataSource
   /// Plánovač u uložení (`null` = beze změny) - kontrola v testu.
   final ulozeniPlanovace = <Map<String, String?>?>[];
   final ulozeniKapacity = <Set<String>?>[];
+
+  /// Kolikrát a za kolik dní se monitoring načetl.
+  final List<int> nacteniMonitoringu = [];
+
+  @override
+  Future<PrehledMonitoringu> nactiMonitoring(int dni) async {
+    nacteniMonitoringu.add(dni);
+    return ukazkovyMonitoring(dni, dnes: DateTime(2026, 11, 19));
+  }
+
+  @override
+  Future<OsaMonitoringu> nactiOsuMonitoringu(String email, int dni) async =>
+      ukazkovaOsa(email, dnes: DateTime(2026, 11, 19, 8, 12));
 
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async => PrehledUzivatelu(

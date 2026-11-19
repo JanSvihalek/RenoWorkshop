@@ -30,6 +30,7 @@ import '../../../ulozenky/data/ulozenky_data_source.dart';
 import '../../../ulozenky/domain/ulozenka_pneu.dart';
 import '../../../diagnostika/data/diagnostika_data_source.dart';
 import '../../../diagnostika/domain/diagnostika.dart';
+import '../../../monitoring/domain/monitoring.dart';
 import '../../../novinky/novinky.dart';
 import '../../../zakaznik/odkaz_zakaznika.dart';
 import '../../../uzivatele/data/uzivatele_data_source.dart';
@@ -58,6 +59,7 @@ class RestServiceOrderDataSource
         KampaneDataSource,
         PlanDataSource,
         UzivateleDataSource,
+        MonitoringDataSource,
         NovinkyDataSource,
         OdkazZakaznikaDataSource,
         OdesilaniUdalosti {
@@ -695,6 +697,27 @@ class RestServiceOrderDataSource
   @override
   Future<void> zrusOdkazZakaznika(String orderId) async {
     await _send('DELETE', _cestaOdkazu(orderId));
+  }
+
+  @override
+  Future<PrehledMonitoringu> nactiMonitoring(int dni) async {
+    final data = await _send('GET', 'admin/monitoring?days=$dni');
+    if (data == null) {
+      throw const ServiceOrderException('Monitoring se nenačetl.');
+    }
+    return PrehledMonitoringu.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<OsaMonitoringu> nactiOsuMonitoringu(String email, int dni) async {
+    final data = await _send(
+      'GET',
+      'admin/monitoring/users/${Uri.encodeComponent(email)}?days=$dni',
+    );
+    if (data == null) {
+      throw const ServiceOrderException('Časová osa se nenačetla.');
+    }
+    return OsaMonitoringu.fromJson(_asMap(data));
   }
 
   @override

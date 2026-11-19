@@ -16,7 +16,7 @@ import '../features/orders/presentation/screens/rozdelene_zakazky_screen.dart';
 import '../features/orders/presentation/screens/skener_screen.dart';
 import '../features/fotodokumentace/presentation/screens/fotodokumentace_screen.dart';
 import '../features/plan/presentation/plan_screen.dart';
-import '../features/uzivatele/presentation/uzivatele_screen.dart';
+import '../features/uzivatele/presentation/admin_screen.dart';
 import '../features/prijem/presentation/screens/prijem_zakazky_screen.dart';
 import '../features/novinky/novinky.dart';
 import '../features/settings/domain/entities/nastaveni.dart';
@@ -180,7 +180,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.admin,
                 builder: (context, state) =>
-                    const UzivateleScreen(jakoZalozka: true),
+                    const AdminScreen(jakoZalozka: true),
               ),
             ],
           ),

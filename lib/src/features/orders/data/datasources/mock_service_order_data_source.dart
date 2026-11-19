@@ -33,6 +33,8 @@ import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/zpracovatel.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/zavada.dart';
+import '../../../monitoring/data/ukazkovy_monitoring.dart';
+import '../../../monitoring/domain/monitoring.dart';
 import '../dtos/service_order_dto.dart';
 import 'service_order_data_source.dart';
 
@@ -51,6 +53,7 @@ class MockServiceOrderDataSource
         KampaneDataSource,
         PlanDataSource,
         UzivateleDataSource,
+        MonitoringDataSource,
         UlozenkyDataSource {
   MockServiceOrderDataSource({
     AssetBundle? bundle,
@@ -1052,6 +1055,18 @@ class MockServiceOrderDataSource
     PoradacSpravy(kod: '17362', nazev: 'MOT CSK', pobockaNazev: 'Česká'),
     PoradacSpravy(kod: '17350', nazev: 'BMW PBU', pobockaNazev: 'Bubeneč'),
   ];
+
+  @override
+  Future<PrehledMonitoringu> nactiMonitoring(int dni) async {
+    await _simulateLatency();
+    return ukazkovyMonitoring(dni);
+  }
+
+  @override
+  Future<OsaMonitoringu> nactiOsuMonitoringu(String email, int dni) async {
+    await _simulateLatency();
+    return ukazkovaOsa(email);
+  }
 
   @override
   Future<PrehledUzivatelu> nactiUzivatele() async {

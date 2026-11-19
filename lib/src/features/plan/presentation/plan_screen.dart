@@ -18,7 +18,7 @@ import '../../orders/presentation/widgets/order_status_visuals.dart';
 import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/prehled_planu.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
-import '../../uzivatele/presentation/uzivatele_screen.dart';
+import '../../uzivatele/presentation/admin_screen.dart';
 import 'kapacita_screen.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
@@ -193,7 +193,7 @@ class _Ovladani extends ConsumerWidget {
                   tooltip: 'Admin',
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const UzivateleScreen(),
+                      builder: (_) => const AdminScreen(),
                     ),
                   ),
                   icon: const Icon(Icons.admin_panel_settings),

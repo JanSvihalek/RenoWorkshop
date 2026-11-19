@@ -23,11 +23,19 @@ const _sirkaVedleSebe = 840.0;
 /// Uživatelé a práva na webu: vlevo seznam s hledáním, filtry a shrnutím
 /// práv, vpravo detail vybraného. Na telefonu seznam a klepnutím detail.
 class UzivateleScreen extends ConsumerStatefulWidget {
-  const UzivateleScreen({super.key, this.jakoZalozka = false});
+  const UzivateleScreen({
+    super.key,
+    this.jakoZalozka = false,
+    this.vnorena = false,
+  });
 
   /// Záložka Admin v hlavní navigaci - bez šipky zpět. Jinak samostatná
-  /// obrazovka (z plánovače).
+  /// obrazovka.
   final bool jakoZalozka;
+
+  /// Uvnitř obrazovky Admin (záložka Uživatelé a práva) - bez vlastní
+  /// horní lišty, tu má Admin.
+  final bool vnorena;
 
   @override
   ConsumerState<UzivateleScreen> createState() => _UzivateleScreenState();
@@ -72,15 +80,17 @@ class _UzivateleScreenState extends ConsumerState<UzivateleScreen> {
 
     return Scaffold(
       backgroundColor: palette.background,
-      appBar: AppBar(
-        backgroundColor: palette.background,
-        surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: !widget.jakoZalozka,
-        title: Text(
-          'Uživatelé a práva',
-          style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
-        ),
-      ),
+      appBar: widget.vnorena
+          ? null
+          : AppBar(
+              backgroundColor: palette.background,
+              surfaceTintColor: Colors.transparent,
+              automaticallyImplyLeading: !widget.jakoZalozka,
+              title: Text(
+                'Uživatelé a práva',
+                style: AppTextStyles.sectionTitle.copyWith(color: palette.text),
+              ),
+            ),
       body: prehled.when(
         skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
