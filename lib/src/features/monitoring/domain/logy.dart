@@ -38,6 +38,7 @@ class FiltrLogu {
     this.email = '',
     this.klient = '',
     this.zakazka = '',
+    this.jenAkce = true,
     this.metoda = '',
     this.vysledek = '',
     this.cesta = '',
@@ -62,6 +63,9 @@ class FiltrLogu {
   final String zakazka;
 
   // Přístupy
+  /// Jen co člověk udělal - bez automatického načítání (fotky a dokumenty
+  /// s detailem, obnova seznamu). Chyby jsou vidět vždy.
+  final bool jenAkce;
   final String metoda;
 
   /// `ok` | `chyby` | `4xx` | `5xx` | `401`.
@@ -80,6 +84,7 @@ class FiltrLogu {
     String? email,
     String? klient,
     String? zakazka,
+    bool? jenAkce,
     String? metoda,
     String? vysledek,
     String? cesta,
@@ -93,6 +98,7 @@ class FiltrLogu {
     email: email ?? this.email,
     klient: klient ?? this.klient,
     zakazka: zakazka ?? this.zakazka,
+    jenAkce: jenAkce ?? this.jenAkce,
     metoda: metoda ?? this.metoda,
     vysledek: vysledek ?? this.vysledek,
     cesta: cesta ?? this.cesta,
@@ -102,8 +108,8 @@ class FiltrLogu {
     hledat: hledat ?? this.hledat,
   );
 
-  /// Stejné období, jinak nic.
-  FiltrLogu bezFiltru() => FiltrLogu(od: od, do_: do_);
+  /// Stejné období a volba Jen akce, jinak nic.
+  FiltrLogu bezFiltru() => FiltrLogu(od: od, do_: do_, jenAkce: jenAkce);
 
   Map<String, String> _pole(DruhLogu druh) => {
     'email': email,
@@ -137,6 +143,7 @@ class FiltrLogu {
     'to': _den(do_),
     for (final e in _pole(druh).entries)
       if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+    if (druh == DruhLogu.pristupy) 'show': jenAkce ? 'akce' : 'vse',
     'sort': razeni,
     'dir': vzestupne ? 'asc' : 'desc',
     'offset': '$offset',
@@ -151,6 +158,7 @@ class FiltrLogu {
       other.email == email &&
       other.klient == klient &&
       other.zakazka == zakazka &&
+      other.jenAkce == jenAkce &&
       other.metoda == metoda &&
       other.vysledek == vysledek &&
       other.cesta == cesta &&
@@ -166,6 +174,7 @@ class FiltrLogu {
     email,
     klient,
     zakazka,
+    jenAkce,
     metoda,
     vysledek,
     cesta,
@@ -192,6 +201,7 @@ class ZaznamLogu {
     this.verze,
     this.podpopis,
     this.zapis = false,
+    this.auto = false,
     this.zakazka,
     this.stav,
     this.ms,
@@ -213,6 +223,9 @@ class ZaznamLogu {
   /// Pod ním: `POST /api/orders/:id/stavy` nebo obrazovka.
   final String? podpopis;
   final bool zapis;
+
+  /// Načetla to aplikace nebo web sami - ne akce uživatele.
+  final bool auto;
   final String? zakazka;
 
   /// Přístupy: kód odpovědi a doba.
@@ -240,6 +253,7 @@ class ZaznamLogu {
     popis: _text(j['label']) ?? '${j['method']} ${j['path']}',
     podpopis: '${j['method']} ${j['path']}',
     zapis: j['write'] == true,
+    auto: j['auto'] == true,
     zakazka: _text(j['order']),
     stav: _cislo(j['status']),
     ms: _cislo(j['ms']),

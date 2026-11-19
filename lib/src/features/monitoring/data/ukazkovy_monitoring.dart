@@ -185,6 +185,7 @@ StrankaLogu ukazkovyLog(
         'path': zapis ? '/api/orders/:id/stavy' : '/api/orders/:id',
         'label': zapis ? 'Zapsal stav' : 'Otevřel detail zakázky',
         'write': zapis,
+        'auto': false,
         'order': 'ZK-26-${(10 + i).toString().padLeft(4, '0')}',
         'status': i == 5 ? 500 : 200,
         'ms': 120 + i * 13,

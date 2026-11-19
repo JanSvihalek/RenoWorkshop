@@ -194,6 +194,17 @@ class _LogyScreenState extends ConsumerState<LogyScreen> {
                         ),
                         onPressed: _otevriFiltr,
                       ),
+                      if (_druh == DruhLogu.pristupy)
+                        FilterChip(
+                          key: const Key('logy-jen-akce'),
+                          label: const Text('Jen akce uživatele'),
+                          tooltip:
+                              'Bez fotek a dokumentů, které se načtou s detailem, '
+                              'a bez obnovy seznamu. Chyby jsou vidět vždy.',
+                          selected: _filtr.jenAkce,
+                          onSelected: (v) =>
+                              _zmen(() => _filtr = _filtr.copyWith(jenAkce: v)),
+                        ),
                       if (pocetFiltru > 0)
                         ActionChip(
                           key: const Key('logy-zrusit-filtr'),
@@ -429,6 +440,8 @@ class _RadekLogu extends StatelessWidget {
                     ? AppColors.danger
                     : z.zapis
                     ? AppColors.repairBlue
+                    : z.auto
+                    ? palette.muted
                     : palette.text,
                 fontWeight: z.zapis || z.jeChyba ? FontWeight.w600 : null,
               ),

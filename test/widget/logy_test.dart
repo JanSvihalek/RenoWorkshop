@@ -77,6 +77,7 @@ void main() {
     expect(dotaz, {
       'from': '2026-11-13',
       'to': '2026-11-19',
+      'show': 'akce',
       'sort': 'cas',
       'dir': 'desc',
       'offset': '0',
@@ -88,6 +89,12 @@ void main() {
     await tester.tap(find.byKey(const Key('logy-dalsi')));
     await tester.pumpAndSettle();
     expect(zdroj.dotazyLogu.last.$2['offset'], '100');
+
+    await tester.drag(find.byKey(const Key('logy')), const Offset(0, 20000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('logy-jen-akce')));
+    await tester.pumpAndSettle();
+    expect(zdroj.dotazyLogu.last.$2['show'], 'vse');
 
     // Klepnutí na jméno vyfiltruje jen toho uživatele.
     await tester.drag(find.byKey(const Key('logy')), const Offset(0, 20000));
@@ -135,8 +142,9 @@ void main() {
     await tester.pumpAndSettle();
     final (druh, dotaz) = zdroj.dotazyLogu.last;
     expect(druh, DruhLogu.udalosti);
-    // Výsledek patří jen k přístupům, řazení se vrátí na čas.
+    // Výsledek i Jen akce patří jen k přístupům, řazení se vrátí na čas.
     expect(dotaz.containsKey('result'), isFalse);
+    expect(dotaz.containsKey('show'), isFalse);
     expect(dotaz['sort'], 'cas');
     expect(find.text('sit_nedostupna'), findsOneWidget);
   });
@@ -159,5 +167,20 @@ void main() {
     expect(f.pocet(DruhLogu.pristupy), 1);
     expect(f.pocet(DruhLogu.udalosti), 1);
     expect(f.bezFiltru().pocet(DruhLogu.pristupy), 0);
+    expect(d['show'], 'akce');
+    // Všechny požadavky - i automatické načítání; Zrušit filtr volbu nechá.
+    final vse = f.copyWith(jenAkce: false);
+    expect(
+      vse.dotaz(
+        DruhLogu.pristupy,
+        razeni: 'cas',
+        vzestupne: false,
+        offset: 0,
+        limit: 50,
+      )['show'],
+      'vse',
+    );
+    expect(vse.bezFiltru().jenAkce, isFalse);
+    expect(vse.pocet(DruhLogu.pristupy), 1);
   });
 }
