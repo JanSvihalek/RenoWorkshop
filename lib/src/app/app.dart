@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/log/popis_kliku.dart';
 import '../core/theme/app_theme.dart';
 import '../features/settings/presentation/controllers/nastaveni_controller.dart';
 import '../features/settings/presentation/controllers/nastaveni_uctu_provider.dart';
+import 'log_udalosti_provider.dart';
 import 'router.dart';
 import 'package:flutter/services.dart';
 
@@ -27,11 +29,15 @@ class RenoWorkshopApp extends ConsumerWidget {
       themeMode: ref.watch(nastaveniProvider).vzhled.themeMode,
       // Hodiny a baterie podle hlavičky: na bílé tmavé, na navy bílé.
       // Tmavé obrazovky (přihlášení, skener) si nastavují bílé samy.
-      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-        value: context.isDarkMode
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark,
-        child: child!,
+      // Každé klepnutí na tlačítko, záložku, menu… do logu událostí.
+      builder: (context, child) => SledovaniKliku(
+        onKlik: (detail) => ref.read(logUdalostiProvider).klik(detail),
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: context.isDarkMode
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+          child: child!,
+        ),
       ),
       locale: const Locale('cs', 'CZ'),
       supportedLocales: const [Locale('cs', 'CZ')],

@@ -180,13 +180,30 @@ class MonitoringScreen extends ConsumerWidget {
         ),
         _Karta(
           nadpis: 'Obrazovky',
-          popis: 'Kam se v aplikaci a na webu chodí',
+          popis:
+              'Kam se v aplikaci a na webu chodí; čas = aktivní práce '
+              'na obrazovce, všichni dohromady',
           child: _Pruhy(
             polozky: p.obrazovky,
             prazdne: p.dni > 30
                 ? 'Obrazovky se v logu drží jen 30 dní.'
                 : 'Zatím žádné obrazovky v logu.',
           ),
+        ),
+      ),
+      const SizedBox(height: Insets.xl),
+      _Karta(
+        key: const Key('monitoring-kliky'),
+        nadpis: 'Kliknutí',
+        popis:
+            'Na co se po obrazovkách kliká – jen obecně (tlačítko, záložka, '
+            'pole…), bez nápisů. Drží se 14 dní.',
+        child: _Pruhy(
+          polozky: p.kliky,
+          prazdne: p.dni > 14
+              ? 'Kliknutí se v logu drží jen 14 dní.'
+              : 'Zatím žádná kliknutí v logu – zapisuje je aplikace od verze '
+                    '2.6.12 a web po nasazení.',
         ),
       ),
       const SizedBox(height: Insets.xl),
@@ -257,7 +274,12 @@ class _Obdobi extends ConsumerWidget {
 }
 
 class _Karta extends StatelessWidget {
-  const _Karta({required this.nadpis, required this.child, this.popis});
+  const _Karta({
+    super.key,
+    required this.nadpis,
+    required this.child,
+    this.popis,
+  });
 
   final String nadpis;
   final String? popis;
@@ -885,9 +907,12 @@ class _PruhyState extends State<_Pruhy> {
                         TextSpan(
                           text: x.text,
                           children: [
-                            if (x.stitek != null)
+                            if (x.stitek != null || x.doplnek != null)
                               TextSpan(
-                                text: '  ${x.stitek}',
+                                // Čas na obrazovce ke štítku - vpravo na
+                                // telefonu není místo.
+                                text:
+                                    '  ${[?x.stitek, ?x.doplnek].join(' · ')}',
                                 style: AppTextStyles.metaSmall.copyWith(
                                   color: palette.muted,
                                 ),
@@ -1185,7 +1210,12 @@ class _RadekOsy extends StatelessWidget {
                     ],
                   ),
                   style: AppTextStyles.cardBody.copyWith(
-                    color: chyba ? AppColors.danger : palette.text,
+                    // Kliků je nejvíc - tlumeně, ať nepřehluší zápisy.
+                    color: chyba
+                        ? AppColors.danger
+                        : x.druh == DruhOsy.klik
+                        ? palette.muted
+                        : palette.text,
                     fontWeight: x.druh == DruhOsy.zapis || chyba
                         ? FontWeight.w600
                         : null,

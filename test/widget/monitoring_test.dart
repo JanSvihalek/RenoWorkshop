@@ -132,7 +132,24 @@ void main() {
       'actions': [
         {'label': 'Zapsal stav', 'write': true, 'count': 1, 'users': 1},
       ],
-      'screens': [],
+      'screens': [
+        {
+          'label': 'Detail zakázky',
+          'client': 'aplikace',
+          'count': 4,
+          'users': 1,
+          'seconds': 200,
+        },
+      ],
+      'clicks': [
+        {
+          'screen': 'Detail zakázky',
+          'client': 'aplikace',
+          'label': 'záložka',
+          'count': 3,
+          'users': 1,
+        },
+      ],
       'versions': [
         {'version': '2.6.9+1', 'users': 1},
       ],
@@ -148,5 +165,10 @@ void main() {
     expect(p.nejnovejsiVerze, '2.6.9+1');
     expect(p.chyby.single.odkud, 'Plánovač');
     expect(popisKlienta(null), 'Aplikace');
+    expect(p.obrazovky.single.doplnek, '3 min');
+    expect(p.kliky.single.text, 'záložka');
+    expect(p.kliky.single.stitek, 'Detail zakázky · Aplikace');
+    expect([45, 720, 11100].map(trvani), ['45 s', '12 min', '3 h 05 min']);
+    expect(DruhOsy.z('klik'), DruhOsy.klik);
   });
 }

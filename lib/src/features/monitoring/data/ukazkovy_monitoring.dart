@@ -93,8 +93,29 @@ PrehledMonitoringu ukazkovyMonitoring(int dni, {DateTime? dnes}) {
         pocet: 420,
         lidi: 3,
         stitek: 'Aplikace',
+        doplnek: '3 h 20 min',
       ),
-      PolozkaPruhu(text: 'Plánovač', pocet: 150, lidi: 1, stitek: 'Plánovač'),
+      PolozkaPruhu(
+        text: 'Plánovač',
+        pocet: 150,
+        lidi: 1,
+        stitek: 'Plánovač',
+        doplnek: '1 h 05 min',
+      ),
+    ],
+    kliky: const [
+      PolozkaPruhu(
+        text: 'záložka',
+        pocet: 240,
+        lidi: 3,
+        stitek: 'Detail zakázky · Aplikace',
+      ),
+      PolozkaPruhu(
+        text: 'čip',
+        pocet: 130,
+        lidi: 2,
+        stitek: 'Seznam zakázek · Aplikace',
+      ),
     ],
     verze: const [
       PolozkaPruhu(
@@ -139,6 +160,14 @@ OsaMonitoringu ukazkovaOsa(String email, {DateTime? dnes}) {
         klient: 'aplikace',
         druh: DruhOsy.zapis,
         popis: 'Zapsal stav',
+        zakazka: 'ZK-26-0001',
+      ),
+      PolozkaOsy(
+        kdy: ted.subtract(const Duration(minutes: 31)),
+        od: ted.subtract(const Duration(minutes: 31)),
+        klient: 'aplikace',
+        druh: DruhOsy.klik,
+        popis: 'tlačítko',
         zakazka: 'ZK-26-0001',
       ),
       PolozkaOsy(

@@ -103,7 +103,8 @@ String? zakazkaZCesty(String cesta) {
 /// Log událostí aplikace - co se v telefonu dělo a kde spadlo.
 ///
 /// Doplňuje log přístupů ve službě: ten vidí jen požadavky na server,
-/// tenhle i obrazovky, focení, přihlášení, výpadky sítě a chyby aplikace.
+/// tenhle i obrazovky, kliknutí (popis_kliku.dart), focení, přihlášení,
+/// výpadky sítě a chyby aplikace.
 /// Když technik nahlásí chybu, je z něj vidět, jak se k ní dostal.
 ///
 /// Záznamy se sbírají do fronty a posílají po dávkách - jednou za minutu,
@@ -137,6 +138,9 @@ class LogUdalosti {
   /// Od kolika čekajících se posílá hned, bez čekání na minutu.
   static const odeslatOd = 50;
 
+  /// Stejný klik hned po sobě (dvojklik) jen jednou.
+  static const dvojklik = Duration(milliseconds: 400);
+
   final OdesilaniUdalosti? Function() _odesilani;
   final bool Function() _prihlasen;
   final UlozisteLogu _uloziste;
@@ -147,6 +151,7 @@ class LogUdalosti {
   final List<Udalost> _fronta = [];
   String? _obrazovka;
   String? _zakazka;
+  (String, DateTime)? _posledniKlik;
   bool _odesila = false;
   Timer? _casovac;
   AppLifecycleListener? _zivot;
@@ -203,6 +208,20 @@ class LogUdalosti {
         detail: detail,
       ),
     );
+  }
+
+  /// Klepnutí na ovládací prvek - jen obecně, na co (`tlačítko`,
+  /// `záložka`…, popis_kliku.dart); obrazovku a zakázku doplní log sám.
+  void klik(String detail) {
+    final ted = _ted();
+    final posledni = _posledniKlik;
+    if (posledni != null &&
+        posledni.$1 == detail &&
+        ted.difference(posledni.$2) < dvojklik) {
+      return;
+    }
+    _posledniKlik = (detail, ted);
+    udalost('klik', detail: detail);
   }
 
   /// Chyba. Hned se uloží i do telefonu - aplikace po ní může spadnout.

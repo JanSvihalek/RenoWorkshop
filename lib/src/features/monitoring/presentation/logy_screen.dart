@@ -205,6 +205,32 @@ class _LogyScreenState extends ConsumerState<LogyScreen> {
                           onSelected: (v) =>
                               _zmen(() => _filtr = _filtr.copyWith(jenAkce: v)),
                         ),
+                      if (_druh == DruhLogu.udalosti)
+                        PopupMenuButton<String>(
+                          key: const Key('logy-kliky'),
+                          tooltip: 'Kliknutí v logu',
+                          initialValue: _filtr.kliky,
+                          onSelected: (v) =>
+                              _zmen(() => _filtr = _filtr.copyWith(kliky: v)),
+                          itemBuilder: (_) => [
+                            for (final (kod, popis) in volbyKliku)
+                              PopupMenuItem(value: kod, child: Text(popis)),
+                          ],
+                          child: Chip(
+                            avatar: const Icon(
+                              Icons.touch_app_outlined,
+                              size: 18,
+                            ),
+                            label: Text(
+                              volbyKliku
+                                  .firstWhere(
+                                    (v) => v.$1 == _filtr.kliky,
+                                    orElse: () => volbyKliku.first,
+                                  )
+                                  .$2,
+                            ),
+                          ),
+                        ),
                       if (pocetFiltru > 0)
                         ActionChip(
                           key: const Key('logy-zrusit-filtr'),

@@ -27,6 +27,13 @@ const razeniUdalosti = [
   ('nazev', 'Název'),
 ];
 
+/// Volba kliknutí v logu událostí - kód pro službu a popisek.
+const volbyKliku = [
+  ('vse', 'Vše i s kliknutím'),
+  ('bez_kliku', 'Bez kliknutí'),
+  ('kliky', 'Jen kliknutí'),
+];
+
 String _den(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -43,6 +50,7 @@ class FiltrLogu {
     this.vysledek = '',
     this.cesta = '',
     this.minMs = '',
+    this.kliky = 'vse',
     this.typ = '',
     this.nazev = '',
     this.hledat = '',
@@ -73,7 +81,11 @@ class FiltrLogu {
   final String cesta;
   final String minMs;
 
-  // Události: `udalost` | `chyba` | `audit`.
+  // Události
+  /// Kliknutí je nejvíc: `vse` | `bez_kliku` | `kliky` (jen ona).
+  final String kliky;
+
+  /// `udalost` | `chyba` | `audit`.
   final String typ;
   final String nazev;
   final String hledat;
@@ -89,6 +101,7 @@ class FiltrLogu {
     String? vysledek,
     String? cesta,
     String? minMs,
+    String? kliky,
     String? typ,
     String? nazev,
     String? hledat,
@@ -103,13 +116,15 @@ class FiltrLogu {
     vysledek: vysledek ?? this.vysledek,
     cesta: cesta ?? this.cesta,
     minMs: minMs ?? this.minMs,
+    kliky: kliky ?? this.kliky,
     typ: typ ?? this.typ,
     nazev: nazev ?? this.nazev,
     hledat: hledat ?? this.hledat,
   );
 
-  /// Stejné období a volba Jen akce, jinak nic.
-  FiltrLogu bezFiltru() => FiltrLogu(od: od, do_: do_, jenAkce: jenAkce);
+  /// Stejné období a volby zobrazení (Jen akce, kliknutí), jinak nic.
+  FiltrLogu bezFiltru() =>
+      FiltrLogu(od: od, do_: do_, jenAkce: jenAkce, kliky: kliky);
 
   Map<String, String> _pole(DruhLogu druh) => {
     'email': email,
@@ -143,7 +158,7 @@ class FiltrLogu {
     'to': _den(do_),
     for (final e in _pole(druh).entries)
       if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
-    if (druh == DruhLogu.pristupy) 'show': jenAkce ? 'akce' : 'vse',
+    'show': druh == DruhLogu.pristupy ? (jenAkce ? 'akce' : 'vse') : kliky,
     'sort': razeni,
     'dir': vzestupne ? 'asc' : 'desc',
     'offset': '$offset',
@@ -163,6 +178,7 @@ class FiltrLogu {
       other.vysledek == vysledek &&
       other.cesta == cesta &&
       other.minMs == minMs &&
+      other.kliky == kliky &&
       other.typ == typ &&
       other.nazev == nazev &&
       other.hledat == hledat;
@@ -179,6 +195,7 @@ class FiltrLogu {
     vysledek,
     cesta,
     minMs,
+    kliky,
     typ,
     nazev,
     hledat,

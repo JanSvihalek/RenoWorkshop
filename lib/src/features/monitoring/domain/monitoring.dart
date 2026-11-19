@@ -118,6 +118,7 @@ class PolozkaPruhu {
     this.lidi = 0,
     this.stitek,
     this.zvyraznit = false,
+    this.doplnek,
   });
 
   final String text;
@@ -125,6 +126,18 @@ class PolozkaPruhu {
   final int lidi;
   final String? stitek;
   final bool zvyraznit;
+
+  /// Za počtem, např. čas na obrazovce.
+  final String? doplnek;
+}
+
+/// Čas na obrazovce: „45 s“, „12 min“, „3 h 05 min“.
+String trvani(int sekund) {
+  final s = sekund < 0 ? 0 : sekund;
+  if (s < 60) return '$s s';
+  final min = (s / 60).round();
+  if (min < 60) return '$min min';
+  return '${min ~/ 60} h ${(min % 60).toString().padLeft(2, '0')} min';
 }
 
 class ChybaMonitoringu {
@@ -179,6 +192,7 @@ class PrehledMonitoringu {
     this.neaktivni = const [],
     this.akce = const [],
     this.obrazovky = const [],
+    this.kliky = const [],
     this.verze = const [],
     this.chyby = const [],
   });
@@ -203,6 +217,9 @@ class PrehledMonitoringu {
   final List<UzivatelMonitoringu> neaktivni;
   final List<PolozkaPruhu> akce;
   final List<PolozkaPruhu> obrazovky;
+
+  /// Nejčastější kliknutí; `text` je druh prvku (tlačítko, záložka…), štítek obrazovka.
+  final List<PolozkaPruhu> kliky;
 
   /// Nejnovější první.
   final List<PolozkaPruhu> verze;
@@ -265,6 +282,21 @@ class PrehledMonitoringu {
             pocet: _cislo(o['count']),
             lidi: _cislo(o['users']),
             stitek: popisKlienta(_text(o['client'])),
+            doplnek: _cislo(o['seconds']) > 0
+                ? trvani(_cislo(o['seconds']))
+                : null,
+          ),
+      ],
+      kliky: [
+        for (final k in _seznam(j['clicks']))
+          PolozkaPruhu(
+            text: _text(k['label']) ?? '',
+            pocet: _cislo(k['count']),
+            lidi: _cislo(k['users']),
+            stitek: [
+              ?_text(k['screen']),
+              popisKlienta(_text(k['client'])),
+            ].join(' · '),
           ),
       ],
       verze: [
@@ -324,6 +356,7 @@ enum DruhOsy {
   cteni('Čtení'),
   zapis('Zápis'),
   obrazovka('Obrazovka'),
+  klik('Klik'),
   udalost('Událost'),
   chyba('Chyba');
 
@@ -333,6 +366,7 @@ enum DruhOsy {
   static DruhOsy z(Object? kod) => switch (kod) {
     'zapis' => zapis,
     'obrazovka' => obrazovka,
+    'klik' => klik,
     'udalost' => udalost,
     'chyba' => chyba,
     _ => cteni,

@@ -143,10 +143,17 @@ void main() {
     final (druh, dotaz) = zdroj.dotazyLogu.last;
     expect(druh, DruhLogu.udalosti);
     // Výsledek i Jen akce patří jen k přístupům, řazení se vrátí na čas.
+    // U událostí je show volba kliknutí.
     expect(dotaz.containsKey('result'), isFalse);
-    expect(dotaz.containsKey('show'), isFalse);
+    expect(dotaz['show'], 'vse');
     expect(dotaz['sort'], 'cas');
     expect(find.text('sit_nedostupna'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('logy-kliky')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bez kliknutí').last);
+    await tester.pumpAndSettle();
+    expect(zdroj.dotazyLogu.last.$2['show'], 'bez_kliku');
   });
 
   test('dotaz: jen neprázdná pole daného logu', () {
