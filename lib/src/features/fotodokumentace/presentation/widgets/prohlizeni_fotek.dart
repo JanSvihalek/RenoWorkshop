@@ -167,6 +167,9 @@ class _ProhlizeniFotekState extends ConsumerState<ProhlizeniFotek> {
         children: [
           PageView.builder(
             key: const Key('fotky-stranky'),
+            // Sousední stránky se připraví dopředu - celá fotka je při
+            // listování hned, bez náhledu a přechodu.
+            allowImplicitScrolling: true,
             controller: _stranky,
             physics: _zvetseno
                 ? const NeverScrollableScrollPhysics()

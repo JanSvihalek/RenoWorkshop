@@ -184,6 +184,8 @@ void main() {
     expect(find.text('Poškození zepředu.JPG'), findsOneWidget);
     // Prohlížení bere velký náhled ze služby, ne originál (HEIC z iPhonu).
     expect(zdroj.nahledyDokumentu, contains('foto-1 (velký)'));
+    // Další obrázek se připraví dopředu - listování nečeká.
+    expect(zdroj.nahledyDokumentu, contains('foto-2 (velký)'));
     expect(find.textContaining('1 / 2'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('obrazek-dalsi')));

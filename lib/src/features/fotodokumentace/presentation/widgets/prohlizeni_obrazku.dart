@@ -108,6 +108,9 @@ class _ProhlizeniObrazkuState extends State<ProhlizeniObrazku> {
         children: [
           PageView.builder(
             key: const Key('obrazky-stranky'),
+            // Sousední stránky se připraví dopředu - celá fotka je při
+            // listování hned, bez náhledu a přechodu.
+            allowImplicitScrolling: true,
             controller: _stranky,
             physics: _zvetseno
                 ? const NeverScrollableScrollPhysics()
