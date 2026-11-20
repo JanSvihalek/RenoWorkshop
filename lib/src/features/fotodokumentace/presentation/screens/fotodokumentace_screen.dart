@@ -18,6 +18,7 @@ import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../controllers/fotky_providers.dart';
 import '../prace_s_dokumenty.dart';
 import '../widgets/prohlizeni_fotek.dart';
+import '../widgets/prohlizeni_obrazku.dart';
 import '../ulozeni_do_zarizeni.dart';
 import '../ziskani_fotek.dart';
 import '../../../../app/log_udalosti_provider.dart';
@@ -377,6 +378,7 @@ class _FotodokumentaceObsahState extends ConsumerState<FotodokumentaceObsah> {
                   // zakázky - PDF i cokoli mimo ostatní kategorie.
                   dokumenty: kategorie == KategorieFotky.ostatni
                       ? _DokumentyKategorie(
+                          orderId: orderId,
                           dokumenty: dokumenty,
                           nahrava: _nahravaDokumentu,
                           oteviraId: _oteviraDokument,
@@ -618,6 +620,7 @@ class _KartaKategorie extends StatelessWidget {
 /// kolega vložil do složky zakázky mimo ostatní kategorie.
 class _DokumentyKategorie extends StatelessWidget {
   const _DokumentyKategorie({
+    required this.orderId,
     required this.dokumenty,
     required this.nahrava,
     required this.oteviraId,
@@ -626,6 +629,7 @@ class _DokumentyKategorie extends StatelessWidget {
     required this.onZnovu,
   });
 
+  final String orderId;
   final AsyncValue<List<Dokument>> dokumenty;
 
   /// Kolik souborů se ještě nahrává; 0 = nic.
@@ -659,7 +663,17 @@ class _DokumentyKategorie extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seznam = dokumenty.valueOrNull ?? const <Dokument>[];
+    final vse = dokumenty.valueOrNull ?? const <Dokument>[];
+    // Obrázky (fotky z foťáku vložené kolegou ručně…) jako náhledy - jde
+    // jimi listovat; řádky jen pro PDF, tabulky a další.
+    final obrazky = [
+      for (final d in vse)
+        if (d.jeObrazek) d,
+    ];
+    final seznam = [
+      for (final d in vse)
+        if (!d.jeObrazek) d,
+    ];
 
     if (dokumenty.hasError && !dokumenty.hasValue) {
       return Row(
@@ -691,6 +705,29 @@ class _DokumentyKategorie extends StatelessWidget {
               ),
             ),
           ),
+        if (obrazky.isNotEmpty) ...[
+          const SizedBox(height: Insets.sm),
+          SizedBox(
+            key: const Key('obrazky-dokumentu'),
+            height: 80,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final obrazek in obrazky)
+                  _MiniaturaObrazku(
+                    orderId: orderId,
+                    obrazek: obrazek,
+                    onTap: () => otevriProhlizeniObrazku(
+                      context,
+                      orderId: orderId,
+                      obrazek: obrazek,
+                      obrazky: obrazky,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (seznam.isNotEmpty) const SizedBox(height: Insets.xs),
         ...SbalitelnaSkupina.kdyzDlouhy(
           nazev: 'Dokumenty',
@@ -776,6 +813,64 @@ class _RadekDokumentu extends StatelessWidget {
                   : Icon(Icons.chevron_right_rounded, color: palette.muted),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Náhled obrázku ze složky zakázky - jako miniatura fotky.
+class _MiniaturaObrazku extends ConsumerWidget {
+  const _MiniaturaObrazku({
+    required this.orderId,
+    required this.obrazek,
+    required this.onTap,
+  });
+
+  final String orderId;
+  final Dokument obrazek;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final nahled = ref.watch(nahledDokumentuProvider((orderId, obrazek.id)));
+
+    return Padding(
+      padding: const EdgeInsets.only(right: Insets.sm),
+      child: Semantics(
+        button: true,
+        label: obrazek.nazev,
+        child: GestureDetector(
+          key: Key('obrazek-${obrazek.id}'),
+          onTap: onTap,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.input),
+            child: Container(
+              width: 80,
+              height: 80,
+              color: palette.plate,
+              child: nahled.when(
+                data: (bajty) => Image.memory(
+                  bajty,
+                  fit: BoxFit.cover,
+                  cacheWidth: 240,
+                  gaplessPlayback: true,
+                  errorBuilder: (_, _, _) =>
+                      Icon(Icons.image_rounded, color: palette.muted),
+                ),
+                loading: () => const Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (_, _) =>
+                    Icon(Icons.broken_image_outlined, color: palette.muted),
+              ),
+            ),
+          ),
         ),
       ),
     );

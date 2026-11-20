@@ -53,6 +53,15 @@ abstract interface class FotkyDataSource {
   /// z Heliosu (id `helios-…`).
   Future<Uint8List> stahniDokument(String orderId, String id);
 
+  /// `GET /orders/{id}/documents/{docId}/thumbnail` - zmenšený náhled
+  /// obrázku ze složky zakázky (`Dokument.jeObrazek`). [velky] = velký
+  /// náhled pro prohlížení (`?size=large`, 2000 px JPEG - i z HEIC).
+  Future<Uint8List> stahniNahledDokumentu(
+    String orderId,
+    String id, {
+    bool velky = false,
+  });
+
   /// `GET /orders/{id}/helios-documents` - dokumenty zakázky z EDM Heliosu
   /// (zakázkový list...), nejnovější první. Jen ke čtení.
   Future<List<Dokument>> dokumentyHeliosu(String orderId);

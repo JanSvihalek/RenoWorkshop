@@ -57,6 +57,10 @@ class Dokument {
     return tecka < 0 ? '' : nazev.substring(tecka + 1).toLowerCase();
   }
 
+  /// Obrázek ze složky, ze kterého služba udělá náhled - v aplikaci je
+  /// v mřížce náhledů jako fotky, ne v řádcích. Dokument z Heliosu ne.
+  bool get jeObrazek => !zHeliosu && priponyObrazku.contains(pripona);
+
   IconData get ikona => switch (pripona) {
     'pdf' => Icons.picture_as_pdf_rounded,
     'jpg' || 'jpeg' || 'png' || 'heic' => Icons.image_rounded,
@@ -88,6 +92,22 @@ const priponyDokumentu = [
   'txt',
   'csv',
 ];
+
+/// Obrázky s náhledem - jako `PRIPONY_OBRAZKU` ve službě
+/// (RenoWorkshopApi/src/domain/dokumenty.ts). I HEIC z iPhonu - služba
+/// ho posílá jako JPEG.
+const priponyObrazku = {
+  'heic',
+  'heif',
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'gif',
+  'bmp',
+  'tif',
+  'tiff',
+};
 
 /// Strop serveru pro jeden dokument.
 const maxVelikostDokumentu = 25 * 1024 * 1024;

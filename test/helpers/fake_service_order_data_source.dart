@@ -392,6 +392,19 @@ class FakeServiceOrderDataSource
   Future<Uint8List> stahniDokument(String orderId, String id) async =>
       bajtyDokumentu[id]!;
 
+  /// Id dokumentů, jejichž náhled se stahoval.
+  final List<String> nahledyDokumentu = [];
+
+  @override
+  Future<Uint8List> stahniNahledDokumentu(
+    String orderId,
+    String id, {
+    bool velky = false,
+  }) async {
+    nahledyDokumentu.add(velky ? '$id (velký)' : id);
+    return bajtyDokumentu[id]!;
+  }
+
   /// Kolikrát se žádalo o protokol.
   int vytvorenychProtokolu = 0;
 

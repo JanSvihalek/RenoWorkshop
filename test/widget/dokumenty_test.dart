@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:renoworkshop/src/core/theme/app_theme.dart';
 import 'package:renoworkshop/src/features/fotodokumentace/domain/entities/dokument.dart';
@@ -130,6 +131,81 @@ void main() {
 
     expect(prace.otevrene.single.$1, 'Zakázkový list.pdf');
     expect(prace.otevrene.single.$2, [9, 9]);
+  });
+
+  testWidgets('obrázky vložené do složky mají náhled a jde jimi listovat', (
+    tester,
+  ) async {
+    await otevri(tester);
+    final png = img.encodePng(img.Image(width: 4, height: 3));
+    zdroj.dokumenty['ZK-26-0001'] = [
+      Dokument(
+        id: 'foto-1',
+        nazev: 'Poškození zepředu.JPG',
+        velikost: 900000,
+        zmenenoAt: DateTime(2026, 11, 20, 8),
+        slozka: 'Pojistovna',
+      ),
+      Dokument(
+        id: 'foto-2',
+        nazev: 'Poškození zboku.png',
+        velikost: 800000,
+        zmenenoAt: DateTime(2026, 11, 20, 8, 5),
+        slozka: 'Pojistovna',
+      ),
+      Dokument(
+        id: 'faktura',
+        nazev: 'Faktura.pdf',
+        velikost: 1000,
+        zmenenoAt: DateTime(2026, 11, 20, 9),
+      ),
+    ];
+    zdroj.bajtyDokumentu
+      ..['foto-1'] = png
+      ..['foto-2'] = png;
+
+    await tester.fling(
+      find.byType(Scrollable).first,
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    await dolu(tester);
+
+    // Obrázky jako náhledy, ne jako řádky; PDF zůstává řádkem.
+    expect(find.byKey(const Key('obrazek-foto-1')), findsOneWidget);
+    expect(find.byKey(const Key('obrazek-foto-2')), findsOneWidget);
+    expect(find.byKey(const Key('dokument-foto-1')), findsNothing);
+    expect(find.byKey(const Key('dokument-faktura')), findsOneWidget);
+    expect(zdroj.nahledyDokumentu, containsAll(['foto-1', 'foto-2']));
+
+    await tester.tap(find.byKey(const Key('obrazek-foto-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Poškození zepředu.JPG'), findsOneWidget);
+    // Prohlížení bere velký náhled ze služby, ne originál (HEIC z iPhonu).
+    expect(zdroj.nahledyDokumentu, contains('foto-1 (velký)'));
+    expect(find.textContaining('1 / 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('obrazek-dalsi')));
+    await tester.pumpAndSettle();
+    expect(find.text('Poškození zboku.png'), findsOneWidget);
+    expect(find.textContaining('2 / 2'), findsOneWidget);
+    expect(find.byKey(const Key('obrazek-dalsi')), findsNothing);
+  });
+
+  test('obrázek s náhledem podle přípony i HEIC, ne z Heliosu', () {
+    Dokument d(String nazev, {bool helios = false}) => Dokument(
+      id: nazev,
+      nazev: nazev,
+      velikost: null,
+      zmenenoAt: null,
+      zHeliosu: helios,
+    );
+    expect(d('a.JPG').jeObrazek, isTrue);
+    expect(d('b.webp').jeObrazek, isTrue);
+    expect(d('IMG_0815.HEIC').jeObrazek, isTrue);
+    expect(d('d.pdf').jeObrazek, isFalse);
+    expect(d('e.jpg', helios: true).jeObrazek, isFalse);
   });
 
   test('dokument z Heliosu bez data a velikosti', () {

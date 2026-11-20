@@ -1285,6 +1285,13 @@ class MockServiceOrderDataSource
     if (bajty == null) throw StateError('Dokument $id v mocku není.');
     return bajty;
   }
+
+  @override
+  Future<Uint8List> stahniNahledDokumentu(
+    String orderId,
+    String id, {
+    bool velky = false,
+  }) => stahniDokument(orderId, id);
 }
 
 /// Řádky plánu ze zakázek v paměti - totéž skládá server.

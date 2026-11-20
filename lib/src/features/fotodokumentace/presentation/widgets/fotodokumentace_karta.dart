@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,6 +43,11 @@ class FotodokumentaceKarta extends ConsumerWidget {
         ref.watch(dokumentyZakazkyProvider(orderId)).valueOrNull ??
         const <Dokument>[];
     final prazdna = nahrane.isEmpty && dokumenty.isEmpty;
+    // Obrázky vložené do složky ručně mají náhled jako fotky.
+    final obrazky = [
+      for (final d in dokumenty)
+        if (d.jeObrazek) d,
+    ];
     final kategorie = [
       for (final k in KategorieFotky.values)
         if (nahrane.any((f) => f.kategorie == k)) k,
@@ -89,9 +96,9 @@ class FotodokumentaceKarta extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (nahrane.isNotEmpty) ...[
+              if (nahrane.isNotEmpty || obrazky.isNotEmpty) ...[
                 const SizedBox(height: Insets.sm),
-                _Nahledy(fotky: nahrane),
+                _Nahledy(orderId: orderId, fotky: nahrane, obrazky: obrazky),
               ],
               const SizedBox(height: Insets.sm),
               Row(
@@ -141,12 +148,21 @@ class FotodokumentaceKarta extends ConsumerWidget {
 /// Prvních pár náhledů a dlaždice „+N Zobrazit vše". Klepnutí kamkoli
 /// otevře fotodokumentaci.
 class _Nahledy extends StatelessWidget {
-  const _Nahledy({required this.fotky});
+  const _Nahledy({
+    required this.orderId,
+    required this.fotky,
+    this.obrazky = const [],
+  });
 
+  final String orderId;
   final List<Fotka> fotky;
+
+  /// Obrázky ze složky zakázky - za fotkami.
+  final List<Dokument> obrazky;
 
   @override
   Widget build(BuildContext context) {
+    final vsechny = fotky.length + obrazky.length;
     return LayoutBuilder(
       builder: (context, constraints) {
         // Čtverečky kolem 64 px, poslední místo pro „+N".
@@ -155,13 +171,21 @@ class _Nahledy extends StatelessWidget {
             .floor()
             .clamp(3, 8);
         final strana = (constraints.maxWidth - mezera * (mist - 1)) / mist;
-        final zbyva = fotky.length > mist ? fotky.length - (mist - 1) : 0;
-        final viditelne = fotky.take(zbyva > 0 ? mist - 1 : mist).toList();
+        final zbyva = vsechny > mist ? vsechny - (mist - 1) : 0;
+        final nahledy = [
+          for (final f in fotky)
+            _Nahled(obrazek: nahledFotkyProvider(f.id), strana: strana),
+          for (final d in obrazky)
+            _Nahled(
+              obrazek: nahledDokumentuProvider((orderId, d.id)),
+              strana: strana,
+            ),
+        ].take(zbyva > 0 ? mist - 1 : mist).toList();
         return Row(
           children: [
-            for (final (i, f) in viditelne.indexed) ...[
+            for (final (i, nahled) in nahledy.indexed) ...[
               if (i > 0) const SizedBox(width: mezera),
-              _Nahled(fotka: f, strana: strana),
+              nahled,
             ],
             if (zbyva > 0) ...[
               const SizedBox(width: mezera),
@@ -204,15 +228,16 @@ class _Nahledy extends StatelessWidget {
 }
 
 class _Nahled extends ConsumerWidget {
-  const _Nahled({required this.fotka, required this.strana});
+  const _Nahled({required this.obrazek, required this.strana});
 
-  final Fotka fotka;
+  /// Náhled fotky nebo obrázku ze složky.
+  final ProviderListenable<AsyncValue<Uint8List>> obrazek;
   final double strana;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final obrazek = ref.watch(nahledFotkyProvider(fotka.id));
+    final obrazek = ref.watch(this.obrazek);
     return ClipRRect(
       borderRadius: BorderRadius.circular(Radii.input),
       child: Container(

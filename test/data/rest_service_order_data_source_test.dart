@@ -510,6 +510,37 @@ void main() {
         sNahledy = false;
         expect(await _zdroj(client).stahniNahled('f1'), [1, 2, 3, 4]);
         expect(cesty.last, endsWith('/photos/f1'));
+
+        // Obrázek ze složky zakázky - stejně, jen pod dokumenty.
+        cesty.clear();
+        sNahledy = true;
+        expect(await _zdroj(client).stahniNahledDokumentu('Z 1', 'ab-c'), [
+          1,
+          2,
+        ]);
+        expect(
+          cesty.single,
+          endsWith('/orders/Z%201/documents/ab-c/thumbnail'),
+        );
+        sNahledy = false;
+        expect(await _zdroj(client).stahniNahledDokumentu('Z 1', 'ab-c'), [
+          1,
+          2,
+          3,
+          4,
+        ]);
+        expect(cesty.last, endsWith('/orders/Z%201/documents/ab-c'));
+
+        // Velký náhled pro prohlížení.
+        cesty.clear();
+        sNahledy = true;
+        final dotazy = <String>[];
+        final client2 = MockClient((request) async {
+          dotazy.add(request.url.toString());
+          return http.Response.bytes([5], 200);
+        });
+        await _zdroj(client2).stahniNahledDokumentu('Z 1', 'ab-c', velky: true);
+        expect(dotazy.single, endsWith('/documents/ab-c/thumbnail?size=large'));
       },
     );
 

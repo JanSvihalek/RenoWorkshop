@@ -838,6 +838,8 @@ class RestServiceOrderDataSource
       'GET',
       'photos/${Uri.encodeComponent(id)}/thumbnail',
       binarni: true,
+      // Ručně vložené fotky HEIC služba převádí - u plné složky chvíli trvá.
+      timeout: const Duration(seconds: 60),
     );
     // 404: služba bez náhledů (starší verze) - celá fotka jako dřív.
     if (data is! Uint8List) return stahniFotku(id);
@@ -923,6 +925,25 @@ class RestServiceOrderDataSource
     if (data is! Uint8List) {
       throw const ServiceOrderException('Dokument už ve složce zakázky není.');
     }
+    return data;
+  }
+
+  @override
+  Future<Uint8List> stahniNahledDokumentu(
+    String orderId,
+    String id, {
+    bool velky = false,
+  }) async {
+    final data = await _send(
+      'GET',
+      '${_cestaDokumentu(orderId)}/${Uri.encodeComponent(id)}/thumbnail'
+          '${velky ? '?size=large' : ''}',
+      binarni: true,
+      // Fotky HEIC z iPhonu služba převádí - u plné složky to chvíli trvá.
+      timeout: const Duration(seconds: 60),
+    );
+    // 404: služba bez náhledů dokumentů (starší verze) - celý obrázek.
+    if (data is! Uint8List) return stahniDokument(orderId, id);
     return data;
   }
 

@@ -83,6 +83,23 @@ final nahledFotkyProvider = FutureProvider.autoDispose
       return ref.watch(fotkyDataSourceProvider).stahniNahled(id);
     });
 
+/// Náhled obrázku ze složky zakázky (`Dokument.jeObrazek`) - (zakázka, id).
+final nahledDokumentuProvider = FutureProvider.autoDispose
+    .family<Uint8List, (String, String)>((ref, klic) {
+      return ref
+          .watch(fotkyDataSourceProvider)
+          .stahniNahledDokumentu(klic.$1, klic.$2);
+    });
+
+/// Obrázek ze složky zakázky v prohlížení - velký náhled ze služby
+/// (2000 px JPEG, i z HEIC, který Android neukáže) - (zakázka, id).
+final obrazekDokumentuProvider = FutureProvider.autoDispose
+    .family<Uint8List, (String, String)>((ref, klic) {
+      return ref
+          .watch(fotkyDataSourceProvider)
+          .stahniNahledDokumentu(klic.$1, klic.$2, velky: true);
+    });
+
 /// Příprava fotky k nahrání (srovnání, zmenšení, JPEG). Vlastní provider,
 /// ať testy nemusí pouštět izolát.
 final pripravaFotkyProvider = Provider<Future<Uint8List?> Function(Uint8List)>(
