@@ -117,7 +117,8 @@ void main() {
       find.descendant(
         of: find.byKey(const Key('osa-prubehu')),
         matching: find.byWidgetPredicate(
-          (w) => w.key is ValueKey<String> &&
+          (w) =>
+              w.key is ValueKey<String> &&
               (w.key! as ValueKey<String>).value.startsWith('osa-fajfka-'),
         ),
       ),
