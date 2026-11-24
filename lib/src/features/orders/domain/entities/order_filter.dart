@@ -25,6 +25,7 @@ class OrderFilter {
     this.heliosStavy = const {},
     this.mechanicNames = const {},
     this.zpracovatelIds = const {},
+    this.skupinyKody = const {},
     this.query = '',
     this.sort = OrderSort.receivedDate,
     this.mujEmail,
@@ -63,6 +64,12 @@ class OrderFilter {
   /// přihlášený ([mujEmail]). Jako volba Já na webu.
   static const ja = -1;
 
+  /// Kódy skupin (Příjem, Dílna), [bezSkupiny] = zakázky bez skupiny.
+  final Set<String> skupinyKody;
+
+  /// Hodnota v [skupinyKody] pro zakázky bez skupiny - jako `-` na webu.
+  static const bezSkupiny = '-';
+
   /// E-mail přihlášeného (malými písmeny) - podle něj se pozná „Já".
   /// Není to filtr, jen údaj k němu.
   final String? mujEmail;
@@ -79,6 +86,7 @@ class OrderFilter {
     heliosStavy,
     mechanicNames,
     zpracovatelIds,
+    skupinyKody,
   ];
 
   bool get isActive =>
@@ -100,6 +108,7 @@ class OrderFilter {
     Set<String>? heliosStavy,
     Set<String>? mechanicNames,
     Set<int>? zpracovatelIds,
+    Set<String>? skupinyKody,
     String? query,
     OrderSort? sort,
     String? mujEmail,
@@ -113,6 +122,7 @@ class OrderFilter {
       heliosStavy: heliosStavy ?? this.heliosStavy,
       mechanicNames: mechanicNames ?? this.mechanicNames,
       zpracovatelIds: zpracovatelIds ?? this.zpracovatelIds,
+      skupinyKody: skupinyKody ?? this.skupinyKody,
       query: query ?? this.query,
       sort: sort ?? this.sort,
       mujEmail: mujEmail ?? this.mujEmail,
@@ -139,6 +149,7 @@ class OrderFilter {
     if (!_sedi(statusCodes, order.stav?.kod)) return false;
     if (!_sedi(heliosStavy, order.heliosStatus)) return false;
     if (!_sedi(mechanicNames, order.mechanicName)) return false;
+    if (!_sedi(skupinyKody, order.skupina?.kod ?? bezSkupiny)) return false;
     if (zpracovatelIds.isNotEmpty &&
         !zpracovatelIds.any(_sediZpracovatel(order))) {
       return false;
@@ -191,6 +202,7 @@ class OrderFilter {
           _stejne(other.heliosStavy, heliosStavy) &&
           _stejne(other.mechanicNames, mechanicNames) &&
           _stejne(other.zpracovatelIds, zpracovatelIds) &&
+          _stejne(other.skupinyKody, skupinyKody) &&
           other.query == query &&
           other.sort == sort);
 
@@ -204,6 +216,7 @@ class OrderFilter {
     Object.hashAllUnordered(heliosStavy),
     Object.hashAllUnordered(mechanicNames),
     Object.hashAllUnordered(zpracovatelIds),
+    Object.hashAllUnordered(skupinyKody),
     query,
     sort,
   );

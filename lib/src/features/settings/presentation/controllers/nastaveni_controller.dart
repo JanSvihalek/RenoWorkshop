@@ -44,6 +44,10 @@ class NastaveniController extends Notifier<Nastaveni> {
     ),
   );
 
+  /// Kódy skupin, `-` = bez skupiny.
+  void zmenVychoziSkupiny(List<String> kody) =>
+      _uloz(state.copyWith(vychoziSkupiny: kody));
+
   void zmenSloupce(NastaveniSloupcu sloupce) =>
       _uloz(state.copyWith(sloupce: sloupce));
 
@@ -85,6 +89,7 @@ class NastaveniController extends Notifier<Nastaveni> {
       vychoziPoradace: const [],
       vychoziZodpovedni: const [],
       vychoziZpracovatele: const [],
+      vychoziSkupiny: const [],
       jmenaZpracovatelu: const {},
     ),
   );

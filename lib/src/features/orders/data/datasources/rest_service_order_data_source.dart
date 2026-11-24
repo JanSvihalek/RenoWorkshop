@@ -555,6 +555,25 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<List<SkupinaKVyberu>> nabidkaSkupin() async {
+    final data = await _send('GET', 'skupiny');
+    if (data is! List) return const [];
+    return data
+        .map((item) => SkupinaKVyberu.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<ServiceOrderDto?> nastavSkupinu(String orderId, String? kod) async {
+    final data = await _send(
+      'PUT',
+      'orders/${Uri.encodeComponent(orderId)}/group',
+      body: {'code': kod},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
   Future<ServiceOrderDto?> zvyrazniPoznamku({
     required String orderId,
     required String noteId,

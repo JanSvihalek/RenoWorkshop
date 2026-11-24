@@ -124,6 +124,12 @@ abstract interface class ServiceOrderRepository {
     bool zvyraznit = false,
   });
 
+  /// Nabídka skupin (Příjem, Dílna).
+  Future<List<SkupinaKVyberu>> nabidkaSkupin();
+
+  /// Skupina zakázky, `null` zruší.
+  Future<ServiceOrder> nastavSkupinu(String orderId, String? kod);
+
   /// Zapne nebo vypne zvýraznění poznámky.
   Future<ServiceOrder> zvyrazniPoznamku({
     required String orderId,

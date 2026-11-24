@@ -36,6 +36,7 @@ import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/plate_chip.dart';
 import '../widgets/predmet_opravy_card.dart';
 import '../widgets/zavady_card.dart';
+import '../widgets/skupina_sheet.dart';
 import '../widgets/zpracovatel_sheet.dart';
 
 /// Detail zakázky: stav, časová osa, fotodokumentace, poznámky, závady.
@@ -200,6 +201,15 @@ class _DetailBody extends ConsumerWidget {
       case UvolnitZakazku():
         await akce.nastavZpracovatele(order.id, null);
     }
+  }
+
+  /// Skupina (Příjem, Dílna) - jen ručně, člověka nemění.
+  Future<void> _zmenSkupinu(BuildContext context, WidgetRef ref) async {
+    final volba = await vyberSkupinu(context, aktualni: order.skupina);
+    if (volba == null || volba.kod == order.skupina?.kod) return;
+    await ref
+        .read(orderActionsProvider.notifier)
+        .nastavSkupinu(order.id, volba.kod);
   }
 
   Future<void> _upravPredmet(BuildContext context, WidgetRef ref) async {
@@ -376,6 +386,7 @@ class _DetailBody extends ConsumerWidget {
       zobrazitZpet: zobrazitZpet,
       jenCteni: !smi,
       onZpracovatel: smi ? () => _zmenZpracovatele(context, ref) : null,
+      onSkupina: smi ? () => _zmenSkupinu(context, ref) : null,
       onZadatMisto: smiStav ? () => _pridejStav(context, ref) : null,
       onPrevzit: smi && !uzJeMoje
           ? () => ref
@@ -594,6 +605,7 @@ class _DetailHeader extends ConsumerWidget {
     required this.onPrijem,
     required this.onKartaVozu,
     required this.onZpracovatel,
+    this.onSkupina,
     required this.onZadatMisto,
     required this.onPrevzit,
     required this.onPriraditObalku,
@@ -614,6 +626,9 @@ class _DetailHeader extends ConsumerWidget {
 
   /// Klepnutí na řádek zpracovatele - otevře jeho výběr.
   final VoidCallback? onZpracovatel;
+
+  /// Výběr skupiny (Příjem, Dílna); `null` = jen čtení.
+  final VoidCallback? onSkupina;
 
   /// Místo se zapisuje s dílenským stavem - otevře jeho okno; `null` = jen
   /// čtení.
@@ -1026,11 +1041,12 @@ class _DetailHeader extends ConsumerWidget {
                 order: order,
                 onKartaVozu: onKartaVozu,
                 sloupcu: sirka >= _sirkaJednaRada
-                    ? (order.lzePlanovatKlempirnu ? 8 : 7)
+                    ? (order.lzePlanovatKlempirnu ? 9 : 8)
                     : sirka >= _sirkaCtyriSloupce
                     ? 4
                     : 2,
                 onZpracovatel: onZpracovatel,
+                onSkupina: onSkupina,
                 onZadatMisto: onZadatMisto,
                 onPriraditObalku: onPriraditObalku,
                 onUvolnitObalku: onUvolnitObalku,
@@ -1144,6 +1160,7 @@ class _PruhUdaju extends ConsumerWidget {
     required this.onKartaVozu,
     required this.sloupcu,
     required this.onZpracovatel,
+    this.onSkupina,
     required this.onZadatMisto,
     required this.onPriraditObalku,
     required this.onUvolnitObalku,
@@ -1155,6 +1172,7 @@ class _PruhUdaju extends ConsumerWidget {
   final VoidCallback? onKartaVozu;
   final int sloupcu;
   final VoidCallback? onZpracovatel;
+  final VoidCallback? onSkupina;
   final VoidCallback? onZadatMisto;
   final VoidCallback? onPriraditObalku;
   final VoidCallback? onUvolnitObalku;
@@ -1327,6 +1345,30 @@ class _PruhUdaju extends ConsumerWidget {
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),
       ]),
+      // Skupina (Příjem, Dílna) - druhá část „Zpracovává", jen ručně.
+      KeyedSubtree(
+        key: const Key('skupina'),
+        child: bunka(
+          'SKUPINA',
+          [
+            if (order.skupina case final skupina?)
+              text(skupina.nazev)
+            else
+              Text('Bez skupiny', style: tlumene),
+            Text(switch (order.skupina?.od) {
+              final od? => 'od ${AppDateFormat.date(od)}',
+              null => 'Příjem / Dílna',
+            }, style: pod),
+          ],
+          akce: onSkupina == null
+              ? null
+              : odkaz(
+                  order.skupina == null ? 'Zadat' : 'Změnit',
+                  key: const Key('skupina-zmenit'),
+                  onTap: onSkupina,
+                ),
+        ),
+      ),
       // Zpracovatel se na rozdíl od zodpovědné osoby mění v aplikaci.
       KeyedSubtree(
         key: const Key('zpracovatel'),

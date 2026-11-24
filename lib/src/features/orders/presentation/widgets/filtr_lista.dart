@@ -35,6 +35,11 @@ class FiltrLista extends ConsumerWidget {
     final lide = ref.watch(mechanicsProvider);
     final zpracovatele = ref.watch(zpracovateleProvider);
     final nastaveni = ref.watch(nastaveniProvider);
+    final skupiny = moznostiSkupin(
+      ref.watch(nabidkaSkupinProvider).valueOrNull ?? const [],
+      ref.watch(ordersStreamProvider).valueOrNull ?? const [],
+      filter.skupinyKody,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -94,6 +99,14 @@ class FiltrLista extends ConsumerWidget {
               hodnoty: filter.mechanicNames,
               moznosti: {for (final clovek in lide) clovek: clovek},
               onZmena: controller.setMechanici,
+            ),
+            const SizedBox(width: Insets.sm),
+            FiltrVyberVice<String>(
+              key: const Key('filtr-skupina'),
+              popisek: 'Skupina',
+              hodnoty: filter.skupinyKody,
+              moznosti: skupiny,
+              onZmena: controller.setSkupiny,
             ),
             const SizedBox(width: Insets.sm),
             FiltrVyberVice<int>(

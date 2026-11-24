@@ -40,6 +40,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicPoradace = 'nastaveni.vychoziPoradace';
   static const _klicZodpovedni = 'nastaveni.vychoziZodpovedni';
   static const _klicZpracovatele = 'nastaveni.vychoziZpracovatele';
+  static const _klicSkupiny = 'nastaveni.vychoziSkupiny';
   static const _klicJmenaZpracovatelu = 'nastaveni.jmenaZpracovatelu';
   static const _klicPoradiSloupcu = 'nastaveni.poradiSloupcu';
   static const _klicSkryteSloupce = 'nastaveni.skryteSloupce';
@@ -62,6 +63,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       vychoziPoradace: _seznam(_klicPoradace, _klicPoradac),
       vychoziZodpovedni: _seznam(_klicZodpovedni, _klicZodpovida),
       vychoziZpracovatele: _zpracovatele(),
+      vychoziSkupiny: _prefs.getStringList(_klicSkupiny) ?? const [],
       jmenaZpracovatelu: _jmenaZpracovatelu(),
       sloupce: NastaveniSloupcu(
         poradi: _prefs.getStringList(_klicPoradiSloupcu) ?? const [],
@@ -108,6 +110,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
     await _prefs.setStringList(_klicUtvary, nastaveni.vychoziUtvary);
     await _prefs.setStringList(_klicPoradace, nastaveni.vychoziPoradace);
     await _prefs.setStringList(_klicZodpovedni, nastaveni.vychoziZodpovedni);
+    await _prefs.setStringList(_klicSkupiny, nastaveni.vychoziSkupiny);
     await _prefs.setStringList(_klicZpracovatele, [
       for (final id in nastaveni.vychoziZpracovatele) '$id',
     ]);

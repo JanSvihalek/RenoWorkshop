@@ -58,6 +58,55 @@ class Zpracovatel {
   int get hashCode => Object.hash(id, od);
 }
 
+/// Skupina, která zakázku zpracovává (Příjem, Dílna) - druhá část
+/// „Zpracovává" vedle člověka ([Zpracovatel]), nezávislá na něm. Mění se
+/// jen ručně; Převzít nastavuje dál jen člověka.
+class SkupinaZakazky {
+  const SkupinaZakazky({
+    required this.kod,
+    required this.nazev,
+    this.od,
+    this.zadalKdo,
+  });
+
+  final String kod;
+  final String nazev;
+
+  /// Odkdy ji zakázka má.
+  final DateTime? od;
+
+  /// Kdo ji nastavil.
+  final String? zadalKdo;
+
+  factory SkupinaZakazky.fromJson(Map<String, dynamic> json) => SkupinaZakazky(
+    kod: json['code'] as String,
+    nazev: json['label'] as String? ?? json['code'] as String,
+    od: DateTime.tryParse(json['since'] as String? ?? ''),
+    zadalKdo: json['assignedBy'] as String?,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SkupinaZakazky && other.kod == kod && other.od == od);
+
+  @override
+  int get hashCode => Object.hash(kod, od);
+}
+
+/// Skupina v nabídce (číselník na serveru).
+class SkupinaKVyberu {
+  const SkupinaKVyberu({required this.kod, required this.nazev});
+
+  final String kod;
+  final String nazev;
+
+  factory SkupinaKVyberu.fromJson(Map<String, dynamic> json) => SkupinaKVyberu(
+    kod: json['code'] as String,
+    nazev: json['label'] as String? ?? json['code'] as String,
+  );
+}
+
 /// Zaměstnanec z Heliosu v nabídce zpracovatelů.
 class ZamestnanecKVyberu {
   const ZamestnanecKVyberu({

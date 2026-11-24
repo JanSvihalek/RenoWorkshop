@@ -40,6 +40,7 @@ class ServiceOrderDto {
     required this.vin,
     required this.mechanicName,
     this.assignee,
+    this.group,
     this.keyEnvelope,
     this.keyEnvelopeBranch,
     required this.serviceAdvisorName,
@@ -121,6 +122,10 @@ class ServiceOrderDto {
   /// Zpracovatel - `{"id", "name", "email", "since", "assignedBy"}`,
   /// `null` = nikdo. Starší API ho neposílá.
   final Map<String, dynamic>? assignee;
+
+  /// Skupina - `{"code", "label", "since", "assignedBy"}`, `null` = žádná.
+  /// Starší API ji neposílá.
+  final Map<String, dynamic>? group;
 
   /// Obálka s klíčem - `{"code", "branch", "branchName", "assignedAt",
   /// "assignedBy"}`, `null` = žádná. Starší API ji neposílá.
@@ -206,6 +211,7 @@ class ServiceOrderDto {
       vin: json['vin'] as String,
       mechanicName: json['mechanicName'] as String?,
       assignee: json['assignee'] as Map<String, dynamic>?,
+      group: json['group'] as Map<String, dynamic>?,
       keyEnvelope: json['keyEnvelope'] as Map<String, dynamic>?,
       keyEnvelopeBranch: json['keyEnvelopeBranch'] as String?,
       serviceAdvisorName: json['serviceAdvisorName'] as String?,
@@ -270,6 +276,7 @@ class ServiceOrderDto {
     'vin': vin,
     'mechanicName': mechanicName,
     'assignee': assignee,
+    'group': group,
     'keyEnvelope': keyEnvelope,
     'keyEnvelopeBranch': keyEnvelopeBranch,
     'serviceAdvisorName': serviceAdvisorName,
@@ -325,6 +332,7 @@ class ServiceOrderDto {
     vin: vin,
     mechanicName: mechanicName,
     zpracovatel: assignee == null ? null : Zpracovatel.fromJson(assignee!),
+    skupina: group == null ? null : SkupinaZakazky.fromJson(group!),
     obalka: keyEnvelope == null ? null : ObalkaKlice.fromJson(keyEnvelope!),
     pobockaObalek: keyEnvelopeBranch,
     serviceAdvisorName: serviceAdvisorName,
@@ -374,6 +382,10 @@ class ServiceOrderDto {
 
     /// Uvolněná zakázka - `??` by jinak nechalo původního zpracovatele.
     bool vymazatZpracovatele = false,
+    Map<String, dynamic>? group,
+
+    /// Zrušená skupina - `??` by jinak nechalo původní.
+    bool vymazatSkupinu = false,
     Map<String, dynamic>? keyEnvelope,
 
     /// Uvolněná obálka - `??` by jinak nechalo původní.
@@ -422,6 +434,7 @@ class ServiceOrderDto {
       vin: vin,
       mechanicName: mechanicName,
       assignee: vymazatZpracovatele ? null : (assignee ?? this.assignee),
+      group: vymazatSkupinu ? null : (group ?? this.group),
       keyEnvelope: vymazatObalku ? null : (keyEnvelope ?? this.keyEnvelope),
       keyEnvelopeBranch: keyEnvelopeBranch,
       serviceAdvisorName: serviceAdvisorName,

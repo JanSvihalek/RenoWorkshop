@@ -243,6 +243,14 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
+  Future<List<SkupinaKVyberu>> nabidkaSkupin() => _dataSource.nabidkaSkupin();
+
+  @override
+  Future<ServiceOrder> nastavSkupinu(String orderId, String? kod) {
+    return _mutate(orderId, () => _dataSource.nastavSkupinu(orderId, kod));
+  }
+
+  @override
   Future<ServiceOrder> zvyrazniPoznamku({
     required String orderId,
     required String noteId,

@@ -89,6 +89,12 @@ String? _text(Map<String, Object?>? mapa, String klic) => switch (mapa?[klic]) {
 Map<String, Object?>? _mapa(Object? hodnota) =>
     hodnota is Map<String, Object?> ? hodnota : null;
 
+/// Skupina na účet: bez skupiny `-` -> `none` (jako web), kód zůstává.
+String skupinaDoUctu(String kod) =>
+    kod == OrderFilter.bezSkupiny ? 'none' : kod;
+
+String skupinaZUctu(String kod) => kod == 'none' ? OrderFilter.bezSkupiny : kod;
+
 /// Výchozí filtr zakázek na účet.
 Map<String, Object?> filtrZakazekDoUctu(
   Nastaveni n,
@@ -103,6 +109,7 @@ Map<String, Object?> filtrZakazekDoUctu(
     'heliosStatus': n.vychoziStavyHelios,
     'responsible': n.vychoziZodpovedni,
     'assignee': lide.map(zpracovatelDoUctu).nonNulls,
+    'group': n.vychoziSkupiny.map(skupinaDoUctu),
     // Jméno jen u jednoho konkrétního člověka - aby šel ukázat, i když nemá
     // zakázku. U víc lidí se jména drží jen v telefonu.
     'assigneeName': [?n.jmenaZpracovatelu[jediny]],
@@ -120,6 +127,7 @@ Nastaveni filtrZakazekZUctu(Nastaveni n, Map<String, Object?>? filtr) {
     vychoziStavyHelios: _seznam(filtr, 'heliosStatus'),
     vychoziZodpovedni: _seznam(filtr, 'responsible'),
     vychoziZpracovatele: zpracovatele,
+    vychoziSkupiny: [..._seznam(filtr, 'group').map(skupinaZUctu)],
     jmenaZpracovatelu: {
       for (final id in zpracovatele)
         id: switch (id) {
@@ -161,6 +169,7 @@ Map<String, Object?> pohledDoUctu(PohledPlanu p, Map<String, Object?>? zaklad) {
       'heliosStatus': f.heliosStavy,
       'responsible': f.mechanicNames,
       'assignee': f.zpracovatelIds.map(zpracovatelDoUctu).nonNulls,
+      'group': f.skupinyKody.map(skupinaDoUctu),
       'paintCode': p.kodLaku,
       'planStatus': p.stavPlanu.map((s) => s.name),
     }),
@@ -181,6 +190,7 @@ PohledPlanu pohledZUctu(Map<String, Object?>? ucet, OrderFilter filtr) {
       heliosStavy: {..._seznam(f, 'heliosStatus')},
       mechanicNames: {..._seznam(f, 'responsible')},
       zpracovatelIds: {..._zpracovateleZUctu(f)},
+      skupinyKody: {..._seznam(f, 'group').map(skupinaZUctu)},
       query: filtr.query,
       sort: filtr.sort,
       mujEmail: filtr.mujEmail,

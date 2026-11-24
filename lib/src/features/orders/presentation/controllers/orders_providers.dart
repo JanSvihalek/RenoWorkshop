@@ -137,6 +137,32 @@ final nabidkaStavuProvider = FutureProvider.family<List<NabidkaStavu>, String?>(
   },
 );
 
+/// Volby filtru Skupina: bez skupiny, skupiny z číselníku a ty, které
+/// u načtených zakázek jsou (i kdyby z číselníku zmizely).
+Map<String, String> moznostiSkupin(
+  List<SkupinaKVyberu> nabidka,
+  Iterable<ServiceOrder> zakazky, [
+  Iterable<String> vybrane = const [],
+]) {
+  final moznosti = {
+    OrderFilter.bezSkupiny: 'Bez skupiny',
+    for (final s in zakazky.map((z) => z.skupina).nonNulls) s.kod: s.nazev,
+    for (final s in nabidka) s.kod: s.nazev,
+  };
+  // Uložená volba, která v datech ani nabídce není - ať filtr neplatí
+  // neviditelně.
+  for (final kod in vybrane) {
+    moznosti.putIfAbsent(kod, () => kod);
+  }
+  return moznosti;
+}
+
+/// Nabídka skupin, které zakázku zpracovávají (Příjem, Dílna) - číselník
+/// na serveru, mění se zřídka.
+final nabidkaSkupinProvider = FutureProvider<List<SkupinaKVyberu>>((ref) {
+  return ref.watch(serviceOrderRepositoryProvider).nabidkaSkupin();
+});
+
 /// Koho lze zakázce přiřadit jako zpracovatele - lidé z útvaru zakázky,
 /// s `vsichni` všichni zaměstnanci. Čte se pokaždé znovu, nabídka se
 /// mění v noci.
@@ -340,6 +366,7 @@ class OrderFilterController extends Notifier<OrderFilter> {
         heliosStavy: {...nastaveni.vychoziStavyHelios},
         mechanicNames: {...nastaveni.vychoziZodpovedni},
         zpracovatelIds: {...nastaveni.vychoziZpracovatele},
+        skupinyKody: {...nastaveni.vychoziSkupiny},
         mujEmail: mujEmail,
       );
 
@@ -375,6 +402,10 @@ class OrderFilterController extends Notifier<OrderFilter> {
   /// [OrderFilter.nikdo] = zakázky bez zpracovatele, [OrderFilter.ja] = moje.
   void setZpracovatele(Set<int> ids) =>
       state = state.copyWith(zpracovatelIds: ids);
+
+  /// [OrderFilter.bezSkupiny] = zakázky bez skupiny.
+  void setSkupiny(Set<String> kody) =>
+      state = state.copyWith(skupinyKody: kody);
 
   void setQuery(String query) => state = state.copyWith(query: query);
 

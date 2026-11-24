@@ -56,6 +56,17 @@ void main() {
       expect(zpet.jmenaZpracovatelu[42], 'č. 42');
     });
 
+    test('skupina tam a zpět, bez skupiny = none jako web', () {
+      const n = Nastaveni(vychoziSkupiny: ['dilna', OrderFilter.bezSkupiny]);
+      final ucet = filtrZakazekDoUctu(n, null);
+      expect(ucet, {
+        'group': ['dilna', 'none'],
+      });
+      final zpet = filtrZakazekZUctu(const Nastaveni(), ucet);
+      expect(zpet.vychoziSkupiny, ['dilna', OrderFilter.bezSkupiny]);
+      expect(zpet.pocetVychozichFiltru, 1);
+    });
+
     test('sloupce tabulky tam a zpět', () {
       const sloupce = NastaveniSloupcu(
         poradi: ['spz', 'prijato'],

@@ -1914,6 +1914,18 @@ class _FiltryPlanuState extends ConsumerState<_FiltryPlanu> {
                 onZmena: (v) => zmen((f) => f.copyWith(mechanicNames: v)),
               ),
               mezera(),
+              FiltrVyberVice<String>(
+                key: const Key('plan-filtr-skupina'),
+                popisek: 'Skupina',
+                hodnoty: filtr.skupinyKody,
+                moznosti: moznostiSkupin(
+                  ref.watch(nabidkaSkupinProvider).valueOrNull ?? const [],
+                  zakazky,
+                  filtr.skupinyKody,
+                ),
+                onZmena: (v) => zmen((f) => f.copyWith(skupinyKody: v)),
+              ),
+              mezera(),
               FiltrVyberVice<int>(
                 popisek: 'Zpracovává',
                 hodnoty: filtr.zpracovatelIds,

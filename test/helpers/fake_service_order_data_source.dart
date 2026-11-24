@@ -1108,6 +1108,33 @@ class FakeServiceOrderDataSource
     );
   }
 
+  /// Skupiny, které fake nabízí.
+  static const skupiny = [
+    SkupinaKVyberu(kod: 'prijem', nazev: 'Příjem'),
+    SkupinaKVyberu(kod: 'dilna', nazev: 'Dílna'),
+  ];
+
+  @override
+  Future<List<SkupinaKVyberu>> nabidkaSkupin() async => skupiny;
+
+  @override
+  Future<ServiceOrderDto?> nastavSkupinu(String orderId, String? kod) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    final skupina = skupiny.where((s) => s.kod == kod).firstOrNull;
+    return _orders[index] = _orders[index].copyWith(
+      group: skupina == null
+          ? null
+          : {
+              'code': skupina.kod,
+              'label': skupina.nazev,
+              'since': '2026-11-24T10:00:00',
+              'assignedBy': 'Test Technik',
+            },
+      vymazatSkupinu: skupina == null,
+    );
+  }
+
   @override
   Future<ServiceOrderDto?> zvyrazniPoznamku({
     required String orderId,

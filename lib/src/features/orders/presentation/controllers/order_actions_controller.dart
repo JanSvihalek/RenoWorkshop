@@ -192,6 +192,21 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Skupina zakázky (Příjem, Dílna), `null` zruší. Člověka nemění.
+  Future<bool> nastavSkupinu(String orderId, String? kod) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.nastavSkupinu(orderId, kod);
+      _zaloguj('skupina_zmenena', orderId, detail: kod ?? 'žádná');
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
   /// Zapne nebo vypne zvýraznění poznámky.
   Future<bool> zvyrazniPoznamku({
     required String orderId,

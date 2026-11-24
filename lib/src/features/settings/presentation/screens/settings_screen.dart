@@ -426,6 +426,17 @@ class _VychoziFiltr extends ConsumerWidget {
                 moznosti: {for (final jmeno in zodpovedni) jmeno: jmeno},
                 onZmena: ovladani.zmenVychoziZodpovedne,
               ),
+              _VyberVice<String>(
+                key: const Key('vychozi-skupina'),
+                popisek: 'Skupina',
+                hodnoty: nastaveni.vychoziSkupiny,
+                moznosti: moznostiSkupin(
+                  ref.watch(nabidkaSkupinProvider).valueOrNull ?? const [],
+                  ref.watch(ordersStreamProvider).valueOrNull ?? const [],
+                  nastaveni.vychoziSkupiny,
+                ),
+                onZmena: ovladani.zmenVychoziSkupiny,
+              ),
               _VyberVice<int>(
                 key: const Key('vychozi-zpracovatel'),
                 popisek: 'Zpracovává',

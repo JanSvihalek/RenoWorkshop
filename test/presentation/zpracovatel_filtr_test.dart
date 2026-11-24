@@ -45,6 +45,30 @@ void main() {
     expect(filtr.copyWith(zpracovatelIds: {}), const OrderFilter());
   });
 
+  test('filtr podle skupiny nezávisle na člověku, i „Bez skupiny"', () {
+    final sSkupinou = [
+      buildOrderDto(
+        id: 'ZK-1',
+      ).copyWith(group: {'code': 'dilna', 'label': 'Dílna'}).toDomain(),
+      buildOrderDto(
+        id: 'ZK-2',
+        assignee: {'id': 502, 'name': 'Kříž Martin'},
+      ).copyWith(group: {'code': 'prijem', 'label': 'Příjem'}).toDomain(),
+      buildOrderDto(id: 'ZK-3').toDomain(),
+    ];
+    List<String> podle(Set<String> skupiny) => OrderFilter(
+      skupinyKody: skupiny,
+    ).apply(sSkupinou).map((z) => z.id).toList();
+
+    expect(podle({'dilna'}), ['ZK-1']);
+    expect(podle({OrderFilter.bezSkupiny}), ['ZK-3']);
+    expect(podle({'prijem', OrderFilter.bezSkupiny}), ['ZK-2', 'ZK-3']);
+    expect(
+      const OrderFilter(skupinyKody: {'dilna'}).copyWith(skupinyKody: {}),
+      const OrderFilter(),
+    );
+  });
+
   ProviderContainer kontejner(Nastaveni nastaveni) {
     final container = ProviderContainer(
       overrides: [

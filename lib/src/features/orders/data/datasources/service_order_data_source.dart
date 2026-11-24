@@ -147,6 +147,12 @@ abstract interface class ServiceOrderDataSource {
     bool zvyraznit = false,
   });
 
+  /// `GET /skupiny` - nabídka skupin (Příjem, Dílna).
+  Future<List<SkupinaKVyberu>> nabidkaSkupin();
+
+  /// `PUT /orders/{id}/group` { code } - skupina zakázky, `null` zruší.
+  Future<ServiceOrderDto?> nastavSkupinu(String orderId, String? kod);
+
   /// PATCH /orders/{id}/notes/{noteId} { highlighted } - zvýraznění
   /// poznámky zapne nebo vypne.
   Future<ServiceOrderDto?> zvyrazniPoznamku({

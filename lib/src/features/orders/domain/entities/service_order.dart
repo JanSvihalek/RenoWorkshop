@@ -53,6 +53,7 @@ class ServiceOrder {
     required this.vin,
     this.mechanicName,
     this.zpracovatel,
+    this.skupina,
     this.obalka,
     this.pobockaObalek,
     this.serviceAdvisorName,
@@ -150,6 +151,10 @@ class ServiceOrder {
   /// Kdo má vůz právě na starosti. Vede dílna v aplikaci, na rozdíl od
   /// [mechanicName] z Heliosu. `null` = nikdo.
   final Zpracovatel? zpracovatel;
+
+  /// Skupina, která zakázku zpracovává (Příjem, Dílna) - nezávislá na
+  /// [zpracovatel]. `null` = žádná.
+  final SkupinaZakazky? skupina;
 
   /// Obálka, ve které je klíč od vozu. `null` = klíč v žádné obálce není
   /// (zakázka bez příjmu v aplikaci, nebo obálka uvolněná).
@@ -319,6 +324,7 @@ class ServiceOrder {
       vin: vin,
       mechanicName: mechanicName ?? this.mechanicName,
       zpracovatel: zpracovatel,
+      skupina: skupina,
       obalka: obalka,
       pobockaObalek: pobockaObalek,
       serviceAdvisorName: serviceAdvisorName,
@@ -353,6 +359,7 @@ class ServiceOrder {
           other.predmetOpravy == predmetOpravy &&
           other.stav == stav &&
           other.zpracovatel == zpracovatel &&
+          other.skupina == skupina &&
           other.obalka == obalka &&
           other.notes.length == notes.length &&
           other.rucniUkony.length == rucniUkony.length &&
@@ -364,6 +371,7 @@ class ServiceOrder {
     predmetOpravy,
     stav,
     zpracovatel,
+    skupina,
     obalka,
     notes.length,
     rucniUkony.length,

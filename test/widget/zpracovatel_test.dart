@@ -49,6 +49,41 @@ void main() {
 
   final radek = find.byKey(const Key('zpracovatel'));
 
+  testWidgets('skupina se vybírá zvlášť a člověka nemění', (tester) async {
+    await otevri(tester, zpracovatel: {'id': 502, 'name': 'Kříž Martin'});
+    final skupina = find.byKey(const Key('skupina'));
+    expect(
+      find.descendant(of: skupina, matching: find.text('Bez skupiny')),
+      findsOneWidget,
+    );
+
+    final odkaz = find.byKey(const Key('skupina-zmenit'));
+    await tester.ensureVisible(odkaz);
+    await tester.tap(odkaz);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('skupina-zadna')), findsNothing);
+    await tester.tap(find.byKey(const Key('skupina-dilna')));
+    await tester.pumpAndSettle();
+
+    expect(zdroj.ulozeneDto('ZK-26-0001').group?['code'], 'dilna');
+    expect(
+      find.descendant(of: skupina, matching: find.text('Dílna')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: radek, matching: find.textContaining('Kříž Martin')),
+      findsOneWidget,
+    );
+
+    // Bez skupiny ji zase zruší.
+    await tester.ensureVisible(odkaz);
+    await tester.tap(odkaz);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('skupina-zadna')));
+    await tester.pumpAndSettle();
+    expect(zdroj.ulozeneDto('ZK-26-0001').group, isNull);
+  });
+
   testWidgets('zakázku bez zpracovatele jde převzít', (tester) async {
     await otevri(tester);
     expect(

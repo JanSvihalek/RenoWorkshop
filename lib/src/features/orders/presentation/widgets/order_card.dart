@@ -198,9 +198,13 @@ class OrderCard extends StatelessWidget {
               stav: order.stav?.nazev,
               barva: order.stav?.barva(context),
             ),
-            // Kdo má vůz v rukou - jen když ho někdo převzal, prázdný
-            // řádek by na každé kartě jen zabíral místo.
-            if (order.zpracovatel case final kdo?) ...[
+            // Kdo má vůz v rukou (skupina a člověk) - jen když je co
+            // ukázat, prázdný řádek by na každé kartě jen zabíral místo.
+            if ([
+                  order.skupina?.nazev,
+                  order.zpracovatel?.jmeno,
+                ].nonNulls.join(' · ')
+                case final kdo when kdo.isNotEmpty) ...[
               const SizedBox(height: 6),
               Row(
                 key: const Key('karta-zpracovatel'),
@@ -213,7 +217,7 @@ class OrderCard extends StatelessWidget {
                   const SizedBox(width: Insets.xs),
                   Flexible(
                     child: Text(
-                      kdo.jmeno,
+                      kdo,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.meta.copyWith(

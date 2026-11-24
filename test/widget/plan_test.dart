@@ -1747,6 +1747,8 @@ void main() {
     );
 
     // Klepnutí na úkon ho otevře k úpravě.
+    await tester.ensureVisible(find.byKey(const Key('plan-ukon-1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan-ukon-1')));
     await tester.pumpAndSettle();
     expect(find.text('Upravit úkon'), findsOneWidget);

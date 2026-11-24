@@ -137,6 +137,7 @@ class Nastaveni {
     this.vychoziPoradace = const [],
     this.vychoziZodpovedni = const [],
     this.vychoziZpracovatele = const [],
+    this.vychoziSkupiny = const [],
     this.jmenaZpracovatelu = const {},
     this.vychoziStavyHelios = const [],
     this.sloupce = const NastaveniSloupcu(),
@@ -184,6 +185,10 @@ class Nastaveni {
   /// Zpracovatelé, na jejichž zakázkách se seznam otevře. Id zaměstnanců
   /// z Heliosu, `0` = zakázky bez zpracovatele, `-1` = já. Prázdné = všichni.
   final List<int> vychoziZpracovatele;
+
+  /// Skupiny (Příjem, Dílna), na jejichž zakázkách se seznam otevře. Kódy,
+  /// `-` = bez skupiny. Prázdné = všechny.
+  final List<String> vychoziSkupiny;
 
   /// Jména k [vychoziZpracovatele] - aby šla volba ukázat, i když člověk
   /// zrovna nemá žádnou zakázku a mezi načtenými není.
@@ -233,6 +238,7 @@ class Nastaveni {
     vychoziPoradace,
     vychoziZodpovedni,
     vychoziZpracovatele,
+    vychoziSkupiny,
   ].where((v) => v.isNotEmpty).length;
 
   bool get maVychoziFiltr => pocetVychozichFiltru > 0;
@@ -246,6 +252,7 @@ class Nastaveni {
     List<String>? vychoziPoradace,
     List<String>? vychoziZodpovedni,
     List<int>? vychoziZpracovatele,
+    List<String>? vychoziSkupiny,
     Map<int, String>? jmenaZpracovatelu,
     List<String>? vychoziStavyHelios,
     NastaveniSloupcu? sloupce,
@@ -267,6 +274,7 @@ class Nastaveni {
       vychoziPoradace: vychoziPoradace ?? this.vychoziPoradace,
       vychoziZodpovedni: vychoziZodpovedni ?? this.vychoziZodpovedni,
       vychoziZpracovatele: vychoziZpracovatele ?? this.vychoziZpracovatele,
+      vychoziSkupiny: vychoziSkupiny ?? this.vychoziSkupiny,
       jmenaZpracovatelu: jmenaZpracovatelu ?? this.jmenaZpracovatelu,
       vychoziStavyHelios: vychoziStavyHelios ?? this.vychoziStavyHelios,
       sloupce: sloupce ?? this.sloupce,
@@ -293,6 +301,7 @@ class Nastaveni {
           listEquals(other.vychoziPoradace, vychoziPoradace) &&
           listEquals(other.vychoziZodpovedni, vychoziZodpovedni) &&
           listEquals(other.vychoziZpracovatele, vychoziZpracovatele) &&
+          listEquals(other.vychoziSkupiny, vychoziSkupiny) &&
           mapEquals(other.jmenaZpracovatelu, jmenaZpracovatelu) &&
           other.sloupce == sloupce &&
           other.slozkaFotek == slozkaFotek &&
@@ -313,6 +322,7 @@ class Nastaveni {
     Object.hashAll(vychoziPoradace),
     Object.hashAll(vychoziZodpovedni),
     Object.hashAll(vychoziZpracovatele),
+    Object.hashAll(vychoziSkupiny),
     Object.hashAllUnordered(
       jmenaZpracovatelu.entries.map((e) => '${e.key}|${e.value}'),
     ),

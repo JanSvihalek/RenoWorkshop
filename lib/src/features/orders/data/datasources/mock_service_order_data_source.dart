@@ -905,6 +905,39 @@ class MockServiceOrderDataSource
     return updated;
   }
 
+  static const _skupiny = [
+    SkupinaKVyberu(kod: 'prijem', nazev: 'Příjem'),
+    SkupinaKVyberu(kod: 'dilna', nazev: 'Dílna'),
+  ];
+
+  @override
+  Future<List<SkupinaKVyberu>> nabidkaSkupin() async {
+    await _simulateLatency();
+    return _skupiny;
+  }
+
+  @override
+  Future<ServiceOrderDto?> nastavSkupinu(String orderId, String? kod) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    final skupina = _skupiny.where((s) => s.kod == kod).firstOrNull;
+    final updated = orders[index].copyWith(
+      group: skupina == null
+          ? null
+          : {
+              'code': skupina.kod,
+              'label': skupina.nazev,
+              'since': DateTime.now().toIso8601String().substring(0, 19),
+              'assignedBy': null,
+            },
+      vymazatSkupinu: skupina == null,
+    );
+    orders[index] = updated;
+    return updated;
+  }
+
   @override
   Future<ServiceOrderDto?> zvyrazniPoznamku({
     required String orderId,
