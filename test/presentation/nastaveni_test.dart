@@ -21,6 +21,7 @@ void main() {
           sloupce: NastaveniSloupcu(
             poradi: ['spz', 'prijato'],
             skryte: ['vin'],
+            sirky: {'model': 240},
           ),
         ),
       );
@@ -32,7 +33,11 @@ void main() {
       expect(poRestartu.vychoziUtvary, ['12100', '13215']);
       expect(
         poRestartu.sloupce,
-        const NastaveniSloupcu(poradi: ['spz', 'prijato'], skryte: ['vin']),
+        const NastaveniSloupcu(
+          poradi: ['spz', 'prijato'],
+          skryte: ['vin'],
+          sirky: {'model': 240},
+        ),
       );
     });
 

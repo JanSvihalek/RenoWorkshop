@@ -144,9 +144,11 @@ Nastaveni filtrZakazekZUctu(Nastaveni n, Map<String, Object?>? filtr) {
 }
 
 /// Sloupce tabulky na účet a zpět.
+/// Šířky jen změněné; bez nich klíč `widths` vůbec není (jako na webu).
 Map<String, Object?> sloupceDoUctu(NastaveniSloupcu s) => {
   'columns': s.poradi,
   'hidden': s.skryte,
+  if (s.sirky.isNotEmpty) 'widths': s.sirky,
 };
 
 NastaveniSloupcu sloupceZUctu(Object? hodnota) {
@@ -154,6 +156,12 @@ NastaveniSloupcu sloupceZUctu(Object? hodnota) {
   return NastaveniSloupcu(
     poradi: _seznam(mapa, 'columns'),
     skryte: _seznam(mapa, 'hidden'),
+    sirky: {
+      for (final MapEntry(:key, :value)
+          in (_mapa(mapa?['widths']) ?? const {}).entries)
+        if (value case final num sirka when sirka.isFinite)
+          key: NastaveniSloupcu.upravSirku(sirka),
+    },
   );
 }
 

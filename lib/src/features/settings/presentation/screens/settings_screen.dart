@@ -17,7 +17,7 @@ import '../../../orders/presentation/controllers/orders_providers.dart';
 import '../../../orders/presentation/widgets/filtr_lista.dart'
     show vyberViceHodnot;
 import '../../../orders/presentation/widgets/tabulka_zakazek.dart'
-    show sloupceTabulky;
+    show sloupceTabulky, vychoziSirkaSloupce;
 import '../../../fotodokumentace/presentation/controllers/fotky_providers.dart';
 import '../../../fotodokumentace/presentation/ulozeni_do_zarizeni.dart';
 import '../../domain/entities/nastaveni.dart';
@@ -450,8 +450,8 @@ class _VychoziFiltr extends ConsumerWidget {
   }
 }
 
-/// Sloupce tabulky zakázek - pořadí a které jsou vidět. Platí pro účet,
-/// stejně jako na webu. Aspoň jeden sloupec musí zůstat vidět.
+/// Sloupce tabulky zakázek - pořadí, které jsou vidět, a šířka. Platí pro
+/// účet, stejně jako na webu. Aspoň jeden sloupec musí zůstat vidět.
 class _SloupceTabulky extends ConsumerWidget {
   const _SloupceTabulky();
 
@@ -465,18 +465,31 @@ class _SloupceTabulky extends ConsumerWidget {
         .where((s) => !nastaveni.skryte.contains(s.klic))
         .length;
 
-    void uloz({List<String>? poradi, List<String>? skryte}) =>
-        ovladani.zmenSloupce(
-          NastaveniSloupcu(
-            poradi: poradi ?? [for (final s in vse) s.klic],
-            skryte: skryte ?? nastaveni.skryte,
-          ),
-        );
+    void uloz({
+      List<String>? poradi,
+      List<String>? skryte,
+      Map<String, int>? sirky,
+    }) => ovladani.zmenSloupce(
+      NastaveniSloupcu(
+        poradi: poradi ?? [for (final s in vse) s.klic],
+        skryte: skryte ?? nastaveni.skryte,
+        sirky: sirky ?? nastaveni.sirky,
+      ),
+    );
     void presun(int z, int kam) {
       final poradi = [for (final s in vse) s.klic];
       poradi.insert(kam, poradi.removeAt(z));
       uloz(poradi: poradi);
     }
+
+    // Výchozí šířka se z nastavení vyndá - účet drží jen změněné.
+    void zmenSirku(String klic, int sirka) => uloz(
+      sirky: {
+        for (final MapEntry(:key, :value) in nastaveni.sirky.entries)
+          if (key != klic) key: value,
+        if (sirka != vychoziSirkaSloupce(klic)?.round()) klic: sirka,
+      },
+    );
 
     return _Skupina(
       nadpis: 'SLOUPCE TABULKY',
@@ -488,8 +501,9 @@ class _SloupceTabulky extends ConsumerWidget {
               onTap: () => ovladani.zmenSloupce(const NastaveniSloupcu()),
             ),
       poznamka:
-          'Pořadí a viditelnost sloupců v tabulkovém přehledu zakázek. Platí '
-          'na vašem účtu - stejně i na webu a jiném telefonu.',
+          'Pořadí, viditelnost a šířka sloupců (v px) v tabulkovém přehledu '
+          'zakázek. Číslo šířky jde klepnutím přepsat. Platí na vašem účtu - '
+          'stejně i na webu a jiném telefonu.',
       radky: [
         for (final (i, sloupec) in vse.indexed)
           Padding(
@@ -523,6 +537,15 @@ class _SloupceTabulky extends ConsumerWidget {
                     ),
                   ),
                 ),
+                _SirkaSloupce(
+                  klic: sloupec.klic,
+                  nazev: sloupec.nazev,
+                  sirka: sloupec.sirka.round(),
+                  vychozi:
+                      (vychoziSirkaSloupce(sloupec.klic) ?? sloupec.sirka)
+                          .round(),
+                  onZmena: (sirka) => zmenSirku(sloupec.klic, sirka),
+                ),
                 IconButton(
                   key: Key('sloupec-nahoru-${sloupec.klic}'),
                   tooltip: 'O místo výš',
@@ -542,6 +565,163 @@ class _SloupceTabulky extends ConsumerWidget {
               ],
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Šířka sloupce: − / px / +. Klepnutí na číslo otevře okno, kde jde šířka
+/// napsat - z 90 na 250 by bylo šestnáct klepnutí. Změněná šířka je tučně.
+class _SirkaSloupce extends StatelessWidget {
+  const _SirkaSloupce({
+    required this.klic,
+    required this.nazev,
+    required this.sirka,
+    required this.vychozi,
+    required this.onZmena,
+  });
+
+  final String klic;
+  final String nazev;
+  final int sirka;
+  final int vychozi;
+  final ValueChanged<int> onZmena;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    const krok = NastaveniSloupcu.krokSirky;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: Key('sloupec-uzsi-$klic'),
+          tooltip: 'Užší',
+          visualDensity: VisualDensity.compact,
+          onPressed: sirka <= NastaveniSloupcu.minSirka
+              ? null
+              : () => onZmena(NastaveniSloupcu.upravSirku(sirka - krok)),
+          icon: const Icon(Icons.remove_rounded, size: 18),
+        ),
+        InkWell(
+          key: Key('sloupec-sirka-$klic'),
+          borderRadius: BorderRadius.circular(Radii.badge),
+          onTap: () => _napis(context),
+          child: Container(
+            width: 44,
+            padding: const EdgeInsets.symmetric(vertical: Insets.xs),
+            decoration: BoxDecoration(
+              border: Border.all(color: palette.hairline2),
+              borderRadius: BorderRadius.circular(Radii.badge),
+            ),
+            child: Text(
+              '$sirka',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.monoLabel.copyWith(
+                fontSize: 12,
+                fontWeight: sirka == vychozi
+                    ? FontWeight.w400
+                    : FontWeight.w700,
+                color: sirka == vychozi ? palette.muted : palette.text,
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          key: Key('sloupec-sirsi-$klic'),
+          tooltip: 'Širší',
+          visualDensity: VisualDensity.compact,
+          onPressed: sirka >= NastaveniSloupcu.maxSirka
+              ? null
+              : () => onZmena(NastaveniSloupcu.upravSirku(sirka + krok)),
+          icon: const Icon(Icons.add_rounded, size: 18),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _napis(BuildContext context) async {
+    final sirka = await showDialog<int>(
+      context: context,
+      builder: (context) =>
+          _OknoSirky(nazev: nazev, sirka: this.sirka, vychozi: vychozi),
+    );
+    if (sirka != null) onZmena(sirka);
+  }
+}
+
+/// Okno pro zápis šířky sloupce. Mimo rozsah se srovná do něj.
+class _OknoSirky extends StatefulWidget {
+  const _OknoSirky({
+    required this.nazev,
+    required this.sirka,
+    required this.vychozi,
+  });
+
+  final String nazev;
+  final int sirka;
+  final int vychozi;
+
+  @override
+  State<_OknoSirky> createState() => _OknoSirkyState();
+}
+
+class _OknoSirkyState extends State<_OknoSirky> {
+  late final _text = TextEditingController(text: '${widget.sirka}')
+    ..selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: '${widget.sirka}'.length,
+    );
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _uloz() {
+    final cislo = num.tryParse(_text.text.trim().replaceAll(',', '.'));
+    Navigator.of(
+      context,
+    ).pop(cislo == null ? null : NastaveniSloupcu.upravSirku(cislo));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog.adaptive(
+      title: Text('Šířka sloupce ${widget.nazev}'),
+      content: Material(
+        type: MaterialType.transparency,
+        child: TextField(
+          key: const Key('sloupec-sirka-pole'),
+          controller: _text,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            suffixText: 'px',
+            helperText:
+                '${NastaveniSloupcu.minSirka}–${NastaveniSloupcu.maxSirka} px, '
+                'výchozí ${widget.vychozi}',
+          ),
+          onSubmitted: (_) => _uloz(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Zrušit'),
+        ),
+        TextButton(
+          key: const Key('sloupec-sirka-vychozi'),
+          onPressed: () => Navigator.of(context).pop(widget.vychozi),
+          child: const Text('Výchozí'),
+        ),
+        TextButton(
+          key: const Key('sloupec-sirka-ulozit'),
+          onPressed: _uloz,
+          child: const Text('Uložit'),
+        ),
       ],
     );
   }

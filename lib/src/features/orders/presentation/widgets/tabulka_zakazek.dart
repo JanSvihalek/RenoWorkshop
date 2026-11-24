@@ -54,7 +54,25 @@ class SloupecZakazek {
     final text = hodnota(zakazka);
     return text == '-' ? '' : text;
   }
+
+  /// Týž sloupec s jinou šířkou - z Nastavení.
+  SloupecZakazek sSirkou(double novaSirka) => novaSirka == sirka
+      ? this
+      : SloupecZakazek(
+          klic: klic,
+          nazev: nazev,
+          sirka: novaSirka,
+          hodnota: hodnota,
+          barva: barva,
+          stitek: stitek,
+          mono: mono,
+          razeni: razeni,
+        );
 }
+
+/// Výchozí šířka sloupce (bez nastavení); neznámý klíč `null`.
+double? vychoziSirkaSloupce(String klic) =>
+    sloupceZakazek.where((s) => s.klic == klic).firstOrNull?.sirka;
 
 /// Zakázky seřazené podle sloupce - stejně jako `seradTabulku` na webu.
 /// Bez řazení (nebo s neznámým sloupcem) zůstanou, jak přišly.
@@ -238,11 +256,18 @@ final sloupceZakazek = <SloupecZakazek>[
 /// Sloupce v pořadí podle nastavení: nejdřív uložené pořadí (neznámé klíče
 /// se přeskočí), pak sloupce, které v něm nejsou - přibyly v nové verzi -
 /// na konec ve výchozím pořadí. Skryté se vynechají, jen když [jenViditelne].
+/// Šířka z nastavení, jinak výchozí.
 List<SloupecZakazek> sloupceTabulky(
   NastaveniSloupcu nastaveni, {
   bool jenViditelne = true,
 }) {
-  final podleKlice = {for (final s in sloupceZakazek) s.klic: s};
+  final podleKlice = {
+    for (final s in sloupceZakazek)
+      s.klic: switch (nastaveni.sirky[s.klic]) {
+        final sirka? => s.sSirkou(sirka.toDouble()),
+        null => s,
+      },
+  };
   final serazene = [
     for (final klic in nastaveni.poradi) ?podleKlice.remove(klic),
     ...podleKlice.values,

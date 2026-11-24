@@ -43,6 +43,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
   static const _klicSkupiny = 'nastaveni.vychoziSkupiny';
   static const _klicJmenaZpracovatelu = 'nastaveni.jmenaZpracovatelu';
   static const _klicPoradiSloupcu = 'nastaveni.poradiSloupcu';
+  static const _klicSirkySloupcu = 'nastaveni.sirkySloupcu';
   static const _klicSkryteSloupce = 'nastaveni.skryteSloupce';
   static const _klicSlozkaFotek = 'nastaveni.slozkaFotek';
   static const _klicUkladatDoZarizeni = 'nastaveni.ukladatFotkyDoZarizeni';
@@ -68,6 +69,7 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
       sloupce: NastaveniSloupcu(
         poradi: _prefs.getStringList(_klicPoradiSloupcu) ?? const [],
         skryte: _prefs.getStringList(_klicSkryteSloupce) ?? const [],
+        sirky: _sirkySloupcu(),
       ),
       slozkaFotek: _prazdneJakoNull(_prefs.getString(_klicSlozkaFotek)),
       ukladatFotkyDoZarizeni: _prefs.getBool(_klicUkladatDoZarizeni) ?? false,
@@ -120,6 +122,10 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
     ]);
     await _prefs.setStringList(_klicPoradiSloupcu, nastaveni.sloupce.poradi);
     await _prefs.setStringList(_klicSkryteSloupce, nastaveni.sloupce.skryte);
+    await _prefs.setStringList(_klicSirkySloupcu, [
+      for (final MapEntry(:key, :value) in nastaveni.sloupce.sirky.entries)
+        '$key|$value',
+    ]);
     await _ulozNeboSmaz(_klicSlozkaFotek, nastaveni.slozkaFotek);
     await _prefs.setBool(
       _klicUkladatDoZarizeni,
@@ -173,6 +179,15 @@ class SharedPreferencesNastaveni implements NastaveniUloziste {
           ?int.tryParse(radek.substring(0, i)): radek.substring(i + 1),
     };
   }
+
+  /// „model|240" → {model: 240}; pokažené řádky se přeskočí.
+  Map<String, int> _sirkySloupcu() => {
+    for (final radek
+        in _prefs.getStringList(_klicSirkySloupcu) ?? const <String>[])
+      if (radek.lastIndexOf('|') case final i when i > 0)
+        if (int.tryParse(radek.substring(i + 1)) case final sirka?)
+          radek.substring(0, i): NastaveniSloupcu.upravSirku(sirka),
+  };
 
   static String? _prazdneJakoNull(String? hodnota) =>
       hodnota == null || hodnota.isEmpty ? null : hodnota;

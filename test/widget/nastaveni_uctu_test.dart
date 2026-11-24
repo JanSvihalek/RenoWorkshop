@@ -84,6 +84,31 @@ void main() {
       expect(nastaveniZUctu(const Nastaveni(), ucet).sloupce, sloupce);
     });
 
+    test('šířky sloupců tam a zpět, z webu jen čísla v rozsahu', () {
+      const sloupce = NastaveniSloupcu(sirky: {'model': 240});
+      final ucet = castiAplikace(
+        const Nastaveni(sloupce: sloupce),
+        const PohledPlanu(),
+        const {},
+      );
+      // Jen šířky změněné = i tak se pošlou.
+      expect(ucet['ordersTable'], {
+        'columns': <String>[],
+        'hidden': <String>[],
+        'widths': {'model': 240},
+      });
+      expect(nastaveniZUctu(const Nastaveni(), ucet).sloupce, sloupce);
+
+      final zWebu = nastaveniZUctu(const Nastaveni(), {
+        'ordersTable': {
+          'columns': <String>[],
+          'hidden': <String>[],
+          'widths': {'model': 260.4, 'vin': 9999, 'spz': 'x'},
+        },
+      });
+      expect(zWebu.sloupce.sirky, {'model': 260, 'vin': 500});
+    });
+
     test('klíče z webu zůstanou, jméno zpracovatele s id', () {
       const n = Nastaveni(
         vychoziZpracovatele: [42],

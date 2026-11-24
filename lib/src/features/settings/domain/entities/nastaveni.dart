@@ -67,28 +67,49 @@ enum ZobrazeniZakazek {
   }
 }
 
-/// Sloupce tabulky zakázek: pořadí klíčů a skryté klíče. Prázdné pořadí =
-/// výchozí. Nese se s účtem, je stejné na webu i v aplikaci.
+/// Sloupce tabulky zakázek: pořadí klíčů, skryté klíče a šířky. Prázdné
+/// pořadí = výchozí; v šířkách jen změněné sloupce (klíč → px), ostatní
+/// mají výchozí šířku. Nese se s účtem, je stejné na webu i v aplikaci.
 @immutable
 class NastaveniSloupcu {
-  const NastaveniSloupcu({this.poradi = const [], this.skryte = const []});
+  const NastaveniSloupcu({
+    this.poradi = const [],
+    this.skryte = const [],
+    this.sirky = const {},
+  });
+
+  /// Rozsah a krok šířky sloupce v px - stejný jako na webu.
+  static const minSirka = 40;
+  static const maxSirka = 500;
+  static const krokSirky = 10;
+
+  /// Šířka do rozsahu, zaokrouhlená na celé px.
+  static int upravSirku(num sirka) =>
+      sirka.round().clamp(minSirka, maxSirka).toInt();
 
   /// Klíče sloupců (`prijato`, `spz`…) v pořadí, jak jdou zleva.
   final List<String> poradi;
   final List<String> skryte;
 
-  bool get vychozi => poradi.isEmpty && skryte.isEmpty;
+  /// Změněné šířky sloupců v px podle klíče.
+  final Map<String, int> sirky;
+
+  bool get vychozi => poradi.isEmpty && skryte.isEmpty && sirky.isEmpty;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is NastaveniSloupcu &&
           listEquals(other.poradi, poradi) &&
-          listEquals(other.skryte, skryte));
+          listEquals(other.skryte, skryte) &&
+          mapEquals(other.sirky, sirky));
 
   @override
-  int get hashCode =>
-      Object.hash(Object.hashAll(poradi), Object.hashAll(skryte));
+  int get hashCode => Object.hash(
+    Object.hashAll(poradi),
+    Object.hashAll(skryte),
+    Object.hashAllUnordered(sirky.entries.map((e) => '${e.key}|${e.value}')),
+  );
 }
 
 /// Řazení tabulky zakázek klepnutím na hlavičku sloupce. Jako na webu se
