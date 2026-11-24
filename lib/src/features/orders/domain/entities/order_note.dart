@@ -5,6 +5,7 @@ class OrderNote {
     required this.text,
     required this.author,
     required this.createdAt,
+    this.zvyraznena = false,
   });
 
   final String id;
@@ -13,6 +14,9 @@ class OrderNote {
   /// Kdo poznámku napsal - "Jan Dvořák" nebo "M. Horáková, poradce".
   final String author;
   final DateTime createdAt;
+
+  /// Zvýrazněná - v kartě nahoře a žlutě, ať je na první pohled vidět.
+  final bool zvyraznena;
 
   @override
   bool operator ==(Object other) =>

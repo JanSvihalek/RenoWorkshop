@@ -139,11 +139,20 @@ abstract interface class ServiceOrderDataSource {
   /// ostatní (i `null`) výchozí. Rozhoduje služba.
   Future<List<NabidkaStavu>> nabidkaStavu({String? poradac});
 
-  /// POST /orders/{id}/notes
+  /// POST /orders/{id}/notes - [zvyraznit] rovnou zvýrazněnou.
   Future<ServiceOrderDto?> addNote({
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
+  });
+
+  /// PATCH /orders/{id}/notes/{noteId} { highlighted } - zvýraznění
+  /// poznámky zapne nebo vypne.
+  Future<ServiceOrderDto?> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
   });
 
   /// PATCH /orders/{id}/work-items/{workItemId} { isDone }

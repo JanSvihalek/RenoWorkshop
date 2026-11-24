@@ -544,11 +544,27 @@ class RestServiceOrderDataSource
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
   }) async {
     final data = await _send(
       'POST',
       'orders/${Uri.encodeComponent(orderId)}/notes',
-      body: {'text': text, 'author': author},
+      body: {'text': text, 'author': author, 'highlighted': zvyraznit},
+    );
+    return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
+  }
+
+  @override
+  Future<ServiceOrderDto?> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
+  }) async {
+    final data = await _send(
+      'PATCH',
+      'orders/${Uri.encodeComponent(orderId)}/notes/'
+          '${Uri.encodeComponent(noteId)}',
+      body: {'highlighted': zvyraznit},
     );
     return data == null ? null : ServiceOrderDto.fromJson(_asMap(data));
   }

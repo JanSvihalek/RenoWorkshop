@@ -161,7 +161,11 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
   /// Plán se změnil - zakázka mimo dílnu i plánovač se načtou znovu.
   void _poZmenePlanu(String orderId) => _obnovMimoDilnu(orderId);
 
-  Future<bool> addNote({required String orderId, required String text}) async {
+  Future<bool> addNote({
+    required String orderId,
+    required String text,
+    bool zvyraznit = false,
+  }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
 
@@ -172,8 +176,40 @@ class OrderActionsController extends Notifier<AsyncValue<void>> {
         orderId: orderId,
         text: trimmed,
         author: author,
+        zvyraznit: zvyraznit,
       );
-      _zaloguj('poznamka_pridana', orderId, detail: 'znaků ${trimmed.length}');
+      _zaloguj(
+        'poznamka_pridana',
+        orderId,
+        detail: 'znaků ${trimmed.length}${zvyraznit ? ', zvýrazněná' : ''}',
+      );
+      _obnovMimoDilnu(orderId);
+      state = const AsyncData(null);
+      return true;
+    } on ServiceOrderException catch (error, stackTrace) {
+      state = AsyncError(error.message, stackTrace);
+      return false;
+    }
+  }
+
+  /// Zapne nebo vypne zvýraznění poznámky.
+  Future<bool> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.zvyrazniPoznamku(
+        orderId: orderId,
+        noteId: noteId,
+        zvyraznit: zvyraznit,
+      );
+      _zaloguj(
+        'poznamka_zvyraznena',
+        orderId,
+        detail: zvyraznit ? 'zapnuto' : 'vypnuto',
+      );
       _obnovMimoDilnu(orderId);
       state = const AsyncData(null);
       return true;

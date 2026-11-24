@@ -461,6 +461,7 @@ class OrderNoteDto {
     required this.text,
     required this.author,
     required this.createdAt,
+    this.highlighted = false,
   });
 
   final String id;
@@ -468,11 +469,15 @@ class OrderNoteDto {
   final String author;
   final String createdAt;
 
+  /// Starší služba neposílá - pak není zvýrazněná.
+  final bool highlighted;
+
   factory OrderNoteDto.fromJson(Map<String, dynamic> json) => OrderNoteDto(
     id: json['id'] as String,
     text: json['text'] as String,
     author: json['author'] as String,
     createdAt: json['createdAt'] as String,
+    highlighted: json['highlighted'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -480,13 +485,23 @@ class OrderNoteDto {
     'text': text,
     'author': author,
     'createdAt': createdAt,
+    'highlighted': highlighted,
   };
+
+  OrderNoteDto copyWith({bool? highlighted}) => OrderNoteDto(
+    id: id,
+    text: text,
+    author: author,
+    createdAt: createdAt,
+    highlighted: highlighted ?? this.highlighted,
+  );
 
   OrderNote toDomain() => OrderNote(
     id: id,
     text: text,
     author: author,
     createdAt: DateTime.parse(createdAt),
+    zvyraznena: highlighted,
   );
 }
 

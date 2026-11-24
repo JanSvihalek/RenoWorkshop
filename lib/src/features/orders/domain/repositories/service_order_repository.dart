@@ -116,11 +116,19 @@ abstract interface class ServiceOrderRepository {
   /// Nabídka stavů z číselníku na serveru pro zakázku pořadače [poradac].
   Future<List<NabidkaStavu>> nabidkaStavu({String? poradac});
 
-  /// Přidá poznámku mechanika / poradce.
+  /// Přidá poznámku mechanika / poradce, s [zvyraznit] rovnou zvýrazněnou.
   Future<ServiceOrder> addNote({
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
+  });
+
+  /// Zapne nebo vypne zvýraznění poznámky.
+  Future<ServiceOrder> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
   });
 
   /// Označí úkon jako provedený / plánovaný.

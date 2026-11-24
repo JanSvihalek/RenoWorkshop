@@ -1092,6 +1092,7 @@ class FakeServiceOrderDataSource
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
   }) async {
     final index = _indexOf(orderId);
     if (index == -1) return null;
@@ -1100,9 +1101,26 @@ class FakeServiceOrderDataSource
       text: text,
       author: author,
       createdAt: DateTime(2026, 8, 25, 12).toIso8601String(),
+      highlighted: zvyraznit,
     );
     return _orders[index] = _orders[index].copyWith(
       notes: [note, ..._orders[index].notes],
+    );
+  }
+
+  @override
+  Future<ServiceOrderDto?> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
+  }) async {
+    final index = _indexOf(orderId);
+    if (index == -1) return null;
+    return _orders[index] = _orders[index].copyWith(
+      notes: [
+        for (final n in _orders[index].notes)
+          n.id == noteId ? n.copyWith(highlighted: zvyraznit) : n,
+      ],
     );
   }
 

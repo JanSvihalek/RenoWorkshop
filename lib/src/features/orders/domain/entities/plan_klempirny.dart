@@ -1,7 +1,8 @@
 /// Dílny, jejichž vytížení plánovač sleduje.
 enum Dilna {
   klempirna('klempirna', 'Klempírna'),
-  priprava('priprava', 'Příprava'),
+  // Kód zůstává `priprava` (je v databázi), na dílně se jí říká Mechanická.
+  priprava('priprava', 'Mechanická'),
   lakovna('lakovna', 'Lakovna');
 
   const Dilna(this.kod, this.nazev);

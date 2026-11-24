@@ -1407,7 +1407,7 @@ void main() {
       expect(find.text('Lakýrník Dva'), findsOneWidget);
       await tester.tap(find.byKey(const Key('kapacita-zarazeni-2')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Příprava').last);
+      await tester.tap(find.text('Mechanická').last);
       await tester.pumpAndSettle();
 
       expect(zdroj.lideKapacity['1']![1].prirazeno, 'priprava');

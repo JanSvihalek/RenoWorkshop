@@ -884,6 +884,7 @@ class MockServiceOrderDataSource
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
   }) async {
     final orders = await _ensureLoaded();
     await _simulateLatency();
@@ -895,9 +896,30 @@ class MockServiceOrderDataSource
       text: text,
       author: author,
       createdAt: DateTime.now().toIso8601String(),
+      highlighted: zvyraznit,
     );
     final updated = orders[index].copyWith(
       notes: [note, ...orders[index].notes],
+    );
+    orders[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<ServiceOrderDto?> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
+  }) async {
+    final orders = await _ensureLoaded();
+    await _simulateLatency();
+    final index = _indexOf(orders, orderId);
+    if (index == -1) return null;
+    final updated = orders[index].copyWith(
+      notes: [
+        for (final n in orders[index].notes)
+          n.id == noteId ? n.copyWith(highlighted: zvyraznit) : n,
+      ],
     );
     orders[index] = updated;
     return updated;

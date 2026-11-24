@@ -229,10 +229,32 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     required String orderId,
     required String text,
     required String author,
+    bool zvyraznit = false,
   }) {
     return _mutate(
       orderId,
-      () => _dataSource.addNote(orderId: orderId, text: text, author: author),
+      () => _dataSource.addNote(
+        orderId: orderId,
+        text: text,
+        author: author,
+        zvyraznit: zvyraznit,
+      ),
+    );
+  }
+
+  @override
+  Future<ServiceOrder> zvyrazniPoznamku({
+    required String orderId,
+    required String noteId,
+    required bool zvyraznit,
+  }) {
+    return _mutate(
+      orderId,
+      () => _dataSource.zvyrazniPoznamku(
+        orderId: orderId,
+        noteId: noteId,
+        zvyraznit: zvyraznit,
+      ),
     );
   }
 

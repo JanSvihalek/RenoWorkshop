@@ -212,16 +212,16 @@ class _DetailBody extends ConsumerWidget {
   }
 
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
-    final text = await showAddNoteDialog(
+    final nova = await showAddNoteDialog(
       context,
       spz: order.licensePlate,
       cisloZakazky: order.id,
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     );
-    if (text == null || text.isEmpty) return;
+    if (nova == null || nova.text.isEmpty) return;
     await ref
         .read(orderActionsProvider.notifier)
-        .addNote(orderId: order.id, text: text);
+        .addNote(orderId: order.id, text: nova.text, zvyraznit: nova.zvyraznit);
   }
 
   @override
@@ -327,6 +327,15 @@ class _DetailBody extends ConsumerWidget {
     final poznamky = NotesCard(
       notes: order.notes,
       onAddNote: smi ? () => _addNote(context, ref) : null,
+      onZvyraznit: smi
+          ? (note, zvyraznit) => ref
+                .read(orderActionsProvider.notifier)
+                .zvyrazniPoznamku(
+                  orderId: order.id,
+                  noteId: note.id,
+                  zvyraznit: zvyraznit,
+                )
+          : null,
     );
 
     // Souhrn příjmu - nálezy, dezén, STK, fotky. Zahájit a upravit ho
