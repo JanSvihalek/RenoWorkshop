@@ -2027,6 +2027,13 @@ void main() {
           bodyshopPlan: plan('2026-10-14', '2026-10-16'),
           vehicleColor: {'code': '475', 'name': 'Black Sapphire'},
         ),
+        buildOrderDto(
+          id: 'ZK-26-0002',
+          licensePlate: '2BB 2222',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          bodyshopPlan: plan('2026-10-15', '2026-10-16'),
+        ),
       ],
     );
     expect(
@@ -2034,7 +2041,7 @@ void main() {
         of: find.byKey(const Key('karta-plan')),
         matching: find.text('Klempírna 14. 10. – 16. 10. 2026'),
       ),
-      findsOneWidget,
+      findsWidgets,
     );
     await tester.tap(find.text('1AA 1111'));
     await tester.pumpAndSettle();
@@ -2045,8 +2052,25 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(find.byKey(const Key('otevrit-planovac')));
+    final otevrit = find.byKey(const Key('otevrit-planovac'));
+    await tester.ensureVisible(otevrit);
+    await tester.pumpAndSettle();
+    await tester.tap(otevrit);
     await tester.pumpAndSettle();
     expect(find.text('Plán klempírny a lakovny'), findsOneWidget);
+
+    // Z detailu jen tahle zakázka, v týdnu jejího plánu.
+    expect(find.byKey(const Key('plan-zaostreni')), findsOneWidget);
+    expect(find.text('Jen zakázka ZK-26-0001 · 1AA 1111'), findsOneWidget);
+    expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
+    expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsNothing);
+    expect(find.byKey(const Key('plan-hledani')), findsNothing);
+
+    // Celý plán - filtry zase vidět, uložený filtr se nezměnil.
+    await tester.tap(find.byKey(const Key('plan-cely-plan')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('plan-zaostreni')), findsNothing);
+    expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsOneWidget);
+    expect(find.byKey(const Key('plan-hledani')), findsOneWidget);
   });
 }

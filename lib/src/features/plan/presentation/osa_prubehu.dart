@@ -19,6 +19,7 @@ import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
 import '../domain/prehled_planu.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
+import 'plan_providers.dart';
 import 'plan_screen.dart' show cestaPlanovace;
 
 /// Průběh opravy: plán (kdy se co má dělat) a dílenské stavy (co se opravdu
@@ -137,7 +138,25 @@ class OsaPrubehu extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               key: const Key('otevrit-planovac'),
-              onPressed: () => context.push(cestaPlanovace),
+              onPressed: () {
+                // Týden, kdy se na voze dělá: dnešní, je-li plán právě
+                // teď, jinak začátek plánu.
+                if (plan != null) {
+                  final den = plan.od.isAfter(dnes) || plan.do_.isBefore(dnes)
+                      ? plan.od
+                      : dnes;
+                  ref.read(planZacatekProvider.notifier).state = pondeli(den);
+                }
+                context.push(
+                  Uri(
+                    path: cestaPlanovace,
+                    queryParameters: {
+                      'zakazka': order.id,
+                      'pobocka': ?order.branch?.code,
+                    },
+                  ).toString(),
+                );
+              },
               icon: const Icon(Icons.calendar_month_outlined, size: 18),
               label: const Text('Otevřít plánovač'),
             ),
@@ -450,6 +469,30 @@ class _Polozka extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: obsah),
+          // Dokončený krok má fajfku jako dokončená závada (zavady_card).
+          if (p.stav == StavPolozky.hotovo)
+            Padding(
+              padding: const EdgeInsets.only(left: Insets.sm),
+              child: Tooltip(
+                message: 'Dokončeno',
+                child: Container(
+                  key: Key('osa-fajfka-${p.zaznam?.id}'),
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode
+                        ? const Color(0xFF5FD38D)
+                        : const Color(0xFF2E9E5B),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 18,
+                    color: palette.card,
+                  ),
+                ),
+              ),
+            ),
           // Úprava a zrušení jen u záznamů, které prošly serverem -
           // schované v nabídce, ať se nezmáčknou omylem.
           if (onUpravitStav != null || onZrusit != null)
@@ -583,20 +626,7 @@ class _Tecka extends StatelessWidget {
         size: const Size(10, 10),
         painter: _CarkovanyKruh(palette.muted),
       ),
-      StavPolozky.probiha => Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.accent,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.25),
-              spreadRadius: 3,
-            ),
-          ],
-        ),
-      ),
+      StavPolozky.probiha => const _PulzujiciTecka(),
       StavPolozky.hotovo => Container(
         width: 10,
         height: 10,
@@ -617,6 +647,93 @@ class _Tecka extends StatelessWidget {
         ),
       ),
     };
+  }
+}
+
+/// Pulz u probíhajícího kroku. Testy ho vypínají (test/flutter_test_config.dart)
+/// - s nekonečnou animací by `pumpAndSettle` nedoběhl.
+bool pulzovaniOsy = true;
+
+/// Modrý puntík probíhajícího kroku, kolem něj se rozbíhá a mizí kroužek.
+/// Se systémovým „omezit pohyb" zůstane jen klidná obruba.
+class _PulzujiciTecka extends StatefulWidget {
+  const _PulzujiciTecka();
+
+  @override
+  State<_PulzujiciTecka> createState() => _PulzujiciTeckaState();
+}
+
+class _PulzujiciTeckaState extends State<_PulzujiciTecka>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulz = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pulzovat = pulzovaniOsy && !MediaQuery.disableAnimationsOf(context);
+    if (pulzovat && !_pulz.isAnimating) {
+      _pulz.repeat();
+    } else if (!pulzovat && _pulz.isAnimating) {
+      _pulz.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulz.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const tecka = BoxDecoration(
+      shape: BoxShape.circle,
+      color: AppColors.accent,
+    );
+    if (!_pulz.isAnimating) {
+      return Container(
+        width: 12,
+        height: 12,
+        decoration: tecka.copyWith(
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.25),
+              spreadRadius: 3,
+            ),
+          ],
+        ),
+      );
+    }
+    // Kroužek přes Transform - velikost řádku (a čára osy) se nehýbe.
+    return SizedBox(
+      width: 12,
+      height: 12,
+      child: Stack(
+        clipBehavior: Clip.none,
+        fit: StackFit.expand,
+        children: [
+          AnimatedBuilder(
+            animation: _pulz,
+            builder: (context, _) {
+              final t = Curves.easeOut.transform(_pulz.value);
+              return Transform.scale(
+                scale: 1 + 1.8 * t,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.5 * (1 - t)),
+                  ),
+                ),
+              );
+            },
+          ),
+          Container(decoration: tecka),
+        ],
+      ),
+    );
   }
 }
 

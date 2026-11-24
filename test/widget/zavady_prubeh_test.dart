@@ -111,6 +111,18 @@ void main() {
     expect(find.byKey(const Key('zavada-hotovo-77')), findsOneWidget);
     // Hotový úkon má zelenou fajfku.
     expect(find.byKey(const Key('zavada-fajfka-77')), findsOneWidget);
+    // Dokončený krok má fajfku i v průběhu opravy (k dřívějšímu hotovému
+    // stavu z testovacích dat).
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('osa-prubehu')),
+        matching: find.byWidgetPredicate(
+          (w) => w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('osa-fajfka-'),
+        ),
+      ),
+      findsNWidgets(2),
+    );
     expect(zahajit, findsNothing);
   });
 
