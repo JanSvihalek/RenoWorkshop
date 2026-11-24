@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/barvy_zmen.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../plan/presentation/plan_karta.dart' show obdobiPlanu;
@@ -73,275 +74,296 @@ class OrderCard extends StatelessWidget {
     final bezMechanika = order.mechanicName == null;
     final zmena = order.novaZmena;
 
-    return _PressableCard(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: Insets.lg,
-        ),
-        decoration: BoxDecoration(
-          color: palette.card,
-          borderRadius: BorderRadius.circular(Radii.card),
-          // Nová změna od kolegy - modrý okraj, ať karta v seznamu vystoupí.
-          border: Border.all(
-            color: jeVybrana || zmena != null
-                ? AppColors.accent
-                : palette.hairline,
-            width: jeVybrana ? 2 : (zmena != null ? 1.5 : 1),
-          ),
-          boxShadow: palette.cardShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (zmena != null) ...[
-              PruhNoveZmeny(zmena: zmena),
-              const SizedBox(height: Insets.md),
+    final barvyZmen = context.barvyZmen;
+
+    final obsah = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: Insets.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Změna od kolegy - tečka s tooltipem, co se změnilo.
+              if (zmena != null) ...[
+                TeckaZmenyZakazky(order: order),
+                const SizedBox(width: Insets.xs),
+              ],
+              Expanded(
+                child: Text(
+                  order.id,
+                  style: AppTextStyles.orderNumber.copyWith(
+                    color: palette.muted,
+                    fontWeight: zmena != null ? FontWeight.w700 : null,
+                  ),
+                ),
+              ),
+              // Číslo obálky s klíčem - podle něj se klíč vezme ze stolu,
+              // bez otevírání detailu.
+              if (order.obalka case final obalka?)
+                _ObalkaZnak(cislo: obalka.cislo, kod: obalka.kod),
             ],
+          ),
+          const SizedBox(height: 7),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 9,
+            runSpacing: 6,
+            children: [
+              if (order.licensePlate.isEmpty)
+                const PlateChip(licensePlate: 'Bez SPZ')
+              else
+                SpzRamecek(licensePlate: order.licensePlate, maly: true),
+              Text(
+                order.model,
+                style: AppTextStyles.cardModel.copyWith(color: palette.text),
+              ),
+            ],
+          ),
+          // Typ zakázky má vlastní řádek. Ve Wrapu vedle modelu skákal
+          // podle délky názvu - u krátkého se vešel vedle, u dlouhého
+          // spadl pod něj - a karty pak nevypadaly stejně.
+          if (order.typZakazky != null) ...[
+            const SizedBox(height: 6),
+            _TypChip(nazev: order.typZakazky!.nazev),
+          ],
+          const SizedBox(height: 7),
+          Text(
+            order.customerName,
+            style: AppTextStyles.cardBody.copyWith(color: palette.muted2),
+          ),
+          // Co se opravuje - na klempírně podle toho člověk zakázku pozná
+          // dřív než podle SPZ. Na kartě jen dva řádky, celé je v detailu.
+          // Pojistná událost - na klempírně rozhoduje o tom, kdo platí
+          // a na čí schválení se čeká.
+          if (order.pojisteniPopisek case final pojisteni?) ...[
+            const SizedBox(height: 5),
             Row(
               children: [
+                Icon(Icons.shield_outlined, size: 13, color: palette.muted),
+                const SizedBox(width: Insets.xs),
                 Expanded(
                   child: Text(
-                    order.id,
-                    style: AppTextStyles.orderNumber.copyWith(
+                    pojisteni,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.cardBody.copyWith(
                       color: palette.muted,
                     ),
                   ),
                 ),
-                // Číslo obálky s klíčem - podle něj se klíč vezme ze stolu,
-                // bez otevírání detailu.
-                if (order.obalka case final obalka?)
-                  _ObalkaZnak(cislo: obalka.cislo, kod: obalka.kod),
               ],
             ),
-            const SizedBox(height: 7),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 9,
-              runSpacing: 6,
+          ],
+          if (order.predmetOpravy case final predmet?) ...[
+            const SizedBox(height: 5),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (order.licensePlate.isEmpty)
-                  const PlateChip(licensePlate: 'Bez SPZ')
-                else
-                  SpzRamecek(licensePlate: order.licensePlate, maly: true),
-                Text(
-                  order.model,
-                  style: AppTextStyles.cardModel.copyWith(color: palette.text),
-                ),
-              ],
-            ),
-            // Typ zakázky má vlastní řádek. Ve Wrapu vedle modelu skákal
-            // podle délky názvu - u krátkého se vešel vedle, u dlouhého
-            // spadl pod něj - a karty pak nevypadaly stejně.
-            if (order.typZakazky != null) ...[
-              const SizedBox(height: 6),
-              _TypChip(nazev: order.typZakazky!.nazev),
-            ],
-            const SizedBox(height: 7),
-            Text(
-              order.customerName,
-              style: AppTextStyles.cardBody.copyWith(color: palette.muted2),
-            ),
-            // Co se opravuje - na klempírně podle toho člověk zakázku pozná
-            // dřív než podle SPZ. Na kartě jen dva řádky, celé je v detailu.
-            // Pojistná událost - na klempírně rozhoduje o tom, kdo platí
-            // a na čí schválení se čeká.
-            if (order.pojisteniPopisek case final pojisteni?) ...[
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Icon(Icons.shield_outlined, size: 13, color: palette.muted),
-                  const SizedBox(width: Insets.xs),
-                  Expanded(
-                    child: Text(
-                      pojisteni,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.cardBody.copyWith(
-                        color: palette.muted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (order.predmetOpravy case final predmet?) ...[
-              const SizedBox(height: 5),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Icon(
-                      Icons.build_outlined,
-                      size: 13,
-                      color: palette.muted,
-                    ),
-                  ),
-                  const SizedBox(width: Insets.xs),
-                  Expanded(
-                    child: Text(
-                      predmet,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.cardBody.copyWith(
-                        color: palette.text,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 9),
-            // Dva nezávislé pohledy na tutéž zakázku, každý popsaný, ať se
-            // nepletou: co o ní ví ERP a co dílna.
-            _StavRadek(
-              popisek: 'HELIOS',
-              stav: order.heliosStatus,
-              barva: AppColors.heliosGreen,
-            ),
-            const SizedBox(height: 4),
-            _StavRadek(
-              popisek: 'DÍLNA',
-              stav: order.stav?.nazev,
-              barva: order.stav?.barva(context),
-            ),
-            // Kdo má vůz v rukou (skupina a člověk) - jen když je co
-            // ukázat, prázdný řádek by na každé kartě jen zabíral místo.
-            if ([
-                  order.skupina?.nazev,
-                  order.zpracovatel?.jmeno,
-                ].nonNulls.join(' · ')
-                case final kdo when kdo.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                key: const Key('karta-zpracovatel'),
-                children: [
-                  Icon(
-                    Icons.engineering_outlined,
-                    size: 14,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.build_outlined,
+                    size: 13,
                     color: palette.muted,
                   ),
-                  const SizedBox(width: Insets.xs),
-                  Flexible(
-                    child: Text(
-                      kdo,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.meta.copyWith(
-                        color: palette.text,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            // Termín na klempírně/lakovně z portálu plánu - kdy vůz jde
-            // na klempírnu, bez otevírání detailu.
-            if (order.planKlempirny case final plan?) ...[
-              const SizedBox(height: 6),
-              Row(
-                key: const Key('karta-plan'),
-                children: [
-                  Icon(
-                    plan.hotovo
-                        ? Icons.event_available_outlined
-                        : Icons.event_outlined,
-                    size: 14,
-                    color: plan.hotovo ? AppColors.readyGreen : palette.muted,
-                  ),
-                  const SizedBox(width: Insets.xs),
-                  Flexible(
-                    child: Text(
-                      'Klempírna ${obdobiPlanu(plan.od, plan.do_)}'
-                      '${plan.hotovo ? ' · hotovo' : ''}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.meta.copyWith(color: palette.text),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 9),
-            Row(
-              children: [
-                // Levá část se zužuje, termín vpravo má vždycky přednost -
-                // je to jediný údaj, který se na dílně čte na dálku.
+                ),
+                const SizedBox(width: Insets.xs),
                 Expanded(
-                  child: Row(
-                    children: [
-                      // Bez zodpovědné osoby nemá smysl zabírat místo
-                      // avatarem a slovem "Nepřiřazeno".
-                      if (!bezMechanika) ...[
-                        _MechanicAvatar(initials: order.mechanicInitials),
-                        const SizedBox(width: Insets.sm),
-                        Flexible(
-                          child: Text(
-                            order.mechanicLabel,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.meta.copyWith(
-                              color: palette.muted,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: Insets.sm),
-                        Container(
-                          width: 3,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: palette.muted.withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: Insets.sm),
-                      ],
-                      // Útvar je vidět vždycky - filtruje se podle něj,
-                      // takže musí být poznat, do kterého zakázka patří.
+                  child: Text(
+                    predmet,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.cardBody.copyWith(color: palette.text),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 9),
+          // Dva nezávislé pohledy na tutéž zakázku, každý popsaný, ať se
+          // nepletou: co o ní ví ERP a co dílna.
+          _StavRadek(
+            popisek: 'HELIOS',
+            stav: order.heliosStatus,
+            barva: AppColors.heliosGreen,
+          ),
+          const SizedBox(height: 4),
+          _StavRadek(
+            popisek: 'DÍLNA',
+            stav: order.stav?.nazev,
+            barva: order.stav?.barva(context),
+            // Změna stavu od kolegy - kroužek kolem štítku a tooltip.
+            obal: (stitek) => StavSeZmenou(order: order, child: stitek),
+          ),
+          // Kdo má vůz v rukou (skupina a člověk) - jen když je co
+          // ukázat, prázdný řádek by na každé kartě jen zabíral místo.
+          if ([
+                order.skupina?.nazev,
+                order.zpracovatel?.jmeno,
+              ].nonNulls.join(' · ')
+              case final kdo when kdo.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              key: const Key('karta-zpracovatel'),
+              children: [
+                Icon(
+                  Icons.engineering_outlined,
+                  size: 14,
+                  color: palette.muted,
+                ),
+                const SizedBox(width: Insets.xs),
+                Flexible(
+                  child: Text(
+                    kdo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.meta.copyWith(
+                      color: palette.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          // Termín na klempírně/lakovně z portálu plánu - kdy vůz jde
+          // na klempírnu, bez otevírání detailu.
+          if (order.planKlempirny case final plan?) ...[
+            const SizedBox(height: 6),
+            Row(
+              key: const Key('karta-plan'),
+              children: [
+                Icon(
+                  plan.hotovo
+                      ? Icons.event_available_outlined
+                      : Icons.event_outlined,
+                  size: 14,
+                  color: plan.hotovo ? AppColors.readyGreen : palette.muted,
+                ),
+                const SizedBox(width: Insets.xs),
+                Flexible(
+                  child: Text(
+                    'Klempírna ${obdobiPlanu(plan.od, plan.do_)}'
+                    '${plan.hotovo ? ' · hotovo' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.meta.copyWith(color: palette.text),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              // Levá část se zužuje, termín vpravo má vždycky přednost -
+              // je to jediný údaj, který se na dílně čte na dálku.
+              Expanded(
+                child: Row(
+                  children: [
+                    // Bez zodpovědné osoby nemá smysl zabírat místo
+                    // avatarem a slovem "Nepřiřazeno".
+                    if (!bezMechanika) ...[
+                      _MechanicAvatar(initials: order.mechanicInitials),
+                      const SizedBox(width: Insets.sm),
                       Flexible(
                         child: Text(
-                          order.departmentLabel,
+                          order.mechanicLabel,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.meta.copyWith(
                             color: palette.muted,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: Insets.sm),
-                // Datum přijetí, ne termín dokončení: podle něj se seznam
-                // řadí a u oprav po bouračce bývá termín nevyplněný.
-                // Popisek je u něj proto, aby se nepletlo s termínem.
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'PŘIJATO',
-                      style: AppTextStyles.overline.copyWith(
-                        fontSize: 8.5,
-                        color: palette.muted,
+                      const SizedBox(width: Insets.sm),
+                      Container(
+                        width: 3,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: palette.muted.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    Text(
-                      order.receivedAt == null
-                          ? '—'
-                          : AppDateFormat.dayMonthSmart(order.receivedAt!),
-                      style: AppTextStyles.orderNumber.copyWith(
-                        fontSize: 12.5,
-                        color: palette.muted2,
+                      const SizedBox(width: Insets.sm),
+                    ],
+                    // Útvar je vidět vždycky - filtruje se podle něj,
+                    // takže musí být poznat, do kterého zakázka patří.
+                    Flexible(
+                      child: Text(
+                        order.departmentLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.meta.copyWith(
+                          color: palette.muted,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: Insets.sm),
+              // Datum přijetí, ne termín dokončení: podle něj se seznam
+              // řadí a u oprav po bouračce bývá termín nevyplněný.
+              // Popisek je u něj proto, aby se nepletlo s termínem.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'PŘIJATO',
+                    style: AppTextStyles.overline.copyWith(
+                      fontSize: 8.5,
+                      color: palette.muted,
+                    ),
+                  ),
+                  Text(
+                    order.receivedAt == null
+                        ? '—'
+                        : AppDateFormat.dayMonthSmart(order.receivedAt!),
+                    style: AppTextStyles.orderNumber.copyWith(
+                      fontSize: 12.5,
+                      color: palette.muted2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return _PressableCard(
+      onTap: onTap,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          // Změna od kolegy - teplé pozadí a proužek vlevo (přes obsah,
+          // nic neposune).
+          color: zmena != null ? barvyZmen.pozadiRadku : palette.card,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(
+            color: jeVybrana ? AppColors.accent : palette.hairline,
+            width: jeVybrana ? 2 : 1,
+          ),
+          boxShadow: palette.cardShadow,
         ),
+        child: zmena == null
+            ? obsah
+            : Stack(
+                children: [
+                  obsah,
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      key: const Key('karta-zmena-prouzek'),
+                      width: 3,
+                      color: barvyZmen.akcent,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -447,15 +469,32 @@ class _StavRadek extends StatelessWidget {
     required this.popisek,
     required this.stav,
     required this.barva,
+    this.obal,
   });
 
   final String popisek;
   final String? stav;
   final Color? barva;
 
+  /// Co se kolem štítku nakreslí - kroužek změny u stavu dílna.
+  final Widget Function(Widget stitek)? obal;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final stitek = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: barva ?? AppColors.pickedUpGrey,
+        borderRadius: BorderRadius.circular(Radii.badge),
+      ),
+      child: Text(
+        stav ?? 'Neuvedeno',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTextStyles.badge.copyWith(fontSize: 11, color: Colors.white),
+      ),
+    );
 
     return Row(
       children: [
@@ -469,24 +508,7 @@ class _StavRadek extends StatelessWidget {
             ),
           ),
         ),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: barva ?? AppColors.pickedUpGrey,
-              borderRadius: BorderRadius.circular(Radii.badge),
-            ),
-            child: Text(
-              stav ?? 'Neuvedeno',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.badge.copyWith(
-                fontSize: 11,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+        Flexible(child: obal?.call(stitek) ?? stitek),
       ],
     );
   }

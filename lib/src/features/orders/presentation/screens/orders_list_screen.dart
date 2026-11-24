@@ -325,9 +325,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   }
 }
 
-/// Lišta nových změn pod filtry: přepínač „3 nové změny" (jen zakázky se
-/// změnou, kterou člověk ještě neviděl) a s ním „Označit vše jako
-/// přečtené". Bez nových změn se lišta schová a přepínač vypne.
+/// Lišta změněných zakázek nad seznamem i tabulkou ([ListaZmen]) - ve
+/// stejném filtru jako seznam. Bez změněných se schová a filtr vypne.
 class _NoveZmeny extends ConsumerStatefulWidget {
   const _NoveZmeny();
 
@@ -357,69 +356,24 @@ class _NoveZmenyState extends ConsumerState<_NoveZmeny> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     final zmenene = ref.watch(zmeneneVeFiltruProvider);
     final zapnuto = ref.watch(jenZmeneneProvider);
+    // Bez změněných nemá filtr co ukázat - vypnout.
     ref.listen(zmeneneVeFiltruProvider, (_, nove) {
       if (nove.isEmpty && ref.read(jenZmeneneProvider)) {
         ref.read(jenZmeneneProvider.notifier).state = false;
       }
     });
     if (zmenene.isEmpty) return const SizedBox.shrink();
-    final pocet = zmenene.length;
-    final text = pocet == 1
-        ? '1 nová změna'
-        : pocet < 5
-        ? '$pocet nové změny'
-        : '$pocet nových změn';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.xl, Insets.sm, Insets.xl, 0),
-      child: Row(
-        children: [
-          Material(
-            color: zapnuto ? pozadiZmeny(context) : palette.card,
-            shape: StadiumBorder(
-              side: BorderSide(
-                color: AppColors.accent.withValues(alpha: zapnuto ? 1 : 0.55),
-                width: 1.5,
-              ),
-            ),
-            child: InkWell(
-              key: const Key('nove-zmeny-prepinac'),
-              customBorder: const StadiumBorder(),
-              onTap: () =>
-                  ref.read(jenZmeneneProvider.notifier).state = !zapnuto,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Insets.base,
-                  vertical: Insets.xs,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const TeckaZmeny(),
-                    const SizedBox(width: Insets.sm),
-                    Text(
-                      text,
-                      style: AppTextStyles.metaSmall.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: palette.text,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const Spacer(),
-          if (zapnuto)
-            TextButton(
-              key: const Key('nove-zmeny-oznacit-vse'),
-              onPressed: _uklada ? null : () => _oznacVse(zmenene),
-              child: const Text('Označit vše jako přečtené'),
-            ),
-        ],
+      child: ListaZmen(
+        pocet: zmenene.length,
+        jenZmenene: zapnuto,
+        onJenZmenene: (zapnout) =>
+            ref.read(jenZmeneneProvider.notifier).state = zapnout,
+        onOznacitVse: _uklada ? null : () => _oznacVse(zmenene),
       ),
     );
   }

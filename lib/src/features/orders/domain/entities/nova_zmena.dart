@@ -68,6 +68,9 @@ class NovaZmena {
   /// Kolik nových změn celkem - štítek ukáže poslední a „+N".
   final int pocet;
 
+  /// Změna stavu v průběhu (ne poznámka) - značí se u Stavu dílna.
+  bool get jeZmenaStavu => druh != DruhZmeny.poznamka;
+
   /// „Nový stav: Lakovna", „Nová poznámka: Volal zákazník".
   String get text => switch (druh) {
     DruhZmeny.stav => 'Nový stav: $popisek',

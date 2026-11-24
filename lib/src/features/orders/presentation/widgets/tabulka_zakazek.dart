@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/barvy_zmen.dart';
 import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
@@ -279,8 +280,14 @@ List<SloupecZakazek> sloupceTabulky(
   ];
 }
 
+/// Úzký sloupec před prvním sloupcem - tečka změněné zakázky. Mají ho
+/// všechny řádky i hlavička, ať jsou sloupce zarovnané.
+const double sirkaGutteru = 24;
+
 double _sirkaTabulky(List<SloupecZakazek> sloupce) =>
-    sloupce.fold<double>(0, (soucet, s) => soucet + s.sirka) + 2 * Insets.base;
+    sloupce.fold<double>(0, (soucet, s) => soucet + s.sirka) +
+    sirkaGutteru +
+    Insets.base;
 
 /// Co tabulka ukazuje pod hlavičkou sloupců: řádek zakázky, nebo vložka
 /// přes šířku obrazovky - nadpis části nebo hláška (výsledky hledání mají
@@ -453,9 +460,11 @@ class _Hlavicka extends StatelessWidget {
     final palette = context.palette;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Insets.base,
-        vertical: Insets.sm,
+      // Vlevo místo odsazení úzký sloupec s tečkou - jako v řádcích.
+      padding: const EdgeInsets.only(
+        right: Insets.base,
+        top: Insets.sm,
+        bottom: Insets.sm,
       ),
       decoration: BoxDecoration(
         color: palette.card,
@@ -463,6 +472,8 @@ class _Hlavicka extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Nad úzkým sloupcem s tečkou změny.
+          const SizedBox(width: sirkaGutteru),
           for (final sloupec in sloupce)
             SizedBox(
               width: sloupec.sirka,
@@ -524,81 +535,74 @@ class _Radek extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final zmena = zakazka.novaZmena;
+    final barvyZmen = context.barvyZmen;
 
-    final radek = InkWell(
+    return InkWell(
+      key: zmena == null ? null : Key('tabulka-zmena-${zakazka.id}'),
       onTap: onTap,
       child: Container(
         height: Sizes.minTouchTarget,
-        padding: const EdgeInsets.symmetric(horizontal: Insets.base),
+        padding: const EdgeInsets.only(right: Insets.base),
         decoration: BoxDecoration(
-          color: sudy ? palette.background : palette.card,
-          border: Border(
-            bottom: BorderSide(color: palette.hairline),
-            // Nová změna od kolegy - modrý proužek vlevo a tečka.
-            left: zmena == null
-                ? BorderSide.none
-                : const BorderSide(color: AppColors.accent, width: 3),
-          ),
+          color: zmena != null
+              ? barvyZmen.pozadiRadku
+              : (sudy ? palette.background : palette.card),
+          border: Border(bottom: BorderSide(color: palette.hairline)),
         ),
+        // Proužek vlevo se kreslí přes řádek - obsah buněk neposune.
+        foregroundDecoration: zmena == null
+            ? null
+            : BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: barvyZmen.akcent, width: 3),
+                ),
+              ),
         child: Row(
           children: [
-            for (final (i, sloupec) in sloupce.indexed)
+            // Úzký sloupec pro tečku má každý řádek - sloupce se nehnou
+            // a datum v prvním sloupci se neořezává.
+            SizedBox(
+              width: sirkaGutteru,
+              child: Center(child: TeckaZmenyZakazky(order: zakazka)),
+            ),
+            for (final sloupec in sloupce)
               SizedBox(
                 width: sloupec.sirka,
                 child: Padding(
                   padding: const EdgeInsets.only(right: Insets.sm),
-                  child: _sTeckou(
-                    i == 0 && zmena != null,
-                    _bunka(context, sloupec, palette, tucne: zmena != null),
-                  ),
+                  child: _bunka(context, sloupec, palette),
                 ),
               ),
           ],
         ),
       ),
     );
-    if (zmena == null) return radek;
-    return Tooltip(
-      message: '${zmena.text}\n${zmena.kdoKdy(DateTime.now())}',
-      child: KeyedSubtree(
-        key: Key('tabulka-zmena-${zakazka.id}'),
-        child: radek,
-      ),
-    );
   }
-
-  Widget _sTeckou(bool tecka, Widget obsah) => !tecka
-      ? obsah
-      : Row(
-          children: [
-            const TeckaZmeny(velikost: 7),
-            const SizedBox(width: Insets.xs),
-            Expanded(child: obsah),
-          ],
-        );
 
   Widget _bunka(
     BuildContext context,
     SloupecZakazek sloupec,
-    AppPalette palette, {
-    required bool tucne,
-  }) {
+    AppPalette palette,
+  ) {
     return switch (sloupec.stitek?.call(context, zakazka)) {
       final stitek? => Align(
         alignment: Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: stitek.pozadi,
-            borderRadius: BorderRadius.circular(Radii.badge),
-          ),
-          child: Text(
-            sloupec.hodnota(zakazka),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.badge.copyWith(
-              fontSize: 11.5,
-              color: stitek.text,
+        child: _sKrouzkem(
+          sloupec,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: stitek.pozadi,
+              borderRadius: BorderRadius.circular(Radii.badge),
+            ),
+            child: Text(
+              sloupec.hodnota(zakazka),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.badge.copyWith(
+                fontSize: 11.5,
+                color: stitek.text,
+              ),
             ),
           ),
         ),
@@ -610,10 +614,19 @@ class _Radek extends StatelessWidget {
         style: (sloupec.mono ? AppTextStyles.monoLabel : AppTextStyles.cardBody)
             .copyWith(
               fontSize: 13,
-              fontWeight: tucne ? FontWeight.w700 : null,
+              // Změněný řádek: tučně jen číslo zakázky - šířky se nehnou.
+              fontWeight: zakazka.novaZmena != null && sloupec.klic == 'zakazka'
+                  ? FontWeight.w600
+                  : null,
               color: sloupec.barva?.call(zakazka) ?? palette.text,
             ),
       ),
     };
   }
+
+  /// Kroužek změny jen u Stavu dílna - Stav Helios se nezvýrazňuje.
+  Widget _sKrouzkem(SloupecZakazek sloupec, Widget stitek) =>
+      sloupec.klic == 'dilna'
+      ? StavSeZmenou(order: zakazka, child: stitek)
+      : stitek;
 }

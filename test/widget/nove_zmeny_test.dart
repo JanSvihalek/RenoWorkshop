@@ -7,6 +7,7 @@ import 'package:renoworkshop/src/features/auth/data/placeholder_auth_repository.
 import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:renoworkshop/src/features/orders/domain/entities/nova_zmena.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/nova_zmena.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -57,11 +58,15 @@ void main() {
       buildOrderDto(
         id: 'ZK-26-0001',
         licensePlate: '8AB 4721',
+        // Jediný záznam historie je ten, který změnu udělal - předtím
+        // zakázka stav neměla.
+        status: 'Lakovna',
+        statusCode: 'lakovna',
         unseenChange: {
           'kind': 'status',
           'label': 'Lakovna',
           'by': 'Eva Malá',
-          'at': '2026-11-24T10:05:00',
+          'at': '2026-08-20T09:00:00',
           'count': 2,
         },
       ),
@@ -88,30 +93,102 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('štítek na kartě, číslo v navigaci, přepínač a označit vše', (
+  /// Text tooltipu změny (richMessage) - pro kontrolu obsahu.
+  Iterable<String> tooltipy(WidgetTester tester) => tester
+      .widgetList<Tooltip>(find.byType(Tooltip))
+      .map((t) => t.richMessage?.toPlainText() ?? t.message ?? '');
+
+  testWidgets('karta: proužek, tečka, kroužek se starým → novým stavem', (
     tester,
   ) async {
     await prihlas(tester);
 
-    expect(find.byKey(const Key('karta-nova-zmena')), findsOneWidget);
-    expect(find.text('Nový stav: Lakovna'), findsOneWidget);
-    expect(find.text('+1'), findsOneWidget);
+    expect(find.byKey(const Key('karta-zmena-prouzek')), findsOneWidget);
+    expect(find.byKey(const Key('stav-se-zmenou')), findsOneWidget);
+    expect(find.byType(TeckaZmeny), findsWidgets);
+    expect(
+      tooltipy(tester),
+      // Datum bez roku jen letos - konec se kontroluje bez data.
+      contains(
+        allOf(
+          startsWith('ZMĚNA · STAV DÍLNA\nBez stavu → Lakovna\n'),
+          endsWith('9:00 · Eva Malá · +1 další'),
+        ),
+      ),
+    );
+    expect(
+      find.text('1 zakázka se změnila od vašeho posledního zobrazení'),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('nav-pocet-zmen')), findsOneWidget);
+  });
 
-    // Jen změněné - druhá zakázka zmizí.
-    await tester.tap(find.byKey(const Key('nove-zmeny-prepinac')));
+  testWidgets('lišta: jen změněné, podruhé vypne, označit vše', (tester) async {
+    await prihlas(tester);
+
+    final jenZmenene = find.byKey(const Key('lista-zmen-jen-zmenene'));
+    await tester.tap(jenZmenene);
     await tester.pumpAndSettle();
     expect(find.text('2SC 9014'), findsNothing);
     expect(find.text('8AB 4721'), findsOneWidget);
+    await tester.tap(jenZmenene);
+    await tester.pumpAndSettle();
+    expect(find.text('2SC 9014'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('nove-zmeny-oznacit-vse')));
+    await tester.tap(jenZmenene);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('lista-zmen-oznacit-vse')));
     await tester.pumpAndSettle();
     expect(zdroj.videne, ['ZK-26-0001']);
-    expect(find.byKey(const Key('karta-nova-zmena')), findsNothing);
+    expect(find.byKey(const Key('karta-zmena-prouzek')), findsNothing);
     expect(find.byKey(const Key('nav-pocet-zmen')), findsNothing);
-    // Bez nových změn se přepínač vypne - seznam je zase celý.
-    expect(find.byKey(const Key('nove-zmeny-prepinac')), findsNothing);
+    // Bez změněných se lišta schová a filtr vypne - seznam je zase celý.
+    expect(find.byKey(const Key('lista-zmen')), findsNothing);
     expect(find.text('2SC 9014'), findsOneWidget);
+  });
+
+  testWidgets('tečka pulzuje jen třikrát, při vypnutých animacích vůbec', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: TeckaZmeny())),
+      ),
+    );
+    // Tři cykly a pak klid - pumpAndSettle by s nekonečnou animací
+    // nedoběhl.
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(tester.hasRunningAnimations, isTrue);
+    await tester.pumpAndSettle();
+    expect(tester.hasRunningAnimations, isFalse);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: Center(child: TeckaZmeny(key: Key('bez'))),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.hasRunningAnimations, isFalse);
+  });
+
+  test('skloňování lišty', () {
+    expect(
+      textListyZmen(1),
+      '1 zakázka se změnila od vašeho posledního zobrazení',
+    );
+    expect(
+      textListyZmen(3),
+      '3 zakázky se změnily od vašeho posledního zobrazení',
+    );
+    expect(
+      textListyZmen(5),
+      '5 zakázek se změnilo od vašeho posledního zobrazení',
+    );
   });
 
   testWidgets('otevření detailu zakázku označí jako viděnou', (tester) async {
@@ -130,7 +207,7 @@ void main() {
 
     await tester.tap(_zpet().first);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('karta-nova-zmena')), findsNothing);
+    expect(find.byKey(const Key('karta-zmena-prouzek')), findsNothing);
     expect(find.byKey(const Key('nav-pocet-zmen')), findsNothing);
   });
 }

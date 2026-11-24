@@ -312,16 +312,11 @@ final zmeneneVeFiltruProvider = Provider<List<ServiceOrder>>((ref) {
   ];
 });
 
-/// Počet zakázek s novou změnou ve výchozím filtru z Nastavení („moje"
-/// zakázky) - číslo u položky Zakázky v navigaci. Jako na webu.
-final pocetZmenProvider = Provider<int>((ref) {
-  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
-  final vychozi = OrderFilterController._vychozi(
-    ref.watch(nastaveniProvider),
-    ref.watch(currentEmployeeProvider)?.email.trim().toLowerCase(),
-  );
-  return vychozi.apply(orders).where((o) => o.novaZmena != null).length;
-});
+/// Počet změněných zakázek u položky Zakázky v navigaci - stejné číslo
+/// jako lišta nad seznamem (ve stejném filtru). Jako na webu.
+final pocetZmenProvider = Provider<int>(
+  (ref) => ref.watch(zmeneneVeFiltruProvider).length,
+);
 
 /// Detail jedné zakázky. Čte ze stejného streamu jako seznam, takže posun
 /// stavu v detailu se hned projeví i v seznamu.

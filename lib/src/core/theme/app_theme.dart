@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'barvy_zmen.dart';
 import 'app_typography.dart';
 import 'dimens.dart';
 
@@ -35,7 +36,10 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: palette.background,
       fontFamily: AppFonts.sans,
       splashFactory: InkSparkle.splashFactory,
-      extensions: <ThemeExtension<dynamic>>[palette],
+      extensions: <ThemeExtension<dynamic>>[
+        palette,
+        brightness == Brightness.light ? BarvyZmen.svetle : BarvyZmen.tmave,
+      ],
       textTheme: _textTheme(palette),
       appBarTheme: AppBarTheme(
         backgroundColor: palette.hlavicka,
