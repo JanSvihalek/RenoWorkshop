@@ -41,6 +41,8 @@ class WorkshopScaffold extends ConsumerWidget {
     final aktivni = WorkshopTab.values[navigationShell.currentIndex];
     // Záložka Admin jen pro admina (práva z /me).
     final admin = ref.watch(mojePravaProvider).valueOrNull?.jeAdmin ?? false;
+    // Zakázky s novou změnou od kolegů ve výchozím filtru - číslo u Zakázek.
+    final pocetZmen = ref.watch(pocetZmenProvider);
 
     // Na tabletu je obrazovka na šířku a spodní lišta by ukrajovala
     // z výšky, které je málo - navigace jde do svislého pruhu vlevo.
@@ -54,6 +56,7 @@ class WorkshopScaffold extends ConsumerWidget {
               onVyhledat: onVyhledat,
               onAplikace: () => zobrazPrepinacAplikaci(context, ref),
               zobrazitAdmin: admin,
+              pocetZmen: pocetZmen,
             ),
             Expanded(
               child: Column(
@@ -80,6 +83,7 @@ class WorkshopScaffold extends ConsumerWidget {
             onSelect: (tab) => _prepni(tab.index),
             onVyhledat: onVyhledat,
             zobrazitAdmin: admin,
+            pocetZmen: pocetZmen,
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'branch.dart';
 import 'dilensky_stav.dart';
 import 'kampan_vozidla.dart';
+import 'nova_zmena.dart';
 import 'plan_klempirny.dart';
 import 'order_note.dart';
 import 'poradac.dart';
@@ -75,6 +76,7 @@ class ServiceOrder {
     this.planKlempirny,
     this.zruseneUkonyPlanu = const [],
     this.lzePlanovatKlempirnu = false,
+    this.novaZmena,
   });
 
   /// Číslo zakázky, např. "ZK-26-0418".
@@ -222,6 +224,10 @@ class ServiceOrder {
   /// vede server.
   final bool lzePlanovatKlempirnu;
 
+  /// Změna stavu nebo poznámka od někoho jiného, kterou přihlášený ještě
+  /// neviděl - štítek v seznamu. `null` = nic nového (nebo starší služba).
+  final NovaZmena? novaZmena;
+
   /// Zakázka je po termínu.
   ///
   /// Neváže se na dílenský stav: ten je nově volný text z číselníku, takže
@@ -301,6 +307,9 @@ class ServiceOrder {
     String? bayBy,
     List<OrderNote>? notes,
     List<WorkItem>? workItems,
+
+    /// Zakázku viděl - štítek nové změny zmizí.
+    bool bezNoveZmeny = false,
   }) {
     return ServiceOrder(
       id: id,
@@ -346,6 +355,7 @@ class ServiceOrder {
       planKlempirny: planKlempirny,
       zruseneUkonyPlanu: zruseneUkonyPlanu,
       lzePlanovatKlempirnu: lzePlanovatKlempirnu,
+      novaZmena: bezNoveZmeny ? null : novaZmena,
     );
   }
 
@@ -363,7 +373,9 @@ class ServiceOrder {
           other.obalka == obalka &&
           other.notes.length == notes.length &&
           other.rucniUkony.length == rucniUkony.length &&
-          other.workItems == workItems);
+          other.workItems == workItems &&
+          // Štítek nové změny se po otevření musí z karty ztratit.
+          other.novaZmena == novaZmena);
 
   @override
   int get hashCode => Object.hash(
@@ -376,5 +388,6 @@ class ServiceOrder {
     notes.length,
     rucniUkony.length,
     workItems.length,
+    novaZmena,
   );
 }

@@ -1,6 +1,7 @@
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/dilensky_stav.dart';
 import '../../domain/entities/kampan_vozidla.dart';
+import '../../domain/entities/nova_zmena.dart';
 import '../../domain/entities/plan_klempirny.dart';
 import '../../domain/entities/order_note.dart';
 import '../../domain/entities/poradac.dart';
@@ -62,6 +63,7 @@ class ServiceOrderDto {
     this.bodyshopPlan,
     this.cancelledPlanBlocks = const [],
     this.canPlanBodyshop = false,
+    this.unseenChange,
   });
 
   final String id;
@@ -184,6 +186,10 @@ class ServiceOrderDto {
   /// Jde zakázku zaplánovat na klempírnu (klempířský útvar)?
   final bool canPlanBodyshop;
 
+  /// Nová změna od ostatních `{kind, label, by, at, count}`, kterou
+  /// přihlášený ještě neviděl. `null` = nic nového; starší API neposílá.
+  final Map<String, dynamic>? unseenChange;
+
   factory ServiceOrderDto.fromJson(Map<String, dynamic> json) {
     return ServiceOrderDto(
       id: json['id'] as String,
@@ -250,6 +256,7 @@ class ServiceOrderDto {
           (json['cancelledPlanBlocks'] as List<dynamic>? ?? const [])
               .cast<Map<String, dynamic>>(),
       canPlanBodyshop: json['canPlanBodyshop'] as bool? ?? false,
+      unseenChange: json['unseenChange'] as Map<String, dynamic>?,
     );
   }
 
@@ -298,6 +305,7 @@ class ServiceOrderDto {
     'bodyshopPlan': bodyshopPlan,
     'cancelledPlanBlocks': cancelledPlanBlocks,
     'canPlanBodyshop': canPlanBodyshop,
+    'unseenChange': unseenChange,
   };
 
   ServiceOrder toDomain() => ServiceOrder(
@@ -362,6 +370,7 @@ class ServiceOrderDto {
         : PlanKlempirny.fromJson(bodyshopPlan!),
     zruseneUkonyPlanu: cancelledPlanBlocks.map(UkonPlanu.fromJson).toList(),
     lzePlanovatKlempirnu: canPlanBodyshop,
+    novaZmena: NovaZmena.zJson(unseenChange),
   );
 
   ServiceOrderDto copyWith({
@@ -408,6 +417,11 @@ class ServiceOrderDto {
     /// Po smazání posledního záznamu zakázka žádný stav nemá - bez tohohle
     /// by `??` nechalo ten původní.
     bool vymazatStav = false,
+
+    Map<String, dynamic>? unseenChange,
+
+    /// Zakázku viděl - nová změna zmizí.
+    bool vymazatZmenu = false,
   }) {
     return ServiceOrderDto(
       id: id,
@@ -456,6 +470,7 @@ class ServiceOrderDto {
       bodyshopPlan: vymazatPlan ? null : (bodyshopPlan ?? this.bodyshopPlan),
       cancelledPlanBlocks: cancelledPlanBlocks ?? this.cancelledPlanBlocks,
       canPlanBodyshop: canPlanBodyshop ?? this.canPlanBodyshop,
+      unseenChange: vymazatZmenu ? null : (unseenChange ?? this.unseenChange),
     );
   }
 }

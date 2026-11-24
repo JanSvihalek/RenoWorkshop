@@ -266,6 +266,22 @@ class FakeServiceOrderDataSource
     poSynchronizaci = const [];
   }
 
+  /// Zakázky, které appka označila jako viděné (v pořadí volání).
+  final videne = <String>[];
+
+  @override
+  Future<void> oznacVidenou(String orderId) => oznacVidene([orderId]);
+
+  @override
+  Future<void> oznacVidene(List<String> orderIds) async {
+    videne.addAll(orderIds);
+    for (var i = 0; i < _orders.length; i++) {
+      if (orderIds.contains(_orders[i].id)) {
+        _orders[i] = _orders[i].copyWith(vymazatZmenu: true);
+      }
+    }
+  }
+
   /// Příjmy v paměti. [ulozeniPrijmuSelze] simuluje výpadek sítě.
   final PametovyPrijem prijmy = PametovyPrijem();
   bool ulozeniPrijmuSelze = false;
@@ -1204,9 +1220,11 @@ ServiceOrderDto buildOrderDto({
   Map<String, dynamic>? handoverContact,
   Map<String, dynamic>? customerWishes,
   List<RucniUkon> manualTasks = const [],
+  Map<String, dynamic>? unseenChange,
 }) {
   return ServiceOrderDto(
     id: id,
+    unseenChange: unseenChange,
     vehicleId: vehicleId,
     isActive: isActive,
     handoverContact: handoverContact,

@@ -7,6 +7,7 @@ import '../../../../core/theme/dimens.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../plan/presentation/plan_karta.dart' show obdobiPlanu;
 import '../../domain/entities/service_order.dart';
+import 'nova_zmena.dart';
 import 'order_status_visuals.dart';
 import 'plate_chip.dart';
 
@@ -70,6 +71,7 @@ class OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final bezMechanika = order.mechanicName == null;
+    final zmena = order.novaZmena;
 
     return _PressableCard(
       onTap: onTap,
@@ -81,15 +83,22 @@ class OrderCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: palette.card,
           borderRadius: BorderRadius.circular(Radii.card),
+          // Nová změna od kolegy - modrý okraj, ať karta v seznamu vystoupí.
           border: Border.all(
-            color: jeVybrana ? AppColors.accent : palette.hairline,
-            width: jeVybrana ? 2 : 1,
+            color: jeVybrana || zmena != null
+                ? AppColors.accent
+                : palette.hairline,
+            width: jeVybrana ? 2 : (zmena != null ? 1.5 : 1),
           ),
           boxShadow: palette.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (zmena != null) ...[
+              PruhNoveZmeny(zmena: zmena),
+              const SizedBox(height: Insets.md),
+            ],
             Row(
               children: [
                 Expanded(

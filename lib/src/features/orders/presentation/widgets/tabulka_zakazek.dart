@@ -9,6 +9,7 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../settings/domain/entities/nastaveni.dart';
 import '../../../settings/presentation/controllers/nastaveni_controller.dart';
 import '../../domain/entities/service_order.dart';
+import 'nova_zmena.dart';
 
 /// Sloupec tabulky zakázek. Text i barva se berou ze zakázky, ať jde
 /// sloupec přidat na jednom místě.
@@ -522,67 +523,97 @@ class _Radek extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final zmena = zakazka.novaZmena;
 
-    return InkWell(
+    final radek = InkWell(
       onTap: onTap,
       child: Container(
         height: Sizes.minTouchTarget,
         padding: const EdgeInsets.symmetric(horizontal: Insets.base),
         decoration: BoxDecoration(
           color: sudy ? palette.background : palette.card,
-          border: Border(bottom: BorderSide(color: palette.hairline)),
+          border: Border(
+            bottom: BorderSide(color: palette.hairline),
+            // Nová změna od kolegy - modrý proužek vlevo a tečka.
+            left: zmena == null
+                ? BorderSide.none
+                : const BorderSide(color: AppColors.accent, width: 3),
+          ),
         ),
         child: Row(
           children: [
-            for (final sloupec in sloupce)
+            for (final (i, sloupec) in sloupce.indexed)
               SizedBox(
                 width: sloupec.sirka,
                 child: Padding(
                   padding: const EdgeInsets.only(right: Insets.sm),
-                  child: switch (sloupec.stitek?.call(context, zakazka)) {
-                    final stitek? => Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: stitek.pozadi,
-                          borderRadius: BorderRadius.circular(Radii.badge),
-                        ),
-                        child: Text(
-                          sloupec.hodnota(zakazka),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.badge.copyWith(
-                            fontSize: 11.5,
-                            color: stitek.text,
-                          ),
-                        ),
-                      ),
-                    ),
-                    null => Text(
-                      sloupec.hodnota(zakazka),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          (sloupec.mono
-                                  ? AppTextStyles.monoLabel
-                                  : AppTextStyles.cardBody)
-                              .copyWith(
-                                fontSize: 13,
-                                color:
-                                    sloupec.barva?.call(zakazka) ??
-                                    palette.text,
-                              ),
-                    ),
-                  },
+                  child: _sTeckou(
+                    i == 0 && zmena != null,
+                    _bunka(context, sloupec, palette, tucne: zmena != null),
+                  ),
                 ),
               ),
           ],
         ),
       ),
     );
+    if (zmena == null) return radek;
+    return Tooltip(
+      message: '${zmena.text}\n${zmena.kdoKdy(DateTime.now())}',
+      child: KeyedSubtree(
+        key: Key('tabulka-zmena-${zakazka.id}'),
+        child: radek,
+      ),
+    );
+  }
+
+  Widget _sTeckou(bool tecka, Widget obsah) => !tecka
+      ? obsah
+      : Row(
+          children: [
+            const TeckaZmeny(velikost: 7),
+            const SizedBox(width: Insets.xs),
+            Expanded(child: obsah),
+          ],
+        );
+
+  Widget _bunka(
+    BuildContext context,
+    SloupecZakazek sloupec,
+    AppPalette palette, {
+    required bool tucne,
+  }) {
+    return switch (sloupec.stitek?.call(context, zakazka)) {
+      final stitek? => Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: stitek.pozadi,
+            borderRadius: BorderRadius.circular(Radii.badge),
+          ),
+          child: Text(
+            sloupec.hodnota(zakazka),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.badge.copyWith(
+              fontSize: 11.5,
+              color: stitek.text,
+            ),
+          ),
+        ),
+      ),
+      null => Text(
+        sloupec.hodnota(zakazka),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: (sloupec.mono ? AppTextStyles.monoLabel : AppTextStyles.cardBody)
+            .copyWith(
+              fontSize: 13,
+              fontWeight: tucne ? FontWeight.w700 : null,
+              color: sloupec.barva?.call(zakazka) ?? palette.text,
+            ),
+      ),
+    };
   }
 }

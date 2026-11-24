@@ -19,6 +19,18 @@ abstract interface class ServiceOrderRepository {
   /// Jednorázové načtení (pull-to-refresh, cold start).
   Future<List<ServiceOrder>> getOrders();
 
+  /// Tiché obnovení seznamu - načte znovu a pošle do streamu, bez stavu
+  /// načítání. Seznam se tak sám dozví o nových změnách od kolegů.
+  Future<void> obnov();
+
+  /// Zakázku viděl (otevřel detail) - štítek nové změny zmizí hned,
+  /// služba si to zapamatuje na pozadí. Nepovedené uložení nevadí: štítek
+  /// se ukáže znovu s další obnovou.
+  Future<void> oznacVidenou(String orderId);
+
+  /// „Označit vše jako přečtené" - zakázky ze seznamu najednou.
+  Future<void> oznacVidene(List<String> orderIds);
+
   /// Detail jedné zakázky. Vyhodí [ServiceOrderNotFoundException].
   Future<ServiceOrder> getOrder(String orderId);
 

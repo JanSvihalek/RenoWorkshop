@@ -14,6 +14,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/service_order.dart';
 import '../../domain/repositories/service_order_repository.dart';
 import '../controllers/orders_providers.dart';
+import '../widgets/nova_zmena.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_search_field.dart';
 import '../../../vozidla/domain/entities/vozidlo.dart';
@@ -69,17 +70,28 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  Timer? _obnova;
   bool _nacitaZHeliosu = false;
+
+  /// Jak často se seznam sám obnoví - ať se nové změny od kolegů ukážou
+  /// bez stažení prstem. Jako na webu.
+  static const intervalObnovy = Duration(minutes: 1);
 
   @override
   void initState() {
     super.initState();
     _searchController.text = ref.read(orderFilterProvider).query;
+    _obnova = Timer.periodic(intervalObnovy, (_) {
+      // Tiše - bez točícího se kolečka; nepovedené obnovení nevadí,
+      // zkusí se za minutu znovu.
+      ref.read(serviceOrderRepositoryProvider).obnov().catchError((_) {});
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _obnova?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -199,6 +211,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             onNacistZHeliosu: _nacistZHeliosu,
           ),
           const FiltrLista(),
+          const _NoveZmeny(),
           if (widget.onOpenAkce case final otevrit?) AkcePruh(onTap: otevrit),
           if (widget.onOpenKampane case final otevrit?)
             KampanePruh(onTap: otevrit),
@@ -306,6 +319,106 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                     ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lišta nových změn pod filtry: přepínač „3 nové změny" (jen zakázky se
+/// změnou, kterou člověk ještě neviděl) a s ním „Označit vše jako
+/// přečtené". Bez nových změn se lišta schová a přepínač vypne.
+class _NoveZmeny extends ConsumerStatefulWidget {
+  const _NoveZmeny();
+
+  @override
+  ConsumerState<_NoveZmeny> createState() => _NoveZmenyState();
+}
+
+class _NoveZmenyState extends ConsumerState<_NoveZmeny> {
+  bool _uklada = false;
+
+  Future<void> _oznacVse(List<ServiceOrder> zmenene) async {
+    setState(() => _uklada = true);
+    try {
+      await ref.read(serviceOrderRepositoryProvider).oznacVidene([
+        for (final z in zmenene) z.id,
+      ]);
+    } on ServiceOrderException catch (chyba) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(chyba.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _uklada = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final zmenene = ref.watch(zmeneneVeFiltruProvider);
+    final zapnuto = ref.watch(jenZmeneneProvider);
+    ref.listen(zmeneneVeFiltruProvider, (_, nove) {
+      if (nove.isEmpty && ref.read(jenZmeneneProvider)) {
+        ref.read(jenZmeneneProvider.notifier).state = false;
+      }
+    });
+    if (zmenene.isEmpty) return const SizedBox.shrink();
+    final pocet = zmenene.length;
+    final text = pocet == 1
+        ? '1 nová změna'
+        : pocet < 5
+        ? '$pocet nové změny'
+        : '$pocet nových změn';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Insets.xl, Insets.sm, Insets.xl, 0),
+      child: Row(
+        children: [
+          Material(
+            color: zapnuto ? pozadiZmeny(context) : palette.card,
+            shape: StadiumBorder(
+              side: BorderSide(
+                color: AppColors.accent.withValues(alpha: zapnuto ? 1 : 0.55),
+                width: 1.5,
+              ),
+            ),
+            child: InkWell(
+              key: const Key('nove-zmeny-prepinac'),
+              customBorder: const StadiumBorder(),
+              onTap: () =>
+                  ref.read(jenZmeneneProvider.notifier).state = !zapnuto,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Insets.base,
+                  vertical: Insets.xs,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const TeckaZmeny(),
+                    const SizedBox(width: Insets.sm),
+                    Text(
+                      text,
+                      style: AppTextStyles.metaSmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: palette.text,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          if (zapnuto)
+            TextButton(
+              key: const Key('nove-zmeny-oznacit-vse'),
+              onPressed: _uklada ? null : () => _oznacVse(zmenene),
+              child: const Text('Označit vše jako přečtené'),
+            ),
         ],
       ),
     );

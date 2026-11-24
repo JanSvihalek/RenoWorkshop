@@ -624,6 +624,17 @@ class RestServiceOrderDataSource
   }
 
   @override
+  Future<void> oznacVidenou(String orderId) async {
+    await _send('POST', 'orders/${Uri.encodeComponent(orderId)}/seen');
+  }
+
+  @override
+  Future<void> oznacVidene(List<String> orderIds) async {
+    if (orderIds.isEmpty) return;
+    await _send('POST', 'orders/seen', body: {'ids': orderIds});
+  }
+
+  @override
   Future<PrehledUzivatelu> nactiUzivatele() async {
     final data = await _send('GET', 'users');
     if (data == null) {

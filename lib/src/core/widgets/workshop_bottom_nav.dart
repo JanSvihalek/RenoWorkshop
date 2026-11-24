@@ -6,6 +6,7 @@ import '../platform/platform_info.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
+import 'odznak_poctu.dart';
 
 /// Záložky spodní navigace.
 ///
@@ -20,6 +21,7 @@ class WorkshopBottomNav extends StatelessWidget {
     required this.onSelect,
     required this.onVyhledat,
     this.zobrazitAdmin = false,
+    this.pocetZmen = 0,
   });
 
   final WorkshopTab active;
@@ -30,6 +32,9 @@ class WorkshopBottomNav extends StatelessWidget {
 
   /// Záložka Admin - jen pro admina.
   final bool zobrazitAdmin;
+
+  /// Zakázky s novou změnou od kolegů - číslo u Zakázek; 0 = bez čísla.
+  final int pocetZmen;
 
   static const List<_NavItem> _items = [
     _NavItem(
@@ -89,6 +94,7 @@ class WorkshopBottomNav extends StatelessWidget {
                     child: _NavButton(
                       item: item,
                       isActive: item.tab == active,
+                      pocet: item.tab == WorkshopTab.orders ? pocetZmen : 0,
                       onTap: item.tab == active
                           ? null
                           : () => onSelect(item.tab),
@@ -127,11 +133,13 @@ class _NavButton extends StatelessWidget {
     required this.item,
     required this.isActive,
     required this.onTap,
+    this.pocet = 0,
   });
 
   final _NavItem item;
   final bool isActive;
   final VoidCallback? onTap;
+  final int pocet;
 
   @override
   Widget build(BuildContext context) {
@@ -151,11 +159,14 @@ class _NavButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              // Android: aktivní ikona plná, iOS: vždy outline.
-              isActive && !isIOS ? item.activeIcon : item.icon,
-              size: isIOS ? 22 : 24,
-              color: color,
+            OdznakPoctu(
+              pocet: pocet,
+              child: Icon(
+                // Android: aktivní ikona plná, iOS: vždy outline.
+                isActive && !isIOS ? item.activeIcon : item.icon,
+                size: isIOS ? 22 : 24,
+                color: color,
+              ),
             ),
             const SizedBox(height: 4),
             Text(

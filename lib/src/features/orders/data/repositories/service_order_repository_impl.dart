@@ -49,7 +49,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   Future<List<ServiceOrder>> _load() async {
     try {
       final dtos = await _dataSource.fetchOrders();
-      final orders = dtos.map((dto) => dto.toDomain()).toList();
+      final orders = dtos.map((dto) => _bezVidenych(dto.toDomain())).toList();
       _cache = orders;
       return orders;
     } on ServiceOrderException {
@@ -57,6 +57,60 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     } catch (error) {
       throw ServiceOrderException('Zakázky se nepodařilo načíst: $error');
     }
+  }
+
+  /// Kdy appka zakázku označila jako viděnou. Seznam, který se načítal
+  /// zároveň, by jinak vrátil štítek, který už člověk viděl.
+  final Map<String, DateTime> _videno = {};
+
+  ServiceOrder _bezVidenych(ServiceOrder order) {
+    final zmena = order.novaZmena;
+    final videno = _videno[order.id];
+    if (zmena == null || videno == null) return order;
+    return zmena.kdy.isAfter(videno)
+        ? order
+        : order.copyWith(bezNoveZmeny: true);
+  }
+
+  void _oznacVCache(Iterable<String> orderIds) {
+    final ted = DateTime.now();
+    final ids = orderIds.toSet();
+    for (final id in ids) {
+      _videno[id] = ted;
+    }
+    final current = _cache;
+    if (current == null) return;
+    _cache = [
+      for (final order in current)
+        if (ids.contains(order.id) && order.novaZmena != null)
+          order.copyWith(bezNoveZmeny: true)
+        else
+          order,
+    ];
+    _emit();
+  }
+
+  @override
+  Future<void> obnov() async {
+    await _load();
+    _emit();
+  }
+
+  @override
+  Future<void> oznacVidenou(String orderId) async {
+    _oznacVCache([orderId]);
+    try {
+      await _dataSource.oznacVidenou(orderId);
+    } catch (_) {
+      // Štítek se ukáže znovu s další obnovou, příští otevření to zkusí.
+    }
+  }
+
+  @override
+  Future<void> oznacVidene(List<String> orderIds) async {
+    if (orderIds.isEmpty) return;
+    await _dataSource.oznacVidene(orderIds);
+    _oznacVCache(orderIds);
   }
 
   @override
@@ -290,7 +344,7 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
     final dto = await operation();
     if (dto == null) throw ServiceOrderNotFoundException(orderId);
 
-    final updated = dto.toDomain();
+    final updated = _bezVidenych(dto.toDomain());
     final current = _cache ?? await getOrders();
     _cache = [
       for (final order in current)

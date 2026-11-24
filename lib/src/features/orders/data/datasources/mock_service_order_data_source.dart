@@ -84,7 +84,57 @@ class MockServiceOrderDataSource
     _cache = orders;
     _promitniKampane();
     _zalozPlany(orders);
+    _ukazkoveZmeny(orders);
     return orders;
+  }
+
+  /// Pár zakázek s novou změnou od kolegy - ať je štítek v ukázkových
+  /// datech vidět. Otevřením zmizí, jako u ostré služby.
+  void _ukazkoveZmeny(List<ServiceOrderDto> orders) {
+    final ted = DateTime.now();
+    String cas(int minut) => ted
+        .subtract(Duration(minutes: minut))
+        .toIso8601String()
+        .substring(0, 19);
+    final ukazky = [
+      {
+        'kind': 'status',
+        'label': 'Lakovna',
+        'by': 'Eva Malá',
+        'at': cas(12),
+        'count': 1,
+      },
+      {
+        'kind': 'note',
+        'label': 'Zákazník volal, vyzvedne až v pátek',
+        'by': 'Petr Kučera',
+        'at': cas(45),
+        'count': 2,
+      },
+      {
+        'kind': 'finished',
+        'label': 'Demontáž',
+        'by': 'Jan Dvořák',
+        'at': cas(130),
+        'count': 1,
+      },
+    ];
+    for (var i = 0; i < ukazky.length && i * 4 + 1 < orders.length; i++) {
+      orders[i * 4 + 1] = orders[i * 4 + 1].copyWith(unseenChange: ukazky[i]);
+    }
+  }
+
+  @override
+  Future<void> oznacVidenou(String orderId) => oznacVidene([orderId]);
+
+  @override
+  Future<void> oznacVidene(List<String> orderIds) async {
+    final orders = await _ensureLoaded();
+    for (var i = 0; i < orders.length; i++) {
+      if (orderIds.contains(orders[i].id)) {
+        orders[i] = orders[i].copyWith(vymazatZmenu: true);
+      }
+    }
   }
 
   /// Klempířské útvary končí v ukázkových datech na 215 (11215, 12215…).

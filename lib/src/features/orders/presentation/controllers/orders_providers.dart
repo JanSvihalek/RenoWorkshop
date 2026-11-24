@@ -282,10 +282,45 @@ final orderFilterProvider =
       OrderFilterController.new,
     );
 
-/// Zakázky po aplikaci filtrů a řazení.
+/// Zakázky po aplikaci filtrů a řazení. S přepínačem „N nových změn"
+/// ([jenZmeneneProvider]) jen ty se změnou, kterou člověk ještě neviděl.
 final filteredOrdersProvider = Provider<AsyncValue<List<ServiceOrder>>>((ref) {
   final filter = ref.watch(orderFilterProvider);
-  return ref.watch(ordersStreamProvider).whenData(filter.apply);
+  final jenZmenene = ref.watch(jenZmeneneProvider);
+  return ref
+      .watch(ordersStreamProvider)
+      .whenData(
+        (orders) => [
+          for (final order in filter.apply(orders))
+            if (!jenZmenene || order.novaZmena != null) order,
+        ],
+      );
+});
+
+/// Přepínač v liště seznamu: jen zakázky s novou změnou. Drží se do
+/// zavření appky.
+final jenZmeneneProvider = StateProvider<bool>((ref) => false);
+
+/// Zakázky s novou změnou v právě nastaveném filtru - počet na přepínači
+/// a „Označit vše jako přečtené".
+final zmeneneVeFiltruProvider = Provider<List<ServiceOrder>>((ref) {
+  final filter = ref.watch(orderFilterProvider);
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  return [
+    for (final order in filter.apply(orders))
+      if (order.novaZmena != null) order,
+  ];
+});
+
+/// Počet zakázek s novou změnou ve výchozím filtru z Nastavení („moje"
+/// zakázky) - číslo u položky Zakázky v navigaci. Jako na webu.
+final pocetZmenProvider = Provider<int>((ref) {
+  final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
+  final vychozi = OrderFilterController._vychozi(
+    ref.watch(nastaveniProvider),
+    ref.watch(currentEmployeeProvider)?.email.trim().toLowerCase(),
+  );
+  return vychozi.apply(orders).where((o) => o.novaZmena != null).length;
 });
 
 /// Detail jedné zakázky. Čte ze stejného streamu jako seznam, takže posun

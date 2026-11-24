@@ -24,6 +24,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../../core/utils/kontakt_odkazy.dart';
 import '../../../prijem/presentation/widgets/prijem_souhrn.dart';
 import '../../domain/entities/dilensky_stav.dart';
+import '../../domain/entities/nova_zmena.dart';
 import '../../domain/entities/service_order.dart';
 import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
@@ -31,6 +32,7 @@ import '../../../zakaznik/odkaz_zakaznika.dart';
 import '../widgets/detail_cards.dart';
 import '../widgets/sekce_detailu.dart';
 import '../widgets/notes_card.dart';
+import '../widgets/nova_zmena.dart';
 import '../widgets/obalka_klice.dart';
 import '../widgets/pridat_stav_sheet.dart';
 import '../widgets/plate_chip.dart';
@@ -98,17 +100,83 @@ class OrderDetailScreen extends ConsumerWidget {
               onBack: onBack,
             );
           }
-          return _DetailBody(
+          return _SledovaniZmen(
+            key: ValueKey(order.id),
             order: order,
-            onBack: onBack,
-            zobrazitZpet: zobrazitZpet,
-            onFotodokumentace: onFotodokumentace,
-            onPrijem: onPrijem,
-            onOpenVozidlo: onOpenVozidlo,
-            onSkenujObalku: onSkenujObalku,
+            builder: (pruhZmeny) => _DetailBody(
+              order: order,
+              onBack: onBack,
+              zobrazitZpet: zobrazitZpet,
+              onFotodokumentace: onFotodokumentace,
+              onPrijem: onPrijem,
+              onOpenVozidlo: onOpenVozidlo,
+              onSkenujObalku: onSkenujObalku,
+              pruhZmeny: pruhZmeny,
+            ),
           );
         },
       ),
+    );
+  }
+}
+
+/// Otevřený detail = zakázku viděl: štítek nové změny v seznamu zmizí
+/// (jen jemu, ostatním zůstane). I když změna přijde, zatímco je detail
+/// otevřený. Co bylo nového při otevření, ukáže pruh nahoře - zůstane,
+/// dokud ho křížkem neschová.
+class _SledovaniZmen extends ConsumerStatefulWidget {
+  const _SledovaniZmen({super.key, required this.order, required this.builder});
+
+  final ServiceOrder order;
+  final Widget Function(Widget? pruhZmeny) builder;
+
+  @override
+  ConsumerState<_SledovaniZmen> createState() => _SledovaniZmenState();
+}
+
+class _SledovaniZmenState extends ConsumerState<_SledovaniZmen> {
+  late NovaZmena? _priOtevreni = widget.order.novaZmena;
+
+  @override
+  void initState() {
+    super.initState();
+    _oznac();
+  }
+
+  @override
+  void didUpdateWidget(_SledovaniZmen puvodni) {
+    super.didUpdateWidget(puvodni);
+    _oznac();
+  }
+
+  void _oznac() {
+    if (widget.order.novaZmena == null) return;
+    final id = widget.order.id;
+    // Až po vykreslení - označení mění seznam, ze kterého detail čte.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(serviceOrderRepositoryProvider).oznacVidenou(id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final zmena = _priOtevreni;
+    return widget.builder(
+      zmena == null
+          ? null
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Insets.xl,
+                Insets.base,
+                Insets.xl,
+                0,
+              ),
+              child: PruhOdPosledniNavstevy(
+                zmena: zmena,
+                onSkryt: () => setState(() => _priOtevreni = null),
+              ),
+            ),
     );
   }
 }
@@ -122,6 +190,7 @@ class _DetailBody extends ConsumerWidget {
     required this.onPrijem,
     required this.onOpenVozidlo,
     required this.onSkenujObalku,
+    this.pruhZmeny,
   });
 
   final ServiceOrder order;
@@ -133,6 +202,9 @@ class _DetailBody extends ConsumerWidget {
   /// Otevře kartu vozu podle jeho čísla.
   final ValueChanged<int>? onOpenVozidlo;
   final SkenujObalku? onSkenujObalku;
+
+  /// „Od vaší poslední návštěvy: …" pod hlavičkou - `null` = nic nového.
+  final Widget? pruhZmeny;
 
   Future<void> _pridejStav(BuildContext context, WidgetRef ref) =>
       pridatStavZakazce(context, ref, order);
@@ -433,6 +505,13 @@ class _DetailBody extends ConsumerWidget {
                 child: NestedScrollView(
                   headerSliverBuilder: (context, _) => [
                     SliverToBoxAdapter(child: hlavicka),
+                    if (pruhZmeny case final pruh?)
+                      SliverToBoxAdapter(
+                        child: ColoredBox(
+                          color: context.palette.background,
+                          child: pruh,
+                        ),
+                      ),
                   ],
                   body: ColoredBox(
                     color: context.palette.background,
@@ -444,6 +523,7 @@ class _DetailBody extends ConsumerWidget {
           : Column(
               children: [
                 hlavicka,
+                ?pruhZmeny,
                 Expanded(child: telo),
               ],
             ),

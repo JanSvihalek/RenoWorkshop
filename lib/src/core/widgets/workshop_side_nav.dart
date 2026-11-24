@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
+import 'odznak_poctu.dart';
 import 'workshop_bottom_nav.dart';
 
 /// Svislý navigační pruh pro tablet.
@@ -23,6 +24,7 @@ class WorkshopSideNav extends StatelessWidget {
     required this.onVyhledat,
     this.onAplikace,
     this.zobrazitAdmin = false,
+    this.pocetZmen = 0,
   });
 
   final WorkshopTab active;
@@ -37,6 +39,9 @@ class WorkshopSideNav extends StatelessWidget {
 
   /// Záložka Admin - jen pro admina.
   final bool zobrazitAdmin;
+
+  /// Zakázky s novou změnou od kolegů - číslo u Zakázek; 0 = bez čísla.
+  final int pocetZmen;
 
   static const _polozky = [
     (
@@ -105,6 +110,7 @@ class WorkshopSideNav extends StatelessWidget {
                   ikona: tab == active ? ikonaAktivni : ikona,
                   jeAktivni: tab == active,
                   onTap: () => onSelect(tab),
+                  pocet: tab == WorkshopTab.orders ? pocetZmen : 0,
                 ),
                 const SizedBox(height: Insets.sm),
                 if (tab == WorkshopTab.orders) ...[
@@ -146,12 +152,14 @@ class _Polozka extends StatelessWidget {
     required this.ikona,
     required this.jeAktivni,
     required this.onTap,
+    this.pocet = 0,
   });
 
   final String popisek;
   final IconData ikona;
   final bool jeAktivni;
   final VoidCallback onTap;
+  final int pocet;
 
   @override
   Widget build(BuildContext context) {
@@ -175,12 +183,15 @@ class _Polozka extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(
-                ikona,
-                size: 22,
-                color: jeAktivni
-                    ? palette.naHlavicce
-                    : palette.naHlavicceTlumene,
+              OdznakPoctu(
+                pocet: pocet,
+                child: Icon(
+                  ikona,
+                  size: 22,
+                  color: jeAktivni
+                      ? palette.naHlavicce
+                      : palette.naHlavicceTlumene,
+                ),
               ),
               const SizedBox(height: 4),
               // Delší popisek („Nastavení") se radši zmenší, než aby se

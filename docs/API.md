@@ -281,6 +281,32 @@ kombinace přijde jako kód (`801/12`), ne jako název samotné řady.
 Jedna zakázka ve stejném tvaru. Neexistující vrací `404` — appka to bere jako
 „zakázka zmizela", ne jako chybu.
 
+### Nové změny (`unseenChange`)
+
+Seznam, detail a odpověď po zápisu nesou u zakázky poslední změnu od
+**někoho jiného**, kterou přihlášený ještě neviděl:
+
+```json
+"unseenChange": {
+  "kind": "status",            // status | finished | cancelled | edited | note
+  "label": "Lakovna",          // název stavu, nebo začátek poznámky
+  "by": "Eva Malá",
+  "at": "2026-11-24T10:05:00",
+  "count": 2                   // kolik nových změn celkem
+}
+```
+
+`null` = nic nového. Sleduje se průběh (nový, dokončený, zrušený a upravený
+stav) a poznámky v pracovním listu. Každý uživatel zvlášť; vlastní změny se
+nepočítají. Změny starší než první načtení seznamu po nasazení se
+nepočítají vůbec. Hledání v archivu (`/orders/search`) pole posílá jako
+`null`.
+
+- `POST /orders/{id}/seen` → `204` — zakázku viděl (appka i web posílají
+  s otevřením detailu). Stačí právo číst.
+- `POST /orders/seen` `{ "ids": ["…"] }` → `204` — „Označit vše jako
+  přečtené".
+
 ### GET /orders/search?q=…
 
 Hledání **napříč archivem**, tedy i mezi uzavřenými zakázkami. Prohledává

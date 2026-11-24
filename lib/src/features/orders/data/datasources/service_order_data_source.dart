@@ -131,6 +131,13 @@ abstract interface class ServiceOrderDataSource {
   /// nejvýš jednou za minutu pro celou dílnu; jinak chyba s počtem vteřin.
   Future<void> synchronizuj();
 
+  /// `POST /orders/{id}/seen` - zakázku viděl (otevřel detail), nové
+  /// změny do teď pro něj už nové nejsou.
+  Future<void> oznacVidenou(String orderId);
+
+  /// `POST /orders/seen` { ids } - „Označit vše jako přečtené".
+  Future<void> oznacVidene(List<String> orderIds);
+
   /// `GET /me` - role a práva k pořadačům přihlášeného.
   Future<MojePrava> mojePrava();
 
