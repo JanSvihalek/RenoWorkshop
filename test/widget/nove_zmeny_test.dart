@@ -8,6 +8,9 @@ import 'package:renoworkshop/src/features/auth/presentation/controllers/auth_con
 import 'package:renoworkshop/src/features/orders/domain/entities/nova_zmena.dart';
 import 'package:renoworkshop/src/features/orders/presentation/controllers/orders_providers.dart';
 import 'package:renoworkshop/src/features/orders/presentation/widgets/nova_zmena.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/zavady_card.dart';
+import 'package:renoworkshop/src/features/orders/presentation/widgets/zmena_zablesk.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../helpers/fake_service_order_data_source.dart';
 
@@ -20,7 +23,12 @@ Finder _zpet() => find.byWidgetPredicate(
 );
 
 void main() {
-  setUpAll(() => initializeDateFormatting('cs_CZ'));
+  setUpAll(() async {
+    await initializeDateFormatting('cs_CZ');
+    // Bez prodlevy - jinak by v testu zůstal čekající časovač.
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  });
+  setUp(ZmenaZablesk.obnov);
 
   group('nová změna ze služby', () {
     test('text podle druhu, kdo a kdy', () {
@@ -68,6 +76,14 @@ void main() {
           'by': 'Eva Malá',
           'at': '2026-08-20T09:00:00',
           'count': 2,
+          'items': [
+            {
+              'field': 'status',
+              'id': 'stav-1',
+              'kind': 'status',
+              'defectId': null,
+            },
+          ],
         },
       ),
       buildOrderDto(id: 'ZK-26-0002', licensePlate: '2SC 9014'),
@@ -191,23 +207,111 @@ void main() {
     );
   });
 
-  testWidgets('otevření detailu zakázku označí jako viděnou', (tester) async {
-    await prihlas(tester);
+  testWidgets(
+    'detail: změněné prvky se jednou rozsvítí a vyblednou, žádný pruh',
+    (tester) async {
+      await prihlas(tester);
 
-    await tester.tap(find.text('8AB 4721'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('detail-nova-zmena')), findsOneWidget);
-    expect(find.textContaining('Od vaší poslední návštěvy'), findsOneWidget);
-    expect(zdroj.videne, ['ZK-26-0001']);
+      await tester.tap(find.text('8AB 4721'));
+      // Přechod na detail, pak čip Dílna a krok postupu po 300 ms.
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.textContaining('Od vaší poslední návštěvy'), findsNothing);
+      // Vidět je jen hlavička - rozsvítí se čip Dílna.
+      final krok = find.byKey(const Key('osa-stav-stav-1'));
+      expect(
+        find.descendant(
+          of: find.ancestor(of: krok, matching: find.byType(ZmenaZablesk)),
+          matching: find.byKey(const Key('zablesk-prekryv')),
+        ),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('zablesk-prekryv')), findsOneWidget);
+      expect(zdroj.videne, ['ZK-26-0001']);
 
-    // Pruh zůstane, dokud ho křížkem neschová.
-    await tester.tap(find.byKey(const Key('detail-nova-zmena-skryt')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('detail-nova-zmena')), findsNothing);
+      // Krok postupu je pod okrajem - rozsvítí se, až na něj doroluje.
+      await tester.scrollUntilVisible(
+        krok,
+        200,
+        scrollable: find
+            .ancestor(
+              of: find.byType(ZavadyCard),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        find.descendant(
+          of: find.ancestor(of: krok, matching: find.byType(ZmenaZablesk)),
+          matching: find.byKey(const Key('zablesk-prekryv')),
+        ),
+        findsOneWidget,
+      );
 
-    await tester.tap(_zpet().first);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('karta-zmena-prouzek')), findsNothing);
-    expect(find.byKey(const Key('nav-pocet-zmen')), findsNothing);
+      // Do pěti vteřin vybledne a zmizí.
+      await tester.pump(Zablesk.delka);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('zablesk-prekryv')), findsNothing);
+
+      await tester.tap(_zpet().first);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('karta-zmena-prouzek')), findsNothing);
+      expect(find.byKey(const Key('nav-pocet-zmen')), findsNothing);
+
+      // Podruhé se nic nepřehraje.
+      await tester.tap(find.text('8AB 4721'));
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byKey(const Key('zablesk-prekryv')), findsNothing);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('rozsvícení při vypnutých animacích: bez pulzu, jen vybledne', (
+    tester,
+  ) async {
+    final zmena = NovaZmena(
+      druh: DruhZmeny.poznamka,
+      popisek: 'Volal zákazník',
+      kdy: DateTime(2026, 11, 24, 10, 5),
+      polozky: const [
+        PolozkaZmeny(pole: 'note', id: 'p1', druh: DruhZmeny.poznamka),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: ZmenyDetailu(
+              zakazkaId: 'Z1',
+              zmena: zmena,
+              child: const Center(
+                child: ZmenaZablesk(klic: 'note:p1', child: Text('Poznámka')),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    final prekryv = tester.widget<DecoratedBox>(
+      find.byKey(const Key('zablesk-prekryv')),
+    );
+    expect((prekryv.decoration as BoxDecoration).boxShadow, isNull);
+    await tester.pump(Zablesk.delka ~/ 2);
+    final pulka = tester.widget<DecoratedBox>(
+      find.byKey(const Key('zablesk-prekryv')),
+    );
+    // Lineárně - v půlce zhruba polovina krytí.
+    final barva = (pulka.decoration as BoxDecoration).color!;
+    expect(barva.a, closeTo(Zablesk.kryti / 2, 0.02));
+    await tester.pump(Zablesk.delka);
+    expect(find.byKey(const Key('zablesk-prekryv')), findsNothing);
   });
 }

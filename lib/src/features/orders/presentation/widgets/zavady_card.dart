@@ -15,6 +15,7 @@ import '../controllers/orders_providers.dart';
 import 'detail_cards.dart';
 import 'okno_zapisu.dart';
 import 'pridat_stav_sheet.dart';
+import 'zmena_zablesk.dart';
 
 const _oranzova = Color(0xFFE8A93A);
 
@@ -160,17 +161,21 @@ class ZavadyCard extends ConsumerWidget {
               ),
             ),
           for (final (poradi, zavada) in zavady.indexed)
-            _RadekUkonu(
-              id: zavada.id,
-              poradi: poradi + 1,
-              nazev: zavada.nazev,
-              poznamka: zavada.text.trim(),
-              kod: zavada.kod,
-              prubeh: stavZavady(zavada.id, order.historieStavu),
-              order: order,
-              smi: smi,
-              onZahajit: () =>
-                  pridatStavZakazce(context, ref, order, zavada: zavada),
+            // Zahájení/dokončení od kolegy - závada se jednou rozsvítí.
+            ZmenaZablesk(
+              klic: 'defect:${zavada.id}',
+              child: _RadekUkonu(
+                id: zavada.id,
+                poradi: poradi + 1,
+                nazev: zavada.nazev,
+                poznamka: zavada.text.trim(),
+                kod: zavada.kod,
+                prubeh: stavZavady(zavada.id, order.historieStavu),
+                order: order,
+                smi: smi,
+                onZahajit: () =>
+                    pridatStavZakazce(context, ref, order, zavada: zavada),
+              ),
             ),
           for (final (poradi, ukon) in rucni.indexed)
             _RadekUkonu(

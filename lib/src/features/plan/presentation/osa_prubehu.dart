@@ -16,6 +16,7 @@ import '../../orders/domain/entities/service_order.dart';
 import '../../orders/presentation/controllers/order_actions_controller.dart';
 import '../../orders/presentation/controllers/orders_providers.dart';
 import '../../orders/presentation/widgets/pridat_stav_sheet.dart';
+import '../../orders/presentation/widgets/zmena_zablesk.dart';
 import '../domain/prehled_planu.dart';
 import 'okno_planu.dart';
 import 'plan_karta.dart';
@@ -92,46 +93,56 @@ class OsaPrubehu extends ConsumerWidget {
             ),
           ),
         for (final (i, p) in polozky.indexed)
-          _Polozka(
-            key: p.zaznam?.id == null ? null : Key('osa-stav-${p.zaznam!.id}'),
-            polozka: p,
-            dnes: dnes,
-            prvni: i == 0 && !bezPlanu,
-            posledni: i == polozky.length - 1,
-            onUpravit: p.ukon != null && smiPlan
-                ? () => naplanovatKlempirnu(
-                    context,
-                    ref,
-                    zakazkaId: order.id,
-                    spz: order.licensePlate,
-                    plan: plan,
-                    ukon: p.ukon,
-                    barva: order.barvaVozu,
-                    zakazka: order,
-                  )
-                : null,
-            onZahajit: p.ukon != null && smiStav
-                ? () =>
-                      pridatStavZakazce(context, ref, order, ukon: p.ukon!.typ)
-                : null,
-            onDokoncit: p.zaznam?.id != null && smiStav && !zaneprazdneno
-                ? () => ref
-                      .read(orderActionsProvider.notifier)
-                      .dokonciStav(order.id, p.zaznam!.id!)
-                : null,
-            // Zrušený stav už jen ukazuje, co se stalo.
-            onUpravitStav:
-                p.zaznam?.id != null &&
-                    p.stav != StavPolozky.zruseno &&
-                    onUpravit != null
-                ? () => onUpravit!(p.zaznam!)
-                : null,
-            onZrusit:
-                p.zaznam?.id != null &&
-                    p.stav != StavPolozky.zruseno &&
-                    onZrusit != null
-                ? () => onZrusit!(p.zaznam!)
-                : null,
+          // Krok se jednou rozsvítí se změnou stavu od kolegy.
+          ZmenaZablesk(
+            klic: p.zaznam?.id == null ? null : 'status:${p.zaznam!.id}',
+            child: _Polozka(
+              key: p.zaznam?.id == null
+                  ? null
+                  : Key('osa-stav-${p.zaznam!.id}'),
+              polozka: p,
+              dnes: dnes,
+              prvni: i == 0 && !bezPlanu,
+              posledni: i == polozky.length - 1,
+              onUpravit: p.ukon != null && smiPlan
+                  ? () => naplanovatKlempirnu(
+                      context,
+                      ref,
+                      zakazkaId: order.id,
+                      spz: order.licensePlate,
+                      plan: plan,
+                      ukon: p.ukon,
+                      barva: order.barvaVozu,
+                      zakazka: order,
+                    )
+                  : null,
+              onZahajit: p.ukon != null && smiStav
+                  ? () => pridatStavZakazce(
+                      context,
+                      ref,
+                      order,
+                      ukon: p.ukon!.typ,
+                    )
+                  : null,
+              onDokoncit: p.zaznam?.id != null && smiStav && !zaneprazdneno
+                  ? () => ref
+                        .read(orderActionsProvider.notifier)
+                        .dokonciStav(order.id, p.zaznam!.id!)
+                  : null,
+              // Zrušený stav už jen ukazuje, co se stalo.
+              onUpravitStav:
+                  p.zaznam?.id != null &&
+                      p.stav != StavPolozky.zruseno &&
+                      onUpravit != null
+                  ? () => onUpravit!(p.zaznam!)
+                  : null,
+              onZrusit:
+                  p.zaznam?.id != null &&
+                      p.stav != StavPolozky.zruseno &&
+                      onZrusit != null
+                  ? () => onZrusit!(p.zaznam!)
+                  : null,
+            ),
           ),
         if (sPlanem && ref.watch(vidiPlanovacProvider))
           Align(

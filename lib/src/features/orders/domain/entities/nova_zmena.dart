@@ -19,6 +19,44 @@ enum DruhZmeny {
   }
 }
 
+/// Jedna nová změna s tím, čeho se týká - krok postupu (`status`), nebo
+/// poznámka (`note`); u kroku i závada, kterou zahájil.
+class PolozkaZmeny {
+  const PolozkaZmeny({
+    required this.pole,
+    required this.id,
+    required this.druh,
+    this.zavadaId,
+  });
+
+  static PolozkaZmeny? zJson(Map<String, dynamic> json) {
+    final pole = json['field'] as String?;
+    final id = json['id'] as String?;
+    final druh = DruhZmeny.zKlice(json['kind'] as String?);
+    if ((pole != 'status' && pole != 'note') || id == null || druh == null) {
+      return null;
+    }
+    return PolozkaZmeny(
+      pole: pole!,
+      id: id,
+      druh: druh,
+      zavadaId: json['defectId'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'field': pole,
+    'id': id,
+    'kind': druh.klic,
+    'defectId': zavadaId,
+  };
+
+  final String pole;
+  final String id;
+  final DruhZmeny druh;
+  final String? zavadaId;
+}
+
 /// Nová změna na zakázce pro přihlášeného - štítek „Nový stav" / „Nová
 /// poznámka" v seznamu.
 ///
@@ -33,6 +71,7 @@ class NovaZmena {
     required this.kdy,
     this.kdo,
     this.pocet = 1,
+    this.polozky = const [],
   });
 
   /// Z `unseenChange`; neznámý druh nebo pokažené datum = `null`.
@@ -47,6 +86,10 @@ class NovaZmena {
       kdo: json['by'] as String?,
       kdy: kdy,
       pocet: (json['count'] as num?)?.toInt() ?? 1,
+      polozky: [
+        for (final p in json['items'] as List<dynamic>? ?? const [])
+          ?PolozkaZmeny.zJson(p as Map<String, dynamic>),
+      ],
     );
   }
 
@@ -56,7 +99,12 @@ class NovaZmena {
     'by': kdo,
     'at': kdy.toIso8601String(),
     'count': pocet,
+    'items': [for (final p in polozky) p.toJson()],
   };
+
+  /// Všechny nové změny, nejstarší první - detail podle nich rozsvítí
+  /// přesné prvky. Starší služba neposílá.
+  final List<PolozkaZmeny> polozky;
 
   final DruhZmeny druh;
 

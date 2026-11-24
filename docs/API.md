@@ -292,7 +292,11 @@ Seznam, detail a odpověď po zápisu nesou u zakázky poslední změnu od
   "label": "Lakovna",          // název stavu, nebo začátek poznámky
   "by": "Eva Malá",
   "at": "2026-11-24T10:05:00",
-  "count": 2                   // kolik nových změn celkem
+  "count": 2,                  // kolik nových změn celkem
+  "items": [                   // všechny nové změny, nejstarší první
+    { "field": "status", "id": "<id záznamu postupu>", "kind": "finished", "defectId": "123" },
+    { "field": "note",   "id": "<id poznámky>",        "kind": "note",     "defectId": null }
+  ]
 }
 ```
 
@@ -301,6 +305,10 @@ stav) a poznámky v pracovním listu. Každý uživatel zvlášť; vlastní změ
 nepočítají. Změny starší než první načtení seznamu po nasazení se
 nepočítají vůbec. Hledání v archivu (`/orders/search`) pole posílá jako
 `null`.
+
+`items` slouží detailu: změněné prvky (krok postupu podle `id` záznamu,
+poznámka, závada podle `defectId` u Zahájit/Dokončit a čip „Dílna" u každé
+změny stavu) se jednou krátce rozsvítí. Starší služba pole neposílá.
 
 - `POST /orders/{id}/seen` → `204` — zakázku viděl (appka i web posílají
   s otevřením detailu). Stačí právo číst.

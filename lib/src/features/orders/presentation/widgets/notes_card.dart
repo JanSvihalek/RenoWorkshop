@@ -8,6 +8,7 @@ import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/order_note.dart';
 import 'detail_cards.dart';
 import 'okno_zapisu.dart';
+import 'zmena_zablesk.dart';
 
 /// Zvýrazněné poznámky nahoře, jinak nejnovější nahoře.
 List<OrderNote> serazenePoznamky(List<OrderNote> notes) =>
@@ -84,12 +85,16 @@ class NotesCard extends StatelessWidget {
               style: AppTextStyles.cardBody.copyWith(color: palette.muted),
             ),
           for (final note in sorted)
-            _NoteRow(
-              key: Key('poznamka-${note.id}'),
-              note: note,
-              onZvyraznit: onZvyraznit == null
-                  ? null
-                  : () => onZvyraznit!(note, !note.zvyraznena),
+            // Nová poznámka od kolegy se jednou rozsvítí.
+            ZmenaZablesk(
+              klic: 'note:${note.id}',
+              child: _NoteRow(
+                key: Key('poznamka-${note.id}'),
+                note: note,
+                onZvyraznit: onZvyraznit == null
+                    ? null
+                    : () => onZvyraznit!(note, !note.zvyraznena),
+              ),
             ),
         ],
       ),
