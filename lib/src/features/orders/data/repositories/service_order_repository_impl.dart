@@ -221,7 +221,8 @@ class ServiceOrderRepositoryImpl implements ServiceOrderRepository {
   }
 
   @override
-  Future<List<NabidkaStavu>> nabidkaStavu() => _dataSource.nabidkaStavu();
+  Future<List<NabidkaStavu>> nabidkaStavu({String? poradac}) =>
+      _dataSource.nabidkaStavu(poradac: poradac);
 
   @override
   Future<ServiceOrder> addNote({

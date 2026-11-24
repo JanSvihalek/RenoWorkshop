@@ -126,9 +126,16 @@ final availableOrderTypesProvider = Provider<List<TypZakazky>>((ref) {
 /// Číselník žije v databázi, takže nový stav se v aplikaci objeví sám -
 /// bez nové verze v telefonech. Když se nabídku nepodaří načíst, appka
 /// dál funguje: stav se dá zapsat ručně.
-final nabidkaStavuProvider = FutureProvider<List<NabidkaStavu>>((ref) {
-  return ref.watch(serviceOrderRepositoryProvider).nabidkaStavu();
-});
+///
+/// Podle pořadače zakázky (kód, `null` = bez pořadače): pořadač s vlastním
+/// seznamem má jen svoje stavy, ostatní výchozí.
+final nabidkaStavuProvider = FutureProvider.family<List<NabidkaStavu>, String?>(
+  (ref, poradac) {
+    return ref
+        .watch(serviceOrderRepositoryProvider)
+        .nabidkaStavu(poradac: poradac);
+  },
+);
 
 /// Koho lze zakázce přiřadit jako zpracovatele - lidé z útvaru zakázky,
 /// s `vsichni` všichni zaměstnanci. Čte se pokaždé znovu, nabídka se

@@ -20,14 +20,16 @@ void main() {
 
   Future<FakeServiceOrderDataSource> otevri(
     WidgetTester tester,
-    ServiceOrderDto zakazka,
-  ) async {
+    ServiceOrderDto zakazka, {
+    Map<String?, List<NabidkaStavu>> nabidkaPoradacu = const {},
+  }) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final zdroj = FakeServiceOrderDataSource([zakazka]);
+    final zdroj = FakeServiceOrderDataSource([zakazka])
+      ..nabidkaPoradacu.addAll(nabidkaPoradacu);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [serviceOrderDataSourceProvider.overrideWithValue(zdroj)],
@@ -150,6 +152,73 @@ void main() {
     expect(find.text('Mytí: Ano · P3'), findsOneWidget);
     expect(find.text('Vrátit vyměněné díly: Ne'), findsOneWidget);
     expect(find.text('Provozní kapaliny: Nezadáno'), findsOneWidget);
+  });
+
+  testWidgets('stavy podle pořadače; úprava starého stavu mu nechá kód', (
+    tester,
+  ) async {
+    final zdroj = await otevri(
+      tester,
+      buildOrderDto(folder: {'code': '16015', 'label': 'BMW CLI'}).copyWith(
+        statusHistory: [
+          {
+            'id': 's1',
+            'code': 'klempirna',
+            'label': 'Klempířské práce',
+            'author': 'Jan Dvořák',
+            'createdAt': '2026-08-20T09:00:00',
+          },
+        ],
+      ),
+      nabidkaPoradacu: {
+        '16015': const [
+          NabidkaStavu(kod: 'odvoz_nupaky', nazev: 'Odvoz do Nupak'),
+          NabidkaStavu(kod: 'demontaz', nazev: 'Demontáž'),
+        ],
+      },
+    );
+
+    // Přidat stav: jen stavy pořadače.
+    await tester.ensureVisible(find.byKey(const Key('pridat-stav')));
+    await tester.tap(find.byKey(const Key('pridat-stav')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vyberte stav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Odvoz do Nupak'), findsWidgets);
+    expect(find.text('Lakovna'), findsNothing);
+    await tester.tap(find.text('Odvoz do Nupak').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Přidat'));
+    await tester.pumpAndSettle();
+    expect(
+      zdroj.ulozeneDto('ZK-26-0001').statusHistory.first['code'],
+      'odvoz_nupaky',
+    );
+
+    // Upravit starý stav, který v nabídce pořadače není: kód zůstane.
+    await tester.ensureVisible(find.byKey(const Key('osa-stav-s1')));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('osa-stav-s1')),
+        matching: find.byTooltip('Další akce'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('osa-upravit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Klempířské práce'), findsWidgets);
+    await tester.enterText(
+      find.byKey(const Key('upravit-stav-poznamka')),
+      'Hotovo',
+    );
+    await tester.tap(find.byKey(const Key('upravit-stav-ulozit')));
+    await tester.pumpAndSettle();
+    final upraveny = zdroj
+        .ulozeneDto('ZK-26-0001')
+        .statusHistory
+        .firstWhere((z) => z['id'] == 's1');
+    expect(upraveny['code'], 'klempirna');
+    expect(upraveny['note'], 'Hotovo');
   });
 
   testWidgets('stav: zrušení se zeptá, stav zůstane se štítkem; úprava', (

@@ -528,8 +528,11 @@ class RestServiceOrderDataSource
   }
 
   @override
-  Future<List<NabidkaStavu>> nabidkaStavu() async {
-    final data = await _send('GET', 'stavy');
+  Future<List<NabidkaStavu>> nabidkaStavu({String? poradac}) async {
+    final data = await _send(
+      'GET',
+      'stavy?folder=${Uri.encodeQueryComponent(poradac ?? '')}',
+    );
     if (data is! List) return const [];
     return data
         .map((item) => NabidkaStavu.fromJson(item as Map<String, dynamic>))

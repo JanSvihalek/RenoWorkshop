@@ -134,8 +134,10 @@ abstract interface class ServiceOrderDataSource {
   /// `GET /me` - role a práva k pořadačům přihlášeného.
   Future<MojePrava> mojePrava();
 
-  /// Nabídka stavů z číselníku na serveru.
-  Future<List<NabidkaStavu>> nabidkaStavu();
+  /// `GET /stavy?folder=` - nabídka stavů z číselníku na serveru pro
+  /// zakázku pořadače [poradac]: pořadač s vlastním seznamem má jen svoje,
+  /// ostatní (i `null`) výchozí. Rozhoduje služba.
+  Future<List<NabidkaStavu>> nabidkaStavu({String? poradac});
 
   /// POST /orders/{id}/notes
   Future<ServiceOrderDto?> addNote({

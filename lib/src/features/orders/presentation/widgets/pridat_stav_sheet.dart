@@ -59,6 +59,10 @@ Future<VybranyStav?> vyberStav(
   required String cisloZakazky,
   required String autor,
 
+  /// Kód pořadače zakázky - nabídka stavů je podle něj
+  /// ([nabidkaStavuProvider]).
+  String? poradac,
+
   /// Zahájení úkonu z plánu - stav je předvybraný podle jeho typu.
   TypUkonu? ukon,
 
@@ -73,6 +77,7 @@ Future<VybranyStav?> vyberStav(
       spz: spz,
       cisloZakazky: cisloZakazky,
       autor: autor,
+      poradac: poradac,
       ukon: ukon,
       nazevZavady: nazevZavady,
     ),
@@ -88,11 +93,13 @@ class _PridatStavOkno extends ConsumerStatefulWidget {
     required this.spz,
     required this.cisloZakazky,
     required this.autor,
+    this.poradac,
     this.ukon,
     this.nazevZavady,
   });
 
   final String? nazevZavady;
+  final String? poradac;
   final String? misto;
   final String spz;
   final String cisloZakazky;
@@ -130,7 +137,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
     if (widget.nazevZavady != null) return _jiny;
     if (_vybrany != null) return _vybrany;
     final ukon = widget.ukon;
-    final stavy = ref.read(nabidkaStavuProvider).valueOrNull;
+    final stavy = ref.read(nabidkaStavuProvider(widget.poradac)).valueOrNull;
     if (ukon == null || stavy == null) return null;
     return stavy.any((s) => s.kod == ukon.kod) ? ukon.kod : _jiny;
   }
@@ -161,7 +168,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
 
   @override
   Widget build(BuildContext context) {
-    final nabidka = ref.watch(nabidkaStavuProvider);
+    final nabidka = ref.watch(nabidkaStavuProvider(widget.poradac));
 
     return OknoZapisu(
       nadpis: switch (widget.nazevZavady ?? widget.ukon?.nazev) {
@@ -427,6 +434,7 @@ Future<void> pridatStavZakazce(
     spz: order.licensePlate,
     cisloZakazky: order.id,
     autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
+    poradac: order.poradac?.kod,
     ukon: ukon,
     nazevZavady: zavada?.nazevKroku ?? rucniUkon?.nazev,
   );
@@ -520,15 +528,16 @@ class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
 
   bool get _jenPoznamka => widget.stav.jeKrokZavady;
 
-  /// Vybraný stav, jinak ten původní. Kód, který z číselníku zmizel, je
-  /// vlastní text.
-  String get _zvoleny {
-    if (_vybrany != null) return _vybrany!;
+  /// Vybraný stav, jinak ten původní - i když v nabídce pořadače není
+  /// (vyřazený, nebo zapsaný dřív): je v ní navíc ([_sPuvodnim]), ať se
+  /// úpravou poznámky nepřevede na vlastní text a neztratí kód.
+  String get _zvoleny => _vybrany ?? widget.stav.kod ?? _jiny;
+
+  /// Nabídka pořadače a k ní původní stav, když v ní chybí.
+  List<NabidkaStavu> _sPuvodnim(List<NabidkaStavu> stavy) {
     final kod = widget.stav.kod;
-    final stavy = ref.read(nabidkaStavuProvider).valueOrNull;
-    if (kod == null) return _jiny;
-    if (stavy != null && !stavy.any((s) => s.kod == kod)) return _jiny;
-    return kod;
+    if (kod == null || stavy.any((s) => s.kod == kod)) return stavy;
+    return [...stavy, NabidkaStavu(kod: kod, nazev: widget.stav.nazev)];
   }
 
   bool get _jeVlastni => _zvoleny == _jiny;
@@ -561,7 +570,7 @@ class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
 
   @override
   Widget build(BuildContext context) {
-    final nabidka = ref.watch(nabidkaStavuProvider);
+    final nabidka = ref.watch(nabidkaStavuProvider(widget.order.poradac?.kod));
     final stav = widget.stav;
 
     return OknoZapisu(
@@ -587,7 +596,7 @@ class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
               onVlastni: () => setState(() => _vybrany = _jiny),
             ),
             data: (stavy) => _VyberStavu(
-              stavy: stavy,
+              stavy: _sPuvodnim(stavy),
               vybrany: _zvoleny,
               onZmena: (kod) => setState(() => _vybrany = kod),
             ),

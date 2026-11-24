@@ -872,7 +872,9 @@ class MockServiceOrderDataSource
   }
 
   @override
-  Future<List<NabidkaStavu>> nabidkaStavu() async {
+  Future<List<NabidkaStavu>> nabidkaStavu({String? poradac}) async {
+    // Ukázková data mají jen výchozí stavy - pořadače s vlastním
+    // seznamem tu nejsou.
     await _simulateLatency();
     return _nabidka;
   }

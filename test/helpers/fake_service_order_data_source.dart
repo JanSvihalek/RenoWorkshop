@@ -521,7 +521,12 @@ class FakeServiceOrderDataSource
     final index = _indexOf(orderId);
     if (index == -1) return null;
 
-    final popis = nazev ?? nabidka.firstWhere((s) => s.kod == kod).nazev;
+    final popis =
+        nazev ??
+        [
+          ...nabidka,
+          ...nabidkaPoradacu.values.expand((s) => s),
+        ].firstWhere((s) => s.kod == kod).nazev;
     final zaznam = {
       'id': 'stav-${_orders[index].statusHistory.length + 1}',
       'code': kod,
@@ -555,6 +560,9 @@ class FakeServiceOrderDataSource
     NabidkaStavu(kod: 'lakovna', nazev: 'Lakovna'),
     NabidkaStavu(kod: 'pripraveno', nazev: 'Připraveno k vyzvednutí'),
   ];
+
+  /// Vlastní seznamy pořadačů (kód pořadače -> stavy); ostatní [nabidka].
+  final nabidkaPoradacu = <String?, List<NabidkaStavu>>{};
 
   @override
   Future<ServiceOrderDto?> ulozPredmetOpravy(
@@ -1076,7 +1084,8 @@ class FakeServiceOrderDataSource
   }
 
   @override
-  Future<List<NabidkaStavu>> nabidkaStavu() async => nabidka;
+  Future<List<NabidkaStavu>> nabidkaStavu({String? poradac}) async =>
+      nabidkaPoradacu[poradac] ?? nabidka;
 
   @override
   Future<ServiceOrderDto?> addNote({
