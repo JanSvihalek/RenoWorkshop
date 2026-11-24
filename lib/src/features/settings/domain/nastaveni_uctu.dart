@@ -143,12 +143,18 @@ Nastaveni filtrZakazekZUctu(Nastaveni n, Map<String, Object?>? filtr) {
   );
 }
 
-/// Sloupce tabulky na účet a zpět.
-/// Šířky jen změněné; bez nich klíč `widths` vůbec není (jako na webu).
-Map<String, Object?> sloupceDoUctu(NastaveniSloupcu s) => {
+/// Sloupce tabulky na účet a zpět. Pořadí a skrytí jsou společné s webem,
+/// šířky jen appky (`appWidths`, i prázdné - ať jdou zrušit). Šířky webu
+/// a ostatní klíče zůstanou ze [zakladu], dřívější společné `widths` ne.
+Map<String, Object?> sloupceDoUctu(
+  NastaveniSloupcu s, [
+  Map<String, Object?>? zaklad,
+]) => {
+  for (final MapEntry(:key, :value) in {...?zaklad}.entries)
+    if (key != 'widths') key: value,
   'columns': s.poradi,
   'hidden': s.skryte,
-  if (s.sirky.isNotEmpty) 'widths': s.sirky,
+  'appWidths': s.sirky,
 };
 
 NastaveniSloupcu sloupceZUctu(Object? hodnota) {
@@ -158,7 +164,7 @@ NastaveniSloupcu sloupceZUctu(Object? hodnota) {
     skryte: _seznam(mapa, 'hidden'),
     sirky: {
       for (final MapEntry(:key, :value)
-          in (_mapa(mapa?['widths']) ?? const {}).entries)
+          in (_mapa(mapa?['appWidths']) ?? const {}).entries)
         if (value case final num sirka when sirka.isFinite)
           key: NastaveniSloupcu.upravSirku(sirka),
     },
@@ -223,7 +229,7 @@ Map<String, Object?> castiAplikace(
   // Výchozí sloupce se na účet neposílají, dokud tam žádné nejsou - jinak
   // by první změna čehokoli poslala i sloupce, které nikdo neměnil.
   if (!n.sloupce.vychozi || zaklad['ordersTable'] != null)
-    'ordersTable': sloupceDoUctu(n.sloupce),
+    'ordersTable': sloupceDoUctu(n.sloupce, _mapa(zaklad['ordersTable'])),
 };
 
 /// Nastavení z účtu do nastavení telefonu.

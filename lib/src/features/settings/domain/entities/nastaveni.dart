@@ -69,7 +69,9 @@ enum ZobrazeniZakazek {
 
 /// Sloupce tabulky zakázek: pořadí klíčů, skryté klíče a šířky. Prázdné
 /// pořadí = výchozí; v šířkách jen změněné sloupce (klíč → px), ostatní
-/// mají výchozí šířku. Nese se s účtem, je stejné na webu i v aplikaci.
+/// mají výchozí šířku. Nese se s účtem; pořadí a skrytí jsou stejné na
+/// webu i v aplikaci, šířky jen aplikace (na účtu `appWidths`) - web má
+/// jiné obrazovky i výchozí šířky.
 @immutable
 class NastaveniSloupcu {
   const NastaveniSloupcu({

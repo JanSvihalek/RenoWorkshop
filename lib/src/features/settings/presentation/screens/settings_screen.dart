@@ -502,8 +502,9 @@ class _SloupceTabulky extends ConsumerWidget {
             ),
       poznamka:
           'Pořadí, viditelnost a šířka sloupců (v px) v tabulkovém přehledu '
-          'zakázek. Číslo šířky jde klepnutím přepsat. Platí na vašem účtu - '
-          'stejně i na webu a jiném telefonu.',
+          'zakázek. Číslo šířky jde klepnutím přepsat. Platí na vašem účtu: '
+          'pořadí a viditelnost i na webu, šířky na všech vašich telefonech '
+          'a tabletech - web má vlastní.',
       radky: [
         for (final (i, sloupec) in vse.indexed)
           Padding(

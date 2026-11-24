@@ -80,33 +80,44 @@ void main() {
       expect(ucet['ordersTable'], {
         'columns': ['spz', 'prijato'],
         'hidden': ['vin'],
+        'appWidths': <String, int>{},
       });
       expect(nastaveniZUctu(const Nastaveni(), ucet).sloupce, sloupce);
     });
 
-    test('šířky sloupců tam a zpět, z webu jen čísla v rozsahu', () {
+    test('šířky appky tam a zpět, šířky webu zůstanou, společné ne', () {
       const sloupce = NastaveniSloupcu(sirky: {'model': 240});
       final ucet = castiAplikace(
         const Nastaveni(sloupce: sloupce),
         const PohledPlanu(),
-        const {},
+        const {
+          'ordersTable': {
+            'columns': ['spz'],
+            'hidden': <String>[],
+            'webWidths': {'model': 260},
+            'widths': {'spz': 90},
+          },
+        },
       );
-      // Jen šířky změněné = i tak se pošlou.
       expect(ucet['ordersTable'], {
         'columns': <String>[],
         'hidden': <String>[],
-        'widths': {'model': 240},
+        'webWidths': {'model': 260},
+        'appWidths': {'model': 240},
       });
       expect(nastaveniZUctu(const Nastaveni(), ucet).sloupce, sloupce);
 
-      final zWebu = nastaveniZUctu(const Nastaveni(), {
+      // Z účtu jen šířky appky, jen čísla v rozsahu.
+      final zUctu = nastaveniZUctu(const Nastaveni(), {
         'ordersTable': {
           'columns': <String>[],
           'hidden': <String>[],
-          'widths': {'model': 260.4, 'vin': 9999, 'spz': 'x'},
+          'webWidths': {'zakazka': 300},
+          'widths': {'spz': 90},
+          'appWidths': {'model': 260.4, 'vin': 9999, 'spz': 'x'},
         },
       });
-      expect(zWebu.sloupce.sirky, {'model': 260, 'vin': 500});
+      expect(zUctu.sloupce.sirky, {'model': 260, 'vin': 500});
     });
 
     test('klíče z webu zůstanou, jméno zpracovatele s id', () {
