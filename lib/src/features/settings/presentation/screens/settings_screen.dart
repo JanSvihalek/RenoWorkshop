@@ -542,9 +542,8 @@ class _SloupceTabulky extends ConsumerWidget {
                   klic: sloupec.klic,
                   nazev: sloupec.nazev,
                   sirka: sloupec.sirka.round(),
-                  vychozi:
-                      (vychoziSirkaSloupce(sloupec.klic) ?? sloupec.sirka)
-                          .round(),
+                  vychozi: (vychoziSirkaSloupce(sloupec.klic) ?? sloupec.sirka)
+                      .round(),
                   onZmena: (sirka) => zmenSirku(sloupec.klic, sirka),
                 ),
                 IconButton(
