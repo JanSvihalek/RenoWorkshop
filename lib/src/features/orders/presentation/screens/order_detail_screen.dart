@@ -1041,7 +1041,7 @@ class _DetailHeader extends ConsumerWidget {
                 order: order,
                 onKartaVozu: onKartaVozu,
                 sloupcu: sirka >= _sirkaJednaRada
-                    ? (order.lzePlanovatKlempirnu ? 9 : 8)
+                    ? (order.lzePlanovatKlempirnu ? 8 : 7)
                     : sirka >= _sirkaCtyriSloupce
                     ? 4
                     : 2,
@@ -1345,47 +1345,50 @@ class _PruhUdaju extends ConsumerWidget {
         text(order.mechanicName),
         Text('Servisní poradce', style: pod),
       ]),
-      // Skupina (Příjem, Dílna) - druhá část „Zpracovává", jen ručně.
+      // Zpracovává: skupina (Příjem, Dílna) a člověk v jednom chlívku -
+      // každá část se mění zvlášť, vlastním odkazem. Na rozdíl od
+      // zodpovědné osoby se obojí vede v aplikaci.
       KeyedSubtree(
-        key: const Key('skupina'),
-        child: bunka(
-          'SKUPINA',
-          [
-            if (order.skupina case final skupina?)
-              text(skupina.nazev)
-            else
-              Text('Bez skupiny', style: tlumene),
-            Text(switch (order.skupina?.od) {
-              final od? => 'od ${AppDateFormat.date(od)}',
-              null => 'Příjem / Dílna',
-            }, style: pod),
-          ],
-          akce: onSkupina == null
-              ? null
-              : odkaz(
+        key: const Key('zpracovatel'),
+        child: bunka('ZPRACOVÁVÁ', [
+          Row(
+            key: const Key('skupina'),
+            children: [
+              Expanded(
+                child: switch (order.skupina) {
+                  final skupina? => text(skupina.nazev),
+                  null => Text('Bez skupiny', style: tlumene),
+                },
+              ),
+              if (onSkupina != null) ...[
+                const SizedBox(width: Insets.sm),
+                odkaz(
                   order.skupina == null ? 'Zadat' : 'Změnit',
                   key: const Key('skupina-zmenit'),
                   onTap: onSkupina,
                 ),
-        ),
-      ),
-      // Zpracovatel se na rozdíl od zodpovědné osoby mění v aplikaci.
-      KeyedSubtree(
-        key: const Key('zpracovatel'),
-        child: bunka(
-          'ZPRACOVÁVÁ',
-          [
-            if (kdo == null) Text('Nikdo', style: tlumene) else text(kdo.jmeno),
-            Text(kdo == null ? 'Technik nepřiřazen' : 'Technik', style: pod),
-          ],
-          akce: onZpracovatel == null
-              ? null
-              : odkaz(
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Expanded(
+                child: kdo == null
+                    ? Text('Nikdo', style: tlumene)
+                    : text(kdo.jmeno),
+              ),
+              if (onZpracovatel != null) ...[
+                const SizedBox(width: Insets.sm),
+                odkaz(
                   kdo == null ? 'Zadat' : 'Změnit',
                   key: const Key('zpracovatel-zmenit'),
                   onTap: onZpracovatel,
                 ),
-        ),
+              ],
+            ],
+          ),
+        ]),
       ),
       // Bez času: hodina příjmu nikoho nezajímá.
       bunka('PŘIJATO → DOKONČENÍ', [

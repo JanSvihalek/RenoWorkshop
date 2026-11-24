@@ -166,6 +166,8 @@ void main() {
     expect(find.text('stání 4'), findsOneWidget);
 
     // Omylem přidaný stav jde zrušit - nejdřív se zeptá.
+    await tester.ensureVisible(find.byTooltip('Další akce').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Další akce').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Zrušit stav'));
