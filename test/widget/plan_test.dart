@@ -2059,18 +2059,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Plán klempírny a lakovny'), findsOneWidget);
 
-    // Z detailu jen tahle zakázka, v týdnu jejího plánu.
-    expect(find.byKey(const Key('plan-zaostreni')), findsOneWidget);
-    expect(find.text('Jen zakázka ZK-26-0001 · 1AA 1111'), findsOneWidget);
+    // Z detailu: SPZ v hledání, jen tahle zakázka, v týdnu jejího plánu.
+    final hledani = tester.widget<TextField>(
+      find.byKey(const Key('plan-hledani')),
+    );
+    expect(hledani.controller!.text, '1AA 1111');
     expect(find.byKey(const Key('plan-radek-ZK-26-0001')), findsOneWidget);
     expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsNothing);
-    expect(find.byKey(const Key('plan-hledani')), findsNothing);
 
-    // Celý plán - filtry zase vidět, uložený filtr se nezměnil.
-    await tester.tap(find.byKey(const Key('plan-cely-plan')));
+    // Smazáním hledání je zpět celý plán.
+    await tester.enterText(find.byKey(const Key('plan-hledani')), '');
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('plan-zaostreni')), findsNothing);
     expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsOneWidget);
-    expect(find.byKey(const Key('plan-hledani')), findsOneWidget);
   });
 }

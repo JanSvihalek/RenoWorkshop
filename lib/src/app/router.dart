@@ -193,14 +193,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: cestaPlanovace,
         builder: (context, state) => PlanScreen(
-          // Z detailu zakázky: ?zakazka=…&pobocka=… - jen ta zakázka.
-          zaostreni: switch (state.uri.queryParameters['zakazka']) {
-            final id? when id.isNotEmpty => (
-              zakazkaId: id,
-              pobocka: state.uri.queryParameters['pobocka'],
-            ),
-            _ => null,
-          },
           onBack: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.orders),
           onOpenOrder: (id) => context.push(AppRoutes.orderDetail(id)),

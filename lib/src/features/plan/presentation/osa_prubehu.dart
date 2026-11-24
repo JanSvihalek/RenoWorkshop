@@ -139,23 +139,27 @@ class OsaPrubehu extends ConsumerWidget {
             child: TextButton.icon(
               key: const Key('otevrit-planovac'),
               onPressed: () {
-                // Týden, kdy se na voze dělá: dnešní, je-li plán právě
-                // teď, jinak začátek plánu.
+                // Plánovač s touhle zakázkou: SPZ (bez ní číslo zakázky)
+                // v hledání, pobočka zakázky a týden, kdy se na voze dělá
+                // - dnešní, je-li plán právě teď, jinak začátek plánu.
+                // Hledaný text se na účet neukládá; smazáním je zpět celý
+                // plán.
                 if (plan != null) {
                   final den = plan.od.isAfter(dnes) || plan.do_.isBefore(dnes)
                       ? plan.od
                       : dnes;
                   ref.read(planZacatekProvider.notifier).state = pondeli(den);
                 }
-                context.push(
-                  Uri(
-                    path: cestaPlanovace,
-                    queryParameters: {
-                      'zakazka': order.id,
-                      'pobocka': ?order.branch?.code,
-                    },
-                  ).toString(),
-                );
+                if (order.branch?.code case final kod?) {
+                  ref.read(planPobockaProvider.notifier).state = kod;
+                }
+                final hledat = order.licensePlate.trim().isNotEmpty
+                    ? order.licensePlate.trim()
+                    : order.id;
+                ref
+                    .read(planFiltrProvider.notifier)
+                    .update((f) => f.copyWith(query: hledat));
+                context.push(cestaPlanovace);
               },
               icon: const Icon(Icons.calendar_month_outlined, size: 18),
               label: const Text('Otevřít plánovač'),
@@ -459,7 +463,7 @@ class _Polozka extends StatelessWidget {
     final radek = _Radek(
       prvni: prvni,
       posledni: posledni,
-      tecka: _Tecka(p.stav, mimo: mimo),
+      tecka: _Tecka(p.stav, id: p.zaznam?.id),
       pozadi: probiha
           ? AppColors.accent.withValues(alpha: 0.1)
           : mimo
@@ -469,30 +473,6 @@ class _Polozka extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: obsah),
-          // Dokončený krok má fajfku jako dokončená závada (zavady_card).
-          if (p.stav == StavPolozky.hotovo)
-            Padding(
-              padding: const EdgeInsets.only(left: Insets.sm),
-              child: Tooltip(
-                message: 'Dokončeno',
-                child: Container(
-                  key: Key('osa-fajfka-${p.zaznam?.id}'),
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: context.isDarkMode
-                        ? const Color(0xFF5FD38D)
-                        : const Color(0xFF2E9E5B),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_rounded,
-                    size: 18,
-                    color: palette.card,
-                  ),
-                ),
-              ),
-            ),
           // Úprava a zrušení jen u záznamů, které prošly serverem -
           // schované v nabídce, ať se nezmáčknou omylem.
           if (onUpravitStav != null || onZrusit != null)
@@ -589,14 +569,16 @@ class _StitekMimoPlan extends StatelessWidget {
   }
 }
 
-/// Puntík na ose: prázdný čeká, zelený hotovo, modrý probíhá, kosočtverec
-/// mimo plán, čárkovaný bez plánu.
+/// Puntík na ose: prázdný čeká, zelený s fajfkou hotovo (i mimo plán),
+/// modrý pulzující probíhá, čárkovaný bez plánu a zrušený.
 class _Tecka extends StatelessWidget {
-  const _Tecka(this.stav, {this.mimo = false}) : bezPlanu = false;
-  const _Tecka.bezPlanu() : stav = null, mimo = false, bezPlanu = true;
+  const _Tecka(this.stav, {this.id}) : bezPlanu = false;
+  const _Tecka.bezPlanu() : stav = null, id = null, bezPlanu = true;
 
   final StavPolozky? stav;
-  final bool mimo;
+
+  /// Záznam stavu - jen pro klíč fajfky.
+  final String? id;
   final bool bezPlanu;
 
   @override
@@ -608,33 +590,26 @@ class _Tecka extends StatelessWidget {
         painter: _CarkovanyKruh(palette.muted),
       );
     }
-    if (mimo) {
-      return Transform.rotate(
-        angle: pi / 4,
-        child: Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            color: palette.muted2,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      );
-    }
     return switch (stav) {
       StavPolozky.zruseno => CustomPaint(
         size: const Size(10, 10),
         painter: _CarkovanyKruh(palette.muted),
       ),
       StavPolozky.probiha => const _PulzujiciTecka(),
-      StavPolozky.hotovo => Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.isDarkMode
-              ? const Color(0xFF81C784)
-              : AppColors.heliosGreen,
+      // Zelená jako fajfka dokončené závady (zavady_card).
+      StavPolozky.hotovo => Tooltip(
+        message: 'Dokončeno',
+        child: Container(
+          key: Key('osa-fajfka-$id'),
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: context.isDarkMode
+                ? const Color(0xFF5FD38D)
+                : const Color(0xFF2E9E5B),
+          ),
+          child: Icon(Icons.check_rounded, size: 13, color: palette.card),
         ),
       ),
       _ => Container(

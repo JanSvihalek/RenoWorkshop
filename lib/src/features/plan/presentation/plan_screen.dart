@@ -45,32 +45,6 @@ class PlanScreen extends ConsumerWidget {
     required this.onBack,
     required this.onOpenOrder,
     required this.onOpenSettings,
-    this.zaostreni,
-  });
-
-  final VoidCallback onBack;
-  final ValueChanged<String> onOpenOrder;
-  final VoidCallback onOpenSettings;
-
-  /// Otevřený z detailu zakázky - ukáže jen ji ([planZaostreniProvider]).
-  final ZaostreniPlanu? zaostreni;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => ProviderScope(
-    overrides: [planZaostreniProvider.overrideWith((ref) => zaostreni)],
-    child: _Plan(
-      onBack: onBack,
-      onOpenOrder: onOpenOrder,
-      onOpenSettings: onOpenSettings,
-    ),
-  );
-}
-
-class _Plan extends ConsumerWidget {
-  const _Plan({
-    required this.onBack,
-    required this.onOpenOrder,
-    required this.onOpenSettings,
   });
 
   final VoidCallback onBack;
@@ -235,11 +209,8 @@ class _Ovladani extends ConsumerWidget {
                     key: Key('plan-pobocka-${p.kod}'),
                     label: Text(p.nazev),
                     selected: p.kod == pobocka,
-                    onSelected: (_) {
-                      // Jiná pobočka = konec zaostření na jednu zakázku.
-                      ref.read(planZaostreniProvider.notifier).state = null;
-                      ref.read(planPobockaProvider.notifier).state = p.kod;
-                    },
+                    onSelected: (_) =>
+                        ref.read(planPobockaProvider.notifier).state = p.kod,
                   ),
               ],
             ),
@@ -339,12 +310,9 @@ class _Nadpis extends StatelessWidget {
   }
 }
 
-/// Kód vybrané pobočky - bez volby první z nabídky. Zaostřená zakázka
-/// ukazuje svou pobočku, uloženou volbu ale nemění.
+/// Kód vybrané pobočky - bez volby první z nabídky.
 String? vybranaPobocka(WidgetRef ref, List<PobockaPlanu>? pobocky) {
-  final vybrana =
-      ref.watch(planZaostreniProvider)?.pobocka ??
-      ref.watch(planPobockaProvider);
+  final vybrana = ref.watch(planPobockaProvider);
   if (pobocky == null || pobocky.isEmpty) return vybrana;
   return pobocky.any((p) => p.kod == vybrana) ? vybrana : pobocky.first.kod;
 }
@@ -368,18 +336,12 @@ class _Obsah extends ConsumerWidget {
       for (final p in prehled.polozky)
         if (pobocka == null || p.pobockaKod == pobocka) p,
     ];
-    final zaostreni = ref.watch(planZaostreniProvider);
-    final polozky = zaostreni != null
-        ? [
-            for (final p in vsechny)
-              if (p.zakazkaId == zaostreni.zakazkaId) p,
-          ]
-        : filtrujPlan(
-            vsechny,
-            filtr: ref.watch(planFiltrProvider),
-            kodLaku: ref.watch(planKodLakuProvider),
-            stavPlanu: ref.watch(planStavPlanuProvider),
-          );
+    final polozky = filtrujPlan(
+      vsechny,
+      filtr: ref.watch(planFiltrProvider),
+      kodLaku: ref.watch(planKodLakuProvider),
+      stavPlanu: ref.watch(planStavPlanuProvider),
+    );
     final kody = spolecneKody(polozky, dny.first, dny.last);
     // Z celé pobočky - vytížení dílny na filtru nezávisí.
     final zatez = vytizeniDilen(vsechny);
@@ -392,13 +354,7 @@ class _Obsah extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(Insets.xl),
         children: [
-          if (zaostreni != null)
-            _Zaostreni(
-              zakazkaId: zaostreni.zakazkaId,
-              spz: polozky.firstOrNull?.spz,
-            )
-          else
-            _FiltryPlanu(polozky: vsechny),
+          _FiltryPlanu(polozky: vsechny),
           const SizedBox(height: Insets.md),
           Text(
             polozky.length == vsechny.length
@@ -1821,47 +1777,6 @@ class _TerminVPlanu extends StatelessWidget {
                 ),
               ),
             ),
-    );
-  }
-}
-
-/// Místo filtrů u plánovače otevřeného z detailu zakázky: ukazuje se jen
-/// ona, tlačítkem se vrátí celý plán s uloženými filtry.
-class _Zaostreni extends ConsumerWidget {
-  const _Zaostreni({required this.zakazkaId, this.spz});
-
-  final String zakazkaId;
-  final String? spz;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    return Wrap(
-      spacing: Insets.sm,
-      runSpacing: Insets.sm,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Chip(
-          key: const Key('plan-zaostreni'),
-          avatar: const Icon(Icons.filter_alt_outlined, size: 18),
-          label: Text(
-            (spz ?? '').isEmpty
-                ? 'Jen zakázka $zakazkaId'
-                : 'Jen zakázka $zakazkaId · $spz',
-          ),
-        ),
-        TextButton(
-          key: const Key('plan-cely-plan'),
-          onPressed: () =>
-              ref.read(planZaostreniProvider.notifier).state = null,
-          child: const Text('Zobrazit celý plán'),
-        ),
-        if (spz == null)
-          Text(
-            'V zobrazeném období zakázka v plánu není.',
-            style: AppTextStyles.metaSmall.copyWith(color: palette.muted),
-          ),
-      ],
     );
   }
 }

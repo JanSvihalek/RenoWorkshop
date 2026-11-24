@@ -47,14 +47,6 @@ final planFiltrProvider = StateProvider<OrderFilter>(
   ),
 );
 
-/// Zakázka, na kterou je plánovač zaostřený - otevřený z detailu zakázky.
-/// Ukáže jen ji, na její pobočce, bez ohledu na filtry. Platí jen pro tu
-/// obrazovku (přepisuje se v ProviderScope plánovače) a na účet se
-/// neukládá - uložený filtr a pobočka zůstanou, jak byly.
-typedef ZaostreniPlanu = ({String zakazkaId, String? pobocka});
-
-final planZaostreniProvider = StateProvider<ZaostreniPlanu?>((ref) => null);
-
 /// Jen zakázky s těmito kódy laku (ručními i z barvy vozu). Prázdné = vše.
 final planKodLakuProvider = StateProvider<Set<String>>((ref) => const {});
 
