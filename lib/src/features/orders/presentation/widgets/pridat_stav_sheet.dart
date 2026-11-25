@@ -18,8 +18,9 @@ import '../controllers/order_actions_controller.dart';
 import '../controllers/orders_providers.dart';
 import 'okno_zapisu.dart';
 
-/// Co uživatel vyplnil: stav z číselníku nebo vlastní text, a k tomu
-/// nepovinná poznámka.
+/// Co uživatel vyplnil: stav z číselníku (u závady, úkonu mimo číselník
+/// a dřív zapsaného vlastního stavu jejich název), a k tomu nepovinná
+/// poznámka.
 class VybranyStav {
   const VybranyStav({
     this.kod,
@@ -84,7 +85,9 @@ Future<VybranyStav?> vyberStav(
   );
 }
 
-/// Hodnota v seznamu, která znamená „stav mimo číselník".
+/// Hodnota v seznamu, která znamená „stav mimo číselník". Vlastní text
+/// uživatel napsat nemůže (od 25. 11. jen stavy z databáze) - mimo
+/// číselník je jen název závady, úkonu nebo dřív zapsaného stavu.
 const _jiny = '__jiny__';
 
 class _PridatStavOkno extends ConsumerStatefulWidget {
@@ -111,9 +114,10 @@ class _PridatStavOkno extends ConsumerStatefulWidget {
 }
 
 class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
-  late final _vlastni = TextEditingController(
-    text: widget.nazevZavady ?? widget.ukon?.nazev ?? '',
-  );
+  /// Název kroku mimo číselník: závada, nebo úkon, jehož typ v číselníku
+  /// stavů není.
+  String? get _nazevMimo => widget.nazevZavady ?? widget.ukon?.nazev;
+
   final _poznamka = TextEditingController();
   late final _misto = TextEditingController(text: widget.misto ?? '');
 
@@ -125,14 +129,13 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
 
   @override
   void dispose() {
-    _vlastni.dispose();
     _poznamka.dispose();
     _misto.dispose();
     super.dispose();
   }
 
   /// Vybraný stav, u zahájení úkonu jinak ten podle jeho typu. Typ, který
-  /// v číselníku stavů není, se zapíše jako vlastní text.
+  /// v číselníku stavů není, se zapíše svým názvem.
   String? get _zvoleny {
     if (widget.nazevZavady != null) return _jiny;
     if (_vybrany != null) return _vybrany;
@@ -146,7 +149,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
 
   /// Přidat jde, teprve když je co uložit.
   bool get _lzePridat =>
-      _zvoleny != null && (!_jeVlastni || _vlastni.text.trim().isNotEmpty);
+      _zvoleny != null && (!_jeVlastni || (_nazevMimo ?? '').isNotEmpty);
 
   void _potvrd() {
     if (!_lzePridat) return;
@@ -156,7 +159,7 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
     Navigator.of(context).pop(
       VybranyStav(
         kod: _jeVlastni ? null : _zvoleny,
-        nazev: _jeVlastni ? _vlastni.text.trim() : null,
+        nazev: _jeVlastni ? _nazevMimo : null,
         poznamka: poznamka.isEmpty ? null : poznamka,
         // Beze změny se místo neposílá - ať se u něj nepřepisuje čas
         // zápisu, když vůz zůstal stát.
@@ -191,36 +194,25 @@ class _PridatStavOknoState extends ConsumerState<_PridatStavOkno> {
               padding: EdgeInsets.symmetric(vertical: Insets.xl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            // Výpadek nabídky nesmí zabránit zápisu stavu - zbývá
-            // vlastní text, což je pořád lepší než nic.
-            error: (_, _) => _NabidkaChybi(
+            // Bez nabídky stav přidat nejde - vlastní text se nezapisuje.
+            error: (_, _) => const _NabidkaChybi(
               text: 'Nabídku stavů se nepodařilo načíst.',
-              jeVlastni: _jeVlastni,
-              onVlastni: () => setState(() => _vybrany = _jiny),
             ),
             data: (stavy) => stavy.isEmpty
-                ? _NabidkaChybi(
-                    text: 'Číselník stavů je zatím prázdný.',
-                    jeVlastni: _jeVlastni,
-                    onVlastni: () => setState(() => _vybrany = _jiny),
-                  )
+                ? const _NabidkaChybi(text: 'Číselník stavů je zatím prázdný.')
                 : _VyberStavu(
                     stavy: stavy,
                     vybrany: _zvoleny,
+                    // Úkon, jehož typ v číselníku není, má v nabídce svůj
+                    // název - ať jde po přeložení zase vybrat.
+                    nazevMimo:
+                        _zvoleny == _jiny ||
+                            (widget.ukon != null &&
+                                !stavy.any((s) => s.kod == widget.ukon!.kod))
+                        ? _nazevMimo
+                        : null,
                     onZmena: (kod) => setState(() => _vybrany = kod),
                   ),
-          ),
-        ],
-
-        if (_jeVlastni && widget.nazevZavady == null) ...[
-          const SizedBox(height: Insets.base),
-          const PopisekPole('VLASTNÍ STAV'),
-          PoleZapisu(
-            controller: _vlastni,
-            napoveda: 'Např. Čeká na díl z Německa',
-            maxDelka: 100,
-            autofocus: true,
-            onChanged: (_) => setState(() {}),
           ),
         ],
 
@@ -327,11 +319,16 @@ class _VyberStavu extends StatelessWidget {
     required this.stavy,
     required this.vybrany,
     required this.onZmena,
+    this.nazevMimo,
   });
 
   final List<NabidkaStavu> stavy;
   final String? vybrany;
   final ValueChanged<String?> onZmena;
+
+  /// Název kroku mimo číselník (úkon, dřív zapsaný vlastní stav) - v nabídce
+  /// je navíc. `null` = nabídka jen z číselníku.
+  final String? nazevMimo;
 
   @override
   Widget build(BuildContext context) {
@@ -360,19 +357,8 @@ class _VyberStavu extends StatelessWidget {
           items: [
             for (final stav in stavy)
               DropdownMenuItem(value: stav.kod, child: Text(stav.nazev)),
-            // Na dílně se objeví situace, kterou nikdo dopředu nevymyslel;
-            // čekat kvůli ní na úpravu číselníku by znamenalo, že se stav
-            // nezapíše vůbec.
-            DropdownMenuItem(
-              value: _jiny,
-              child: Text(
-                'Jiný…',
-                style: AppTextStyles.cardBody.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            if (nazevMimo case final nazev?)
+              DropdownMenuItem(value: _jiny, child: Text(nazev)),
           ],
           onChanged: onZmena,
         ),
@@ -382,36 +368,15 @@ class _VyberStavu extends StatelessWidget {
 }
 
 class _NabidkaChybi extends StatelessWidget {
-  const _NabidkaChybi({
-    required this.text,
-    required this.jeVlastni,
-    required this.onVlastni,
-  });
+  const _NabidkaChybi({required this.text});
 
   final String text;
-  final bool jeVlastni;
-  final VoidCallback onVlastni;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          text,
-          style: AppTextStyles.cardBody.copyWith(color: palette.muted),
-        ),
-        if (!jeVlastni) ...[
-          const SizedBox(height: Insets.sm),
-          OutlinedButton.icon(
-            onPressed: onVlastni,
-            icon: const Icon(Icons.edit_note_rounded, size: 20),
-            label: const Text('Zapsat vlastní stav'),
-          ),
-        ],
-      ],
+    return Text(
+      text,
+      style: AppTextStyles.cardBody.copyWith(color: context.palette.muted),
     );
   }
 }
@@ -472,7 +437,7 @@ Future<void> pridatStavZakazce(
 }
 
 /// Úprava zapsaného stavu, když se někdo ukliknul: jiný stav z číselníku,
-/// vlastní text, poznámka. Čas a autor zůstávají, u stavu přibude
+/// poznámka. Dřív zapsaný vlastní stav jde nechat, nový napsat ne. Čas a autor zůstávají, u stavu přibude
 /// „upraveno". Krok zahájený u závady nebo ručního úkonu nese jejich název,
 /// u něj jde upravit jen poznámka.
 Future<void> upravitStavZakazky(
@@ -516,9 +481,6 @@ class _UpravitStavOkno extends ConsumerStatefulWidget {
 }
 
 class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
-  late final _vlastni = TextEditingController(
-    text: widget.stav.jeVlastni ? widget.stav.nazev : '',
-  );
   late final _poznamka = TextEditingController(
     text: widget.stav.poznamka ?? '',
   );
@@ -542,26 +504,21 @@ class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
 
   bool get _jeVlastni => _zvoleny == _jiny;
 
-  bool get _lzeUlozit =>
-      _jenPoznamka || !_jeVlastni || _vlastni.text.trim().isNotEmpty;
+  /// Mimo číselník jde nechat jen původní vlastní text.
+  bool get _lzeUlozit => _jenPoznamka || !_jeVlastni || widget.stav.jeVlastni;
 
   @override
   void dispose() {
-    _vlastni.dispose();
     _poznamka.dispose();
     super.dispose();
   }
 
   void _potvrd() {
     if (!_lzeUlozit) return;
-    // Text vlastního stavu, když z číselníku zmizel, zůstane, jak byl.
-    final vlastni = _vlastni.text.trim().isEmpty
-        ? widget.stav.nazev
-        : _vlastni.text.trim();
     Navigator.of(context).pop(
       VybranyStav(
         kod: _jenPoznamka || _jeVlastni ? null : _zvoleny,
-        nazev: _jenPoznamka || !_jeVlastni ? null : vlastni,
+        nazev: _jenPoznamka || !_jeVlastni ? null : widget.stav.nazev,
         // Prázdný text poznámku smaže.
         poznamka: _poznamka.text.trim(),
       ),
@@ -590,26 +547,15 @@ class _UpravitStavOknoState extends ConsumerState<_UpravitStavOkno> {
               padding: EdgeInsets.symmetric(vertical: Insets.xl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (_, _) => _NabidkaChybi(
+            error: (_, _) => const _NabidkaChybi(
               text: 'Nabídku stavů se nepodařilo načíst.',
-              jeVlastni: _jeVlastni,
-              onVlastni: () => setState(() => _vybrany = _jiny),
             ),
             data: (stavy) => _VyberStavu(
               stavy: _sPuvodnim(stavy),
               vybrany: _zvoleny,
+              nazevMimo: stav.jeVlastni ? stav.nazev : null,
               onZmena: (kod) => setState(() => _vybrany = kod),
             ),
-          ),
-        ],
-        if (_jeVlastni && !_jenPoznamka) ...[
-          const SizedBox(height: Insets.base),
-          const PopisekPole('VLASTNÍ STAV'),
-          PoleZapisu(
-            controller: _vlastni,
-            napoveda: 'Např. Čeká na díl z Německa',
-            maxDelka: 100,
-            onChanged: (_) => setState(() {}),
           ),
         ],
         const SizedBox(height: Insets.base),
