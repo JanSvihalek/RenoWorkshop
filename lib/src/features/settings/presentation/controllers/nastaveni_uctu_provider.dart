@@ -46,6 +46,8 @@ class _Napojeni {
     filtr: _ref.read(planFiltrProvider),
     kodLaku: _ref.read(planKodLakuProvider),
     stavPlanu: _ref.read(planStavPlanuProvider),
+    hustota: _ref.read(planHustotaProvider),
+    razeni: _ref.read(planRazeniProvider),
   );
 
   Map<String, Object?> _aktualni() =>
@@ -59,7 +61,9 @@ class _Napojeni {
       ..listen(planTydnuProvider, (_, _) => _naplanuj())
       ..listen(planFiltrProvider, (_, _) => _naplanuj())
       ..listen(planKodLakuProvider, (_, _) => _naplanuj())
-      ..listen(planStavPlanuProvider, (_, _) => _naplanuj());
+      ..listen(planStavPlanuProvider, (_, _) => _naplanuj())
+      ..listen(planHustotaProvider, (_, _) => _naplanuj())
+      ..listen(planRazeniProvider, (_, _) => _naplanuj());
     unawaited(_nacti());
   }
 
@@ -95,6 +99,8 @@ class _Napojeni {
     _ref.read(planFiltrProvider.notifier).state = pohled.filtr;
     _ref.read(planKodLakuProvider.notifier).state = pohled.kodLaku;
     _ref.read(planStavPlanuProvider.notifier).state = pohled.stavPlanu;
+    _ref.read(planHustotaProvider.notifier).state = pohled.hustota;
+    _ref.read(planRazeniProvider.notifier).state = pohled.razeni;
   }
 
   void _naplanuj() {

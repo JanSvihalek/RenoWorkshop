@@ -4,6 +4,87 @@ import '../../orders/domain/entities/dilensky_stav.dart';
 import '../../orders/domain/entities/plan_klempirny.dart';
 import '../../orders/domain/entities/service_order.dart';
 
+/// Hustota řádků plánu - minimum výšky řádku a co je v levém sloupci.
+/// Názvy jsou hodnoty na účtu (`planner.density`), stejné jako na webu.
+enum HustotaPlanu {
+  compact('Kompaktní', 'K'),
+  standard('Standardní', 'S'),
+  detailed('Podrobná', 'P');
+
+  const HustotaPlanu(this.popisek, this.zkratka);
+
+  final String popisek;
+
+  /// Na telefonu se do přepínače vejde jen písmeno.
+  final String zkratka;
+
+  static HustotaPlanu? z(Object? hodnota) {
+    for (final h in values) {
+      if (h.name == hodnota) return h;
+    }
+    return null;
+  }
+
+  /// Na telefonu Kompaktní, jinak Standardní.
+  static HustotaPlanu vychozi(double sirkaObrazovky) =>
+      sirkaObrazovky < 600 ? compact : standard;
+}
+
+/// Podle čeho se řadí uvnitř skupin plánu. Názvy jsou hodnoty na účtu
+/// (`planner.sort.key`), stejné jako na webu.
+enum KlicRazeni {
+  due('Termín dokončení'),
+  start('Začátek plánu'),
+  paintCode('Kód laku'),
+  status('Dílenský stav'),
+  plate('SPZ'),
+  order('Číslo zakázky');
+
+  const KlicRazeni(this.popisek);
+
+  final String popisek;
+}
+
+/// Řazení plánu - klíč a směr.
+class RazeniPlanu {
+  const RazeniPlanu(this.klic, {this.sestupne = false});
+
+  static const vychozi = RazeniPlanu(KlicRazeni.due);
+
+  final KlicRazeni klic;
+  final bool sestupne;
+
+  /// Klepnutí na volbu: jiná začíná vzestupně, stejná otočí směr.
+  RazeniPlanu po(KlicRazeni volba) => volba == klic
+      ? RazeniPlanu(klic, sestupne: !sestupne)
+      : RazeniPlanu(volba);
+
+  Map<String, Object?> doUctu() => {
+    'key': klic.name,
+    'dir': sestupne ? 'desc' : 'asc',
+  };
+
+  /// Z účtu - neznámé = výchozí.
+  static RazeniPlanu z(Object? hodnota) {
+    if (hodnota case {
+      'key': final String k,
+      'dir': final String d,
+    } when d == 'asc' || d == 'desc') {
+      for (final klic in KlicRazeni.values) {
+        if (klic.name == k) return RazeniPlanu(klic, sestupne: d == 'desc');
+      }
+    }
+    return vychozi;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is RazeniPlanu && other.klic == klic && other.sestupne == sestupne;
+
+  @override
+  int get hashCode => Object.hash(klic, sestupne);
+}
+
 /// Pobočka s klempírnou - v plánu se vybírá, čí týden se ukazuje.
 class PobockaPlanu {
   const PobockaPlanu({required this.kod, required this.nazev});
@@ -334,21 +415,21 @@ class RadekVytizeni {
   );
 }
 
-/// Šířka zúženého víkendu ve 14 dnech.
+/// Šířka zúženého víkendu.
 const sirkaVikendu = 46.0;
 
-/// Ve 14 dnech je víkend zúžený, v týdnu mají všechny dny stejnou šířku.
-bool jeUzkyDen(DateTime d, List<DateTime> dny) => dny.length > 7 && jeVikend(d);
+/// Víkend (zavřeno) je zúžený v týdnu i ve 14 dnech.
+bool jeUzkyDen(DateTime d) => jeVikend(d);
 
 /// Šířky sloupců - stejné pro hlavičku, pozadí řádků i pruhy. Když se dny do
 /// [dostupna] nevejdou, osa se posouvá do stran.
 List<double> sirkySloupcu(List<DateTime> dny, double dostupna) {
-  final uzke = dny.where((d) => jeUzkyDen(d, dny)).length;
+  final uzke = dny.where((d) => jeUzkyDen(d)).length;
   final den = math.max(
     dny.length > 7 ? 80.0 : 120.0,
     (dostupna - uzke * sirkaVikendu) / (dny.length - uzke),
   );
-  return [for (final d in dny) jeUzkyDen(d, dny) ? sirkaVikendu : den];
+  return [for (final d in dny) jeUzkyDen(d) ? sirkaVikendu : den];
 }
 
 enum StavPruhu { planovano, probiha, hotovo }
@@ -628,14 +709,98 @@ DateTime navazujiciDen(PlanKlempirny plan) {
   return d;
 }
 
-/// Řádky plánu rozdělené pro osu: s blokem v období (od začátku bloku),
-/// s plánem jindy a bez plánu (od nejdéle čekající).
+/// Porovnání textů s čísly přirozeně (Z9 před Z10), bez velikosti písmen.
+int _prirozene(String a, String b) {
+  final cast = RegExp(r'\d+|\D+');
+  final x = cast.allMatches(a.toLowerCase()).map((m) => m[0]!).toList();
+  final y = cast.allMatches(b.toLowerCase()).map((m) => m[0]!).toList();
+  for (var i = 0; i < math.min(x.length, y.length); i++) {
+    final cx = int.tryParse(x[i]);
+    final cy = int.tryParse(y[i]);
+    final c = cx != null && cy != null
+        ? cx.compareTo(cy)
+        : x[i].compareTo(y[i]);
+    if (c != 0) return c;
+  }
+  return x.length.compareTo(y.length);
+}
+
+/// Řazení řádků uvnitř skupiny plánu. Prázdná hodnota (bez termínu, bez
+/// plánu, bez kódu laku, bez stavu, bez SPZ) jde v obou směrech na konec.
+/// Dílenský stav podle pořadí v číselníku [poradiStavu], neznámý jako bez
+/// stavu. Při shodě dřívější pořadí: začátek plánu, nejdéle čekající, číslo
+/// zakázky. Stejné jako na webu (seradRadky).
+List<PolozkaPlanu> seradPolozky(
+  List<PolozkaPlanu> polozky,
+  RazeniPlanu razeni, {
+  List<NabidkaStavu> poradiStavu = const [],
+}) {
+  final podleKodu = {for (final (i, s) in poradiStavu.indexed) s.kod: i};
+  final podleNazvu = {
+    for (final (i, s) in poradiStavu.indexed) s.nazev.toLowerCase(): i,
+  };
+  Object? hodnota(PolozkaPlanu p) => switch (razeni.klic) {
+    // Jen den - čas termínu z Heliosu pořadí nemění, jako na webu.
+    KlicRazeni.due => switch (p.zakazka?.dueAt) {
+      final d? => DateTime(d.year, d.month, d.day),
+      null => null,
+    },
+    KlicRazeni.start => p.plan?.od,
+    KlicRazeni.paintCode => p.kodLaku,
+    KlicRazeni.status => switch (p.zakazka?.stav) {
+      null => null,
+      final s =>
+        (s.kod == null ? null : podleKodu[s.kod]) ??
+            podleNazvu[s.nazev.toLowerCase()],
+    },
+    KlicRazeni.plate => p.spz.trim().isEmpty ? null : p.spz.trim(),
+    KlicRazeni.order => p.zakazkaId,
+  };
+  int porovnej(Object a, Object b) => a is String && b is String
+      ? _prirozene(a, b)
+      : (a as Comparable<Object>).compareTo(b);
+  // Prázdné na konec, jinak podle hodnoty.
+  int sPrazdnymNaKonci(Object? a, Object? b) => a != null && b != null
+      ? porovnej(a, b)
+      : a != null
+      ? -1
+      : b != null
+      ? 1
+      : 0;
+  final smer = razeni.sestupne ? -1 : 1;
+  final sHodnotou = [for (final p in polozky) (p: p, h: hodnota(p))];
+  sHodnotou.sort((a, b) {
+    final ha = a.h;
+    final hb = b.h;
+    if (ha != null && hb != null) {
+      final c = porovnej(ha, hb) * smer;
+      if (c != 0) return c;
+    } else if (ha != null || hb != null) {
+      return ha == null ? 1 : -1;
+    }
+    final c = sPrazdnymNaKonci(a.p.plan?.od, b.p.plan?.od);
+    if (c != 0) return c;
+    final d = sPrazdnymNaKonci(a.p.prijato, b.p.prijato);
+    if (d != 0) return d;
+    return _prirozene(a.p.zakazkaId, b.p.zakazkaId);
+  });
+  return [for (final x in sHodnotou) x.p];
+}
+
+/// Řádky plánu rozdělené pro osu: s blokem v období, s plánem jindy a bez
+/// plánu. Uvnitř skupin podle [razeni] ([seradPolozky]).
 ({
   List<PolozkaPlanu> vObdobi,
   List<PolozkaPlanu> jindy,
   List<PolozkaPlanu> bezPlanu,
 })
-rozdelPolozky(List<PolozkaPlanu> polozky, DateTime od, DateTime do_) {
+rozdelPolozky(
+  List<PolozkaPlanu> polozky,
+  DateTime od,
+  DateTime do_, {
+  RazeniPlanu razeni = RazeniPlanu.vychozi,
+  List<NabidkaStavu> poradiStavu = const [],
+}) {
   final vObdobi = <PolozkaPlanu>[];
   final jindy = <PolozkaPlanu>[];
   final bezPlanu = <PolozkaPlanu>[];
@@ -649,13 +814,13 @@ rozdelPolozky(List<PolozkaPlanu> polozky, DateTime od, DateTime do_) {
       jindy.add(p);
     }
   }
-  int podlePlanu(PolozkaPlanu a, PolozkaPlanu b) =>
-      a.plan!.od.compareTo(b.plan!.od);
-  final daleko = DateTime(9999);
-  vObdobi.sort(podlePlanu);
-  jindy.sort(podlePlanu);
-  bezPlanu.sort((a, b) => (a.prijato ?? daleko).compareTo(b.prijato ?? daleko));
-  return (vObdobi: vObdobi, jindy: jindy, bezPlanu: bezPlanu);
+  List<PolozkaPlanu> serad(List<PolozkaPlanu> p) =>
+      seradPolozky(p, razeni, poradiStavu: poradiStavu);
+  return (
+    vObdobi: serad(vObdobi),
+    jindy: serad(jindy),
+    bezPlanu: serad(bezPlanu),
+  );
 }
 
 /// Filtr plánu nad rámec filtru zakázek: kód laku a stav plánu.
@@ -715,4 +880,44 @@ class TerminDokonceni {
         : StavTerminu.vPoradku;
     return TerminDokonceni(termin: termin, stav: stav, zbyva: zbyva);
   }
+}
+
+/// Termín do kompaktního řádku: jen den a měsíc, po termínu s vykřičníkem.
+String kratkyTermin(TerminDokonceni t) {
+  final kdy = '${t.termin.day}. ${t.termin.month}.';
+  return t.stav == StavTerminu.poTerminu ? '! $kdy' : kdy;
+}
+
+/// Rozměry řádku podle hustoty (px): nejmenší výška, výška pruhu, krok mezi
+/// linkami pod sebou, místo nad první a pod poslední linkou. Stejné jako
+/// na webu (web/src/plan/logika.ts).
+typedef RozmeryHustoty = ({
+  double minimum,
+  double pruh,
+  double krok,
+  double nad,
+  double pod,
+});
+
+const Map<HustotaPlanu, RozmeryHustoty> rozmeryHustoty = {
+  HustotaPlanu.compact: (minimum: 36, pruh: 22, krok: 26, nad: 7, pod: 3),
+  HustotaPlanu.standard: (minimum: 72, pruh: 26, krok: 30, nad: 8, pod: 18),
+  // Podrobná = dřívější vzhled: pruhy nahoře, pod nimi pás pro přidání.
+  HustotaPlanu.detailed: (minimum: 102, pruh: 30, krok: 34, nad: 8, pod: 26),
+};
+
+/// Výška řádku a odsazení první linky pruhů. Hustota dává jen minimum -
+/// překrývající se úkony jedou pod sebou a řádek se zvětší. V Kompaktní
+/// a Standardní jsou pruhy svisle uprostřed, v Podrobné nahoře.
+({double vyska, double odsazeni, double pruh, double krok}) rozvrhRadku(
+  HustotaPlanu hustota,
+  int linek,
+) {
+  final r = rozmeryHustoty[hustota]!;
+  final vyska = math.max(r.minimum, r.nad + linek * r.krok + r.pod);
+  final obsah = linek * r.krok - (r.krok - r.pruh);
+  final odsazeni = hustota == HustotaPlanu.detailed || linek == 0
+      ? r.nad
+      : math.max(r.nad, ((vyska - obsah) / 2).roundToDouble());
+  return (vyska: vyska, odsazeni: odsazeni, pruh: r.pruh, krok: r.krok);
 }

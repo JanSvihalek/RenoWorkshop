@@ -561,6 +561,233 @@ void main() {
       expect(r.jindy.map((p) => p.zakazkaId), ['jindy']);
       expect(r.bezPlanu.map((p) => p.zakazkaId), ['bez-stary', 'bez-novy']);
     });
+
+    group('řazení', () {
+      PolozkaPlanu p(
+        String id, {
+        String? termin,
+        String? od,
+        String spz = 'SPZ',
+        String? stav,
+        String? stavKod,
+        String? kod,
+      }) => PolozkaPlanu.fromJson(
+        {
+          'orderId': id,
+          'licensePlate': spz,
+          'plan': od == null ? null : plan(od, od, kod: kod ?? '416'),
+        },
+        // Bez zakázky = bez termínu a bez stavu.
+        zakazka: termin == null && stav == null
+            ? null
+            : buildOrderDto(
+                id: id,
+                dueAt: termin ?? '2026-12-31T00:00:00',
+                status: stav ?? '',
+                statusCode: stavKod,
+              ).toDomain(),
+      );
+      List<String> ids(List<PolozkaPlanu> r) => [
+        for (final x in r) x.zakazkaId,
+      ];
+
+      test('termín, bez termínu na konec v obou směrech', () {
+        final radky = [
+          p('bez'),
+          p('b', termin: '2026-10-20T15:00:00'),
+          p('a', termin: '2026-10-14T08:00:00'),
+        ];
+        expect(ids(seradPolozky(radky, RazeniPlanu.vychozi)), [
+          'a',
+          'b',
+          'bez',
+        ]);
+        expect(
+          ids(
+            seradPolozky(
+              radky,
+              const RazeniPlanu(KlicRazeni.due, sestupne: true),
+            ),
+          ),
+          ['b', 'a', 'bez'],
+        );
+      });
+
+      test('začátek plánu, bez plánu na konec', () {
+        final radky = [
+          p('bez'),
+          p('pozde', od: '2026-10-16'),
+          p('brzy', od: '2026-10-12'),
+        ];
+        const zacatek = RazeniPlanu(KlicRazeni.start);
+        expect(ids(seradPolozky(radky, zacatek)), ['brzy', 'pozde', 'bez']);
+        expect(ids(seradPolozky(radky, zacatek.po(KlicRazeni.start))), [
+          'pozde',
+          'brzy',
+          'bez',
+        ]);
+      });
+
+      test('dílenský stav podle číselníku, SPZ, číslo zakázky, kód laku', () {
+        const ciselnik = [
+          NabidkaStavu(kod: 'demontaz', nazev: 'Demontáž'),
+          NabidkaStavu(kod: 'lakovna', nazev: 'Lakovna'),
+          NabidkaStavu(kod: 'montaz', nazev: 'Montáž'),
+        ];
+        final radky = [
+          p('Z3', stav: 'Montáž', stavKod: 'montaz'),
+          p('Z1'),
+          // Starý záznam bez kódu se pozná podle názvu.
+          p('Z2', stav: 'lakovna'),
+          p('Z4', stav: 'Demontáž', stavKod: 'demontaz'),
+        ];
+        const stav = RazeniPlanu(KlicRazeni.status);
+        expect(ids(seradPolozky(radky, stav, poradiStavu: ciselnik)), [
+          'Z4',
+          'Z2',
+          'Z3',
+          'Z1',
+        ]);
+        expect(
+          ids(
+            seradPolozky(
+              radky,
+              stav.po(KlicRazeni.status),
+              poradiStavu: ciselnik,
+            ),
+          ),
+          ['Z3', 'Z2', 'Z4', 'Z1'],
+        );
+        // Číslo zakázky přirozeně (Z10 za Z9), prázdná SPZ na konec.
+        final cisla = [p('Z10', spz: ''), p('Z9', spz: '1AB')];
+        expect(ids(seradPolozky(cisla, const RazeniPlanu(KlicRazeni.order))), [
+          'Z9',
+          'Z10',
+        ]);
+        expect(
+          ids(
+            seradPolozky(
+              cisla,
+              const RazeniPlanu(KlicRazeni.plate, sestupne: true),
+            ),
+          ),
+          ['Z9', 'Z10'],
+        );
+        final kody = [
+          p('bez'),
+          p('b', od: '2026-10-12', kod: 'P0C4E'),
+          p('a', od: '2026-10-12', kod: 'A96'),
+        ];
+        expect(
+          ids(seradPolozky(kody, const RazeniPlanu(KlicRazeni.paintCode))),
+          ['a', 'b', 'bez'],
+        );
+      });
+
+      test('skupiny zůstávají, řadí se uvnitř nich', () {
+        final r = rozdelPolozky(
+          [
+            p('bez-pozde', termin: '2026-10-30T00:00:00'),
+            p('bez-brzy', termin: '2026-10-13T00:00:00'),
+            p('plan-pozde', od: '2026-10-12', termin: '2026-11-30T00:00:00'),
+            p('plan-brzy', od: '2026-10-15', termin: '2026-10-20T00:00:00'),
+          ],
+          DateTime(2026, 10, 12),
+          DateTime(2026, 10, 16),
+        );
+        expect(ids(r.vObdobi), ['plan-brzy', 'plan-pozde']);
+        expect(ids(r.bezPlanu), ['bez-brzy', 'bez-pozde']);
+      });
+    });
+
+    test('výška řádku podle hustoty a počtu souběžných úkonů', () {
+      // Bez úkonu i s jedním platí minimum hustoty.
+      expect(rozvrhRadku(HustotaPlanu.compact, 0).vyska, 36);
+      expect(rozvrhRadku(HustotaPlanu.compact, 1), (
+        vyska: 36.0,
+        odsazeni: 7.0,
+        pruh: 22.0,
+        krok: 26.0,
+      ));
+      expect(rozvrhRadku(HustotaPlanu.standard, 1), (
+        vyska: 72.0,
+        odsazeni: 23.0,
+        pruh: 26.0,
+        krok: 30.0,
+      ));
+      expect(rozvrhRadku(HustotaPlanu.detailed, 1), (
+        vyska: 102.0,
+        odsazeni: 8.0,
+        pruh: 30.0,
+        krok: 34.0,
+      ));
+      // Souběžné úkony pod sebou řádek zvětší; v Kompaktní a Standardní
+      // uprostřed.
+      expect(rozvrhRadku(HustotaPlanu.compact, 2).vyska, 62);
+      expect(rozvrhRadku(HustotaPlanu.compact, 2).odsazeni, 7);
+      expect(rozvrhRadku(HustotaPlanu.standard, 2).vyska, 86);
+      expect(rozvrhRadku(HustotaPlanu.standard, 2).odsazeni, 15);
+      expect(rozvrhRadku(HustotaPlanu.standard, 3).vyska, 116);
+      // Podrobná: pruhy nahoře, pod nimi pás pro přidání.
+      expect(rozvrhRadku(HustotaPlanu.detailed, 3).vyska, 136);
+      expect(rozvrhRadku(HustotaPlanu.detailed, 3).odsazeni, 8);
+    });
+  });
+
+  testWidgets('hustota řádků a řazení v hlavičce Zakázka', (tester) async {
+    await spust(
+      tester,
+      zakazky: [
+        buildOrderDto(
+          id: 'ZK-1',
+          licensePlate: '9ZZ 0001',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          dueAt: '2026-10-30T15:00:00',
+        ),
+        buildOrderDto(
+          id: 'ZK-2',
+          licensePlate: '1AA 0002',
+          utvar: '11215',
+          canPlanBodyshop: true,
+          dueAt: '2026-10-14T15:00:00',
+        ),
+      ],
+    );
+    await otevriPlanovac(tester);
+    double y(String id) =>
+        tester.getTopLeft(find.byKey(Key('plan-radek-$id'))).dy;
+
+    // Souhrn: tři skupiny dávají dohromady počet zakázek.
+    expect(
+      find.text('2 zakázek · v tomto týdnu 0 · jindy 0 · bez plánu 2'),
+      findsOneWidget,
+    );
+    // Výchozí: Standardní, podle termínu dokončení.
+    expect(tester.getSize(find.byKey(const Key('plan-radek-ZK-1'))).height, 72);
+    expect(find.text('Termín dokončení ↑'), findsOneWidget);
+    expect(y('ZK-2'), lessThan(y('ZK-1')));
+
+    // Kompaktní: řádek 36 px, termín zkráceně.
+    await tester.tap(find.text('Kompaktní'));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byKey(const Key('plan-radek-ZK-1'))).height, 36);
+    expect(find.text('30. 10.'), findsOneWidget);
+
+    // SPZ vzestupně, druhé klepnutí otočí směr.
+    await tester.tap(find.byKey(const Key('plan-razeni')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('plan-razeni-plate')));
+    await tester.pumpAndSettle();
+    expect(find.text('SPZ ↑'), findsOneWidget);
+    expect(y('ZK-2'), lessThan(y('ZK-1')));
+    await tester.tap(find.byKey(const Key('plan-razeni')));
+    await tester.pumpAndSettle();
+    expect(find.text('↑ vzestupně'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plan-razeni-plate')));
+    await tester.pumpAndSettle();
+    expect(find.text('SPZ ↓'), findsOneWidget);
+    expect(y('ZK-1'), lessThan(y('ZK-2')));
   });
 
   testWidgets('klempířskou zakázku jde z detailu zaplánovat', (tester) async {
@@ -684,9 +911,10 @@ void main() {
     final druhy = tester
         .getSize(find.byKey(const Key('plan-pruh-ZK-26-0002-1')))
         .width;
+    // Čt-ne: dva pracovní dny a úzký víkend (2 × 46 px) - víkend je na ose.
     expect(
-      druhy,
-      greaterThan(den),
+      druhy + 8,
+      closeTo((den + 8) / 3 * 2 + 2 * sirkaVikendu, 0.5),
       reason: 'čt-ne proti po-st, víkend je na ose',
     );
 
@@ -878,7 +1106,8 @@ void main() {
     final vyskaPred = tester.getSize(radek).height;
 
     // Klepnutí na den pod pruhem přidá úkon, nepřepíše první.
-    await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-13')));
+    final den13 = find.byKey(const Key('plan-den-ZK-26-0001-13'));
+    await tester.tapAt(tester.getRect(den13).bottomCenter.translate(0, -5));
     await tester.pumpAndSettle();
     expect(find.text('Přidat úkon'), findsOneWidget);
     expect(find.text('13. 10. – 13. 10. 2026'), findsOneWidget);
@@ -898,14 +1127,14 @@ void main() {
     expect(find.byKey(const Key('plan-pruh-ZK-26-0001-1')), findsOneWidget);
     expect(find.byKey(const Key('plan-pruh-ZK-26-0001-2')), findsOneWidget);
 
-    // Oba 13. 10. - jedou pod sebou.
+    // Oba 13. 10. - jedou pod sebou (Standardní hustota: krok 30 px).
     final prvni = tester.getTopLeft(
       find.byKey(const Key('plan-pruh-ZK-26-0001-1')),
     );
     final druhy = tester.getTopLeft(
       find.byKey(const Key('plan-pruh-ZK-26-0001-2')),
     );
-    expect(druhy.dy, prvni.dy + 34);
+    expect(druhy.dy, prvni.dy + 30);
     expect(tester.getSize(radek).height, greaterThanOrEqualTo(vyskaPred));
 
     // Úprava změní jen ten úkon, zrušení druhého nechá první.
@@ -1244,11 +1473,16 @@ void main() {
       expect(stavVytizeni(3, 0).procent, isNull);
     });
 
-    test('šířky sloupců: v týdnu stejné, ve 14 dnech úzké víkendy', () {
+    test('šířky sloupců: víkend úzký v týdnu i ve 14 dnech', () {
       final tyden = dnyOsy(DateTime(2026, 11, 2), 1);
       final dva = dnyOsy(DateTime(2026, 11, 2), 2);
-      expect(sirkySloupcu(tyden, 1400).toSet(), {200.0});
-      expect(sirkySloupcu(tyden, 390).toSet(), {120.0});
+      // 1400 - 2 × 46 = 1308 na pět pracovních dnů.
+      expect(sirkySloupcu(tyden, 1400).sublist(0, 5).toSet(), {261.6});
+      expect(sirkySloupcu(tyden, 1400).sublist(5), [
+        sirkaVikendu,
+        sirkaVikendu,
+      ]);
+      expect(sirkySloupcu(tyden, 390).sublist(0, 5).toSet(), {120.0});
       final sirky = sirkySloupcu(dva, 1184);
       expect(sirky[0], 100);
       expect(sirky[5], sirkaVikendu);
@@ -1327,6 +1561,8 @@ void main() {
         velikost: const Size(390, 844),
       );
       await otevriPlanovac(tester);
+      await tester.ensureVisible(find.byKey(const Key('plan-hlavicka-13')));
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const Key('plan-hlavicka-13')),
         warnIfMissed: false,
@@ -1931,7 +2167,9 @@ void main() {
     testWidgets('nový úkon průběh nemá', (tester) async {
       await spust(tester, zakazky: [zakazka()]);
       await otevriPlanovac(tester);
-      await tester.tap(find.byKey(const Key('plan-den-ZK-26-0001-12')));
+      // Pod pruhem - uprostřed dne je pruh úkonu.
+      final den12 = find.byKey(const Key('plan-den-ZK-26-0001-12'));
+      await tester.tapAt(tester.getRect(den12).bottomCenter.translate(0, -5));
       await tester.pumpAndSettle();
       expect(find.text('Přidat úkon'), findsOneWidget);
       expect(prubeh, findsNothing);
@@ -1964,7 +2202,14 @@ void main() {
     );
     final stav = find.byKey(const Key('plan-stav-ZK-26-0001'));
     expect(stav, findsOneWidget);
-    // Pod zákazníkem VIN a kdo zodpovídá.
+    // VIN a kdo zodpovídá jen v Podrobné hustotě.
+    expect(find.byKey(const Key('plan-vuz-ZK-26-0001')), findsNothing);
+    await tester.tap(find.text('Podrobná'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byKey(const Key('plan-radek-ZK-26-0001'))).height,
+      102,
+    );
     expect(
       tester.widget<Text>(find.byKey(const Key('plan-vuz-ZK-26-0001'))).data,
       allOf(contains('VIN '), contains('Zodpovídá: Jan Dvořák')),
@@ -2002,7 +2247,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('plan-hledani')), '1AA');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('plan-radek-ZK-26-0002')), findsNothing);
-    expect(find.text('1 z 2 zakázek'), findsOneWidget);
+    expect(find.textContaining('1 z 2 zakázek · '), findsOneWidget);
 
     // Je na konci vodorovně posouvané řady filtrů.
     await tester.ensureVisible(find.byKey(const Key('plan-zrusit-filtry')));

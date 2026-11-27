@@ -12,7 +12,8 @@ import '../../orders/domain/entities/order_filter.dart';
 import '../../plan/domain/prehled_planu.dart';
 import 'entities/nastaveni.dart';
 
-/// Pohled plánovače - pobočka, týden / 14 dní a filtr (bez hledání).
+/// Pohled plánovače - pobočka, týden / 14 dní, filtr (bez hledání),
+/// hustota řádků a řazení.
 class PohledPlanu {
   const PohledPlanu({
     this.pobocka,
@@ -20,6 +21,8 @@ class PohledPlanu {
     this.filtr = const OrderFilter(),
     this.kodLaku = const {},
     this.stavPlanu = const {},
+    this.hustota,
+    this.razeni = RazeniPlanu.vychozi,
   });
 
   final String? pobocka;
@@ -27,6 +30,10 @@ class PohledPlanu {
   final OrderFilter filtr;
   final Set<String> kodLaku;
   final Set<StavPlanuFiltr> stavPlanu;
+
+  /// `null` = nikdo nevybral, platí výchozí podle šířky obrazovky.
+  final HustotaPlanu? hustota;
+  final RazeniPlanu razeni;
 }
 
 /// Zpracovatel na účtu: `me`, `none`, nebo id.
@@ -175,6 +182,8 @@ NastaveniSloupcu sloupceZUctu(Object? hodnota) {
 Map<String, Object?> pohledDoUctu(PohledPlanu p, Map<String, Object?>? zaklad) {
   final f = p.filtr;
   return {
+    // Klíče, kterým appka nerozumí, zůstanou, jak jsou na účtu.
+    ...?zaklad,
     'branch': p.pobocka,
     'weeks': p.tydnu == 2 ? 2 : 1,
     'filter': _prekryj(_mapa(zaklad?['filter']), {
@@ -187,6 +196,11 @@ Map<String, Object?> pohledDoUctu(PohledPlanu p, Map<String, Object?>? zaklad) {
       'paintCode': p.kodLaku,
       'planStatus': p.stavPlanu.map((s) => s.name),
     }),
+    // Nevybraná hustota a výchozí řazení se na účet neposílají, dokud tam
+    // nic není - jinak by je první změna čehokoli uložila.
+    if (p.hustota case final h?) 'density': h.name,
+    if (zaklad?['sort'] != null || p.razeni != RazeniPlanu.vychozi)
+      'sort': p.razeni.doUctu(),
   };
 }
 
@@ -214,6 +228,8 @@ PohledPlanu pohledZUctu(Map<String, Object?>? ucet, OrderFilter filtr) {
       for (final s in StavPlanuFiltr.values)
         if (stavy.contains(s.name)) s,
     },
+    hustota: HustotaPlanu.z(ucet?['density']),
+    razeni: RazeniPlanu.z(ucet?['sort']),
   );
 }
 

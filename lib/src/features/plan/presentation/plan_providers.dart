@@ -31,6 +31,14 @@ final kapacitaProvider = FutureProvider.family<PrehledKapacity, String>(
 /// Kolik týdnů plán ukazuje - týden, nebo 14 dní.
 final planTydnuProvider = StateProvider<int>((ref) => 1);
 
+/// Hustota řádků. `null` = nikdo nevybral, výchozí podle šířky obrazovky.
+final planHustotaProvider = StateProvider<HustotaPlanu?>((ref) => null);
+
+/// Řazení uvnitř skupin plánu.
+final planRazeniProvider = StateProvider<RazeniPlanu>(
+  (ref) => RazeniPlanu.vychozi,
+);
+
 /// Pondělí prvního zobrazeného týdne. Začíná se tímto týdnem.
 final planZacatekProvider = StateProvider<DateTime>(
   (ref) => pondeli(ref.watch(dnesProvider)),

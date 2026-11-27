@@ -161,6 +161,34 @@ void main() {
       expect(zpet.filtr.query, 'x5');
       expect(zpet.stavPlanu, {StavPlanuFiltr.bez});
       expect(zpet.tydnu, 2);
+      expect(zpet.hustota, isNull);
+      expect(zpet.razeni, RazeniPlanu.vychozi);
+    });
+
+    test('pohled plánovače: hustota a řazení, cizí klíče zůstanou', () {
+      const pohled = PohledPlanu(
+        hustota: HustotaPlanu.compact,
+        razeni: RazeniPlanu(KlicRazeni.plate, sestupne: true),
+      );
+      final ucet = pohledDoUctu(pohled, {'novy': 1});
+      expect(ucet['novy'], 1);
+      expect(ucet['density'], 'compact');
+      expect(ucet['sort'], {'key': 'plate', 'dir': 'desc'});
+      final zpet = pohledZUctu(ucet, const OrderFilter());
+      expect(zpet.hustota, HustotaPlanu.compact);
+      expect(zpet.razeni, const RazeniPlanu(KlicRazeni.plate, sestupne: true));
+      // Neznámé hodnoty = výchozí.
+      final spatne = pohledZUctu({
+        'density': 'velka',
+        'sort': {'key': 'vin', 'dir': 'asc'},
+      }, const OrderFilter());
+      expect(spatne.hustota, isNull);
+      expect(spatne.razeni, RazeniPlanu.vychozi);
+      // Výchozí řazení se neposílá, dokud na účtu žádné není.
+      expect(
+        pohledDoUctu(const PohledPlanu(), null).containsKey('sort'),
+        isFalse,
+      );
     });
 
     test('posílají se jen změněné klíče', () {
