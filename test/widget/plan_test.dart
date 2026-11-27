@@ -1779,6 +1779,18 @@ void main() {
     await tester.tap(find.byKey(const Key('plan-ukon-1')));
     await tester.pumpAndSettle();
     expect(find.text('Upravit úkon'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Upravit úkon'))).pop();
+    await tester.pumpAndSettle();
+
+    // Nabídka ⋯ u kroku z plánovače otevře stejný formulář, ne úpravu stavu.
+    await tester.ensureVisible(find.byKey(const Key('osa-menu-ukon-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('osa-menu-ukon-2')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('osa-upravit')), findsNothing);
+    await tester.tap(find.byKey(const Key('osa-upravit-ukon')));
+    await tester.pumpAndSettle();
+    expect(find.text('Upravit úkon'), findsOneWidget);
   });
 
   testWidgets('v plánu jsou i zakázky bez plánu - klepnutí na den zaplánuje', (

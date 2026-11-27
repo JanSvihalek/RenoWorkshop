@@ -129,9 +129,11 @@ class OsaPrubehu extends ConsumerWidget {
                         .read(orderActionsProvider.notifier)
                         .dokonciStav(order.id, p.zaznam!.id!)
                   : null,
-              // Zrušený stav už jen ukazuje, co se stalo.
+              // Zrušený stav už jen ukazuje, co se stalo. Krok z plánovače
+              // se upravuje formulářem plánovače (Upravit úkon), ne stavu.
               onUpravitStav:
                   p.zaznam?.id != null &&
+                      p.ukon == null &&
                       p.stav != StavPolozky.zruseno &&
                       onUpravit != null
                   ? () => onUpravit!(p.zaznam!)
@@ -367,6 +369,8 @@ class _Polozka extends StatelessWidget {
       ),
     );
     final upraveno = zruseno ? null : p.zaznam?.upraveno;
+    // Krok z plánovače: v nabídce ⋯ stejný formulář jako klepnutí na název.
+    final upravitUkon = p.ukon != null ? onUpravit : null;
 
     final obsah = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,15 +490,25 @@ class _Polozka extends StatelessWidget {
           Expanded(child: obsah),
           // Úprava a zrušení jen u záznamů, které prošly serverem -
           // schované v nabídce, ať se nezmáčknou omylem.
-          if (onUpravitStav != null || onZrusit != null)
+          if (upravitUkon != null || onUpravitStav != null || onZrusit != null)
             PopupMenuButton<VoidCallback>(
-              key: Key('osa-menu-${p.zaznam?.id}'),
+              key: Key(
+                p.zaznam?.id != null
+                    ? 'osa-menu-${p.zaznam!.id}'
+                    : 'osa-menu-ukon-${p.ukon?.id}',
+              ),
               tooltip: 'Další akce',
               icon: Icon(Icons.more_horiz, size: 20, color: palette.muted),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 160),
               onSelected: (akce) => akce(),
               itemBuilder: (_) => [
+                if (upravitUkon != null)
+                  PopupMenuItem(
+                    key: const Key('osa-upravit-ukon'),
+                    value: upravitUkon,
+                    child: const Text('Upravit úkon'),
+                  ),
                 if (onUpravitStav != null)
                   PopupMenuItem(
                     key: const Key('osa-upravit'),
