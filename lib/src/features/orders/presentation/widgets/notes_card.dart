@@ -188,21 +188,18 @@ class _NoteRow extends StatelessWidget {
 /// Nejdelší poznámka do pracovního listu.
 const maxDelkaPoznamky = 500;
 
-/// Co technik napsal: text a jestli poznámku hned zvýraznit.
-typedef NovaPoznamka = ({String text, bool zvyraznit});
-
-/// Dialog pro přidání poznámky do pracovního listu. Vrací text a volbu
-/// zvýraznění, nebo `null` při zrušení.
+/// Dialog pro přidání poznámky do pracovního listu. Vrací text, nebo `null`
+/// při zrušení. Zvýrazňuje se až vlaječkou u uložené poznámky.
 ///
 /// [spz] a [cisloZakazky] jsou v hlavičce, ať technik ví, ke kterému vozu
 /// píše; [autor] je jméno, pod kterým se poznámka uloží.
-Future<NovaPoznamka?> showAddNoteDialog(
+Future<String?> showAddNoteDialog(
   BuildContext context, {
   required String spz,
   required String cisloZakazky,
   required String autor,
 }) {
-  return showDialog<NovaPoznamka>(
+  return showDialog<String>(
     context: context,
     builder: (_) =>
         _NovaPoznamkaDialog(spz: spz, cisloZakazky: cisloZakazky, autor: autor),
@@ -226,7 +223,6 @@ class _NovaPoznamkaDialog extends StatefulWidget {
 
 class _NovaPoznamkaDialogState extends State<_NovaPoznamkaDialog> {
   final _text = TextEditingController();
-  bool _zvyraznit = false;
 
   @override
   void dispose() {
@@ -238,7 +234,7 @@ class _NovaPoznamkaDialogState extends State<_NovaPoznamkaDialog> {
 
   void _uloz() {
     if (!_lzeUlozit) return;
-    Navigator.of(context).pop((text: _text.text.trim(), zvyraznit: _zvyraznit));
+    Navigator.of(context).pop(_text.text.trim());
   }
 
   @override
@@ -264,16 +260,6 @@ class _NovaPoznamkaDialogState extends State<_NovaPoznamkaDialog> {
           sDiktovanim: true,
           // Tlačítko Uložit se rozsvítí s prvním znakem.
           onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: Insets.sm),
-        CheckboxListTile(
-          key: const Key('nova-poznamka-zvyraznit'),
-          value: _zvyraznit,
-          onChanged: (v) => setState(() => _zvyraznit = v ?? false),
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-          title: const Text('Zvýraznit'),
-          subtitle: const Text('Poznámka bude nahoře a žlutě'),
         ),
       ],
     );

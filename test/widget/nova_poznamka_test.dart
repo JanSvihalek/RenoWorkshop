@@ -136,15 +136,15 @@ void main() {
     await tester.tap(ulozit);
     await tester.pumpAndSettle();
 
-    // Druhá rovnou zvýrazněná.
+    // Dialog zvýraznění nenabízí - jen vlaječka u uložené poznámky.
     final pridat = find.descendant(
       of: find.byType(NotesCard),
       matching: find.text('Přidat'),
     );
     await tester.tap(pridat);
     await tester.pumpAndSettle();
+    expect(find.text('Zvýraznit'), findsNothing);
     await tester.enterText(pole, 'Pozor, chybí klíč');
-    await tester.tap(find.byKey(const Key('nova-poznamka-zvyraznit')));
     await tester.pump();
     await tester.tap(ulozit);
     await tester.pumpAndSettle();
@@ -157,13 +157,10 @@ void main() {
           ),
         )
         .dy;
-    expect(find.byTooltip('Zrušit zvýraznění'), findsOneWidget);
+    expect(find.byTooltip('Zrušit zvýraznění'), findsNothing);
     expect(y('Pozor, chybí klíč'), lessThan(y('Běžná')));
 
-    // Vypnout u zvýrazněné, zapnout u běžné - zvýrazněná jde nahoru.
-    await tester.tap(find.byTooltip('Zrušit zvýraznění'));
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('Zrušit zvýraznění'), findsNothing);
+    // Zvýraznit starší - jde nahoru; vypnout - vrátí se pod novější.
     await tester.tap(
       find.descendant(
         of: find.byKey(const Key('poznamka-N-test-1')),
@@ -172,6 +169,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(y('Běžná'), lessThan(y('Pozor, chybí klíč')));
+    await tester.tap(find.byTooltip('Zrušit zvýraznění'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Zrušit zvýraznění'), findsNothing);
+    expect(y('Pozor, chybí klíč'), lessThan(y('Běžná')));
   });
 
   testWidgets('Zrušit nic neuloží', (tester) async {

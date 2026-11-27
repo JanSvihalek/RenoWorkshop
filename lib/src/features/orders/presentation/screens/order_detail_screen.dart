@@ -279,16 +279,16 @@ class _DetailBody extends ConsumerWidget {
   }
 
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
-    final nova = await showAddNoteDialog(
+    final text = await showAddNoteDialog(
       context,
       spz: order.licensePlate,
       cisloZakazky: order.id,
       autor: ref.read(currentEmployeeProvider)?.displayName ?? 'Dílna',
     );
-    if (nova == null || nova.text.isEmpty) return;
+    if (text == null || text.isEmpty) return;
     await ref
         .read(orderActionsProvider.notifier)
-        .addNote(orderId: order.id, text: nova.text, zvyraznit: nova.zvyraznit);
+        .addNote(orderId: order.id, text: text);
   }
 
   @override
