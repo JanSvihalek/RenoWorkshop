@@ -461,6 +461,18 @@ class PolozkaOsy {
 bool _patriKUkonu(DilenskyStav z, UkonPlanu u) =>
     z.kod == u.typ.kod || z.nazev == u.typ.nazev;
 
+/// Bublina úkonu plánu v průběhu: kdo ho v plánovači založil a kdo ho
+/// naposledy změnil. Neupravený úkon změnil naposledy ten, kdo ho založil.
+/// Dokončení v průběhu je jiná věc - to je záznam stavu, ne úkon plánu.
+String? bublinaUkonu(UkonPlanu u) {
+  final posledni = u.upravil ?? u.zaplanoval;
+  final radky = [
+    if (u.zaplanoval != null) 'Vytvořil/Naplánoval: ${u.zaplanoval}',
+    if (posledni != null) 'Poslední změna: $posledni',
+  ];
+  return radky.isEmpty ? null : radky.join('\n');
+}
+
 /// Plán a historie stavů v jedné ose. Typy úkonů mají stejné kódy jako stavy,
 /// stav mimo číselník se pozná podle názvu. Co se ještě nedělá je nahoře, pak
 /// co probíhá, pod tím co je hotové, vždy nejnovější první.

@@ -403,6 +403,33 @@ void main() {
         );
       });
 
+      test('bublina úkonu: kdo naplánoval a kdo naposledy změnil', () {
+        UkonPlanu ukon({String? zaplanoval, String? upravil}) => UkonPlanu(
+          id: 1,
+          typ: const TypUkonu(
+            kod: 'lakovna',
+            nazev: 'Lakovna',
+            barva: '#000000',
+          ),
+          od: DateTime(2026, 11, 12),
+          do_: DateTime(2026, 11, 16),
+          zaplanoval: zaplanoval,
+          upravil: upravil,
+        );
+        expect(
+          bublinaUkonu(
+            ukon(zaplanoval: 'Slípek Václav', upravil: 'Lang Jaroslav'),
+          ),
+          'Vytvořil/Naplánoval: Slípek Václav\nPoslední změna: Lang Jaroslav',
+        );
+        // Neupravený úkon změnil naposledy ten, kdo ho založil.
+        expect(
+          bublinaUkonu(ukon(zaplanoval: 'Slípek Václav')),
+          'Vytvořil/Naplánoval: Slípek Václav\nPoslední změna: Slípek Václav',
+        );
+        expect(bublinaUkonu(ukon()), isNull);
+      });
+
       test('nahoře co čeká, pak co probíhá, dole hotové', () {
         expect(
           osaPrubehu(plny, historie).map((p) => (p.nazev, p.stav)).toList(),

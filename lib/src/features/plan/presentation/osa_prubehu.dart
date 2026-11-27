@@ -548,10 +548,9 @@ class _Polozka extends StatelessWidget {
         ],
       ),
     );
-    final kdo = p.ukon?.zaplanoval;
-    return kdo == null
-        ? radek
-        : Tooltip(message: 'Zaplánoval $kdo', child: radek);
+    final ukon = p.ukon;
+    final bublina = ukon == null ? null : bublinaUkonu(ukon);
+    return bublina == null ? radek : Tooltip(message: bublina, child: radek);
   }
 }
 
